@@ -1,8 +1,58 @@
-javascript:(function(){
+/**
+ * BannerBlock
+ * Xóa banner, popup, cookie notice, newsletter, ads có nút X
+ * Author: nguyenquocngu93
+ * Version: 1.0
+ */
+(function() {
     'use strict';
     
     var removed = 0;
-    var hidden = 0;
+    
+    // ========== HELPERS ==========
+    function isVideoOrImportant(el) {
+        if (!el) return true;
+        if (el === document.body || el === document.documentElement) return true;
+        if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') return true;
+        if (el.tagName === 'IFRAME') {
+            var src = el.src || '';
+            if (/youtube|vimeo|player|embed|video/i.test(src)) return true;
+        }
+        if (el.querySelector('video, audio')) return true;
+        
+        var classId = ((el.className || '') + ' ' + (el.id || '')).toLowerCase();
+        if (/player|video-container|video-wrapper|main-content|article-content|post-content/.test(classId)) return true;
+        
+        if (el.tagName === 'HEADER' || el.tagName === 'NAV' || el.tagName === 'MAIN' || el.tagName === 'ARTICLE') return true;
+        
+        return false;
+    }
+    
+    function findAdContainer(closeBtn) {
+        var el = closeBtn.parentElement;
+        var depth = 0;
+        
+        while (el && el !== document.body && depth < 6) {
+            var style = getComputedStyle(el);
+            var rect = el.getBoundingClientRect();
+            var classId = ((el.className || '') + ' ' + (el.id || '')).toLowerCase();
+            
+            if (/popup|modal|banner|overlay|lightbox|notification|prompt|dialog|subscribe|newsletter|cookie|ad-|-ad/i.test(classId)) {
+                return el;
+            }
+            
+            if ((style.position === 'fixed' || style.position === 'absolute') && 
+                rect.width > 150 && rect.height > 100 &&
+                (parseInt(style.zIndex) || 0) > 10) {
+                return el;
+            }
+            
+            el = el.parentElement;
+            depth++;
+        }
+        
+        return null;
+    }
     
     // ========== 1. XÓA CÁC ELEMENT BANNER PHỔ BIẾN ==========
     var selectors = [
@@ -18,19 +68,12 @@ javascript:(function(){
         '[id*="google-ads"]',
         '[class^="ad-"]',
         '[class$="-ad"]',
-        '[class*=" ad-"]',
-        '[class*="-ad "]',
         '[id^="ad-"]',
         '[id$="-ad"]',
-        '[id^="ads-"]',
-        '[id$="-ads"]',
         '[class*="AdSlot"]',
         '[class*="ad-slot"]',
-        '[class*="ad_slot"]',
         '[class*="ad-container"]',
-        '[class*="ad_container"]',
         '[class*="ad-wrap"]',
-        '[class*="ad_wrap"]',
         '[class*="adsbygoogle"]',
         'ins.adsbygoogle',
         'ins[class*="ad"]',
@@ -46,7 +89,6 @@ javascript:(function(){
         '[class*="modal"]:not([class*="modal-content"])',
         '[class*="overlay"]:not([class*="video-overlay"])',
         '[class*="lightbox"]',
-        '[class*="dialog"][class*="ad"]',
         '[role="dialog"][class*="ad"]',
         
         // Newsletter & subscription
@@ -95,27 +137,12 @@ javascript:(function(){
         '[class*="push-notification"]',
         '[class*="notification-permission"]',
         
-        // Social share bars
-        '[class*="share-bar"][class*="floating"]',
-        '[class*="social-float"]',
-        
         // Chat widgets
         '[class*="intercom-container"]',
         '[class*="drift-widget"]',
         '[class*="zendesk-widget"]',
         '[id*="crisp-chatbox"]',
         '[id*="tawk-chat"]',
-        '[class*="chat-widget"][class*="fixed"]',
-        
-        // Video ads
-        '.video-ads',
-        '.videoAdUi',
-        '.ytp-ad-overlay-container',
-        '.ytp-ad-text-overlay',
-        
-        // Sticky footers
-        '[class*="sticky-footer"][class*="ad"]',
-        '[class*="fixed-bottom"][class*="ad"]',
         
         // Native ads
         '[class*="sponsored"]',
@@ -132,15 +159,11 @@ javascript:(function(){
         '[class*="mgid"]',
         '[id*="mgid"]',
         '[class*="revcontent"]',
-        '[class*="disqus"][class*="ad"]',
         
         // AMP ads
         'amp-ad',
         'amp-embed',
         'amp-sticky-ad',
-        
-        // Autoplay video ads
-        'video[autoplay][class*="ad"]',
         
         // Backdrop
         '.modal-backdrop',
@@ -158,7 +181,7 @@ javascript:(function(){
         } catch(e) {}
     });
     
-    // ========== 2. TÌM ELEMENT CÓ NÚT X (CLOSE BUTTON) ==========
+    // ========== 2. TÌM ELEMENT CÓ NÚT X ==========
     var closeSelectors = [
         '[class*="close"]',
         '[id*="close"]',
@@ -175,22 +198,18 @@ javascript:(function(){
         '.modal-close',
         '.popup-close',
         '.banner-close',
-        'button:has(> svg[class*="close"])',
         '[data-dismiss]',
         '[data-close]',
         '[data-testid*="close"]'
     ];
     
-    // Tìm parent container của nút X → có khả năng là banner/popup
     closeSelectors.forEach(function(sel) {
         try {
             document.querySelectorAll(sel).forEach(function(closeBtn) {
-                // Kiểm tra text/icon của nút
                 var text = (closeBtn.textContent || '').trim().toLowerCase();
                 var isCloseIcon = /^(×|✕|✖|⨉|x|close|đóng)$/i.test(text) || text === '';
                 
                 if (isCloseIcon || closeBtn.querySelector('svg, [class*="icon"]')) {
-                    // Tìm parent container (banner/popup)
                     var parent = findAdContainer(closeBtn);
                     if (parent && !isVideoOrImportant(parent)) {
                         parent.remove();
@@ -201,7 +220,7 @@ javascript:(function(){
         } catch(e) {}
     });
     
-    // ========== 3. XÓA OVERLAY/FIXED POSITION LỚN ==========
+    // ========== 3. XÓA OVERLAY/FIXED LỚN ==========
     document.querySelectorAll('div, section, aside').forEach(function(el) {
         if (isVideoOrImportant(el)) return;
         if (el.querySelector('video, iframe[src*="player"]')) return;
@@ -210,14 +229,12 @@ javascript:(function(){
         var rect = el.getBoundingClientRect();
         var zIndex = parseInt(style.zIndex) || 0;
         
-        // Fixed/absolute element có z-index cao và kích thước lớn
         var isFixed = style.position === 'fixed' || style.position === 'absolute';
         var isLarge = rect.width > 200 && rect.height > 100;
         var hasHighZ = zIndex > 999;
         var isVisible = style.display !== 'none' && style.visibility !== 'hidden' && parseFloat(style.opacity) > 0;
         
         if (isFixed && isLarge && hasHighZ && isVisible) {
-            // Kiểm tra có phải content quan trọng không
             var text = (el.textContent || '').trim();
             var hasCloseBtn = el.querySelector('[class*="close"], [aria-label*="close" i]');
             var isPopupLike = hasCloseBtn || 
@@ -231,152 +248,99 @@ javascript:(function(){
     });
     
     // ========== 4. UNLOCK SCROLL ==========
-    // Nhiều popup khóa scroll của trang
     document.documentElement.style.overflow = 'auto';
     document.body.style.overflow = 'auto';
     document.body.style.position = 'static';
-    document.documentElement.classList.remove('modal-open', 'no-scroll', 'noscroll', 'overflow-hidden', 'popup-open');
-    document.body.classList.remove('modal-open', 'no-scroll', 'noscroll', 'overflow-hidden', 'popup-open');
-    
-    // ========== 5. XÓA CSS BLOCKER ==========
-    // Xóa class body chặn scroll
     ['modal-open', 'no-scroll', 'noscroll', 'overflow-hidden', 'popup-open', 'body-lock'].forEach(function(cls) {
         document.body.classList.remove(cls);
         document.documentElement.classList.remove(cls);
     });
     
-    // ========== 6. INJECT CSS ẨN MẤY THỨ SÓT LẠI ==========
-    var css = `
-        [class*="banner"]:not(header):not(nav):not(main):not(article):not([class*="video"]),
-        [class*="popup"]:not([class*="menu"]),
-        [class*="modal"]:not([class*="content"]),
-        [class*="overlay"]:not([class*="video"]),
-        [class*="cookie-notice"],
-        [class*="newsletter"],
-        [class*="subscribe"][class*="popup"],
-        [class*="floating-ad"],
-        [class*="sticky-ad"],
-        [class*="app-banner"],
-        .modal-backdrop,
-        ins.adsbygoogle,
-        [id*="google_ads"],
-        [id*="onetrust-banner"],
-        amp-ad,
-        amp-sticky-ad {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-        
-        html, body {
-            overflow: auto !important;
-            position: static !important;
-        }
-        
-        body.modal-open,
-        body.no-scroll,
-        body.noscroll,
-        body.overflow-hidden {
-            overflow: auto !important;
-            position: static !important;
-        }
-    `;
+    // ========== 5. INJECT CSS ==========
+    var oldStyle = document.getElementById('__banner_block_css__');
+    if (oldStyle) oldStyle.remove();
+    
+    var css = 
+        '[class*="banner"]:not(header):not(nav):not(main):not(article):not([class*="video"]),' +
+        '[class*="popup"]:not([class*="menu"]),' +
+        '[class*="modal"]:not([class*="content"]),' +
+        '[class*="overlay"]:not([class*="video"]),' +
+        '[class*="cookie-notice"],' +
+        '[class*="cookie-banner"],' +
+        '[class*="newsletter"],' +
+        '[class*="subscribe"][class*="popup"],' +
+        '[class*="floating-ad"],' +
+        '[class*="sticky-ad"],' +
+        '[class*="app-banner"],' +
+        '.modal-backdrop,' +
+        'ins.adsbygoogle,' +
+        '[id*="google_ads"],' +
+        '[id*="onetrust-banner"],' +
+        'amp-ad,' +
+        'amp-sticky-ad {' +
+            'display: none !important;' +
+            'visibility: hidden !important;' +
+            'opacity: 0 !important;' +
+            'pointer-events: none !important;' +
+        '}' +
+        'html, body {' +
+            'overflow: auto !important;' +
+            'position: static !important;' +
+        '}' +
+        'body.modal-open, body.no-scroll, body.noscroll, body.overflow-hidden {' +
+            'overflow: auto !important;' +
+            'position: static !important;' +
+        '}';
     
     var style = document.createElement('style');
-    style.id = '__anti_banner_css__';
+    style.id = '__banner_block_css__';
     style.textContent = css;
     document.head.appendChild(style);
     
-    // ========== HELPERS ==========
-    function isVideoOrImportant(el) {
-        if (!el) return true;
-        if (el === document.body || el === document.documentElement) return true;
-        if (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') return true;
-        if (el.tagName === 'IFRAME') {
-            var src = el.src || '';
-            if (/youtube|vimeo|player|embed|video/i.test(src)) return true;
-        }
-        if (el.querySelector('video, audio')) return true;
-        
-        var classId = (el.className + ' ' + el.id).toLowerCase();
-        if (/player|video-container|video-wrapper|main-content|article-content|post-content/.test(classId)) return true;
-        
-        // Header/nav quan trọng
-        if (el.tagName === 'HEADER' || el.tagName === 'NAV' || el.tagName === 'MAIN' || el.tagName === 'ARTICLE') return true;
-        
-        return false;
-    }
-    
-    function findAdContainer(closeBtn) {
-        var el = closeBtn.parentElement;
-        var depth = 0;
-        
-        while (el && el !== document.body && depth < 6) {
-            var style = getComputedStyle(el);
-            var rect = el.getBoundingClientRect();
-            var classId = (el.className + ' ' + el.id).toLowerCase();
-            
-            // Đây là container ads/popup/banner
-            if (/popup|modal|banner|overlay|lightbox|notification|prompt|dialog|subscribe|newsletter|cookie|ad-|-ad/i.test(classId)) {
-                return el;
-            }
-            
-            // Fixed/absolute container lớn
-            if ((style.position === 'fixed' || style.position === 'absolute') && 
-                rect.width > 150 && rect.height > 100 &&
-                (parseInt(style.zIndex) || 0) > 10) {
-                return el;
-            }
-            
-            el = el.parentElement;
-            depth++;
-        }
-        
-        return null;
-    }
-    
-    // ========== SETUP OBSERVER (chặn ads mới xuất hiện) ==========
-    if (window.__antibanner_observer__) {
-        window.__antibanner_observer__.disconnect();
+    // ========== 6. OBSERVER CHẶN BANNER MỚI ==========
+    if (window.__bannerblock_observer__) {
+        window.__bannerblock_observer__.disconnect();
     }
     
     var observer = new MutationObserver(function(mutations) {
-        var found = false;
+        var found = 0;
         mutations.forEach(function(m) {
             m.addedNodes.forEach(function(node) {
                 if (node.nodeType === 1) {
                     var classId = ((node.className || '') + ' ' + (node.id || '')).toLowerCase();
-                    if (/popup|modal|overlay|banner|advertisement|newsletter|cookie|subscribe/i.test(classId)) {
+                    if (/popup|modal|overlay|banner|advertisement|newsletter|cookie|subscribe|adsbygoogle/i.test(classId)) {
                         if (!isVideoOrImportant(node)) {
                             node.remove();
-                            found = true;
+                            found++;
                         }
                     }
                 }
             });
         });
-        if (found) console.log('🛡️ Blocked new banner');
+        if (found) console.log('🛡️ BannerBlock: blocked ' + found + ' new banners');
     });
     
     observer.observe(document.body, { childList: true, subtree: true });
-    window.__antibanner_observer__ = observer;
+    window.__bannerblock_observer__ = observer;
     
-    // Auto stop sau 5 phút
     setTimeout(function() {
         observer.disconnect();
-        console.log('⏹️ Auto-block stopped after 5 min');
+        console.log('⏹️ BannerBlock: auto-block stopped after 5 min');
     }, 300000);
     
     // ========== NOTIFICATION ==========
+    var oldToast = document.getElementById('__banner_block_toast__');
+    if (oldToast) oldToast.remove();
+    
     var toast = document.createElement('div');
+    toast.id = '__banner_block_toast__';
     toast.innerHTML = 
-        '<div style="font-size:24px;margin-bottom:8px;">🧹</div>' +
-        '<b>Đã xóa ' + removed + ' banner/ads</b><br>' +
+        '<div style="font-size:28px;margin-bottom:8px;">🧹</div>' +
+        '<b style="font-size:16px;">Đã xóa ' + removed + ' banner/ads</b><br>' +
         '<small style="opacity:0.9;">Auto-block trong 5 phút</small>';
-    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;padding:15px 25px;border-radius:12px;z-index:2147483647;font:bold 14px Arial;text-align:center;box-shadow:0 5px 20px rgba(0,0,0,0.6);min-width:200px;';
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#4CAF50,#2E7D32);color:#fff;padding:18px 28px;border-radius:12px;z-index:2147483647;font:bold 14px Arial;text-align:center;box-shadow:0 5px 25px rgba(0,0,0,0.7);min-width:220px;';
     document.body.appendChild(toast);
     setTimeout(function() { toast.remove(); }, 3000);
     
-    console.log('🧹 Anti-Banner completed. Removed:', removed);
+    console.log('🧹 BannerBlock v1.0 completed. Removed:', removed);
 })();

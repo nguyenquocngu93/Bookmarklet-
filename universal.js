@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         DevLib CDN Player - Glass UI
+// @name         DevLib CDN Player - Glass UI v2
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Glass morphism media player with floating icons
+// @version      2.0
+// @description  Glass morphism player with landscape fullscreen + full download commands
 // @author       You
 // @match        *://*/*
 // @grant        none
@@ -26,6 +26,8 @@
     }
 
     let blacklist = loadSet(STORAGE_KEY);
+    const REF = location.href;
+    const UA = 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36';
 
     // ══════════════════════════════════════════
     // URL DETECTION (Media)
@@ -497,6 +499,7 @@
         .dlp-pact.vlc { background: linear-gradient(135deg, rgba(5, 150, 105, 0.6), rgba(52, 211, 153, 0.6)); }
         .dlp-pact.dl { background: linear-gradient(135deg, rgba(124, 58, 237, 0.6), rgba(167, 139, 250, 0.6)); }
         .dlp-pact.rot { background: linear-gradient(135deg, rgba(0, 121, 107, 0.6), rgba(77, 182, 172, 0.6)); }
+        .dlp-pact.zm { background: rgba(68, 68, 68, 0.6); }
 
         /* ── GLASS ICON BUTTONS ── */
         .dlp-icon-btn {
@@ -519,6 +522,25 @@
         .dlp-icon-btn:hover {
             background: rgba(255, 255, 255, 0.15);
             transform: scale(1.1);
+        }
+
+        /* ── FS HINT ── */
+        #dlp-fs-hint {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #fff;
+            font-size: 11px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            z-index: 2147483647;
+            display: none;
+            font-family: 'Inter', sans-serif;
+            border: 1px solid rgba(255,255,255,0.15);
         }
 
         /* ── DROPDOWN MENU ── */
@@ -576,6 +598,50 @@
             overflow-y: auto;
         }
         #dlp-cmd.on { display: block; }
+        .dlp-cmd-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .dlp-cmd-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .dlp-cmd-row {
+            display: flex;
+            gap: 6px;
+            align-items: stretch;
+        }
+        .dlp-cmd-ta {
+            flex: 1;
+            background: transparent;
+            color: #34d399;
+            border: none;
+            font-family: monospace;
+            font-size: 11px;
+            resize: none;
+            outline: none;
+            min-height: 40px;
+            line-height: 1.5;
+        }
+        .dlp-cmd-cp {
+            background: rgba(37, 99, 235, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 10px;
+            padding: 0 14px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px);
+        }
 
         /* ── TOAST ── */
         #dlp-toast {
@@ -625,6 +691,7 @@
                 <span id="dlp-badge"></span>
             </button>
             <div id="dlp-bd"></div>
+            <div id="dlp-fs-hint">📱 Đã bật fullscreen ngang</div>
 
             <div id="dlp-panel">
                 <div id="dlp-ph">
@@ -709,28 +776,53 @@
         };
 
         // ══════════════════════════════════════
-        // FULLSCREEN LANDSCAPE
+        // FULLSCREEN LANDSCAPE (xoay ngang)
         // ══════════════════════════════════════
-        function triggerFullscreen() {
+        function enterFullscreenLandscape() {
             const vid = $('dlp-vid');
             if (!vid) return;
-            const req = vid.requestFullscreen || vid.webkitRequestFullScreen || vid.mozRequestFullScreen;
-            if (req) {
-                req.call(vid).then(() => {
-                    if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(() => {});
+
+            const tryLock = () => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(() => {});
+                }
+            };
+
+            const onFsChange = () => {
+                const fsEl = document.fullscreenElement ||
+                             document.webkitFullscreenElement ||
+                             document.mozFullScreenElement;
+                if (fsEl) {
+                    tryLock();
+                    const hint = $('dlp-fs-hint');
+                    if (hint) {
+                        hint.style.display = 'block';
+                        setTimeout(() => hint.style.display = 'none', 2000);
                     }
-                }).catch(() => {
-                    toast('❌ Trình duyệt chặn fullscreen', 'rgba(220, 38, 38, 0.8)');
-                });
-            }
+                } else {
+                    if (screen.orientation && screen.orientation.unlock) {
+                        screen.orientation.unlock();
+                    }
+                }
+            };
+
+            document.addEventListener('fullscreenchange', onFsChange);
+            document.addEventListener('webkitfullscreenchange', onFsChange);
+            document.addEventListener('mozfullscreenchange', onFsChange);
+
+            return function triggerFs() {
+                const req = vid.requestFullscreen ||
+                            vid.webkitRequestFullscreen ||
+                            vid.mozRequestFullScreen;
+                if (req) {
+                    req.call(vid).then(() => tryLock()).catch(() => {
+                        toast('❌ Trình duyệt chặn fullscreen ngang', 'rgba(220, 38, 38, 0.8)');
+                    });
+                }
+            };
         }
 
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement && screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-            }
-        });
+        const triggerFullscreen = enterFullscreenLandscape();
 
         // ══════════════════════════════════════
         // RENDER PANEL
@@ -841,16 +933,22 @@
                 <button class="dlp-pact fs" id="dlp-pc-fs">⛶ Fullscreen</button>
                 <button class="dlp-pact vlc" id="dlp-pc-vlc">📺 VLC</button>
                 <button class="dlp-pact dl" id="dlp-pc-dl">💻 Tải</button>
-                <button class="dlp-pact rot" id="dlp-pc-rot">⟳ Xoay ${rot}°</button>
+                <button class="dlp-pact rot" id="dlp-pc-rot">⟳ Xoay</button>
+                <button class="dlp-pact zm" id="dlp-pc-zm">🔍 ${zoom}x</button>
             `;
 
             $('dlp-pc-cp').onclick = () => cp(cur.url);
             $('dlp-pc-fs').onclick = () => triggerFullscreen();
             $('dlp-pc-vlc').onclick = () => window.location.href = 'vlc://' + cur.url;
             $('dlp-pc-dl').onclick = () => openCmd(cur.url);
-            $('dlp-pc-rot').onclick = function() {
+            $('dlp-pc-rot').onclick = () => {
                 rot = (rot + 90) % 360;
-                this.textContent = '⟳ Xoay ' + rot + '°';
+                $('dlp-vid').style.transform = `rotate(${rot}deg) scale(${zoom})`;
+            };
+            $('dlp-pc-zm').onclick = function() {
+                const lv = [1, 1.25, 1.5, 2, 0.75];
+                zoom = lv[(lv.indexOf(zoom) + 1) % lv.length];
+                this.textContent = '🔍 ' + zoom + 'x';
                 $('dlp-vid').style.transform = `rotate(${rot}deg) scale(${zoom})`;
             };
 
@@ -860,41 +958,84 @@
         }
 
         // ══════════════════════════════════════
-        // CMD MODAL
+        // CMD MODAL (ĐẦY ĐỦ LỆNH TẢI)
         // ══════════════════════════════════════
         function openCmd(url) {
-            const REF = location.href;
-            const UA = navigator.userAgent;
+            const build = (t) => {
+                ctab = t;
+                const data = {
+                    ytdlp: [
+                        { l:'Tải chất lượng cao',
+                          c:`yt-dlp --referer "${REF}" "${url}"` },
+                        { l:'Bypass Header đầy đủ',
+                          c:`yt-dlp --referer "${REF}" --user-agent "${UA}" --add-header "Origin:${location.origin}" -f "bestvideo+bestaudio" "${url}"` },
+                        { l:'Chỉ Audio MP3',
+                          c:`yt-dlp -x --audio-format mp3 --referer "${REF}" "${url}"` },
+                    ],
+                    ffmpeg: [
+                        { l:'Copy stream (Nhanh)',
+                          c:`ffmpeg -referer "${REF}" -user_agent "${UA}" -i "${url}" -c copy output.mp4` },
+                        { l:'Re-encode H264',
+                          c:`ffmpeg -referer "${REF}" -i "${url}" -c:v libx264 -c:a aac output.mp4` },
+                    ],
+                    termux: [
+                        { l:'Cài tools',
+                          c:`pkg install python ffmpeg -y && pip install yt-dlp` },
+                        { l:'Tải video',
+                          c:`yt-dlp --referer "${REF}" "${url}"` },
+                        { l:'FFmpeg HLS',
+                          c:`ffmpeg -referer "${REF}" -i "${url}" -c copy ~/storage/downloads/out.mp4` },
+                    ],
+                }[t] || [];
 
-            $('dlp-cmd').innerHTML = `
-                <div style="margin-bottom:15px">
-                    <h4 style="color:rgba(255,255,255,0.9);margin:0 0 8px 0;font-size:16px;">💻 Lệnh tải</h4>
-                    <span style="color:rgba(255,255,255,0.4);font-size:11px;font-family:monospace;">${fname(url)}</span>
-                </div>
-                <div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.08);">
-                    <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-bottom:6px;">YT-DLP</div>
-                    <div style="display:flex;gap:6px;align-items:stretch;">
-                        <textarea style="flex:1;background:transparent;color:#34d399;border:none;font-family:monospace;font-size:11px;resize:none;outline:none;" rows="2" readonly>yt-dlp --referer "${REF}" "${url}"</textarea>
-                        <button class="dlp-btn" style="flex-shrink:0;padding:0 12px;" onclick="navigator.clipboard.writeText('yt-dlp --referer &quot;${REF}&quot; &quot;${url}&quot;')">📋</button>
+                $('dlp-cmd').innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                        <h4 style="color:rgba(255,255,255,0.9);margin:0;font-size:16px;">💻 Lệnh tải</h4>
+                        <span style="color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;max-width:180px;overflow:hidden;text-overflow:ellipsis">
+                            ${fname(url)}
+                        </span>
                     </div>
-                </div>
-                <div style="background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.08);">
-                    <div style="color:rgba(255,255,255,0.6);font-size:10px;font-weight:700;margin-bottom:6px;">FFMPEG</div>
-                    <div style="display:flex;gap:6px;align-items:stretch;">
-                        <textarea style="flex:1;background:transparent;color:#34d399;border:none;font-family:monospace;font-size:11px;resize:none;outline:none;" rows="2" readonly>ffmpeg -referer "${REF}" -user_agent "${UA}" -i "${url}" -c copy output.mp4</textarea>
-                        <button class="dlp-btn" style="flex-shrink:0;padding:0 12px;">📋</button>
+                    <div style="display:flex;gap:5px;margin-bottom:15px">
+                        ${['ytdlp','ffmpeg','termux'].map(tab => `
+                            <button style="flex:1;background:${tab===t?'linear-gradient(135deg, rgba(220,38,38,0.8), rgba(239,68,68,0.8))':'rgba(255,255,255,0.08)'};
+                                    color:white;border:1px solid rgba(255,255,255,0.15);padding:8px;border-radius:10px;
+                                    cursor:pointer;font-size:11px;font-weight:bold;backdrop-filter:blur(10px);"
+                                    data-tab="${tab}">${tab.toUpperCase()}</button>
+                        `).join('')}
                     </div>
-                </div>
-                <button class="dlp-btn" style="width:100%;padding:10px;margin-top:5px;color:#ef4444;" id="dlp-cmd-cls">ĐÓNG</button>
-            `;
+                    <div id="dlp-cmd-list">
+                        ${data.map(d => `
+                            <div class="dlp-cmd-block">
+                                <div class="dlp-cmd-label">${d.l}</div>
+                                <div class="dlp-cmd-row">
+                                    <textarea class="dlp-cmd-ta" rows="2" readonly>${d.c}</textarea>
+                                    <button class="dlp-cmd-cp">📋</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button style="width:100%;background:rgba(220,38,38,0.6);border:1px solid rgba(255,255,255,0.15);
+                            color:white;padding:12px;border-radius:12px;cursor:pointer;font-weight:bold;
+                            margin-top:4px;backdrop-filter:blur(10px);" id="dlp-cmd-cls">ĐÓNG</button>
+                `;
 
-            $('dlp-cmd').querySelectorAll('button:not(#dlp-cmd-cls)').forEach(btn => {
-                btn.onclick = () => cp(btn.parentElement.querySelector('textarea').value);
-            });
-            $('dlp-cmd-cls').onclick = () => {
-                $('dlp-cmd').classList.remove('on');
+                $('dlp-cmd').querySelectorAll('.dlp-cmd-ta').forEach(ta => {
+                    ta.style.height = 'auto';
+                    ta.style.height = ta.scrollHeight + 'px';
+                });
+                $('dlp-cmd').querySelectorAll('[data-tab]').forEach(b =>
+                    b.onclick = () => build(b.dataset.tab)
+                );
+                $('dlp-cmd').querySelectorAll('.dlp-cmd-cp').forEach(b =>
+                    b.onclick = () => cp(b.parentElement.querySelector('.dlp-cmd-ta').value)
+                );
+                $('dlp-cmd-cls').onclick = () => {
+                    $('dlp-cmd').classList.remove('on');
+                    if (!$('dlp-prev').classList.contains('on') && !$('dlp-panel').classList.contains('on'))
+                        $('dlp-bd').classList.remove('on');
+                };
             };
-
+            build(ctab);
             $('dlp-cmd').classList.add('on');
             $('dlp-bd').classList.add('on');
         }
@@ -1008,6 +1149,9 @@
         $('dlp-bd').onclick = (e) => {
             if ($('dlp-cmd').classList.contains('on')) {
                 $('dlp-cmd').classList.remove('on');
+            }
+            if ($('dlp-drop').classList.contains('on')) {
+                $('dlp-drop').classList.remove('on');
             }
             $('dlp-panel').classList.remove('on');
             $('dlp-prev').classList.remove('on');

@@ -1,8 +1,9 @@
 /**
- * Universal Video Downloader V3.7 – Liquid Glass Buttons + Fixed Inline Player
- * - Liquid glass button effects (strong blur, glow, smooth hover)
- * - Inline preview player with guaranteed controls
- * - Fullscreen orientation lock fixed
+ * Universal Video Downloader V3.8 – Polished Overlay Player
+ * - Restored preview overlay (no inline player)
+ * - Beautiful glass player with large controls, smooth timeline
+ * - Fullscreen orientation lock
+ * - Minimize, Liquid Glass buttons, ripple effects
  * Author: nguyenquocngu93
  */
 (function() {
@@ -14,7 +15,7 @@
     var minBtn = document.getElementById('__uvd_min_float__');
     if (minBtn) minBtn.remove();
 
-    var STORAGE_KEY = 'uvd_data_v37';
+    var STORAGE_KEY = 'uvd_data_v38';
     var storage = {
         get: function() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -245,59 +246,64 @@
         ripple.addEventListener('animationend', function() { ripple.remove(); });
     }
 
-    // ========== INLINE PLAYER (fixed controls) ==========
-    function showInlinePlayer(url, container) {
-        container.innerHTML = '';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.height = '100%';
+    // ========== OVERLAY PLAYER (Polished) ==========
+    var activePlayer = null;
 
-        var backBtn = document.createElement('button');
-        backBtn.className = 'uvd-btn uvd-ripple-btn';
-        backBtn.textContent = '← Back to streams';
-        backBtn.style.marginBottom = '10px';
-        backBtn.addEventListener('click', addRipple);
-        backBtn.onclick = function() {
-            if (activeHls) activeHls.destroy();
-            container.innerHTML = '';
-            container.style.display = 'none';
-            document.getElementById('__uvd_stream_list__').style.display = 'block';
-            activeHls = null;
-        };
-        container.appendChild(backBtn);
+    function showPreview(url) {
+        if (activePlayer) {
+            try { activePlayer.video.pause(); } catch(e) {}
+            activePlayer.overlay.remove();
+            activePlayer = null;
+        }
 
-        var playerDiv = document.createElement('div');
-        playerDiv.className = 'uvd-video-wrapper';
-        playerDiv.style.flex = '1';
-        playerDiv.innerHTML = 
-            '<video id="__uvd_pv__" class="uvd-video" crossorigin="anonymous" playsinline webkit-playsinline></video>' +
-            '<div class="uvd-controls" id="__uvd_ctrls__" style="display:flex;">' +  // Luôn hiển thị
-                '<button class="uvd-ctrl-btn" id="__uvd_play__">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="white"/></svg>' +
-                '</button>' +
-                '<div class="uvd-timeline" id="__uvd_timeline__">' +
-                    '<div class="uvd-progress" id="__uvd_progress__"></div>' +
-                    '<div class="uvd-buffer" id="__uvd_buffer__"></div>' +
+        var overlay = document.createElement('div');
+        overlay.className = 'uvd-overlay uvd-player-overlay';
+        overlay.style.animation = 'uvdFadeIn 0.3s ease';
+
+        var panel = document.createElement('div');
+        panel.className = 'uvd-glass-panel uvd-player-panel';
+        panel.style.animation = 'uvdScaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        panel.innerHTML = 
+            '<div class="uvd-player-header">' +
+                '<span class="uvd-player-title">▶ ' + pageInfo.title + '</span>' +
+                '<button class="uvd-btn-icon uvd-player-close">✕</button>' +
+            '</div>' +
+            '<div class="uvd-video-wrapper">' +
+                '<video id="__uvd_pv__" class="uvd-video" crossorigin="anonymous" playsinline webkit-playsinline></video>' +
+                '<div class="uvd-big-play" id="__uvd_bigplay__" style="display:none;">' +
+                    '<svg width="60" height="60" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>' +
                 '</div>' +
-                '<span class="uvd-time" id="__uvd_time__">00:00 / 00:00</span>' +
-                '<div class="uvd-volume">' +
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>' +
-                    '<input type="range" class="uvd-volume-slider" id="__uvd_vol__" min="0" max="1" step="0.05" value="1">' +
+                '<div class="uvd-controls" id="__uvd_ctrls__">' +
+                    '<button class="uvd-ctrl-btn" id="__uvd_play__">' +
+                        '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="white"/></svg>' +
+                    '</button>' +
+                    '<div class="uvd-timeline" id="__uvd_timeline__">' +
+                        '<div class="uvd-progress" id="__uvd_progress__"></div>' +
+                        '<div class="uvd-buffer" id="__uvd_buffer__"></div>' +
+                    '</div>' +
+                    '<span class="uvd-time" id="__uvd_time__">00:00 / 00:00</span>' +
+                    '<div class="uvd-volume">' +
+                        '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>' +
+                        '<input type="range" class="uvd-volume-slider" id="__uvd_vol__" min="0" max="1" step="0.05" value="1">' +
+                    '</div>' +
+                    '<select class="uvd-speed-select" id="__uvd_speed__">' +
+                        '<option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option>' +
+                    '</select>' +
+                    '<select class="uvd-quality-select" id="__uvd_quality__" style="display:none;"></select>' +
+                    '<button class="uvd-ctrl-btn" id="__uvd_pip__" title="Picture-in-Picture">' +
+                        '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" fill="white"/></svg>' +
+                    '</button>' +
+                    '<button class="uvd-ctrl-btn" id="__uvd_fs__">' +
+                        '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" fill="white"/></svg>' +
+                    '</button>' +
                 '</div>' +
-                '<select class="uvd-speed-select" id="__uvd_speed__">' +
-                    '<option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option>' +
-                '</select>' +
-                '<select class="uvd-quality-select" id="__uvd_quality__" style="display:none;"></select>' +
-                '<button class="uvd-ctrl-btn" id="__uvd_pip__" title="Picture-in-Picture">' +
-                    '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" fill="white"/></svg>' +
-                '</button>' +
-                '<button class="uvd-ctrl-btn" id="__uvd_fs__">' +
-                    '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" fill="white"/></svg>' +
-                '</button>' +
             '</div>';
-        container.appendChild(playerDiv);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
 
         var video = document.getElementById('__uvd_pv__');
+        var controls = document.getElementById('__uvd_ctrls__');
+        var bigPlay = document.getElementById('__uvd_bigplay__');
         var playBtn = document.getElementById('__uvd_play__');
         var timeline = document.getElementById('__uvd_timeline__');
         var progress = document.getElementById('__uvd_progress__');
@@ -308,37 +314,40 @@
         var qualitySelect = document.getElementById('__uvd_quality__');
         var fsBtn = document.getElementById('__uvd_fs__');
         var pipBtn = document.getElementById('__uvd_pip__');
-        var activeHls = null;
+        var hls = null;
 
         function loadMedia() {
             if (url.includes('.m3u8')) {
                 if (window.Hls && Hls.isSupported()) {
-                    activeHls = new Hls();
-                    activeHls.loadSource(url);
-                    activeHls.attachMedia(video);
-                    activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
-                        var levels = activeHls.levels;
+                    hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        controls.style.display = 'flex';
+                        var levels = hls.levels;
                         if (levels.length > 1) {
                             qualitySelect.style.display = 'inline-block';
                             qualitySelect.innerHTML = levels.map(function(lvl, i) {
                                 var label = lvl.height ? lvl.height + 'p' : (lvl.bitrate ? Math.round(lvl.bitrate/1000) + 'kbps' : 'Auto');
                                 return '<option value="' + i + '">' + label + '</option>';
                             }).join('');
-                            qualitySelect.value = activeHls.currentLevel;
-                            qualitySelect.onchange = function() { activeHls.currentLevel = parseInt(this.value); };
+                            qualitySelect.value = hls.currentLevel;
+                            qualitySelect.onchange = function() { hls.currentLevel = parseInt(this.value); };
                         }
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
+                    controls.style.display = 'flex';
                 } else {
                     var s = document.createElement('script');
-                    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+                    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest?t=' + Date.now();
                     s.onload = loadMedia;
                     document.head.appendChild(s);
                     return;
                 }
             } else {
                 video.src = url;
+                controls.style.display = 'flex';
             }
         }
 
@@ -369,29 +378,40 @@
             var pos = (e.clientX - rect.left) / rect.width;
             video.currentTime = pos * video.duration;
         });
-        playBtn.addEventListener('click', function() {
+
+        function updatePlayButton() {
             if (video.paused) {
-                video.play();
-                playBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/></svg>';
+                playBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="white"/></svg>';
+                bigPlay.style.display = 'flex';
             } else {
-                video.pause();
-                playBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="white"/></svg>';
+                playBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/></svg>';
+                bigPlay.style.display = 'none';
             }
+        }
+
+        playBtn.addEventListener('click', function() {
+            if (video.paused) video.play();
+            else video.pause();
+            updatePlayButton();
         });
+        bigPlay.addEventListener('click', function() {
+            video.play();
+            updatePlayButton();
+        });
+        video.addEventListener('play', updatePlayButton);
+        video.addEventListener('pause', updatePlayButton);
         volumeSlider.addEventListener('input', function() { video.volume = this.value; });
         speedSelect.addEventListener('change', function() { video.playbackRate = parseFloat(this.value); });
 
-        // Fullscreen với orientation lock
         function requestFullscreen() {
-            var el = video;
-            if (el.requestFullscreen) {
-                el.requestFullscreen().then(function() {
+            if (video.requestFullscreen) {
+                video.requestFullscreen().then(function() {
                     if (screen.orientation && screen.orientation.lock) {
                         screen.orientation.lock('landscape').catch(function(){});
                     }
                 }).catch(function(){});
-            } else if (el.webkitRequestFullscreen) {
-                el.webkitRequestFullscreen();
+            } else if (video.webkitRequestFullscreen) {
+                video.webkitRequestFullscreen();
             }
         }
         function onFullscreenChange() {
@@ -407,27 +427,26 @@
 
         pipBtn.addEventListener('click', async function() {
             try {
-                if (document.pictureInPictureElement) {
-                    await document.exitPictureInPicture();
-                } else if (video.requestPictureInPicture) {
-                    await video.requestPictureInPicture();
-                }
+                if (document.pictureInPictureElement) await document.exitPictureInPicture();
+                else if (video.requestPictureInPicture) await video.requestPictureInPicture();
             } catch(e) {}
         });
 
-        loadMedia();
-
-        // Cleanup
-        backBtn.addEventListener('click', function() {
+        overlay.querySelector('.uvd-player-close').onclick = function() {
             video.pause();
-            if (activeHls) activeHls.destroy();
+            if (hls) hls.destroy();
             video.src = '';
             document.removeEventListener('fullscreenchange', onFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
-        });
+            overlay.remove();
+            activePlayer = null;
+        };
+
+        loadMedia();
+        activePlayer = { overlay, video, hls };
     }
 
-    // ========== BUILD UI (Liquid Glass Buttons) ==========
+    // ========== BUILD UI ==========
     if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
     var style = document.createElement('style');
     style.id = '__uvd_css__';
@@ -440,7 +459,6 @@
         @keyframes uvdRipple{to{transform:scale(4);opacity:0}}
         @keyframes uvdCardEnter{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
         @keyframes uvdFloatBtnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
-        @keyframes uvdLiquidGlow{0%{box-shadow:0 0 10px rgba(59,130,246,0.3)}50%{box-shadow:0 0 25px rgba(59,130,246,0.7)}100%{box-shadow:0 0 10px rgba(59,130,246,0.3)}}
         :root {
             --bg: rgba(8,12,20,0.92);
             --glass: rgba(20,28,45,0.8);
@@ -454,6 +472,12 @@
             --gold: #f59e0b;
             --card-bg: rgba(255,255,255,0.04);
         }
+        .uvd-overlay {
+            position:fixed; inset:0; background:rgba(0,0,0,0.8);
+            backdrop-filter:blur(20px); z-index:2147483648;
+            display:flex; align-items:center; justify-content:center;
+            padding:20px; overflow-y:auto;
+        }
         .uvd-glass-panel {
             background:var(--glass); backdrop-filter:blur(30px);
             border:1px solid var(--border); border-radius:24px;
@@ -461,43 +485,102 @@
             color:var(--text); font-family:'Segoe UI',system-ui,sans-serif;
             padding:16px; width:100%;
         }
+        .uvd-player-panel {
+            max-width:900px; padding:0; overflow:hidden;
+            box-shadow:0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(59,130,246,0.2);
+        }
+        .uvd-player-header {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:14px 20px; background:rgba(255,255,255,0.05);
+            border-bottom:1px solid var(--border); font-weight:600;
+        }
+        .uvd-btn-icon {
+            background:transparent; border:none; color:var(--text);
+            width:36px; height:36px; border-radius:50%; display:flex; align-items:center;
+            justify-content:center; cursor:pointer; font-size:20px;
+            transition: background 0.2s, transform 0.2s; position:relative; overflow:hidden;
+        }
+        .uvd-btn-icon:hover { background:rgba(255,255,255,0.15); transform:scale(1.1); }
+        .uvd-btn-icon:active { transform:scale(0.9); }
+        .uvd-ripple {
+            position:absolute; border-radius:50%; background:rgba(255,255,255,0.4);
+            transform:scale(0); animation:uvdRipple 0.5s linear; pointer-events:none;
+        }
+        .uvd-video-wrapper {
+            position:relative; background:#000; border-radius:0 0 20px 20px; overflow:hidden;
+        }
+        .uvd-video { width:100%; display:block; max-height:70vh; background:#000; }
+        .uvd-big-play {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width:70px; height:70px; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px);
+            border-radius:50%; display:flex; align-items:center; justify-content:center;
+            cursor:pointer; z-index:10; transition:0.3s;
+        }
+        .uvd-big-play:hover { background:rgba(59,130,246,0.8); }
+        .uvd-controls {
+            display:flex; align-items:center; gap:12px; padding:12px 20px;
+            background:rgba(20,22,30,0.9); backdrop-filter:blur(20px);
+            border-top:1px solid rgba(255,255,255,0.1); flex-wrap:wrap;
+        }
+        .uvd-ctrl-btn {
+            background:transparent; border:none; color:#fff; cursor:pointer;
+            padding:8px; display:flex; align-items:center; transition:0.2s; position:relative; overflow:hidden;
+        }
+        .uvd-ctrl-btn:hover { background:rgba(255,255,255,0.15); border-radius:50%; }
+        .uvd-ctrl-btn:active { transform:scale(0.9); }
+        .uvd-timeline {
+            flex:1; height:8px; background:rgba(255,255,255,0.15);
+            border-radius:8px; position:relative; cursor:pointer; min-width:100px;
+        }
+        .uvd-progress {
+            height:100%; width:0; background:var(--accent);
+            border-radius:8px; position:absolute; left:0; top:0;
+            box-shadow:0 0 10px var(--accent); z-index:2; transition: width 0.1s linear;
+        }
+        .uvd-buffer {
+            height:100%; width:0; background:rgba(255,255,255,0.25);
+            border-radius:8px; position:absolute; left:0; top:0; z-index:1;
+        }
+        .uvd-time { color:var(--text2); font-size:13px; min-width:100px; text-align:right; }
+        .uvd-volume { display:flex; align-items:center; gap:6px; }
+        .uvd-volume-slider { width:70px; accent-color:var(--accent); }
+        .uvd-speed-select, .uvd-quality-select {
+            background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+            color:#fff; padding:4px 10px; border-radius:8px; font-size:13px;
+            outline:none; cursor:pointer; transition:0.2s;
+        }
+        .uvd-speed-select:hover, .uvd-quality-select:hover { background:rgba(255,255,255,0.2); }
+        .uvd-scroll::-webkit-scrollbar{width:4px}
+        .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+        .uvd-scroll::-webkit-scrollbar-track{background:transparent}
         .uvd-btn {
-            background: rgba(255,255,255,0.12);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.25);
-            color: var(--text);
-            padding: 10px 16px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+            background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+            color:var(--text); padding:10px 14px; border-radius:40px;
+            font-weight:600; font-size:13px; cursor:pointer; transition: all 0.25s;
+            backdrop-filter:blur(10px); text-align:center; position:relative; overflow:hidden;
+            box-shadow:0 4px 10px rgba(0,0,0,0.2);
         }
         .uvd-btn:hover {
-            background: rgba(255,255,255,0.22);
-            border-color: rgba(255,255,255,0.45);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4), 0 0 20px rgba(59,130,246,0.5);
-            animation: uvdLiquidGlow 2s infinite;
+            background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.4);
+            transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,0.4);
         }
-        .uvd-btn:active {
-            transform: scale(0.96);
-            background: rgba(255,255,255,0.3);
-        }
+        .uvd-btn:active { transform:scale(0.97); }
         .uvd-card {
             background:var(--card-bg); border:1px solid var(--border);
             border-radius:16px; padding:14px; margin-bottom:10px;
             transition: all 0.3s ease; animation:uvdCardEnter 0.4s ease both;
         }
+        .uvd-card:nth-child(odd) { animation-delay:0.05s; }
+        .uvd-card:nth-child(even) { animation-delay:0.1s; }
         .uvd-card:hover {
             transform:translateY(-4px);
             box-shadow:0 12px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.2) inset;
             background:rgba(255,255,255,0.06);
+        }
+        .uvd-type-badge {
+            display:inline-block; padding:4px 12px; border-radius:20px;
+            font-size:11px; font-weight:700; background:rgba(59,130,246,0.2);
+            color:var(--accent); border:1px solid rgba(59,130,246,0.3);
         }
         .uvd-url-box {
             background:rgba(0,0,0,0.4); border-radius:8px; padding:8px;
@@ -514,8 +597,9 @@
             border:none; box-shadow:0 8px 20px rgba(0,0,0,0.5);
             z-index:2147483647; cursor:pointer; display:flex; align-items:center;
             justify-content:center; font-weight:700; font-size:18px;
-            animation:uvdFloatBtnIn 0.3s ease;
+            transition: transform 0.3s; animation:uvdFloatBtnIn 0.3s ease;
         }
+        #__uvd_min_float__:hover { transform:scale(1.1); }
     `;
     document.head.appendChild(style);
 
@@ -530,7 +614,7 @@
         panel = document.createElement('div');
         panel.id = '__uvd__';
         panel.className = 'uvd-glass-panel uvd-scroll';
-        panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;bottom:15px;z-index:2147483647;display:flex;flex-direction:column;';
+        panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;bottom:15px;z-index:2147483647;display:flex;flex-direction:column;animation:uvdScaleIn 0.4s ease;';
 
         // Header
         var header = document.createElement('div');
@@ -538,10 +622,10 @@
         header.innerHTML = 
             '<div style="display:flex;align-items:center;gap:8px;">' +
                 '<span style="width:12px;height:12px;background:var(--accent);border-radius:50%;animation:uvdPulse 2s infinite;"></span>' +
-                '<span style="font-weight:700;font-size:16px;">DL <span style="color:var(--accent);">V3.7</span></span>' +
+                '<span style="font-weight:700;font-size:16px;">Universal DL <span style="color:var(--accent);">V3.8</span></span>' +
             '</div>' +
             '<div style="display:flex;gap:6px;">' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__">_</button>' +
+                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Minimize">_</button>' +
                 '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_refresh__">↻</button>' +
                 '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_close__">✕</button>' +
             '</div>';
@@ -578,21 +662,11 @@
         panel.appendChild(info);
 
         // Content
-        var contentWrapper = document.createElement('div');
-        contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;';
-
-        var streamList = document.createElement('div');
-        streamList.id = '__uvd_stream_list__';
-        streamList.className = 'uvd-scroll';
-        streamList.style.cssText = 'overflow-y:auto;height:100%;';
-        contentWrapper.appendChild(streamList);
-
-        var playerContainer = document.createElement('div');
-        playerContainer.id = '__uvd_player_container__';
-        playerContainer.style.cssText = 'display:none;flex-direction:column;height:100%;';
-        contentWrapper.appendChild(playerContainer);
-
-        panel.appendChild(contentWrapper);
+        var content = document.createElement('div');
+        content.id = '__uvd_content__';
+        content.className = 'uvd-scroll';
+        content.style.cssText = 'flex:1;overflow-y:auto;padding-right:4px;';
+        panel.appendChild(content);
 
         // Footer
         var footer = document.createElement('div');
@@ -609,7 +683,7 @@
         document.body.appendChild(panel);
 
         // Ripple
-        document.querySelectorAll('.uvd-ripple-btn, .uvd-btn').forEach(function(btn) {
+        document.querySelectorAll('.uvd-ripple-btn, .uvd-btn, .uvd-btn-icon').forEach(function(btn) {
             btn.addEventListener('click', addRipple);
         });
 
@@ -619,14 +693,11 @@
             document.querySelectorAll('[data-tab]').forEach(function(t) {
                 t.classList.toggle('uvd-tab-active', t.dataset.tab === tabId);
             });
-            playerContainer.style.display = 'none';
-            playerContainer.innerHTML = '';
-            streamList.style.display = 'block';
-            streamList.innerHTML = '';
-            if (tabId === 'streams') renderStreams(streamList, arr);
-            else if (tabId === 'favorites') renderFavorites(streamList);
-            else if (tabId === 'history') renderHistory(streamList);
-            else if (tabId === 'settings') renderSettings(streamList);
+            content.innerHTML = '';
+            if (tabId === 'streams') renderStreams(content, arr);
+            else if (tabId === 'favorites') renderFavorites(content);
+            else if (tabId === 'history') renderHistory(content);
+            else if (tabId === 'settings') renderSettings(content);
         }
 
         document.querySelectorAll('[data-tab]').forEach(function(t) {
@@ -657,20 +728,13 @@
                 floatBtn = document.createElement('button');
                 floatBtn.id = '__uvd_min_float__';
                 floatBtn.textContent = 'U';
-                floatBtn.title = 'Restore Universal DL';
-                floatBtn.onclick = function() {
-                    panel.style.display = 'flex';
-                    floatBtn.remove();
-                };
+                floatBtn.onclick = function() { panel.style.display = 'flex'; floatBtn.remove(); };
                 document.body.appendChild(floatBtn);
             }
         };
 
-        window.__uvd_showPreview = function(url) {
-            streamList.style.display = 'none';
-            playerContainer.style.display = 'flex';
-            showInlinePlayer(url, playerContainer);
-        };
+        // Gán hàm preview toàn cục
+        window.__uvd_showPreview = showPreview;
     }
 
     function renderStreams(container, arr) {
@@ -684,12 +748,12 @@
             var fav = isFavorite(item.url);
             card.innerHTML = 
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-                    '<span class="uvd-type-badge" style="background:rgba(59,130,246,0.2);color:var(--accent);padding:4px 12px;border-radius:20px;font-weight:700;">#' + (i+1) + ' ' + item.type + '</span>' +
+                    '<span class="uvd-type-badge">#' + (i+1) + ' ' + item.type + '</span>' +
                     '<button class="uvd-fav-btn uvd-ripple-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '★' : '☆') + '</button>' +
                 '</div>' +
                 '<div class="uvd-url-box">' + item.url + '</div>' +
                 '<div class="uvd-grid-2" style="margin-top:8px;">' +
-                    '<button class="uvd-btn uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.3);border-color:rgba(139,92,246,0.5);">Share</button>' +
+                    '<button class="uvd-btn uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.3);">Share</button>' +
                     '<button class="uvd-btn uvd-ripple-btn" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Copy</button>' +
                     (item.type === 'IFRAME' ? 
                         '<a href="' + item.url + '" class="uvd-btn uvd-ripple-btn" style="text-align:center;grid-column:1/3;text-decoration:none;">Open iframe</a>' :
@@ -734,7 +798,7 @@
     function showCommandPicker(url, type) {
         var cmds = makeCommands(url, type, pageInfo.title);
         var overlay = document.createElement('div');
-        overlay.className = 'uvd-overlay'; // Dùng lại class overlay cơ bản
+        overlay.className = 'uvd-overlay';
         var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
         html += '<div style="font-weight:700;margin-bottom:12px;">Select command</div>';
         html += '<div style="overflow-y:auto;max-height:60vh;">';
@@ -833,22 +897,35 @@
         });
     }
 
-    function renderFavorites(container) { /* giữ logic cũ nhưng bọc bằng liquid button */ }
-    function renderHistory(container) { /* giữ logic cũ */ }
+    function renderFavorites(container) { /* tương tự streams, code rút gọn */ }
+    function renderHistory(container) { /* tương tự */ }
     function renderSettings(container) {
         container.innerHTML = 
             '<div class="uvd-card"><div style="font-weight:600;">Backup</div>' +
             '<button class="uvd-btn uvd-ripple-btn" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Export data</button>' +
             '<button class="uvd-btn uvd-ripple-btn" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Import data</button>' +
             '<button class="uvd-btn uvd-ripple-btn" id="__uvd_reset__" style="width:100%;background:var(--danger);">Reset all</button></div>' +
-            '<div class="uvd-card" style="margin-top:10px;color:var(--text2);">Version 3.7 · nguyenquocngu93<br>Favorites: ' + data.favorites.length + ' · History: ' + (data.history||[]).length + '</div>';
+            '<div class="uvd-card" style="margin-top:10px;color:var(--text2);">Version 3.8 · nguyenquocngu93<br>Favorites: ' + data.favorites.length + ' · History: ' + (data.history||[]).length + '</div>';
         container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
         document.getElementById('__uvd_backup__').onclick = function() {
             var blob = new Blob([JSON.stringify(data)],{type:'application/json'});
             var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'uvd_backup.json'; a.click();
         };
-        document.getElementById('__uvd_restore__').onclick = function() { /* ... */ };
-        document.getElementById('__uvd_reset__').onclick = function() { if(confirm('Reset?')) { localStorage.removeItem(STORAGE_KEY); data = {favorites:[],siteProfiles:{},history:[]}; buildUI(); } };
+        document.getElementById('__uvd_restore__').onclick = function() {
+            var inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
+            inp.onchange = function(e) {
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                    try { data = Object.assign(data, JSON.parse(ev.target.result)); storage.set(data); toast('Imported'); buildUI(); }
+                    catch(ex) { toast('Invalid file','var(--danger)'); }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            inp.click();
+        };
+        document.getElementById('__uvd_reset__').onclick = function() {
+            if (confirm('Delete all data?')) { localStorage.removeItem(STORAGE_KEY); data = {favorites:[],siteProfiles:{},history:[]}; buildUI(); }
+        };
     }
 
     buildUI();
@@ -857,6 +934,6 @@
             clearInterval(autoRefresh); stopMonitor();
         }
     }, 2000);
-    console.log('V3.7 Liquid Glass ready');
-    toast('V3.7 Liquid Glass Ready');
+    console.log('V3.8 Polished Player ready');
+    toast('V3.8 Polished Player Ready');
 })();

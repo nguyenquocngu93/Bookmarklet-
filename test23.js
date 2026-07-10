@@ -1,17 +1,16 @@
 /**
- * Universal Video Downloader V3 - Dark Glass Edition
- * Features: Glassmorphism UI, Full transitions, Button animations, Minimize, Live monitoring,
- *           Multi-quality, Favorites, Export, Site profiles, Share to YTDLnis
+ * Universal Video Downloader V3.8 — Full Fix + Responsive
+ * Fixes: Stream links misidentified as images, Preview in History/Favorites,
+ *        Improved favorite UX, Responsive design for all screen sizes
  * Author: nguyenquocngu93
  */
 (function() {
     'use strict';
     
-    // ========== INIT ==========
+    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     var old = document.getElementById('__uvd__');
     if (old) old.remove();
-    var oldMini = document.getElementById('__uvd_mini__');
-    if (oldMini) oldMini.remove();
     
     var STORAGE_KEY = 'uvd_data_v3';
     var storage = {
@@ -27,15 +26,11 @@
     
     var data = storage.get();
     data.favorites = data.favorites || [];
-    data.theme = data.theme || 'glass';
+    data.theme = data.theme || 'glass-dark';
     data.siteProfiles = data.siteProfiles || {};
     data.history = data.history || [];
+    data.torrserverUrl = data.torrserverUrl || 'http://127.0.0.1:8090';
     
-    // Global state
-    var isMinimized = false;
-    var currentTab = 'streams';
-    
-    // ========== SITE PROFILES ==========
     var defaultProfiles = {
         'videoplay.us': { referer: 'https://videoplay.us/', userAgent: '' },
         'streamtape.com': { referer: 'https://streamtape.com/', userAgent: '' },
@@ -56,13 +51,13 @@
         url: location.href,
         host: host,
         referer: profile.referer,
-        origin: location.origin,
+        origin: profile.origin || location.origin,
         userAgent: profile.userAgent || navigator.userAgent
     };
     
-    // ========== URL DETECTION ==========
     var urls = new Map();
-    var patterns = [
+    
+    var videoPatterns = [
         { re: /https?:\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
         { re: /https?:\/\/[^\s"'<>()\\]+\.mpd[^\s"'<>()\\]*/gi, type: 'MPD', priority: 2 },
         { re: /https?:\/\/[^\s"'<>()\\]+\.mp4[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
@@ -72,15 +67,60 @@
         { re: /https?:\/\/[^\s"'<>()\\]+\.ts[^\s"'<>()\\]*/gi, type: 'TS', priority: 7 }
     ];
     
+    var photoPatterns = [
+        { re: /https?:\/\/[^\s"'<>()\\]+\.(?:jpg|jpeg)[^\s"'<>()\\]*/gi, type: 'JPG', priority: 10 },
+        { re: /https?:\/\/[^\s"'<>()\\]+\.png[^\s"'<>()\\]*/gi, type: 'PNG', priority: 11 },
+        { re: /https?:\/\/[^\s"'<>()\\]+\.gif[^\s"'<>()\\]*/gi, type: 'GIF', priority: 12 },
+        { re: /https?:\/\/[^\s"'<>()\\]+\.webp[^\s"'<>()\\]*/gi, type: 'WEBP', priority: 13 },
+        { re: /https?:\/\/[^\s"'<>()\\]+\.svg[^\s"'<>()\\]*/gi, type: 'SVG', priority: 14 },
+        { re: /https?:\/\/[^\s"'<>()\\]+\.bmp[^\s"'<>()\\]*/gi, type: 'BMP', priority: 15 }
+    ];
+    
+    var allPatterns = videoPatterns.concat(photoPatterns);
+    
+    // ========== FIX 1: Improved URL categorization ==========
+    function getCategory(url, type) {
+        var videoTypes = ['M3U8', 'MPD', 'MP4', 'WEBM', 'MKV', 'FLV', 'TS'];
+        var photoTypes = ['JPG', 'PNG', 'GIF', 'WEBP', 'SVG', 'BMP'];
+        
+        if (videoTypes.indexOf(type) >= 0) return 'video';
+        
+        if (photoTypes.indexOf(type) >= 0) {
+            // Kiểm tra xem URL có phải là video player chứa img parameter không
+            var urlLower = url.toLowerCase();
+            var videoPlayers = ['javplayer', 'streamtape', 'fembed', 'mp4upload', 'ok.ru', 'doodstream', 'missav'];
+            var hasVideoParam = urlLower.includes('poster=') || 
+                               urlLower.includes('thumbnail=') || 
+                               urlLower.includes('img=') ||
+                               urlLower.includes('cover=') ||
+                               urlLower.includes('/e/'); // Video player path
+            
+            // Nếu là video player và có parameter img, vẫn là video
+            for (var i = 0; i < videoPlayers.length; i++) {
+                if (urlLower.includes(videoPlayers[i]) && hasVideoParam) {
+                    return 'video';
+                }
+            }
+            return 'photo';
+        }
+        return 'script';
+    }
+    
     function findUrls(text, source) {
         if (!text || typeof text !== 'string') return;
-        patterns.forEach(function(p) {
+        allPatterns.forEach(function(p) {
             var matches = text.match(p.re);
             if (matches) {
                 matches.forEach(function(u) {
-                    u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
+                    u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '').replace(/"/g, '');
                     if (!urls.has(u) || urls.get(u).priority > p.priority) {
-                        urls.set(u, { type: p.type, source: source, priority: p.priority, timestamp: Date.now() });
+                        urls.set(u, { 
+                            type: p.type, 
+                            source: source, 
+                            priority: p.priority, 
+                            timestamp: Date.now(), 
+                            category: getCategory(u, p.type) // FIX: truyền cả url và type
+                        });
                     }
                 });
             }
@@ -93,19 +133,22 @@
                 if (v.src) findUrls(v.src, src + ':element');
                 if (v.currentSrc) findUrls(v.currentSrc, src + ':current');
             });
+            doc.querySelectorAll('img').forEach(function(img) {
+                if (img.src && !img.src.startsWith('data:')) findUrls(img.src, src + ':img');
+                if (img.dataset && img.dataset.src) findUrls(img.dataset.src, src + ':lazy');
+            });
             doc.querySelectorAll('script').forEach(function(s) {
                 findUrls(s.textContent, src + ':script');
             });
             findUrls(doc.documentElement.outerHTML, src + ':html');
             doc.querySelectorAll('iframe').forEach(function(i, idx) {
-                if (i.src) urls.set(i.src, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now() });
+                if (i.src) urls.set(i.src, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now(), category: 'script' });
                 try { if (i.contentDocument) scan(i.contentDocument, 'iframe#' + idx); }
                 catch(e) {}
             });
         } catch(e) {}
     }
     
-    // ========== LIVE MONITORING ==========
     var originalFetch = window.fetch;
     var originalXHROpen = XMLHttpRequest.prototype.open;
     
@@ -116,7 +159,6 @@
             else if (url && url.url) findUrls(url.url, 'fetch:live');
             return originalFetch.apply(this, arguments);
         };
-        
         XMLHttpRequest.prototype.open = function(method, url) {
             if (url) findUrls(url, 'xhr:live');
             return originalXHROpen.apply(this, arguments);
@@ -136,7 +178,28 @@
     } catch(e) {}
     installMonitor();
     
-    // ========== M3U8 PARSER ==========
+    function rescanPage() {
+        scan(document, 'rescan');
+        try {
+            performance.getEntriesByType('resource').forEach(function(e) {
+                findUrls(e.name, 'network:rescan');
+            });
+        } catch(e) {}
+        pageInfo.title = (document.title || 'video').replace(/[^\w\s\u00C0-\u1EF9]/g, '').substring(0, 60).trim() || 'video';
+        pageInfo.url = location.href;
+        pageInfo.host = location.hostname.replace('www.', '');
+        var profile2 = data.siteProfiles[pageInfo.host] || defaultProfiles[pageInfo.host] || {
+            referer: location.origin + '/',
+            origin: location.origin,
+            userAgent: navigator.userAgent
+        };
+        pageInfo.referer = profile2.referer;
+        pageInfo.origin = profile2.origin || location.origin;
+        pageInfo.userAgent = profile2.userAgent || navigator.userAgent;
+        buildUI();
+        toast('Đã quét lại: ' + urls.size + ' streams', 'success');
+    }
+    
     function parseM3U8Master(url, callback) {
         fetch(url, { headers: { 'Referer': pageInfo.referer } })
         .then(function(r) { return r.text(); })
@@ -152,18 +215,17 @@
                         var resolution = (info.match(/RESOLUTION=(\d+x\d+)/) || [])[1] || 'unknown';
                         var bandwidth = parseInt((info.match(/BANDWIDTH=(\d+)/) || [])[1] || 0);
                         var codecs = (info.match(/CODECS="([^"]+)"/) || [])[1] || '';
+                        var framerate = (info.match(/FRAME-RATE=([\d.]+)/) || [])[1] || '';
                         var quality = resolution.split('x')[1] || bandwidth;
                         var qualityLabel = resolution === 'unknown' ? Math.round(bandwidth/1000) + 'kbps' : quality + 'p';
                         var streamUrl = nextLine;
                         if (!streamUrl.startsWith('http')) {
-                            streamUrl = url.substring(0, url.lastIndexOf('/') + 1) + streamUrl;
+                            var baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+                            streamUrl = baseUrl + streamUrl;
                         }
                         qualities.push({
-                            label: qualityLabel,
-                            resolution: resolution,
-                            bandwidth: bandwidth,
-                            codecs: codecs,
-                            url: streamUrl
+                            label: qualityLabel, resolution: resolution, bandwidth: bandwidth,
+                            codecs: codecs, framerate: framerate, url: streamUrl
                         });
                     }
                 }
@@ -175,115 +237,169 @@
             });
             callback(qualities);
         })
-        .catch(function(e) {
-            console.error('M3U8 parse error:', e);
-            callback(null);
-        });
+        .catch(function(e) { console.error('M3U8 parse error:', e); callback(null); });
     }
     
-    // ========== COMMAND GENERATOR ==========
     function makeCommands(url, type, title) {
         var t = title;
         var ext = type.toLowerCase() === 'iframe' ? 'mp4' : type.toLowerCase();
         var ref = pageInfo.referer;
         var origin = pageInfo.origin;
         var ua = pageInfo.userAgent;
-        
         return {
-            'yt-dlp': {
-                label: '🐍 yt-dlp (cơ bản)',
-                cmd: 'yt-dlp --referer "' + ref + '" -o "' + t + '.%(ext)s" "' + url + '"'
-            },
-            'yt-dlp-hq': {
-                label: '🐍 yt-dlp (chất lượng cao)',
-                cmd: 'yt-dlp --referer "' + ref + '" -f "bv*+ba/best" --merge-output-format mp4 --embed-thumbnail --add-metadata -o "' + t + '.%(ext)s" "' + url + '"'
-            },
-            'yt-dlp-aria': {
-                label: '🚀 yt-dlp + aria2 (nhanh nhất)',
-                cmd: 'yt-dlp --referer "' + ref + '" --downloader aria2c --downloader-args "aria2c:-x 16 -s 16 -k 1M" --concurrent-fragments 8 -o "' + t + '.%(ext)s" "' + url + '"'
-            },
-            'ffmpeg': {
-                label: '🎬 FFmpeg (M3U8 → MP4)',
-                cmd: 'ffmpeg -headers "Referer: ' + ref + '\\r\\nOrigin: ' + origin + '\\r\\nUser-Agent: ' + ua + '" -i "' + url + '" -c copy -bsf:a aac_adtstoasc "' + t + '.mp4"'
-            },
-            'curl': {
-                label: '🌐 cURL',
-                cmd: 'curl -H "Referer: ' + ref + '" -o "' + t + '.' + ext + '" "' + url + '"'
-            },
-            'aria2': {
-                label: '⚡ aria2c',
-                cmd: 'aria2c --referer="' + ref + '" -x 16 -s 16 -o "' + t + '.' + ext + '" "' + url + '"'
-            },
-            'wget': {
-                label: '📥 wget',
-                cmd: 'wget --referer="' + ref + '" -O "' + t + '.' + ext + '" "' + url + '"'
-            }
+            'yt-dlp': { label: 'yt-dlp cơ bản', cmd: 'yt-dlp --referer "' + ref + '" -o "' + t + '.%(ext)s" "' + url + '"' },
+            'yt-dlp-hq': { label: 'yt-dlp HQ', cmd: 'yt-dlp --referer "' + ref + '" -f "bv*+ba/best" --merge-output-format mp4 --embed-thumbnail --add-metadata -o "' + t + '.%(ext)s" "' + url + '"' },
+            'yt-dlp-aria': { label: 'yt-dlp + aria2', cmd: 'yt-dlp --referer "' + ref + '" --downloader aria2c --downloader-args "aria2c:-x 16 -s 16 -k 1M" --concurrent-fragments 8 -o "' + t + '.%(ext)s" "' + url + '"' },
+            'yt-dlp-sub': { label: 'yt-dlp + sub', cmd: 'yt-dlp --referer "' + ref + '" --write-sub --sub-langs "vi,en" --embed-subs -o "' + t + '.%(ext)s" "' + url + '"' },
+            'ffmpeg': { label: 'FFmpeg M3U8→MP4', cmd: 'ffmpeg -headers "Referer: ' + ref + '\\r\\nOrigin: ' + origin + '\\r\\nUser-Agent: ' + ua + '" -i "' + url + '" -c copy -bsf:a aac_adtstoasc "' + t + '.mp4"' },
+            'ffmpeg-audio': { label: 'FFmpeg audio', cmd: 'ffmpeg -headers "Referer: ' + ref + '" -i "' + url + '" -vn -c:a copy "' + t + '.aac"' },
+            'ffmpeg-cut': { label: 'FFmpeg cut', cmd: 'ffmpeg -headers "Referer: ' + ref + '" -ss 00:00:00 -to 00:05:00 -i "' + url + '" -c copy "' + t + '_cut.mp4"' },
+            'curl': { label: 'cURL', cmd: 'curl -H "Referer: ' + ref + '" -o "' + t + '.' + ext + '" "' + url + '"' },
+            'aria2': { label: 'aria2c', cmd: 'aria2c --referer="' + ref + '" -x 16 -s 16 -o "' + t + '.' + ext + '" "' + url + '"' },
+            'wget': { label: 'wget', cmd: 'wget --referer="' + ref + '" -O "' + t + '.' + ext + '" "' + url + '"' }
         };
     }
     
-    // ========== UTILITIES ==========
+    var themes = {
+        'glass-dark': {
+            name: 'Glass Dark',
+            meshBg: 'radial-gradient(at 20% 20%, rgba(124, 108, 255, 0.15) 0%, transparent 50%), radial-gradient(at 80% 80%, rgba(0, 229, 255, 0.12) 0%, transparent 50%), radial-gradient(at 50% 50%, rgba(255, 45, 149, 0.08) 0%, transparent 60%)',
+            bg: 'rgba(10, 10, 18, 0.82)',
+            bg2: 'rgba(18, 18, 30, 0.78)',
+            bg3: 'rgba(28, 28, 45, 0.62)',
+            glass: 'rgba(255, 255, 255, 0.05)',
+            glassBorder: 'rgba(255, 255, 255, 0.1)',
+            text: '#ffffff',
+            text2: '#c0c0d0',
+            text3: '#787890',
+            primary: '#7C6CFF',
+            primaryGlow: 'rgba(124, 108, 255, 0.5)',
+            accent: '#00E5FF',
+            accentGlow: 'rgba(0, 229, 255, 0.5)',
+            danger: '#FF5252',
+            success: '#4ADE80',
+            warning: '#FFB84D'
+        },
+        'glass-light': {
+            name: 'Glass Light',
+            meshBg: 'radial-gradient(at 20% 20%, rgba(91, 79, 207, 0.1) 0%, transparent 50%), radial-gradient(at 80% 80%, rgba(0, 153, 204, 0.08) 0%, transparent 50%)',
+            bg: 'rgba(255, 255, 255, 0.78)',
+            bg2: 'rgba(245, 245, 255, 0.72)',
+            bg3: 'rgba(235, 235, 245, 0.58)',
+            glass: 'rgba(0, 0, 0, 0.03)',
+            glassBorder: 'rgba(0, 0, 0, 0.08)',
+            text: '#1a1a2e',
+            text2: '#4a4a6a',
+            text3: '#8a8aa0',
+            primary: '#5B4FCF',
+            primaryGlow: 'rgba(91, 79, 207, 0.3)',
+            accent: '#0099CC',
+            accentGlow: 'rgba(0, 153, 204, 0.3)',
+            danger: '#E63946',
+            success: '#2A9D4A',
+            warning: '#E67E00'
+        }
+    };
+    
+    function getTheme() { return themes[data.theme] || themes['glass-dark']; }
+    
     function copy(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(function() { fallbackCopy(text); });
+        } else { fallbackCopy(text); }
+    }
+    function fallbackCopy(text) {
         var t = document.createElement('textarea');
-        t.value = text; document.body.appendChild(t);
-        t.select(); document.execCommand('copy'); t.remove();
+        t.value = text; t.style.cssText = 'position:fixed;left:-9999px;';
+        document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
     }
     
-    function toast(msg, color) {
-        color = color || 'var(--primary)';
-        var t = document.createElement('div');
-        t.innerText = msg;
-        t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;padding:14px 28px;border-radius:30px;z-index:2147483650;font:bold 14px -apple-system,Arial;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.2);animation:uvdSlideIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);';
-        document.body.appendChild(t);
+    function toast(msg, type) {
+        type = type || 'success';
+        var t = getTheme();
+        var colors = { success: t.success, error: t.danger, info: t.accent, warning: t.warning };
+        var color = colors[type] || t.primary;
+        var el = document.createElement('div');
+        el.innerText = msg;
+        el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:' + color + ';color:#fff;padding:8px 18px;border-radius:20px;z-index:2147483649;font:bold 11px -apple-system,Arial,sans-serif;box-shadow:0 4px 20px ' + color + '60, 0 0 30px ' + color + '30;opacity:0;transition:opacity 0.2s;pointer-events:none;';
+        document.body.appendChild(el);
+        requestAnimationFrame(function() { el.style.opacity = '1'; });
         setTimeout(function() {
-            t.style.animation = 'uvdSlideOut 0.3s ease-in forwards';
-            setTimeout(function() { t.remove(); }, 300);
-        }, 2000);
+            el.style.opacity = '0';
+            setTimeout(function() { el.remove(); }, 200);
+        }, 1800);
     }
     
     function shareUrl(url) {
         if (navigator.share) {
             navigator.share({ title: pageInfo.title, text: pageInfo.title, url: url })
-            .catch(function(err) { if (err.name !== 'AbortError') { copy(url); toast('✓ Đã copy URL'); } });
-        } else { copy(url); toast('✓ Đã copy - Mở YTDLnis để tải', '#FF6B6B'); }
+            .catch(function(err) {
+                if (err.name !== 'AbortError') { copy(url); toast('Đã copy URL'); }
+            });
+        } else { copy(url); toast('Đã copy - Mở YTDLnis', 'info'); }
     }
     
     function addToHistory(url, type) {
         data.history = data.history || [];
         data.history.unshift({ url: url, type: type, title: pageInfo.title, host: pageInfo.host, timestamp: Date.now() });
-        if (data.history.length > 50) data.history = data.history.slice(0, 50);
+        if (data.history.length > 100) data.history = data.history.slice(0, 100);
         storage.set(data);
     }
     
-    function isFavorite(url) {
-        return data.favorites.some(function(f) { return f.url === url; });
-    }
+    function isFavorite(url) { return data.favorites.some(function(f) { return f.url === url; }); }
     
+    // ========== FIX 3: Improved favorite UX ==========
     function toggleFavorite(url, type) {
         var idx = data.favorites.findIndex(function(f) { return f.url === url; });
-        if (idx >= 0) {
-            data.favorites.splice(idx, 1);
-            toast('✓ Đã xóa khỏi Favorites');
-        } else {
-            data.favorites.unshift({ url: url, type: type, title: pageInfo.title, host: pageInfo.host, timestamp: Date.now() });
-            toast('⭐ Đã thêm vào Favorites');
+        if (idx >= 0) { 
+            data.favorites.splice(idx, 1); 
+            toast('Đã xóa khỏi Favorites', 'info'); 
+        }
+        else {
+            data.favorites.unshift({ 
+                url: url, 
+                type: type, 
+                title: pageInfo.title, 
+                host: pageInfo.host, 
+                category: getCategory(url, type), // Lưu category để preview được
+                timestamp: Date.now() 
+            });
+            toast('⭐ Đã thêm vào Favorites', 'success');
         }
         storage.set(data);
         return isFavorite(url);
     }
     
-    function exportData(format) {
-        var arr = [...urls.entries()].map(function(e) {
-            return { url: e[0], type: e[1].type, source: e[1].source, title: pageInfo.title };
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    
+    function debounce(fn, delay) {
+        var timer;
+        return function() {
+            var context = this, args = arguments;
+            clearTimeout(timer);
+            timer = setTimeout(function() { fn.apply(context, args); }, delay);
+        };
+    }
+    
+    function exportData(format, items) {
+        var arr = items || [...urls.entries()].map(function(e) {
+            return { url: e[0], type: e[1].type, source: e[1].source, title: pageInfo.title, category: e[1].category };
         });
         var content, mime, filename;
         if (format === 'json') {
             content = JSON.stringify({ page: pageInfo, exportDate: new Date().toISOString(), streams: arr }, null, 2);
             mime = 'application/json'; filename = pageInfo.title + '_streams.json';
         } else if (format === 'csv') {
-            content = 'Type,URL,Source,Title\n' + arr.map(function(a) { return a.type + ',"' + a.url + '",' + a.source + ',"' + a.title + '"'; }).join('\n');
+            content = 'Category,Type,URL,Source,Title\n' + arr.map(function(a) {
+                return (a.category || '') + ',' + a.type + ',"' + a.url + '",' + a.source + ',"' + a.title + '"';
+            }).join('\n');
             mime = 'text/csv'; filename = pageInfo.title + '_streams.csv';
         } else if (format === 'm3u') {
-            content = '#EXTM3U\n' + arr.filter(function(a) { return a.type !== 'IFRAME'; }).map(function(a) { return '#EXTINF:-1,' + a.title + ' [' + a.type + ']\n' + a.url; }).join('\n');
+            content = '#EXTM3U\n' + arr.filter(function(a) { return a.category === 'video'; }).map(function(a) {
+                return '#EXTINF:-1,' + a.title + ' [' + a.type + ']\n' + a.url;
+            }).join('\n');
             mime = 'audio/x-mpegurl'; filename = pageInfo.title + '.m3u';
         } else if (format === 'txt') {
             content = arr.map(function(a) { return a.url; }).join('\n');
@@ -293,886 +409,1360 @@
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob); a.download = filename; a.click();
         URL.revokeObjectURL(a.href);
-        toast('💾 Đã export ' + format.toUpperCase());
+        toast('Đã export ' + format.toUpperCase(), 'success');
     }
     
-    // ========== BUILD UI (Dark Glass) ==========
-    function injectStyles() {
-        if (document.getElementById('__uvd_styles__')) return;
-        var style = document.createElement('style');
-        style.id = '__uvd_styles__';
-        style.textContent = `
-            @keyframes uvdSlideIn {
-                from { transform: translate(-50%, -30px); opacity: 0; }
-                to { transform: translate(-50%, 0); opacity: 1; }
-            }
-            @keyframes uvdSlideOut {
-                from { transform: translate(-50%, 0); opacity: 1; }
-                to { transform: translate(-50%, -30px); opacity: 0; }
-            }
-            @keyframes uvdFadeIn {
-                from { opacity: 0; transform: scale(0.95); }
-                to { opacity: 1; transform: scale(1); }
-            }
-            @keyframes uvdPulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-            @keyframes uvdRipple {
-                to { transform: scale(4); opacity: 0; }
-            }
-            @keyframes uvdBounceIn {
-                0% { transform: scale(0.3); opacity: 0; }
-                50% { transform: scale(1.05); }
-                70% { transform: scale(0.95); }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            @keyframes uvdSlideUp {
-                from { transform: translateY(10px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-            }
-            .__uvd_card__ {
-                animation: uvdSlideUp 0.3s ease forwards;
-            }
-            .__uvd_glass_btn__ {
-                position: relative;
-                overflow: hidden;
-                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
-            }
-            .__uvd_glass_btn__:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.2);
-            }
-            .__uvd_glass_btn__:active {
-                transform: scale(0.95);
-                transition: transform 0.1s;
-            }
-            .__uvd_glass_btn__ .ripple {
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(255,255,255,0.4);
-                transform: scale(0);
-                animation: uvdRipple 0.6s linear;
-                pointer-events: none;
-            }
-            .__uvd_tab_btn__ {
-                transition: all 0.3s ease;
-                position: relative;
-            }
-            .__uvd_tab_btn__:hover {
-                background: rgba(255,255,255,0.08);
-                color: #fff;
-            }
-            .__uvd_tab_btn__::after {
-                content: '';
-                position: absolute;
-                bottom: 0;
-                left: 50%;
-                width: 0;
-                height: 3px;
-                background: var(--primary);
-                transition: all 0.3s ease;
-                transform: translateX(-50%);
-                border-radius: 3px 3px 0 0;
-            }
-            .__uvd_tab_btn__.active::after {
-                width: 60%;
-            }
-            .__uvd_overlay__ {
-                animation: uvdFadeIn 0.3s ease;
-                backdrop-filter: blur(15px);
-                -webkit-backdrop-filter: blur(15px);
-            }
-            .__uvd_stream_card__ {
-                transition: all 0.3s ease;
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-            }
-            .__uvd_stream_card__:hover {
-                transform: translateX(4px);
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.15);
-            }
-            .__uvd_mini_btn__ {
-                animation: uvdBounceIn 0.5s ease;
-                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
-            }
-            .__uvd_mini_btn__:hover {
-                transform: scale(1.15) rotate(5deg);
-                box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 2px var(--primary);
-            }
-            .__uvd_mini_btn__:active {
-                transform: scale(0.9);
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    function addRippleEffect(btn) {
-        btn.addEventListener('click', function(e) {
-            var ripple = document.createElement('span');
-            ripple.className = 'ripple';
-            var rect = btn.getBoundingClientRect();
-            var size = Math.max(rect.width, rect.height);
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
-            ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
-            btn.appendChild(ripple);
-            setTimeout(function() { ripple.remove(); }, 600);
-        });
-    }
+    var currentTab = 'video';
+    var currentFilter = '';
+    var currentSort = 'priority';
+    var isMinimized = false;
     
     function buildUI() {
-        injectStyles();
-        var arr = [...urls.entries()].map(function(e) {
-            return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority };
-        }).sort(function(a, b) { return a.priority - b.priority; });
-        
+        var t = getTheme();
         var panel = document.getElementById('__uvd__');
         if (panel) panel.remove();
+        var existingStyle = document.getElementById('__uvd_styles__');
+        if (existingStyle) existingStyle.remove();
         
-        // CSS Variables cho Glass theme
-        var glassCSS = `
-            --bg: rgba(22, 22, 35, 0.75);
-            --bg2: rgba(30, 30, 45, 0.7);
-            --bg3: rgba(40, 40, 55, 0.65);
-            --text: #ffffff;
-            --text2: #c0c0d0;
-            --text3: #8888a0;
-            --primary: #5C6BC0;
-            --accent: #26C6DA;
-            --danger: #EF5350;
-            --glass-border: rgba(255,255,255,0.12);
-            --glass-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        `;
+        var style = document.createElement('style');
+        style.id = '__uvd_styles__';
+        style.textContent = getGlobalCSS(t);
+        document.head.appendChild(style);
         
         panel = document.createElement('div');
         panel.id = '__uvd__';
-        panel.style.cssText = 
-            'position:fixed;top:10px;left:10px;right:10px;bottom:10px;' +
-            'background:rgba(22,22,35,0.78);' +
-            'backdrop-filter:blur(25px) saturate(180%);' +
-            '-webkit-backdrop-filter:blur(25px) saturate(180%);' +
-            'color:#fff;padding:0;border-radius:16px;' +
-            'z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:13px;' +
-            'overflow:hidden;display:flex;flex-direction:column;' +
-            'box-shadow:0 12px 48px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.15);' +
-            'border:1px solid rgba(255,255,255,0.1);' +
-            'animation:uvdFadeIn 0.4s ease;';
+        panel.className = '__uvd_panel__';
         
-        // Header với glass effect
-        var header = document.createElement('div');
-        header.style.cssText = 
-            'background:rgba(255,255,255,0.06);' +
-            'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);' +
-            'padding:14px 18px;display:flex;justify-content:space-between;align-items:center;' +
-            'border-bottom:1px solid rgba(255,255,255,0.1);';
-        header.innerHTML = 
-            '<div>' +
-                '<b style="font-size:17px;background:linear-gradient(135deg,#fff,#c0c0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 20px rgba(100,100,255,0.5);">⬇️ Universal DL V3</b>' +
-                '<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:4px;display:flex;gap:10px;align-items:center;">' +
-                    '<span style="animation:uvdPulse 2s infinite;color:#4CAF50;text-shadow:0 0 10px rgba(76,175,80,0.5);">🔴 LIVE</span>' +
-                    '<span style="opacity:0.7;">·</span>' +
-                    '<span>' + arr.length + ' streams</span>' +
-                    '<span style="opacity:0.7;">·</span>' +
-                    '<span style="opacity:0.8;">' + pageInfo.host + '</span>' +
+        var videoCount = [...urls.values()].filter(function(u) { return u.category === 'video'; }).length;
+        var photoCount = [...urls.values()].filter(function(u) { return u.category === 'photo'; }).length;
+        var scriptCount = [...urls.values()].filter(function(u) { return u.category === 'script'; }).length;
+        
+        panel.innerHTML = 
+            '<div class="__uvd_mesh_bg__"></div>' +
+            '<div class="__uvd_noise_overlay__"></div>' +
+            '<div class="__uvd_header__">' +
+                '<div class="__uvd_header_left__">' +
+                    '<div class="__uvd_header_text__">' +
+                        '<div class="__uvd_title__"><span class="__uvd_accent_inline__"></span>Universal DL <span class="__uvd_version__">V3.8</span></div>' +
+                        '<div class="__uvd_subtitle__"><span class="__uvd_accent_inline_small__"></span><span class="__uvd_live_dot__"></span> ' +
+                            videoCount + ' video · ' + photoCount + ' photo · ' + scriptCount + ' script' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="__uvd_header_right__">' +
+                    '<button class="__uvd_btn_icon__" id="__uvd_reload__" title="Quét lại">↻</button>' +
+                    '<button class="__uvd_btn_icon__" id="__uvd_minimize__" title="Thu nhỏ">─</button>' +
+                    '<button class="__uvd_btn_icon__" id="__uvd_close__" title="Đóng">✕</button>' +
                 '</div>' +
             '</div>' +
-            '<div style="display:flex;gap:8px;">' +
-                '<button id="__uvd_minimize__" title="Minimize" class="__uvd_glass_btn__" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);padding:9px 13px;border-radius:10px;font-size:16px;cursor:pointer;">🗕</button>' +
-                '<button id="__uvd_refresh__" title="Refresh" class="__uvd_glass_btn__" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);padding:9px 13px;border-radius:10px;font-size:15px;cursor:pointer;">🔄</button>' +
-                '<button id="__uvd_close__" title="Close" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.2);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:9px 14px;border-radius:10px;font-weight:bold;font-size:16px;cursor:pointer;">✕</button>' +
+            
+            '<div class="__uvd_body__">' +
+                '<div class="__uvd_search_bar__">' +
+                    '<input type="text" class="__uvd_search_input__" id="__uvd_search__" placeholder="Lọc URL, type..." />' +
+                    '<select class="__uvd_sort_select__" id="__uvd_sort__">' +
+                        '<option value="priority">Priority</option>' +
+                        '<option value="time">Mới nhất</option>' +
+                        '<option value="type">Type</option>' +
+                    '</select>' +
+                '</div>' +
+                
+                '<div class="__uvd_tabs__">' +
+                    '<button class="__uvd_tab__ active" data-tab="video"><span class="__uvd_accent_inline_small__"></span>Video <span class="__uvd_badge__">' + videoCount + '</span></button>' +
+                    '<button class="__uvd_tab__" data-tab="photo"><span class="__uvd_accent_inline_small__"></span>Photo <span class="__uvd_badge__">' + photoCount + '</span></button>' +
+                    '<button class="__uvd_tab__" data-tab="script"><span class="__uvd_accent_inline_small__"></span>Script <span class="__uvd_badge__">' + scriptCount + '</span></button>' +
+                    '<button class="__uvd_tab__" data-tab="favorites"><span class="__uvd_accent_inline_small__"></span>Favs <span class="__uvd_badge__">' + data.favorites.length + '</span></button>' +
+                    '<button class="__uvd_tab__" data-tab="history"><span class="__uvd_accent_inline_small__"></span>History <span class="__uvd_badge__">' + (data.history || []).length + '</span></button>' +
+                    '<button class="__uvd_tab__" data-tab="settings"><span class="__uvd_accent_inline_small__"></span>Settings</button>' +
+                '</div>' +
+                
+                '<div class="__uvd_info_bar__">' +
+                    '<div class="__uvd_info_row__">' +
+                        '<span class="__uvd_info_label__"><span class="__uvd_accent_inline_small__"></span>Title:</span>' +
+                        '<span class="__uvd_info_value__ __uvd_clickable__" id="__uvd_edit_title__">' + escapeHtml(pageInfo.title) + '</span>' +
+                    '</div>' +
+                    '<div class="__uvd_info_row__">' +
+                        '<span class="__uvd_info_label__"><span class="__uvd_accent_inline_small__"></span>Referer:</span>' +
+                        '<span class="__uvd_info_value__ __uvd_clickable__ __uvd_mono__" id="__uvd_edit_referer__">' + escapeHtml(pageInfo.referer) + '</span>' +
+                    '</div>' +
+                '</div>' +
+                
+                '<div class="__uvd_content__" id="__uvd_content__"></div>' +
+                
+                '<div class="__uvd_footer__">' +
+                    '<button class="__uvd_footer_btn__" id="__uvd_batch_copy__">Copy All</button>' +
+                    '<button class="__uvd_footer_btn__" id="__uvd_export_txt__">TXT</button>' +
+                    '<button class="__uvd_footer_btn__" id="__uvd_export_json__">JSON</button>' +
+                    '<button class="__uvd_footer_btn__" id="__uvd_export_m3u__">M3U</button>' +
+                '</div>' +
             '</div>';
-        
-        // Add ripple to header buttons
-        [].forEach.call(header.querySelectorAll('button'), function(b) { addRippleEffect(b); });
-        panel.appendChild(header);
-        
-        // Tabs
-        var tabs = document.createElement('div');
-        tabs.style.cssText = 
-            'display:flex;background:rgba(255,255,255,0.03);' +
-            'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
-            'border-bottom:1px solid rgba(255,255,255,0.08);';
-        var tabList = [
-            { id: 'streams', label: '🎬 Streams (' + arr.length + ')' },
-            { id: 'favorites', label: '⭐ Favorites (' + data.favorites.length + ')' },
-            { id: 'history', label: '📜 History (' + (data.history || []).length + ')' },
-            { id: 'settings', label: '⚙️ Settings' }
-        ];
-        tabList.forEach(function(tab) {
-            var b = document.createElement('button');
-            b.className = '__uvd_tab_btn__';
-            b.dataset.tab = tab.id;
-            b.innerText = tab.label;
-            b.style.cssText = 
-                'flex:1;background:transparent;color:rgba(255,255,255,0.7);border:0;padding:12px 5px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.3px;';
-            if (tab.id === currentTab) b.classList.add('active');
-            b.onclick = function() { currentTab = this.dataset.tab; buildUI(); };
-            tabs.appendChild(b);
-        });
-        panel.appendChild(tabs);
-        
-        // Info bar
-        var info = document.createElement('div');
-        info.style.cssText = 
-            'background:rgba(255,255,255,0.04);padding:10px 18px;' +
-            'border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;';
-        info.innerHTML = 
-            '<div style="display:flex;align-items:center;gap:8px;">' +
-                '<span style="opacity:0.7;">📝</span>' +
-                '<span id="__uvd_title__" title="Click to edit" style="color:#fff;font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.3);text-underline-offset:4px;transition:all 0.2s;" onmouseover="this.style.textDecorationColor=\'#fff\'" onmouseout="this.style.textDecorationColor=\'rgba(255,255,255,0.3)\'">' + pageInfo.title + '</span>' +
-            '</div>' +
-            '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">' +
-                '<span style="opacity:0.7;">🔗</span>' +
-                '<span id="__uvd_referer__" title="Click to edit Referer" style="color:rgba(200,200,255,0.9);font-family:monospace;font-size:10px;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(200,200,255,0.3);text-underline-offset:4px;transition:all 0.2s;word-break:break-all;">' + pageInfo.referer + '</span>' +
-            '</div>';
-        panel.appendChild(info);
-        
-        // Content area
-        var content = document.createElement('div');
-        content.id = '__uvd_content__';
-        content.style.cssText = 'flex:1;overflow-y:auto;padding:12px 16px;';
-        panel.appendChild(content);
-        
-        // Footer
-        var footer = document.createElement('div');
-        footer.style.cssText = 
-            'background:rgba(255,255,255,0.04);' +
-            'backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);' +
-            'padding:10px;border-top:1px solid rgba(255,255,255,0.08);' +
-            'display:flex;gap:6px;flex-wrap:wrap;';
-        var expBtns = ['txt','json','m3u','csv'];
-        expBtns.forEach(function(fmt) {
-            var btn = document.createElement('button');
-            btn.className = '__uvd_glass_btn__';
-            btn.innerText = '💾 ' + fmt.toUpperCase();
-            btn.style.cssText = 
-                'background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8);' +
-                'border:1px solid rgba(255,255,255,0.1);padding:10px;border-radius:8px;' +
-                'font-size:11px;flex:1;cursor:pointer;font-weight:600;';
-            btn.onclick = function() { exportData(fmt); };
-            addRippleEffect(btn);
-            footer.appendChild(btn);
-        });
-        panel.appendChild(footer);
         
         document.body.appendChild(panel);
         
-        // Render tab content
-        if (currentTab === 'streams') renderStreams(content, arr);
-        else if (currentTab === 'favorites') renderFavorites(content);
-        else if (currentTab === 'history') renderHistory(content);
-        else if (currentTab === 'settings') renderSettings(content);
+        bindGlobalEvents();
+        renderTab(currentTab);
+    }
+    
+    function getGlobalCSS(t) {
+        return '' +
+        '@keyframes uvdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }' +
+        '@keyframes uvdFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
+        '@keyframes uvdSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
         
-        // Event bindings
-        document.getElementById('__uvd_close__').onclick = function() {
-            stopMonitor();
-            panel.style.animation = 'uvdSlideOut 0.3s ease forwards';
-            setTimeout(function() { panel.remove(); }, 300);
-        };
-        document.getElementById('__uvd_minimize__').onclick = minimizePanel;
-        document.getElementById('__uvd_refresh__').onclick = function() {
-            panel.style.opacity = '0';
-            panel.style.transform = 'scale(0.95)';
-            panel.style.transition = 'all 0.2s ease';
+        '.__uvd_panel__ {' +
+            'position: fixed; top: 0; left: 0; right: 0; bottom: 0;' +
+            'background: ' + t.bg + ';' +
+            'backdrop-filter: blur(28px) saturate(180%);' +
+            '-webkit-backdrop-filter: blur(28px) saturate(180%);' +
+            'z-index: 2147483647;' +
+            'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;' +
+            'font-size: 13px; color: ' + t.text + ';' +
+            'display: flex; flex-direction: column;' +
+            'overflow: hidden;' +
+            'box-shadow: 0 0 50px rgba(0,0,0,0.6), inset 0 1px 0 ' + t.glassBorder + ';' +
+            'transition: height 0.25s ease;' +
+        '}' +
+        '.__uvd_panel__.minimized { height: auto !important; bottom: auto !important; }' +
+        '.__uvd_panel__.minimized .__uvd_body__ { display: none; }' +
+        '.__uvd_panel__.minimized .__uvd_header__ { border-bottom: none; }' +
+        
+        '.__uvd_mesh_bg__ {' +
+            'position: absolute; inset: 0; z-index: -2;' +
+            'background: ' + t.meshBg + ';' +
+            'pointer-events: none;' +
+        '}' +
+        '.__uvd_noise_overlay__ {' +
+            'position: absolute; inset: 0; z-index: -1;' +
+            'opacity: 0.03; pointer-events: none;' +
+            'background-image: url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E");' +
+            'background-size: 100px 100px;' +
+        '}' +
+        
+        '.__uvd_panel__ * { box-sizing: border-box; }' +
+        '.__uvd_panel__ ::-webkit-scrollbar { width: 4px; }' +
+        '.__uvd_panel__ ::-webkit-scrollbar-track { background: transparent; }' +
+        '.__uvd_panel__ ::-webkit-scrollbar-thumb { background: ' + t.primary + '50; border-radius: 2px; }' +
+        
+        '.__uvd_accent_inline__ {' +
+            'display: inline-block; width: 3px; height: 14px; vertical-align: middle; margin-right: 6px;' +
+            'background: linear-gradient(to bottom, ' + t.primary + ', ' + t.accent + ');' +
+            'border-radius: 2px; box-shadow: 0 0 8px ' + t.primaryGlow + ';' +
+        '}' +
+        '.__uvd_accent_inline_small__ {' +
+            'display: inline-block; width: 2px; height: 10px; vertical-align: middle; margin-right: 5px;' +
+            'background: linear-gradient(to bottom, ' + t.primary + ', ' + t.accent + ');' +
+            'border-radius: 2px; box-shadow: 0 0 6px ' + t.primaryGlow + ';' +
+            'opacity: 0.8;' +
+        '}' +
+        '.__uvd_btn_accent__ {' +
+            'display: inline-block; width: 2px; height: 12px; vertical-align: middle; margin-right: 5px;' +
+            'background: rgba(255,255,255,0.9);' +
+            'border-radius: 2px;' +
+        '}' +
+        
+        '.__uvd_header__ {' +
+            'background: ' + t.bg2 + ';' +
+            'backdrop-filter: blur(20px) saturate(150%);' +
+            '-webkit-backdrop-filter: blur(20px) saturate(150%);' +
+            'padding: 14px 16px;' +
+            'display: flex; justify-content: space-between; align-items: center;' +
+            'border-bottom: 1px solid ' + t.glassBorder + ';' +
+            'flex-shrink: 0;' +
+            'position: relative;' +
+            'box-shadow: inset 0 1px 0 ' + t.glassBorder + ', 0 4px 20px rgba(0,0,0,0.3);' +
+        '}' +
+        '.__uvd_header_left__ { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }' +
+        '.__uvd_header_text__ { min-width: 0; flex: 1; overflow: hidden; }' +
+        '.__uvd_title__ { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }' +
+        '.__uvd_version__ { font-size: 9px; background: linear-gradient(135deg, ' + t.primary + ', ' + t.accent + '); color: #fff; padding: 2px 6px; border-radius: 4px; vertical-align: middle; box-shadow: 0 0 12px ' + t.primaryGlow + '; margin-left: 6px; }' +
+        '.__uvd_subtitle__ { font-size: 10px; color: ' + t.text2 + '; margin-top: 3px; display: flex; align-items: center; gap: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
+        '.__uvd_live_dot__ { width: 5px; height: 5px; background: ' + t.success + '; border-radius: 50%; display: inline-block; animation: uvdPulse 1.5s infinite; flex-shrink: 0; box-shadow: 0 0 8px ' + t.success + '; }' +
+        '.__uvd_header_right__ { display: flex; gap: 6px; flex-shrink: 0; }' +
+        
+        '.__uvd_btn_icon__ {' +
+            'background: ' + t.glass + '; border: 1px solid ' + t.glassBorder + ';' +
+            'color: ' + t.text + '; width: 34px; height: 34px; border-radius: 10px;' +
+            'font-size: 16px; cursor: pointer;' +
+            'display: flex; align-items: center; justify-content: center;' +
+            'backdrop-filter: blur(10px);' +
+            'transition: all 0.2s ease;' +
+            '-webkit-tap-highlight-color: transparent;' +
+            'box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);' +
+        '}' +
+        '.__uvd_btn_icon__:active { background: ' + t.primary + '40; transform: scale(0.92); }' +
+        '.__uvd_btn_icon__.spinning { animation: uvdSpin 0.8s linear infinite; }' +
+        
+        '.__uvd_body__ { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; z-index: 1; }' +
+        
+        '.__uvd_search_bar__ {' +
+            'padding: 10px 16px; display: flex; gap: 8px; align-items: center;' +
+            'background: ' + t.glass + '; backdrop-filter: blur(16px);' +
+            '-webkit-backdrop-filter: blur(16px);' +
+            'border-bottom: 1px solid ' + t.glassBorder + '; flex-shrink: 0;' +
+        '}' +
+        '.__uvd_search_input__ {' +
+            'flex: 1; min-width: 0; background: ' + t.bg3 + ';' +
+            'border: 1px solid ' + t.glassBorder + '; color: ' + t.text + ';' +
+            'padding: 8px 12px; border-radius: 10px; font-size: 12px; outline: none;' +
+            'backdrop-filter: blur(8px);' +
+            'transition: all 0.2s ease;' +
+            'box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);' +
+        '}' +
+        '.__uvd_search_input__:focus { border-color: ' + t.primary + '; box-shadow: 0 0 0 2px ' + t.primaryGlow + ', inset 0 1px 0 rgba(255,255,255,0.05); }' +
+        '.__uvd_search_input__::placeholder { color: ' + t.text3 + '; }' +
+        '.__uvd_sort_select__ {' +
+            'background: ' + t.bg3 + '; border: 1px solid ' + t.glassBorder + ';' +
+            'color: ' + t.text + '; padding: 8px 10px; border-radius: 10px; font-size: 11px; outline: none;' +
+            'backdrop-filter: blur(8px);' +
+        '}' +
+        
+        '.__uvd_tabs__ {' +
+            'display: flex; background: ' + t.bg2 + '; backdrop-filter: blur(16px);' +
+            '-webkit-backdrop-filter: blur(16px);' +
+            'padding: 6px; gap: 4px;' +
+            'border-bottom: 1px solid ' + t.glassBorder + '; overflow-x: auto; flex-shrink: 0;' +
+            '-webkit-overflow-scrolling: touch;' +
+        '}' +
+        '.__uvd_tabs__::-webkit-scrollbar { display: none; }' +
+        '.__uvd_tab__ {' +
+            'flex: 0 0 auto; background: transparent; color: ' + t.text2 + ';' +
+            'border: 1px solid transparent; padding: 7px 12px; border-radius: 10px;' +
+            'font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;' +
+            'display: flex; align-items: center; gap: 4px;' +
+            'transition: all 0.2s ease;' +
+            '-webkit-tap-highlight-color: transparent;' +
+        '}' +
+        '.__uvd_tab__:active { background: ' + t.glass + '; }' +
+        '.__uvd_tab__.active {' +
+            'background: linear-gradient(135deg, ' + t.primary + '25, ' + t.accent + '15);' +
+            'color: ' + t.text + ';' +
+            'border-color: ' + t.primary + '60;' +
+            'box-shadow: 0 0 12px ' + t.primaryGlow + ', inset 0 1px 0 rgba(255,255,255,0.1);' +
+        '}' +
+        '.__uvd_badge__ {' +
+            'background: ' + t.glass + '; border: 1px solid ' + t.glassBorder + ';' +
+            'padding: 1px 5px; border-radius: 5px; font-size: 9px; font-weight: 700;' +
+        '}' +
+        '.__uvd_tab__.active .__uvd_badge__ { background: ' + t.primary + '50; border-color: ' + t.primary + '; }' +
+        
+        '.__uvd_info_bar__ {' +
+            'padding: 10px 16px; background: ' + t.glass + ';' +
+            'backdrop-filter: blur(14px);' +
+            '-webkit-backdrop-filter: blur(14px);' +
+            'border-bottom: 1px solid ' + t.glassBorder + '; font-size: 11px; flex-shrink: 0;' +
+        '}' +
+        '.__uvd_info_row__ { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; }' +
+        '.__uvd_info_row__:last-child { margin-bottom: 0; }' +
+        '.__uvd_info_label__ { opacity: 0.8; font-weight: 600; color: ' + t.text2 + '; display: flex; align-items: center; }' +
+        '.__uvd_info_value__ { color: ' + t.accent + '; flex: 1; min-width: 0; }' +
+        '.__uvd_clickable__ { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }' +
+        '.__uvd_clickable__:active { color: ' + t.primary + '; }' +
+        '.__uvd_mono__ { font-family: monospace; font-size: 10px; word-break: break-all; }' +
+        
+        '.__uvd_content__ { flex: 1; overflow-y: auto; padding: 12px 16px; -webkit-overflow-scrolling: touch; }' +
+        
+        '.__uvd_card__ {' +
+            'background: ' + t.bg3 + ';' +
+            'backdrop-filter: blur(12px) saturate(140%);' +
+            '-webkit-backdrop-filter: blur(12px) saturate(140%);' +
+            'border: 1px solid ' + t.glassBorder + ';' +
+            'padding: 14px; margin-bottom: 10px; border-radius: 14px;' +
+            'position: relative;' +
+            'animation: uvdFadeIn 0.3s ease;' +
+            'box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.2);' +
+        '}' +
+        '.__uvd_card_header__ { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }' +
+        '.__uvd_type_badge__ { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }' +
+        '.__uvd_card_meta__ { display: flex; gap: 6px; align-items: center; min-width: 0; }' +
+        '.__uvd_source__ { color: ' + t.text3 + '; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }' +
+        '.__uvd_fav_btn__ { background: transparent; border: 0; font-size: 16px; cursor: pointer; padding: 2px 4px; -webkit-tap-highlight-color: transparent; transition: transform 0.2s; }' +
+        '.__uvd_fav_btn__:active { transform: scale(1.3); }' +
+        '.__uvd_url_box__ {' +
+            'background: ' + t.bg + '; border: 1px solid ' + t.glassBorder + ';' +
+            'padding: 8px 10px; border-radius: 8px; font-family: monospace; font-size: 10px;' +
+            'color: ' + t.text2 + '; word-break: break-all; max-height: 50px; overflow-y: auto;' +
+            'line-height: 1.4; margin-bottom: 10px;' +
+            'box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);' +
+        '}' +
+        '.__uvd_actions__ { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }' +
+        '.__uvd_act_btn__ {' +
+            'border: 0; padding: 10px 6px; border-radius: 10px; font-size: 11px; font-weight: 600;' +
+            'cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center; gap: 4px;' +
+            'transition: all 0.2s ease;' +
+            '-webkit-tap-highlight-color: transparent;' +
+            'box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);' +
+        '}' +
+        '.__uvd_act_btn__:active { transform: scale(0.96); opacity: 0.9; }' +
+        '.__uvd_act_btn__.full { grid-column: 1 / -1; }' +
+        '.__uvd_btn_share__ { background: linear-gradient(135deg, #FF5252, #FF1744); }' +
+        '.__uvd_btn_copy__ { background: linear-gradient(135deg, ' + t.primary + ', ' + t.accent + '); }' +
+        '.__uvd_btn_quality__ { background: linear-gradient(135deg, #AB47BC, #7B1FA2); }' +
+        '.__uvd_btn_preview__ { background: linear-gradient(135deg, #26C6DA, #00838F); }' +
+        '.__uvd_btn_cmd__ { background: linear-gradient(135deg, #EC407A, #C2185B); }' +
+        '.__uvd_btn_iframe__ { background: linear-gradient(135deg, #42A5F5, #1565C0); }' +
+        '.__uvd_btn_download__ { background: linear-gradient(135deg, ' + t.success + ', #1B9E54); }' +
+        '.__uvd_btn_open__ { background: linear-gradient(135deg, ' + t.warning + ', #CC8400); }' +
+        
+        '.__uvd_footer__ {' +
+            'background: ' + t.bg2 + '; backdrop-filter: blur(20px);' +
+            '-webkit-backdrop-filter: blur(20px);' +
+            'padding: 10px 12px;' +
+            'border-top: 1px solid ' + t.glassBorder + '; display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0;' +
+            'box-shadow: inset 0 1px 0 ' + t.glassBorder + ';' +
+        '}' +
+        '.__uvd_footer_btn__ {' +
+            'background: ' + t.glass + '; border: 1px solid ' + t.glassBorder + ';' +
+            'color: ' + t.text + '; padding: 8px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;' +
+            'flex: 1; min-width: 60px; cursor: pointer; backdrop-filter: blur(10px);' +
+            'transition: all 0.2s ease;' +
+            '-webkit-tap-highlight-color: transparent;' +
+            'box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);' +
+        '}' +
+        '.__uvd_footer_btn__:active { background: ' + t.primary + '40; border-color: ' + t.primary + '; }' +
+        
+        '.__uvd_empty__ { text-align: center; padding: 50px 20px; color: ' + t.text2 + '; }' +
+        '.__uvd_empty_icon__ { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }' +
+        '.__uvd_empty_text__ { font-size: 13px; font-weight: 600; margin-bottom: 5px; }' +
+        '.__uvd_empty_sub__ { font-size: 11px; color: ' + t.text3 + '; }' +
+        
+        '.__uvd_photo_thumb_wrap__ {' +
+            'position: relative; margin-bottom: 10px; border-radius: 10px; overflow: hidden;' +
+            'background: ' + t.bg + '; border: 1px solid ' + t.glassBorder + ';' +
+            'cursor: pointer;' +
+        '}' +
+        '.__uvd_photo_thumb_wrap__ img { width: 100%; max-height: 180px; object-fit: cover; display: block; }' +
+        
+        '.__uvd_overlay__ {' +
+            'position: fixed; inset: 0; background: rgba(0,0,0,0.9);' +
+            'backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);' +
+            'z-index: 2147483648; padding: 12px; display: flex; flex-direction: column;' +
+            'overflow-y: auto; -webkit-overflow-scrolling: touch;' +
+        '}' +
+        '.__uvd_overlay_box__ {' +
+            'background: ' + t.bg + '; backdrop-filter: blur(28px) saturate(180%);' +
+            '-webkit-backdrop-filter: blur(28px) saturate(180%);' +
+            'border: 1px solid ' + t.glassBorder + ';' +
+            'border-radius: 18px; padding: 18px; width: 100%; max-width: 600px; margin: auto;' +
+            'box-shadow: 0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 ' + t.glassBorder + ';' +
+        '}' +
+        '.__uvd_overlay_title__ { color: ' + t.primary + '; font-size: 16px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }' +
+        
+        '.__uvd_quality_card__ { background: ' + t.bg3 + '; border: 1px solid ' + t.glassBorder + '; padding: 14px; margin-bottom: 10px; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }' +
+        '.__uvd_quality_header__ { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }' +
+        '.__uvd_quality_label__ { color: ' + t.primary + '; font-size: 15px; font-weight: 700; text-shadow: 0 0 10px ' + t.primaryGlow + '; }' +
+        '.__uvd_quality_info__ { color: ' + t.text3 + '; font-size: 10px; margin-bottom: 10px; }' +
+        
+        '.__uvd_cmd_card__ { background: ' + t.bg3 + '; border: 1px solid ' + t.glassBorder + '; padding: 14px; margin-bottom: 10px; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }' +
+        '.__uvd_cmd_label__ { color: ' + t.warning + '; font-weight: 600; margin-bottom: 8px; font-size: 12px; }' +
+        '.__uvd_cmd_code__ {' +
+            'background: ' + t.bg + '; border: 1px solid ' + t.glassBorder + '; padding: 10px; border-radius: 8px;' +
+            'font-family: monospace; font-size: 10px; color: ' + t.text2 + '; word-break: break-all;' +
+            'max-height: 80px; overflow-y: auto; margin-bottom: 10px; line-height: 1.4;' +
+        '}' +
+        
+        '.__uvd_textarea__ {' +
+            'width: 100%; min-height: 130px; background: ' + t.bg + ';' +
+            'border: 2px solid ' + t.primary + '60; color: ' + t.text + '; border-radius: 10px;' +
+            'padding: 12px; font: 12px monospace; resize: vertical; line-height: 1.4; outline: none;' +
+        '}' +
+        '.__uvd_textarea__:focus { border-color: ' + t.primary + '; box-shadow: 0 0 0 3px ' + t.primaryGlow + '; }' +
+        
+        '.__uvd_btn_primary__ { background: linear-gradient(135deg, ' + t.primary + ', ' + t.accent + '); color: #fff; border: 0; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 12px; cursor: pointer; flex: 1; box-shadow: 0 4px 15px ' + t.primaryGlow + ', inset 0 1px 0 rgba(255,255,255,0.2); -webkit-tap-highlight-color: transparent; transition: all 0.2s; }' +
+        '.__uvd_btn_primary__:active { transform: scale(0.96); opacity: 0.9; }' +
+        '.__uvd_btn_danger__ { background: linear-gradient(135deg, ' + t.danger + ', #CC0033); color: #fff; border: 0; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 12px; cursor: pointer; flex: 1; }' +
+        '.__uvd_btn_ghost__ { background: ' + t.glass + '; border: 1px solid ' + t.glassBorder + '; color: ' + t.text + '; padding: 11px 18px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer; flex: 1; backdrop-filter: blur(10px); }' +
+        
+        '.__uvd_settings_section__ { background: ' + t.bg3 + '; border: 1px solid ' + t.glassBorder + '; padding: 14px; margin-bottom: 12px; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }' +
+        '.__uvd_settings_title__ { color: ' + t.text + '; font-weight: 700; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; }' +
+        '.__uvd_theme_grid__ { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }' +
+        '.__uvd_theme_btn__ { background: ' + t.bg2 + '; border: 2px solid ' + t.glassBorder + '; color: ' + t.text + '; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 11px; transition: all 0.2s; }' +
+        '.__uvd_theme_btn__:active { transform: scale(0.96); }' +
+        '.__uvd_theme_btn__.active { border-color: ' + t.primary + '; background: ' + t.primary + '30; box-shadow: 0 0 15px ' + t.primaryGlow + '; }' +
+        
+        '.__uvd_profile_card__ { background: ' + t.bg + '; border: 1px solid ' + t.glassBorder + '; padding: 10px; margin-bottom: 6px; border-radius: 8px; font-size: 11px; }' +
+        '.__uvd_profile_host__ { color: ' + t.primary + '; font-weight: 700; margin-bottom: 4px; }' +
+        '.__uvd_profile_ref__ { color: ' + t.text2 + '; font-family: monospace; font-size: 10px; word-break: break-all; }' +
+        
+        '.__uvd_history_item__ { background: ' + t.bg3 + '; border: 1px solid ' + t.glassBorder + '; padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }' +
+        '.__uvd_history_title__ { color: ' + t.text + '; font-size: 11px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
+        '.__uvd_history_meta__ { color: ' + t.text3 + '; font-size: 9px; }' +
+        '.__uvd_history_url__ { color: ' + t.text2 + '; font-size: 9px; font-family: monospace; word-break: break-all; max-height: 25px; overflow: hidden; }' +
+        
+        '.__uvd_fav_card__ { background: ' + t.bg3 + '; border: 1px solid ' + t.glassBorder + '; padding: 14px; margin-bottom: 10px; border-radius: 12px; border-left: 3px solid gold; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }' +
+        '.__uvd_fav_header__ { display: flex; justify-content: space-between; margin-bottom: 6px; }' +
+        '.__uvd_fav_title__ { color: gold; font-size: 11px; font-weight: 700; }' +
+        '.__uvd_fav_date__ { color: ' + t.text3 + '; font-size: 10px; }' +
+        
+        '.__uvd_preview_overlay__ {' +
+            'position: fixed; inset: 0; background: #000;' +
+            'z-index: 2147483648; display: flex; flex-direction: column;' +
+        '}' +
+        '.__uvd_preview_header__ {' +
+            'position: absolute; top: 0; left: 0; right: 0; z-index: 10;' +
+            'background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);' +
+            'padding: 12px 14px; padding-top: max(12px, env(safe-area-inset-top));' +
+            'display: flex; justify-content: space-between; align-items: center;' +
+            'transition: opacity 0.3s ease;' +
+        '}' +
+        '.__uvd_preview_header__.hidden { opacity: 0; pointer-events: none; }' +
+        '.__uvd_preview_title__ {' +
+            'color: #fff; font-size: 13px; font-weight: 600;' +
+            'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
+            'flex: 1; margin-right: 10px;' +
+            'text-shadow: 0 2px 8px rgba(0,0,0,0.8);' +
+        '}' +
+        '.__uvd_preview_close__ {' +
+            'background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);' +
+            'border: 1px solid rgba(255,255,255,0.25); color: #fff;' +
+            'width: 36px; height: 36px; border-radius: 50%;' +
+            'font-size: 16px; cursor: pointer; flex-shrink: 0;' +
+            'display: flex; align-items: center; justify-content: center;' +
+            'transition: all 0.2s; -webkit-tap-highlight-color: transparent;' +
+        '}' +
+        '.__uvd_preview_close__:active { background: rgba(255,70,70,0.7); transform: scale(0.9); }' +
+        
+        '.__uvd_preview_video_wrap__ {' +
+            'flex: 1; display: flex; align-items: center; justify-content: center;' +
+            'position: relative; background: #000; overflow: hidden;' +
+        '}' +
+        '.__uvd_preview_video__ {' +
+            'width: 100%; height: 100%; object-fit: contain;' +
+            'background: #000;' +
+        '}' +
+        
+        '.__uvd_preview_status__ {' +
+            'position: absolute; bottom: 140px; left: 12px; z-index: 8;' +
+            'background: rgba(0,0,0,0.75); backdrop-filter: blur(12px);' +
+            '-webkit-backdrop-filter: blur(12px);' +
+            'border: 1px solid rgba(255,255,255,0.2);' +
+            'padding: 6px 14px; border-radius: 14px;' +
+            'font-size: 11px; color: #fff; font-weight: 500;' +
+            'pointer-events: none;' +
+            'opacity: 0; transform: translateY(5px);' +
+            'transition: all 0.25s ease;' +
+            'max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
+            'box-shadow: 0 4px 12px rgba(0,0,0,0.4);' +
+            'display: flex; align-items: center; gap: 6px;' +
+        '}' +
+        '.__uvd_preview_status__.visible { opacity: 1; transform: translateY(0); }' +
+        '.__uvd_preview_status__::before {' +
+            'content: ""; width: 6px; height: 6px; border-radius: 50%;' +
+            'background: ' + t.success + '; box-shadow: 0 0 6px ' + t.success + ';' +
+            'animation: uvdPulse 1.5s infinite; flex-shrink: 0;' +
+        '}' +
+        '.__uvd_preview_status__.error::before { background: ' + t.danger + '; box-shadow: 0 0 6px ' + t.danger + '; }' +
+        '.__uvd_preview_status__.buffering::before { background: ' + t.warning + '; box-shadow: 0 0 6px ' + t.warning + '; }' +
+        
+        '.__uvd_preview_quality_bar__ {' +
+            'position: absolute; top: 60px; left: 10px; right: 10px; z-index: 9;' +
+            'background: rgba(0,0,0,0.82); backdrop-filter: blur(16px);' +
+            '-webkit-backdrop-filter: blur(16px);' +
+            'border: 1px solid rgba(255,255,255,0.2); border-radius: 14px;' +
+            'padding: 12px; display: none;' +
+            'box-shadow: 0 4px 20px rgba(0,0,0,0.5);' +
+            'max-height: 40vh; overflow-y: auto;' +
+        '}' +
+        '.__uvd_preview_quality_bar__.visible { display: block; }' +
+        '.__uvd_preview_quality_label__ { color: #fff; font-size: 11px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }' +
+        '.__uvd_preview_quality_label__::before { content: ""; width: 3px; height: 12px; background: linear-gradient(to bottom, ' + t.primary + ', ' + t.accent + '); border-radius: 2px; }' +
+        '.__uvd_preview_quality_list__ { display: flex; gap: 6px; flex-wrap: wrap; }' +
+        
+        '.__uvd_preview_controls__ {' +
+            'position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;' +
+            'background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);' +
+            'padding: 14px; padding-bottom: max(14px, env(safe-area-inset-bottom));' +
+            'display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;' +
+            'transition: opacity 0.3s ease;' +
+        '}' +
+        '.__uvd_preview_controls__.hidden { opacity: 0; pointer-events: none; }' +
+        
+        '.__uvd_preview_btn__ {' +
+            'background: rgba(255,255,255,0.12); backdrop-filter: blur(12px);' +
+            '-webkit-backdrop-filter: blur(12px);' +
+            'border: 1px solid rgba(255,255,255,0.22); color: #fff;' +
+            'padding: 9px 16px; border-radius: 20px;' +
+            'font-size: 12px; font-weight: 600; cursor: pointer;' +
+            'transition: all 0.2s; -webkit-tap-highlight-color: transparent;' +
+            'letter-spacing: 0.3px;' +
+            'box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);' +
+        '}' +
+        '.__uvd_preview_btn__:active { background: rgba(255,255,255,0.25); transform: scale(0.95); }' +
+        '.__uvd_preview_btn__.active { background: ' + t.primary + '; border-color: ' + t.primary + '; box-shadow: 0 0 12px ' + t.primaryGlow + ', inset 0 1px 0 rgba(255,255,255,0.2); }' +
+        
+        '@media (orientation: landscape) {' +
+            '.__uvd_preview_video__ { width: 100vw; height: 100vh; }' +
+            '.__uvd_preview_controls__ { padding: 8px 12px; }' +
+            '.__uvd_preview_status__ { bottom: 110px; left: 10px; }' +
+            '.__uvd_preview_quality_bar__ { top: 55px; }' +
+        '}' +
+        '@media (orientation: portrait) {' +
+            '.__uvd_preview_video__ { width: 100%; max-height: 55vh; }' +
+            '.__uvd_preview_video_wrap__ { min-height: 55vh; }' +
+        '}' +
+        
+        // ========== RESPONSIVE DESIGN ==========
+        '@media (max-width: 768px) {' +
+            '.__uvd_panel__ { font-size: 12px; }' +
+            '.__uvd_header__ { padding: 12px 14px; }' +
+            '.__uvd_title__ { font-size: 14px; }' +
+            '.__uvd_subtitle__ { font-size: 9px; }' +
+            '.__uvd_btn_icon__ { width: 32px; height: 32px; }' +
+            '.__uvd_search_bar__ { padding: 8px 14px; }' +
+            '.__uvd_search_input__ { padding: 7px 10px; font-size: 11px; }' +
+            '.__uvd_tab__ { padding: 6px 10px; font-size: 10px; }' +
+            '.__uvd_content__ { padding: 10px 14px; }' +
+            '.__uvd_card__ { padding: 12px; }' +
+            '.__uvd_actions__ { grid-template-columns: 1fr; }' +
+            '.__uvd_act_btn__ { padding: 9px 6px; font-size: 11px; }' +
+            '.__uvd_footer__ { padding: 8px 10px; }' +
+            '.__uvd_footer_btn__ { min-width: calc(50% - 3px); flex: 0 0 calc(50% - 3px); }' +
+        '}' +
+        '@media (max-width: 480px) {' +
+            '.__uvd_panel__ { font-size: 11px; }' +
+            '.__uvd_header__ { padding: 10px 12px; }' +
+            '.__uvd_title__ { font-size: 13px; }' +
+            '.__uvd_version__ { font-size: 8px; padding: 1px 4px; }' +
+            '.__uvd_subtitle__ { font-size: 8px; }' +
+            '.__uvd_search_input__ { padding: 6px 8px; font-size: 11px; }' +
+            '.__uvd_tab__ { padding: 5px 8px; font-size: 9px; }' +
+            '.__uvd_content__ { padding: 8px 12px; }' +
+            '.__uvd_card__ { padding: 10px; margin-bottom: 8px; }' +
+            '.__uvd_type_badge__ { font-size: 9px; padding: 3px 8px; }' +
+            '.__uvd_url_box__ { font-size: 9px; padding: 6px 8px; }' +
+            '.__uvd_footer_btn__ { min-width: 100%; flex: 0 0 100%; }' +
+            '.__uvd_preview_controls__ { padding: 10px; }' +
+            '.__uvd_preview_btn__ { padding: 8px 12px; font-size: 11px; }' +
+        '}' +
+        
+        '.btn-row { display: flex; gap: 8px; margin-top: 12px; }';
+    }
+    
+    function bindGlobalEvents() {
+        var tabsContainer = document.querySelector('.__uvd_tabs__');
+        tabsContainer.addEventListener('click', function(e) {
+            var tab = e.target.closest('.__uvd_tab__');
+            if (!tab) return;
+            currentTab = tab.dataset.tab;
+            document.querySelectorAll('.__uvd_tab__').forEach(function(t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+            renderTab(currentTab);
+        });
+        
+        var searchInput = document.getElementById('__uvd_search__');
+        var debouncedSearch = debounce(function(value) {
+            currentFilter = value.toLowerCase();
+            renderTab(currentTab);
+        }, 250);
+        searchInput.addEventListener('input', function(e) { debouncedSearch(e.target.value); });
+        
+        document.getElementById('__uvd_sort__').addEventListener('change', function(e) {
+            currentSort = e.target.value;
+            renderTab(currentTab);
+        });
+        
+        document.getElementById('__uvd_reload__').addEventListener('click', function() {
+            var btn = this;
+            btn.classList.add('spinning');
             setTimeout(function() {
-                buildUI();
-                toast('🔄 Refreshed');
-            }, 200);
-        };
-        document.getElementById('__uvd_title__').onclick = function() {
+                rescanPage();
+                btn.classList.remove('spinning');
+            }, 400);
+        });
+        
+        document.getElementById('__uvd_close__').addEventListener('click', function() {
+            stopMonitor();
+            var panel = document.getElementById('__uvd__');
+            if (panel) panel.remove();
+            var style = document.getElementById('__uvd_styles__');
+            if (style) style.remove();
+        });
+        
+        document.getElementById('__uvd_minimize__').addEventListener('click', function() {
+            var panel = document.getElementById('__uvd__');
+            if (!panel) return;
+            isMinimized = !isMinimized;
+            if (isMinimized) {
+                panel.classList.add('minimized');
+                this.innerText = '';
+                this.title = 'Mở rộng';
+            } else {
+                panel.classList.remove('minimized');
+                this.innerText = '─';
+                this.title = 'Thu nhỏ';
+            }
+        });
+        
+        document.getElementById('__uvd_edit_title__').addEventListener('click', function() {
             var newTitle = prompt('Tên file:', pageInfo.title);
             if (newTitle) {
                 pageInfo.title = newTitle.replace(/[^\w\s\u00C0-\u1EF9.-]/g, '').substring(0, 100);
                 this.innerText = pageInfo.title;
+                toast('Đã cập nhật tên', 'success');
             }
-        };
-        document.getElementById('__uvd_referer__').onclick = function() {
+        });
+        
+        document.getElementById('__uvd_edit_referer__').addEventListener('click', function() {
             var newRef = prompt('Referer:', pageInfo.referer);
             if (newRef) {
                 pageInfo.referer = newRef;
                 this.innerText = newRef;
                 data.siteProfiles[pageInfo.host] = { referer: newRef, userAgent: pageInfo.userAgent };
                 storage.set(data);
-                toast('✓ Đã lưu Referer cho ' + pageInfo.host);
+                toast('Đã lưu Referer cho ' + pageInfo.host, 'success');
             }
-        };
+        });
+        
+        document.getElementById('__uvd_batch_copy__').addEventListener('click', function() {
+            var allUrls = [...urls.keys()].join('\n');
+            copy(allUrls);
+            toast('Đã copy ' + urls.size + ' URLs', 'success');
+        });
+        document.getElementById('__uvd_export_txt__').addEventListener('click', function() { exportData('txt'); });
+        document.getElementById('__uvd_export_json__').addEventListener('click', function() { exportData('json'); });
+        document.getElementById('__uvd_export_m3u__').addEventListener('click', function() { exportData('m3u'); });
     }
     
-    // ========== MINIMIZE ==========
-    function minimizePanel() {
-        var panel = document.getElementById('__uvd__');
-        if (!panel) return;
-        
-        isMinimized = true;
-        panel.style.animation = 'uvdSlideOut 0.3s ease forwards';
-        panel.style.transformOrigin = 'top right';
-        setTimeout(function() { panel.style.display = 'none'; }, 300);
-        
-        showMiniButton();
-        toast('🗕 Minimized - Click icon to restore');
+    function renderTab(tabId) {
+        var content = document.getElementById('__uvd_content__');
+        if (!content) return;
+        content.innerHTML = '';
+        if (tabId === 'video') renderCategory(content, 'video');
+        else if (tabId === 'photo') renderCategory(content, 'photo');
+        else if (tabId === 'script') renderCategory(content, 'script');
+        else if (tabId === 'favorites') renderFavorites(content);
+        else if (tabId === 'history') renderHistory(content);
+        else if (tabId === 'settings') renderSettings(content);
     }
     
-    function restorePanel() {
-        var panel = document.getElementById('__uvd__');
-        if (panel) {
-            panel.style.display = 'flex';
-            panel.style.animation = 'uvdFadeIn 0.4s ease forwards';
-            isMinimized = false;
-        } else {
-            buildUI();
+    function getSortedFilteredItems(category) {
+        var items = [...urls.entries()].filter(function(e) { return e[1].category === category; })
+            .map(function(e) { return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp }; });
+        if (currentFilter) {
+            items = items.filter(function(item) {
+                return item.url.toLowerCase().includes(currentFilter) ||
+                       item.type.toLowerCase().includes(currentFilter) ||
+                       item.source.toLowerCase().includes(currentFilter);
+            });
         }
-        removeMiniButton();
+        if (currentSort === 'priority') items.sort(function(a, b) { return a.priority - b.priority; });
+        else if (currentSort === 'time') items.sort(function(a, b) { return b.timestamp - a.timestamp; });
+        else if (currentSort === 'type') items.sort(function(a, b) { return a.type.localeCompare(b.type); });
+        return items;
     }
     
-    function showMiniButton() {
-        removeMiniButton();
-        var mini = document.createElement('div');
-        mini.id = '__uvd_mini__';
-        mini.className = '__uvd_mini_btn__';
-        mini.title = 'Restore Universal DL V3';
-        mini.style.cssText = 
-            'position:fixed;bottom:25px;right:25px;width:55px;height:55px;' +
-            'background:rgba(92,107,192,0.8);' +
-            'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);' +
-            'border-radius:50%;z-index:2147483648;' +
-            'display:flex;align-items:center;justify-content:center;' +
-            'cursor:pointer;font-size:24px;' +
-            'box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.2);' +
-            'color:#fff;';
-        mini.innerHTML = '⬇️';
-        mini.onclick = restorePanel;
-        document.body.appendChild(mini);
-    }
-    
-    function removeMiniButton() {
-        var mini = document.getElementById('__uvd_mini__');
-        if (mini) mini.remove();
-    }
-    
-    // ========== RENDER: STREAMS ==========
-    function renderStreams(container, arr) {
-        if (!arr.length) {
+    function renderCategory(container, category) {
+        var t = getTheme();
+        var items = getSortedFilteredItems(category);
+        if (!items.length) {
+            var icons = { video: '', photo: '🖼️', script: '📜' };
+            var names = { video: 'video stream', photo: 'photo', script: 'script/iframe' };
             container.innerHTML = 
-                '<div style="text-align:center;padding:50px 20px;color:rgba(255,255,255,0.5);animation:uvdFadeIn 0.5s ease;">' +
-                    '<div style="font-size:40px;margin-bottom:15px;opacity:0.4;">🔍</div>' +
-                    '<div style="font-size:15px;font-weight:500;">Chưa tìm thấy stream nào</div>' +
-                    '<div style="font-size:12px;margin-top:8px;opacity:0.6;">Đang monitor... Bấm Play video hoặc load thêm nội dung</div>' +
-                '</div>';
+                '<div class="__uvd_empty__"><div class="__uvd_empty_icon__">' + icons[category] + '</div>' +
+                '<div class="__uvd_empty_text__">Chưa tìm thấy ' + names[category] + ' nào</div>' +
+                '<div class="__uvd_empty_sub__">Đang monitor... Bấm Play video hoặc load thêm nội dung</div></div>';
             return;
         }
-        
         var typeColors = {
-            'M3U8': 'linear-gradient(135deg,#43A047,#66BB6A)',
-            'MPD': 'linear-gradient(135deg,#7CB342,#9CCC65)',
-            'MP4': 'linear-gradient(135deg,#F57C00,#FF9800)',
-            'WEBM': 'linear-gradient(135deg,#F57C00,#FFA726)',
-            'MKV': 'linear-gradient(135deg,#E64A19,#FF5722)',
-            'FLV': 'linear-gradient(135deg,#D84315,#FF7043)',
-            'TS': 'linear-gradient(135deg,#FBC02D,#FFC107)',
-            'IFRAME': 'linear-gradient(135deg,#1E88E5,#42A5F5)'
+            'M3U8': '#4CAF50', 'MPD': '#8BC34A', 'MP4': '#FF9800', 'WEBM': '#FF9800',
+            'MKV': '#FF5722', 'FLV': '#FF5722', 'TS': '#FFC107', 'IFRAME': '#2196F3',
+            'JPG': '#E91E63', 'PNG': '#9C27B0', 'GIF': '#FF5722', 'WEBP': '#00BCD4',
+            'SVG': '#4CAF50', 'BMP': '#795548'
         };
-        
-        arr.forEach(function(item, i) {
-            var url = item.url;
-            var type = item.type;
-            var colorGradient = typeColors[type] || 'linear-gradient(135deg,#666,#888)';
+        var fragment = document.createDocumentFragment();
+        items.forEach(function(item, i) {
+            var url = item.url; var type = item.type;
+            var color = typeColors[type] || '#666';
             var fav = isFavorite(url);
-            
             var card = document.createElement('div');
-            card.className = '__uvd_stream_card__ __uvd_card__';
-            card.style.cssText = 
-                'background:rgba(255,255,255,0.04);' +
-                'padding:16px;margin:10px 0;border-radius:12px;' +
-                'border:1px solid rgba(255,255,255,0.08);' +
-                'border-left:4px solid;' +
-                'border-image:' + colorGradient + ' 1;' +
-                'animation-delay:' + (i * 0.05) + 's;' +
-                'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);';
+            card.className = '__uvd_card__';
             
-            card.innerHTML = 
-                '<div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center;">' +
-                    '<span style="background:' + colorGradient + ';color:#fff;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">#' + (i + 1) + ' ' + type + '</span>' +
-                    '<div style="display:flex;gap:8px;align-items:center;">' +
-                        '<span style="color:rgba(255,255,255,0.4);font-size:10px;">' + item.source + '</span>' +
-                        '<button class="__uvd_fav__ __uvd_glass_btn__" data-url="' + encodeURIComponent(url) + '" data-type="' + type + '" style="background:transparent;border:0;font-size:18px;cursor:pointer;padding:2px 8px;transition:all 0.3s;text-shadow:0 0 10px rgba(255,215,0,0.5);">' + (fav ? '⭐' : '☆') + '</button>' +
+            var headerHtml = 
+                '<div class="__uvd_card_header__">' +
+                    '<span class="__uvd_type_badge__" style="background:' + color + ';">' + type + ' #' + (i + 1) + '</span>' +
+                    '<div class="__uvd_card_meta__">' +
+                        '<span class="__uvd_source__">' + escapeHtml(item.source) + '</span>' +
+                        '<button class="__uvd_fav_btn__" data-url="' + encodeURIComponent(url) + '" data-type="' + type + '">' + (fav ? '⭐' : '☆') + '</button>' +
                     '</div>' +
-                '</div>' +
-                '<div style="word-break:break-all;font-size:11px;font-family:monospace;background:rgba(0,0,0,0.3);padding:10px;margin-bottom:10px;border-radius:8px;max-height:65px;overflow-y:auto;color:rgba(255,255,255,0.6);line-height:1.6;border:1px solid rgba(255,255,255,0.05);">' + url + '</div>';
+                '</div>';
             
-            var buttons = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:7px;">';
-            buttons += '<button class="__uvd_act__ __uvd_glass_btn__" data-url="' + encodeURIComponent(url) + '" data-action="share" style="background:rgba(239,83,80,0.3);color:#FF8A80;border:1px solid rgba(239,83,80,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📱 YTDLnis</button>';
-            buttons += '<button class="__uvd_act__ __uvd_glass_btn__" data-url="' + encodeURIComponent(url) + '" data-action="copy" style="background:rgba(92,107,192,0.3);color:#9FA8DA;border:1px solid rgba(92,107,192,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copy</button>';
-            
-            if (type === 'IFRAME') {
-                buttons += '<a href="' + url + '" class="__uvd_glass_btn__" style="background:rgba(38,198,218,0.3);color:#80DEEA;padding:10px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;grid-column:1/3;border:1px solid rgba(38,198,218,0.3);display:block;">➡️ Vào iframe</a>';
-            } else {
-                if (type === 'M3U8') {
-                    buttons += '<button class="__uvd_act__ __uvd_glass_btn__" data-url="' + encodeURIComponent(url) + '" data-action="quality" data-type="' + type + '" style="background:rgba(156,39,176,0.3);color:#CE93D8;border:1px solid rgba(156,39,176,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🎞️ Quality</button>';
-                    buttons += '<button class="__uvd_act__ __uvd_glass_btn__" data-url="' + encodeURIComponent(url) + '" data-action="preview" style="background:rgba(0,188,212,0.3);color:#80DEEA;border:1px solid rgba(0,188,212,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">▶️ Preview</button>';
-                }
-                buttons += '<button class="__uvd_act__ __uvd_glass_btn__" data-url="' + encodeURIComponent(url) + '" data-action="cmd" data-type="' + type + '" style="background:rgba(233,30,99,0.3);color:#F48FB1;border:1px solid rgba(233,30,99,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;grid-column:1/3;">⚙️ Tất cả lệnh tải</button>';
+            var photoHtml = '';
+            if (category === 'photo') {
+                photoHtml = 
+                    '<div class="__uvd_photo_thumb_wrap__" data-fullscreen="' + encodeURIComponent(url) + '">' +
+                        '<img src="' + url + '" loading="lazy" onerror="this.style.display=\'none\'" />' +
+                    '</div>';
             }
-            buttons += '</div>';
             
-            card.innerHTML += buttons;
-            container.appendChild(card);
-            
-            // Add ripple to all buttons in card
-            [].forEach.call(card.querySelectorAll('button'), function(b) { addRippleEffect(b); });
+            var urlHtml = '<div class="__uvd_url_box__">' + escapeHtml(url) + '</div>';
+            var actionsHtml = '';
+            if (category === 'photo') {
+                actionsHtml = 
+                    '<div class="__uvd_actions__">' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_open__" data-url="' + encodeURIComponent(url) + '" data-action="open_photo"><span class="__uvd_btn_accent__"></span>Mở ảnh</button>' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_copy__" data-url="' + encodeURIComponent(url) + '" data-action="copy"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_download__" data-url="' + encodeURIComponent(url) + '" data-action="download_photo" data-type="' + type + '"><span class="__uvd_btn_accent__"></span>Tải xuống</button>' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_share__" data-url="' + encodeURIComponent(url) + '" data-action="share"><span class="__uvd_btn_accent__"></span>Share</button>' +
+                    '</div>';
+            } else if (type === 'IFRAME') {
+                actionsHtml = 
+                    '<div class="__uvd_actions__">' +
+                        '<a href="' + url + '" target="_blank" class="__uvd_act_btn__ __uvd_btn_iframe__ full" style="text-decoration:none;text-align:center;"><span class="__uvd_btn_accent__"></span>Mở iframe tab mới</a>' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_copy__" data-url="' + encodeURIComponent(url) + '" data-action="copy"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_share__" data-url="' + encodeURIComponent(url) + '" data-action="share"><span class="__uvd_btn_accent__"></span>Share</button>' +
+                    '</div>';
+            } else {
+                var extraBtns = '';
+                if (type === 'M3U8' || type === 'MP4' || type === 'WEBM') {
+                    extraBtns += '<button class="__uvd_act_btn__ __uvd_btn_preview__" data-url="' + encodeURIComponent(url) + '" data-action="preview" data-type="' + type + '"><span class="__uvd_btn_accent__"></span>Preview</button>';
+                }
+                if (type === 'M3U8') {
+                    extraBtns += '<button class="__uvd_act_btn__ __uvd_btn_quality__" data-url="' + encodeURIComponent(url) + '" data-action="quality"><span class="__uvd_btn_accent__"></span>Quality</button>';
+                }
+                actionsHtml = 
+                    '<div class="__uvd_actions__">' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_share__" data-url="' + encodeURIComponent(url) + '" data-action="share"><span class="__uvd_btn_accent__"></span>YTDLnis</button>' +
+                        '<button class="__uvd_act_btn__ __uvd_btn_copy__" data-url="' + encodeURIComponent(url) + '" data-action="copy"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                        extraBtns +
+                        '<button class="__uvd_act_btn__ __uvd_btn_cmd__ full" data-url="' + encodeURIComponent(url) + '" data-action="cmd" data-type="' + type + '"><span class="__uvd_btn_accent__"></span>Tất cả lệnh tải</button>' +
+                    '</div>';
+            }
+            card.innerHTML = headerHtml + photoHtml + urlHtml + actionsHtml;
+            fragment.appendChild(card);
         });
+        container.appendChild(fragment);
         
-        bindStreamEvents();
-    }
-    
-    function bindStreamEvents() {
-        document.querySelectorAll('.__uvd_fav__').forEach(function(b) {
-            b.onclick = function() {
-                var url = decodeURIComponent(this.dataset.url);
-                var isFav = toggleFavorite(url, this.dataset.type);
-                this.innerText = isFav ? '⭐' : '☆';
-                this.style.transform = 'scale(1.3)';
-                setTimeout(() => this.style.transform = 'scale(1)', 200);
-            };
-        });
-        
-        document.querySelectorAll('.__uvd_act__').forEach(function(b) {
-            b.onclick = function() {
-                var url = decodeURIComponent(this.dataset.url);
-                var action = this.dataset.action;
-                var type = this.dataset.type;
-                
-                addToHistory(url, type || 'IFRAME');
-                
-                if (action === 'share') shareUrl(url);
-                else if (action === 'copy') { showEditor(url, '📋 URL'); }
-                else if (action === 'quality') showQualityPicker(url);
-                else if (action === 'preview') showPreview(url);
-                else if (action === 'cmd') showCommandPicker(url, type);
-            };
-        });
-    }
-    
-    // ========== QUALITY PICKER ==========
-    function showQualityPicker(url) {
-        var overlay = createOverlay();
-        overlay.innerHTML = 
-            '<div style="color:#fff;font:bold 17px Arial;margin-bottom:15px;text-align:center;">🎞️ Đang phân tích M3U8...</div>' +
-            '<div style="text-align:center;color:rgba(255,255,255,0.5);padding:30px;">' +
-                '<div style="font-size:40px;animation:uvdPulse 1.5s infinite;">⏳</div>' +
-            '</div>';
-        
-        parseM3U8Master(url, function(qualities) {
-            if (!qualities) {
-                overlay.innerHTML = 
-                    '<div class="__uvd_overlay__" style="color:#EF5350;font:bold 17px Arial;margin-bottom:15px;">❌ Không phải Master Playlist</div>' +
-                    '<div style="color:rgba(255,255,255,0.7);margin-bottom:20px;">Đây là stream đơn, không có nhiều chất lượng.</div>' +
-                    '<button id="__uvd_qp_close__" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:14px;border-radius:10px;font-weight:700;width:100%;">Đóng</button>';
-                document.getElementById('__uvd_qp_close__').onclick = function() { overlay.remove(); };
-                addRippleEffect(document.getElementById('__uvd_qp_close__'));
+        container.addEventListener('click', function(e) {
+            var photoWrap = e.target.closest('.__uvd_photo_thumb_wrap__');
+            if (photoWrap && !e.target.closest('.__uvd_act_btn__') && !e.target.closest('.__uvd_fav_btn__')) {
+                var photoUrl = decodeURIComponent(photoWrap.dataset.fullscreen);
+                showPhotoFullscreen(photoUrl);
                 return;
             }
             
-            var html = '<div style="color:#fff;font:bold 17px Arial;margin-bottom:15px;">🎞️ Chọn chất lượng (' + qualities.length + ')</div>';
-            qualities.forEach(function(q, i) {
-                html += '<div style="background:rgba(255,255,255,0.06);padding:14px;margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);animation:uvdSlideUp 0.3s ease forwards;animation-delay:' + (i*0.05) + 's;">';
-                html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
-                html += '<b style="color:#fff;font-size:15px;">' + q.label + '</b>';
-                html += '<span style="color:rgba(255,255,255,0.5);font-size:11px;">' + Math.round(q.bandwidth/1000) + ' kbps</span>';
-                html += '</div>';
-                html += '<div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:10px;">📐 ' + q.resolution + (q.codecs ? ' · ' + q.codecs : '') + '</div>';
-                html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">';
-                html += '<button class="__uvd_qbtn__ __uvd_glass_btn__" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(239,83,80,0.3);color:#FF8A80;border:1px solid rgba(239,83,80,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;">📱 YTDLnis</button>';
-                html += '<button class="__uvd_qbtn__ __uvd_glass_btn__" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd" style="background:rgba(233,30,99,0.3);color:#F48FB1;border:1px solid rgba(233,30,99,0.3);padding:10px;border-radius:8px;font-size:12px;font-weight:700;">⚙️ Lệnh</button>';
-                html += '</div></div>';
-            });
-            html += '<button id="__uvd_qp_close__" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:14px;border-radius:10px;font-weight:700;width:100%;margin-top:10px;">✕ Đóng</button>';
-            overlay.innerHTML = html;
-            
-            document.querySelectorAll('.__uvd_qbtn__').forEach(function(b) {
-                addRippleEffect(b);
-                b.onclick = function() {
-                    var qUrl = decodeURIComponent(this.dataset.url);
-                    var action = this.dataset.action;
-                    overlay.remove();
-                    if (action === 'share') shareUrl(qUrl);
-                    else showCommandPicker(qUrl, 'M3U8');
-                };
-            });
-            document.getElementById('__uvd_qp_close__').onclick = function() { overlay.remove(); };
-            addRippleEffect(document.getElementById('__uvd_qp_close__'));
+            var favBtn = e.target.closest('.__uvd_fav_btn__');
+            if (favBtn) {
+                e.stopPropagation();
+                var url = decodeURIComponent(favBtn.dataset.url);
+                var isFav = toggleFavorite(url, favBtn.dataset.type);
+                favBtn.innerText = isFav ? '⭐' : '☆';
+                return;
+            }
+            var actBtn = e.target.closest('.__uvd_act_btn__');
+            if (actBtn) {
+                e.preventDefault();
+                var url = decodeURIComponent(actBtn.dataset.url);
+                var action = actBtn.dataset.action;
+                var type = actBtn.dataset.type;
+                addToHistory(url, type || 'URL');
+                if (action === 'share') shareUrl(url);
+                else if (action === 'copy') { copy(url); toast('Đã copy URL', 'success'); }
+                else if (action === 'quality') showQualityPicker(url);
+                else if (action === 'preview') showPreview(url, type);
+                else if (action === 'cmd') showCommandPicker(url, type);
+                else if (action === 'open_photo') window.open(url, '_blank');
+                else if (action === 'download_photo') downloadPhoto(url, type);
+            }
         });
     }
     
-    // ========== PREVIEW PLAYER ==========
-    function showPreview(url) {
-        var overlay = createOverlay();
-        overlay.style.padding = '0';
+    function showPhotoFullscreen(url) {
+        var overlay = document.createElement('div');
+        overlay.className = '__uvd_photo_fullscreen__';
         overlay.innerHTML = 
-            '<div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);">' +
-                '<b style="color:#fff;font-size:16px;">▶️ Preview Stream</b>' +
-                '<button id="__uvd_pv_close__" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:10px 18px;border-radius:8px;font-weight:700;">✕</button>' +
-            '</div>' +
-            '<div style="flex:1;display:flex;flex-direction:column;padding:20px;">' +
-                '<video id="__uvd_pv__" controls autoplay style="width:100%;max-height:65vh;background:#000;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></video>' +
-                '<div id="__uvd_pv_status__" style="color:rgba(255,255,255,0.5);margin-top:12px;font-size:13px;text-align:center;">⏳ Đang load...</div>' +
+            '<img src="' + url + '" />' +
+            '<button class="__uvd_photo_fullscreen_close__">✕</button>';
+        document.body.appendChild(overlay);
+        overlay.querySelector('button').addEventListener('click', function() { overlay.remove(); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    }
+    
+    function downloadPhoto(url, type) {
+        var a = document.createElement('a');
+        a.href = url; a.download = pageInfo.title + '.' + (type || 'jpg').toLowerCase();
+        a.target = '_blank'; a.rel = 'noopener'; a.click();
+        toast('Đang tải ảnh...', 'info');
+    }
+    
+    function showQualityPicker(url) {
+        var t = getTheme();
+        var overlay = document.createElement('div');
+        overlay.className = '__uvd_overlay__';
+        overlay.innerHTML = 
+            '<div class="__uvd_overlay_box__">' +
+                '<div class="__uvd_overlay_title__"><span class="__uvd_accent_inline__"></span>Đang phân tích M3U8...</div>' +
+                '<div style="text-align:center;padding:30px;color:' + t.text2 + ';">Loading...</div>' +
             '</div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
         
-        var video = document.getElementById('__uvd_pv__');
-        var status = document.getElementById('__uvd_pv_status__');
+        parseM3U8Master(url, function(qualities) {
+            if (!qualities) {
+                overlay.querySelector('.__uvd_overlay_box__').innerHTML = 
+                    '<div class="__uvd_overlay_title__"><span class="__uvd_accent_inline__"></span>Không phải Master Playlist</div>' +
+                    '<div style="color:' + t.text2 + ';margin-bottom:15px;">Đây là stream đơn, không có nhiều chất lượng.</div>' +
+                    '<div class="btn-row">' +
+                        '<button class="__uvd_btn_primary__" id="__uvd_qp_play__">Xem trực tiếp</button>' +
+                        '<button class="__uvd_btn_ghost__" id="__uvd_qp_close__">Đóng</button>' +
+                    '</div>';
+                overlay.querySelector('#__uvd_qp_play__').onclick = function() { overlay.remove(); showPreview(url, 'M3U8'); };
+                overlay.querySelector('#__uvd_qp_close__').onclick = function() { overlay.remove(); };
+                return;
+            }
+            var html = '<div class="__uvd_overlay_title__"><span class="__uvd_accent_inline__"></span>Chọn chất lượng (' + qualities.length + ')</div>';
+            qualities.forEach(function(q) {
+                var sizeMB = q.bandwidth ? (q.bandwidth / 1024 / 1024 * 60).toFixed(1) : '?';
+                html += 
+                    '<div class="__uvd_quality_card__">' +
+                        '<div class="__uvd_quality_header__">' +
+                            '<span class="__uvd_quality_label__"><span class="__uvd_accent_inline_small__"></span>' + q.label + '</span>' +
+                            '<span style="color:' + t.text2 + ';font-size:10px;">' + Math.round(q.bandwidth/1000) + ' kbps</span>' +
+                        '</div>' +
+                        '<div class="__uvd_quality_info__">📐 ' + q.resolution +
+                            (q.codecs ? ' · ' + q.codecs : '') +
+                            (q.framerate ? ' · ' + q.framerate + 'fps' : '') +
+                            ' · ~' + sizeMB + 'MB/phút</div>' +
+                        '<div class="__uvd_url_box__">' + escapeHtml(q.url) + '</div>' +
+                        '<div class="__uvd_actions__">' +
+                            '<button class="__uvd_act_btn__ __uvd_btn_preview__" data-url="' + encodeURIComponent(q.url) + '" data-action="preview"><span class="__uvd_btn_accent__"></span>Preview</button>' +
+                            '<button class="__uvd_act_btn__ __uvd_btn_copy__" data-url="' + encodeURIComponent(q.url) + '" data-action="copy"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                            '<button class="__uvd_act_btn__ __uvd_btn_share__" data-url="' + encodeURIComponent(q.url) + '" data-action="share"><span class="__uvd_btn_accent__"></span>YTDLnis</button>' +
+                            '<button class="__uvd_act_btn__ __uvd_btn_cmd__" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd"><span class="__uvd_btn_accent__"></span>Lệnh</button>' +
+                        '</div>' +
+                    '</div>';
+            });
+            html += '<div class="btn-row"><button class="__uvd_btn_danger__" id="__uvd_qp_close__">Đóng</button></div>';
+            overlay.querySelector('.__uvd_overlay_box__').innerHTML = html;
+            overlay.addEventListener('click', function(e) {
+                var btn = e.target.closest('.__uvd_act_btn__');
+                if (btn) {
+                    var qUrl = decodeURIComponent(btn.dataset.url);
+                    var action = btn.dataset.action;
+                    if (action === 'preview') { overlay.remove(); showPreview(qUrl, 'M3U8'); }
+                    else if (action === 'copy') { copy(qUrl); toast('Đã copy', 'success'); }
+                    else if (action === 'share') shareUrl(qUrl);
+                    else if (action === 'cmd') { overlay.remove(); showCommandPicker(qUrl, 'M3U8'); }
+                }
+            });
+            overlay.querySelector('#__uvd_qp_close__').onclick = function() { overlay.remove(); };
+        });
+    }
+    
+    function showPreview(url, type) {
+        var t = getTheme();
+        var overlay = document.createElement('div');
+        overlay.className = '__uvd_preview_overlay__';
+        overlay.innerHTML = 
+            '<div class="__uvd_preview_header__" id="__pv_header__">' +
+                '<div class="__uvd_preview_title__" id="__pv_title__">' + escapeHtml(pageInfo.title) + '</div>' +
+                '<button class="__uvd_preview_close__" id="__pv_close__">✕</button>' +
+            '</div>' +
+            '<div class="__uvd_preview_video_wrap__" id="__pv_wrap__">' +
+                '<video id="__pv_video__" class="__uvd_preview_video__" controls playsinline webkit-playsinline preload="auto"></video>' +
+                '<div class="__uvd_preview_status__" id="__pv_status__"></div>' +
+            '</div>' +
+            '<div class="__uvd_preview_quality_bar__" id="__pv_quality_bar__">' +
+                '<div class="__uvd_preview_quality_label__">Chất lượng:</div>' +
+                '<div class="__uvd_preview_quality_list__" id="__pv_quality_list__"></div>' +
+            '</div>' +
+            '<div class="__uvd_preview_controls__" id="__pv_controls__">' +
+                '<button class="__uvd_preview_btn__" id="__pv_copy__"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                '<button class="__uvd_preview_btn__" id="__pv_share__"><span class="__uvd_btn_accent__"></span>Share</button>' +
+                '<button class="__uvd_preview_btn__" id="__pv_cmd__"><span class="__uvd_btn_accent__"></span>Lệnh tải</button>' +
+                '<button class="__uvd_preview_btn__" id="__pv_quality__"><span class="__uvd_btn_accent__"></span>Quality</button>' +
+                '<button class="__uvd_preview_btn__" id="__pv_fullscreen__"><span class="__uvd_btn_accent__"></span>Full</button>' +
+            '</div>';
+        document.body.appendChild(overlay);
         
-        if (url.includes('.m3u8')) {
+        var video = document.getElementById('__pv_video__');
+        var wrap = document.getElementById('__pv_wrap__');
+        var statusEl = document.getElementById('__pv_status__');
+        var headerEl = document.getElementById('__pv_header__');
+        var controlsEl = document.getElementById('__pv_controls__');
+        var qualityBar = document.getElementById('__pv_quality_bar__');
+        var qualityList = document.getElementById('__pv_quality_list__');
+        var currentHls = null;
+        var statusTimer = null;
+        var uiTimer = null;
+        var uiVisible = true;
+        
+        function showStatus(msg, duration, statusType) {
+            duration = duration || 2000;
+            statusEl.innerText = msg;
+            statusEl.className = '__uvd_preview_status__ visible';
+            if (statusType) statusEl.classList.add(statusType);
+            clearTimeout(statusTimer);
+            if (duration > 0) {
+                statusTimer = setTimeout(function() {
+                    statusEl.classList.remove('visible');
+                }, duration);
+            }
+        }
+        
+        function hideStatus() {
+            clearTimeout(statusTimer);
+            statusEl.classList.remove('visible');
+        }
+        
+        function showUI() {
+            uiVisible = true;
+            headerEl.classList.remove('hidden');
+            controlsEl.classList.remove('hidden');
+            clearTimeout(uiTimer);
+            uiTimer = setTimeout(function() {
+                if (!video.paused) {
+                    uiVisible = false;
+                    headerEl.classList.add('hidden');
+                    controlsEl.classList.add('hidden');
+                    qualityBar.classList.remove('visible');
+                }
+            }, 3500);
+        }
+        
+        function toggleUI() {
+            if (uiVisible) {
+                uiVisible = false;
+                headerEl.classList.add('hidden');
+                controlsEl.classList.add('hidden');
+                qualityBar.classList.remove('visible');
+                clearTimeout(uiTimer);
+            } else {
+                showUI();
+            }
+        }
+        
+        function cleanup() {
+            try { video.pause(); video.removeAttribute('src'); video.load(); } catch(e) {}
+            if (currentHls) {
+                try { currentHls.stopLoad(); currentHls.destroy(); } catch(e) {}
+                currentHls = null;
+            }
+            clearTimeout(statusTimer);
+            clearTimeout(uiTimer);
+            if (document.fullscreenElement) {
+                try { document.exitFullscreen(); } catch(e) {}
+            }
+            var videoParent = video.parentNode;
+            if (videoParent) videoParent.removeChild(video);
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }
+        
+        document.getElementById('__pv_close__').addEventListener('click', function(e) { e.stopPropagation(); cleanup(); });
+        video.addEventListener('click', function(e) { e.stopPropagation(); toggleUI(); });
+        
+        document.getElementById('__pv_copy__').addEventListener('click', function(e) { e.stopPropagation(); copy(url); toast('Đã copy URL', 'success'); });
+        document.getElementById('__pv_share__').addEventListener('click', function(e) { e.stopPropagation(); shareUrl(url); });
+        
+        document.getElementById('__pv_cmd__').addEventListener('click', function(e) {
+            e.stopPropagation();
+            overlay.style.display = 'none';
+            video.pause();
+            showCommandPicker(url, type || 'M3U8', function() {
+                overlay.style.display = 'flex';
+                video.play().catch(function(){});
+                showUI();
+            });
+        });
+        
+        document.getElementById('__pv_quality__').addEventListener('click', function(e) { e.stopPropagation(); qualityBar.classList.toggle('visible'); });
+        
+        document.getElementById('__pv_fullscreen__').addEventListener('click', function(e) {
+            e.stopPropagation();
+            enterFullscreen(wrap);
+        });
+        
+        video.addEventListener('playing', function() { showStatus('Đang phát', 1500, ''); showUI(); });
+        video.addEventListener('waiting', function() { showStatus('Buffering...', 0, 'buffering'); });
+        video.addEventListener('canplay', function() { hideStatus(); });
+        video.addEventListener('pause', function() { showUI(); });
+        video.addEventListener('error', function() { showStatus('Lỗi phát video', 3000, 'error'); });
+        video.addEventListener('ended', function() { showStatus('Đã phát xong', 2000, ''); showUI(); });
+        
+        function loadHls() {
             if (window.Hls) { initHls(); }
             else {
+                showStatus('Đang load HLS.js...', 0, 'buffering');
                 var hlsScript = document.createElement('script');
                 hlsScript.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
                 hlsScript.onload = initHls;
-                hlsScript.onerror = function() {
-                    status.innerText = '❌ Không load được HLS.js - Thử copy URL và mở bằng VLC';
-                    video.src = url;
-                };
+                hlsScript.onerror = function() { showStatus('Lỗi load HLS.js', 3000, 'error'); video.src = url; };
                 document.head.appendChild(hlsScript);
             }
-        } else {
-            video.src = url;
-            status.innerText = '▶️ Playing MP4';
         }
         
         function initHls() {
             if (Hls.isSupported()) {
-                var hls = new Hls();
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    status.innerText = '✅ HLS loaded - ' + (hls.levels.length) + ' quality levels';
+                currentHls = new Hls({ maxLoadingDelay: 4, maxBufferLength: 30, enableWorker: true, lowLatencyMode: false });
+                currentHls.loadSource(url);
+                currentHls.attachMedia(video);
+                
+                currentHls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+                    showStatus('HLS · ' + data.levels.length + ' levels', 1500, '');
+                    
+                    var qHtml = '<button class="__uvd_preview_btn__ active" data-level="-1">Auto</button>';
+                    data.levels.forEach(function(level, idx) {
+                        var label = level.height ? level.height + 'p' : Math.round(level.bitrate/1000) + 'k';
+                        qHtml += '<button class="__uvd_preview_btn__" data-level="' + idx + '">' + label + '</button>';
+                    });
+                    qualityList.innerHTML = qHtml;
+                    
+                    qualityList.addEventListener('click', function(e) {
+                        var btn = e.target.closest('.__uvd_preview_btn__');
+                        if (btn && currentHls) {
+                            qualityList.querySelectorAll('.__uvd_preview_btn__').forEach(function(b) { b.classList.remove('active'); });
+                            btn.classList.add('active');
+                            currentHls.currentLevel = parseInt(btn.dataset.level);
+                            showStatus(btn.innerText, 1200, '');
+                        }
+                    });
+                    
+                    video.play().catch(function(){});
                 });
-                hls.on(Hls.Events.ERROR, function(e, d) {
-                    status.innerText = '❌ Error: ' + d.details;
+                
+                currentHls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        showStatus('Lỗi: ' + data.details, 3000, 'error');
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR: currentHls.startLoad(); break;
+                            case Hls.ErrorTypes.MEDIA_ERROR: currentHls.recoverMediaError(); break;
+                            default: currentHls.destroy(); currentHls = null; break;
+                        }
+                    }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = url;
-                status.innerText = '▶️ Native HLS';
+                showStatus('Native HLS', 1500, '');
+                video.play().catch(function(){});
             }
         }
         
-        document.getElementById('__uvd_pv_close__').onclick = function() {
-            video.pause(); video.src = '';
-            overlay.style.animation = 'uvdSlideOut 0.3s ease forwards';
-            setTimeout(function() { overlay.remove(); }, 300);
+        var isM3U8 = (type === 'M3U8') || url.includes('.m3u8') || url.includes('m3u8');
+        if (isM3U8) { loadHls(); }
+        else {
+            video.src = url;
+            showStatus('Loading...', 0, 'buffering');
+            video.play().catch(function(){});
+        }
+        
+        showUI();
+        
+        var escHandler = function(e) {
+            if (e.key === 'Escape') { cleanup(); document.removeEventListener('keydown', escHandler); }
         };
-        addRippleEffect(document.getElementById('__uvd_pv_close__'));
+        document.addEventListener('keydown', escHandler);
     }
     
-    // ========== COMMAND PICKER ==========
-    function showCommandPicker(url, type) {
+    function enterFullscreen(element) {
+        function doLock() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(function(err) {
+                    console.warn('Orientation lock failed:', err);
+                });
+            }
+        }
+        
+        function onFullscreenChange() {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                doLock();
+            } else if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        }
+        
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+        
+        var request = element.requestFullscreen || element.webkitRequestFullscreen ||
+                      element.webkitRequestFullScreen || element.mozRequestFullScreen ||
+                      element.msRequestFullscreen;
+        if (!request) {
+            var video = element.querySelector ? element.querySelector('video') : null;
+            if (video && video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); }
+            return;
+        }
+        
+        var result = request.call(element);
+        if (result && result.then) {
+            result.then(doLock).catch(function(err) {
+                console.warn('Fullscreen request failed:', err);
+            });
+        }
+    }
+    
+    function showCommandPicker(url, type, onClose) {
+        var t = getTheme();
         var cmds = makeCommands(url, type, pageInfo.title);
-        var overlay = createOverlay();
-        var html = '<div style="color:#fff;font:bold 17px Arial;margin-bottom:15px;">⚙️ Chọn lệnh tải</div>';
-        
-        Object.keys(cmds).forEach(function(key, i) {
-            var c = cmds[key];
-            html += '<div style="background:rgba(255,255,255,0.06);padding:14px;margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);animation:uvdSlideUp 0.3s ease forwards;animation-delay:' + (i*0.05) + 's;">';
-            html += '<div style="color:#FFB74D;font-weight:700;margin-bottom:8px;font-size:14px;">' + c.label + '</div>';
-            html += '<div style="background:rgba(0,0,0,0.4);padding:10px;border-radius:8px;font-family:monospace;font-size:10px;color:rgba(255,255,255,0.6);word-break:break-all;margin-bottom:10px;max-height:70px;overflow-y:auto;line-height:1.5;">' + c.cmd + '</div>';
-            html += '<button class="__uvd_cbtn__ __uvd_glass_btn__" data-cmd="' + encodeURIComponent(c.cmd) + '" data-label="' + c.label + '" style="background:rgba(92,107,192,0.3);color:#9FA8DA;border:1px solid rgba(92,107,192,0.3);padding:10px 18px;border-radius:8px;font-weight:700;width:100%;">📋 Chọn & sửa</button>';
-            html += '</div>';
-        });
-        
-        html += '<button id="__uvd_cp_close__" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:14px;border-radius:10px;font-weight:700;width:100%;">✕ Đóng</button>';
-        overlay.innerHTML = html;
-        
-        document.querySelectorAll('.__uvd_cbtn__').forEach(function(b) {
-            addRippleEffect(b);
-            b.onclick = function() {
-                var cmd = decodeURIComponent(this.dataset.cmd);
-                var label = this.dataset.label;
-                overlay.remove();
-                showEditor(cmd, label);
-            };
-        });
-        document.getElementById('__uvd_cp_close__').onclick = function() { overlay.remove(); };
-        addRippleEffect(document.getElementById('__uvd_cp_close__'));
-    }
-    
-    // ========== EDITOR ==========
-    function showEditor(text, title) {
-        var overlay = createOverlay();
-        overlay.innerHTML = 
-            '<div style="color:#fff;font:bold 16px Arial;margin-bottom:5px;">✏️ ' + title + '</div>' +
-            '<div style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:12px;">Sửa lệnh trước khi copy</div>' +
-            '<textarea id="__uvd_edit__" style="flex:1;background:rgba(0,0,0,0.5);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:14px;font:13px monospace;resize:none;line-height:1.6;outline:none;transition:border 0.3s;" onfocus="this.style.borderColor=\'rgba(92,107,192,0.6)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.2)\'">' + text.replace(/</g, '&lt;') + '</textarea>' +
-            '<div style="display:flex;gap:10px;margin-top:12px;">' +
-                '<button id="__uvd_ed_ok__" class="__uvd_glass_btn__" style="background:rgba(92,107,192,0.4);color:#fff;border:1px solid rgba(92,107,192,0.4);padding:14px;border-radius:10px;font:bold 15px Arial;flex:1;">✓ Copy</button>' +
-                '<button id="__uvd_ed_share__" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.4);color:#FF8A80;border:1px solid rgba(239,83,80,0.4);padding:14px;border-radius:10px;font:bold 15px Arial;flex:1;">📱 Share</button>' +
-                '<button id="__uvd_ed_no__" class="__uvd_glass_btn__" style="background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1);padding:14px;border-radius:10px;font:bold 15px Arial;flex:1;">✕ Hủy</button>' +
-            '</div>';
-        
-        var textarea = document.getElementById('__uvd_edit__');
-        textarea.focus();
-        
-        document.getElementById('__uvd_ed_ok__').onclick = function() {
-            copy(textarea.value);
-            overlay.remove();
-            toast('✓ Đã copy!');
-        };
-        document.getElementById('__uvd_ed_share__').onclick = function() {
-            var val = textarea.value;
-            overlay.remove();
-            shareUrl(val);
-        };
-        document.getElementById('__uvd_ed_no__').onclick = function() { overlay.remove(); };
-        
-        ['__uvd_ed_ok__', '__uvd_ed_share__', '__uvd_ed_no__'].forEach(function(id) {
-            addRippleEffect(document.getElementById(id));
-        });
-    }
-    
-    // ========== OVERLAY HELPER ==========
-    function createOverlay() {
         var overlay = document.createElement('div');
         overlay.className = '__uvd_overlay__';
-        overlay.style.cssText = 
-            'position:fixed;inset:0;background:rgba(0,0,0,0.7);' +
-            'backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);' +
-            'z-index:2147483648;padding:18px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;';
+        var html = '<div class="__uvd_overlay-box__"><div class="__uvd_overlay_title__"><span class="__uvd_accent_inline__"></span>Chọn lệnh tải</div>';
+        Object.keys(cmds).forEach(function(key) {
+            var c = cmds[key];
+            html += 
+                '<div class="__uvd_cmd_card__">' +
+                    '<div class="__uvd_cmd_label__"><span class="__uvd_accent_inline_small__"></span>' + c.label + '</div>' +
+                    '<div class="__uvd_cmd_code__">' + escapeHtml(c.cmd) + '</div>' +
+                    '<button class="__uvd_btn_primary__ __uvd_cmd_pick__" data-cmd="' + encodeURIComponent(c.cmd) + '" data-label="' + encodeURIComponent(c.label) + '" style="width:100%;">Chọn & sửa</button>' +
+                '</div>';
+        });
+        html += '<div class="btn-row"><button class="__uvd_btn_danger__" id="__uvd_cp_close__">Đóng</button></div></div>';
+        overlay.innerHTML = html;
         document.body.appendChild(overlay);
-        return overlay;
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                overlay.remove();
+                if (onClose) onClose();
+            }
+            var pickBtn = e.target.closest('.__uvd_cmd_pick__');
+            if (pickBtn) {
+                var cmd = decodeURIComponent(pickBtn.dataset.cmd);
+                var label = decodeURIComponent(pickBtn.dataset.label);
+                overlay.remove();
+                showEditor(cmd, label, onClose);
+            }
+        });
+        document.getElementById('__uvd_cp_close__').addEventListener('click', function() {
+            overlay.remove();
+            if (onClose) onClose();
+        });
     }
     
-    // ========== RENDER: FAVORITES ==========
+    function showEditor(text, title, onClose) {
+        var t = getTheme();
+        var overlay = document.createElement('div');
+        overlay.className = '__uvd_overlay__';
+        overlay.innerHTML = 
+            '<div class="__uvd_overlay-box__">' +
+                '<div class="__uvd_overlay_title__"><span class="__uvd_accent_inline__"></span>' + escapeHtml(title) + '</div>' +
+                '<div style="color:' + t.text3 + ';font-size:10px;margin-bottom:8px;">Sửa lệnh trước khi copy</div>' +
+                '<textarea class="__uvd_textarea__" id="__uvd_edit__">' + escapeHtml(text) + '</textarea>' +
+                '<div class="btn-row">' +
+                    '<button class="__uvd_btn_primary__" id="__uvd_ed_ok__">Copy</button>' +
+                    '<button class="__uvd_btn_primary__" id="__uvd_ed_share__" style="background:linear-gradient(135deg,#FF5252,#FF1744);">Share</button>' +
+                    '<button class="__uvd_btn_ghost__" id="__uvd_ed_no__">Hủy</button>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                overlay.remove();
+                if (onClose) onClose();
+            }
+        });
+        var textarea = document.getElementById('__uvd_edit__');
+        setTimeout(function() { textarea.focus(); textarea.select(); }, 100);
+        document.getElementById('__uvd_ed_ok__').addEventListener('click', function() { copy(textarea.value); overlay.remove(); toast('Đã copy!', 'success'); if (onClose) onClose(); });
+        document.getElementById('__uvd_ed_share__').addEventListener('click', function() { var val = textarea.value; overlay.remove(); shareUrl(val); if (onClose) onClose(); });
+        document.getElementById('__uvd_ed_no__').addEventListener('click', function() { overlay.remove(); if (onClose) onClose(); });
+    }
+    
+    // ========== FIX 2: Add Preview button to History and Favorites ==========
     function renderFavorites(container) {
+        var t = getTheme();
         if (!data.favorites.length) {
-            container.innerHTML = 
-                '<div style="text-align:center;padding:50px 20px;color:rgba(255,255,255,0.4);animation:uvdFadeIn 0.5s ease;">' +
-                    '<div style="font-size:40px;margin-bottom:15px;">⭐</div>' +
-                    '<div style="font-size:15px;">Chưa có favorites</div>' +
-                    '<div style="font-size:12px;margin-top:8px;opacity:0.6;">Bấm ☆ trên stream để thêm</div>' +
-                '</div>';
+            container.innerHTML = '<div class="__uvd_empty__"><div class="__uvd_empty_icon__">⭐</div><div class="__uvd_empty_text__">Chưa có favorites</div><div class="__uvd_empty_sub__">Bấm ☆ trên stream để thêm</div></div>';
             return;
         }
-        
+        var fragment = document.createDocumentFragment();
         data.favorites.forEach(function(fav, i) {
             var card = document.createElement('div');
-            card.className = '__uvd_card__';
-            card.style.cssText = 
-                'background:rgba(255,255,255,0.04);padding:14px;margin:10px 0;border-radius:12px;' +
-                'border:1px solid rgba(255,215,0,0.2);border-left:4px solid gold;' +
-                'animation-delay:' + (i*0.05) + 's;' +
-                'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);';
-            card.innerHTML = 
-                '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
-                    '<b style="color:gold;font-size:13px;">⭐ ' + fav.type + '</b>' +
-                    '<span style="color:rgba(255,255,255,0.4);font-size:10px;">' + new Date(fav.timestamp).toLocaleDateString() + '</span>' +
-                '</div>' +
-                '<div style="color:#fff;font-size:12px;margin-bottom:5px;font-weight:500;">' + fav.title + '</div>' +
-                '<div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:8px;">🌐 ' + fav.host + '</div>' +
-                '<div style="word-break:break-all;font-size:10px;font-family:monospace;background:rgba(0,0,0,0.4);padding:8px;border-radius:6px;margin-bottom:8px;max-height:45px;overflow-y:auto;color:rgba(255,255,255,0.5);">' + fav.url + '</div>' +
-                '<div style="display:flex;gap:6px;">' +
-                    '<button class="__uvd_fbtn__ __uvd_glass_btn__" data-url="' + encodeURIComponent(fav.url) + '" data-action="share" style="background:rgba(239,83,80,0.3);color:#FF8A80;border:1px solid rgba(239,83,80,0.3);padding:8px;border-radius:6px;font-size:11px;font-weight:700;flex:1;">📱 YTDLnis</button>' +
-                    '<button class="__uvd_fbtn__ __uvd_glass_btn__" data-url="' + encodeURIComponent(fav.url) + '" data-action="copy" style="background:rgba(92,107,192,0.3);color:#9FA8DA;border:1px solid rgba(92,107,192,0.3);padding:8px;border-radius:6px;font-size:11px;font-weight:700;flex:1;">📋 Copy</button>' +
-                    '<button class="__uvd_fbtn__ __uvd_glass_btn__" data-idx="' + i + '" data-action="del" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:8px 12px;border-radius:6px;font-size:11px;font-weight:700;">🗑️</button>' +
-                '</div>';
-            container.appendChild(card);
+            card.className = '__uvd_fav_card__';
             
-            [].forEach.call(card.querySelectorAll('button'), function(b) { addRippleEffect(b); });
+            var canPreview = (fav.type === 'M3U8' || fav.type === 'MP4' || fav.type === 'WEBM' || fav.category === 'video');
+            
+            card.innerHTML = 
+                '<div class="__uvd_fav_header__">' +
+                    '<span class="__uvd_fav_title__"><span class="__uvd_accent_inline_small__"></span>⭐ ' + fav.type + '</span>' +
+                    '<span class="__uvd_fav_date__">' + new Date(fav.timestamp).toLocaleDateString() + '</span>' +
+                '</div>' +
+                '<div style="color:' + t.text + ';font-size:11px;margin-bottom:3px;">' + escapeHtml(fav.title) + '</div>' +
+                '<div style="color:' + t.text3 + ';font-size:10px;margin-bottom:5px;">' + fav.host + '</div>' +
+                '<div class="__uvd_url_box__">' + escapeHtml(fav.url) + '</div>' +
+                '<div class="__uvd_actions__">' +
+                    (canPreview ? '<button class="__uvd_act_btn__ __uvd_btn_preview__" data-url="' + encodeURIComponent(fav.url) + '" data-action="preview" data-type="' + fav.type + '"><span class="__uvd_btn_accent__"></span>Preview</button>' : '') +
+                    '<button class="__uvd_act_btn__ __uvd_btn_share__" data-url="' + encodeURIComponent(fav.url) + '" data-action="share"><span class="__uvd_btn_accent__"></span>YTDLnis</button>' +
+                    '<button class="__uvd_act_btn__ __uvd_btn_copy__" data-url="' + encodeURIComponent(fav.url) + '" data-action="copy"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                    '<button class="__uvd_act_btn__ __uvd_btn_cmd__" data-idx="' + i + '" data-action="del"><span class="__uvd_btn_accent__"></span>Xóa</button>' +
+                '</div>';
+            fragment.appendChild(card);
         });
-        
-        document.querySelectorAll('.__uvd_fbtn__').forEach(function(b) {
-            b.onclick = function() {
-                var action = this.dataset.action;
-                if (action === 'del') {
-                    data.favorites.splice(parseInt(this.dataset.idx), 1);
-                    storage.set(data);
-                    buildUI();
-                    toast('🗑️ Đã xóa');
-                } else {
-                    var url = decodeURIComponent(this.dataset.url);
-                    if (action === 'share') shareUrl(url);
-                    else { copy(url); toast('✓ Copied'); }
+        container.appendChild(fragment);
+        container.addEventListener('click', function(e) {
+            var btn = e.target.closest('.__uvd_act_btn__');
+            if (btn) {
+                var action = btn.dataset.action;
+                if (action === 'del') { 
+                    data.favorites.splice(parseInt(btn.dataset.idx), 1); 
+                    storage.set(data); 
+                    renderFavorites(container); 
+                    toast('Đã xóa', 'info'); 
                 }
-            };
+                else if (action === 'preview') {
+                    var url = decodeURIComponent(btn.dataset.url);
+                    var type = btn.dataset.type;
+                    showPreview(url, type);
+                }
+                else {
+                    var url = decodeURIComponent(btn.dataset.url);
+                    if (action === 'share') shareUrl(url);
+                    else { copy(url); toast('Đã copy', 'success'); }
+                }
+            }
         });
     }
     
-    // ========== RENDER: HISTORY ==========
     function renderHistory(container) {
+        var t = getTheme();
         var history = data.history || [];
         if (!history.length) {
-            container.innerHTML = 
-                '<div style="text-align:center;padding:50px 20px;color:rgba(255,255,255,0.4);animation:uvdFadeIn 0.5s ease;">' +
-                    '<div style="font-size:40px;margin-bottom:15px;">📜</div>' +
-                    '<div style="font-size:15px;">Chưa có history</div>' +
-                '</div>';
+            container.innerHTML = '<div class="__uvd_empty__"><div class="__uvd_empty_icon__"></div><div class="__uvd_empty_text__">Chưa có history</div></div>';
             return;
         }
-        
         var clearBtn = document.createElement('button');
-        clearBtn.className = '__uvd_glass_btn__';
-        clearBtn.innerText = '🗑️ Xóa tất cả history';
-        clearBtn.style.cssText = 
-            'background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:12px;border-radius:10px;font-weight:700;width:100%;margin-bottom:12px;';
-        clearBtn.onclick = function() {
-            if (confirm('Xóa toàn bộ history?')) {
-                data.history = [];
-                storage.set(data);
-                buildUI();
+        clearBtn.className = '__uvd_btn_danger__';
+        clearBtn.innerText = 'Xóa tất cả history';
+        clearBtn.style.cssText = 'width:100%;margin-bottom:12px;';
+        clearBtn.addEventListener('click', function() {
+            if (confirm('Xóa toàn bộ history?')) { 
+                data.history = []; 
+                storage.set(data); 
+                renderHistory(container); 
+                toast('Đã xóa history', 'info'); 
             }
-        };
-        addRippleEffect(clearBtn);
+        });
         container.appendChild(clearBtn);
+        var fragment = document.createDocumentFragment();
+        history.forEach(function(h) {
+            var item = document.createElement('div');
+            item.className = '__uvd_history_item__';
+            
+            var canPreview = (h.type === 'M3U8' || h.type === 'MP4' || h.type === 'WEBM' || h.category === 'video');
+            
+            item.innerHTML =
+                '<div class="__uvd_history_title__"><span class="__uvd_accent_inline_small__"></span>' + escapeHtml(h.title) + '</div>' +
+                '<div class="__uvd_history_meta__">' + h.type + ' · ' + h.host + ' · ' + new Date(h.timestamp).toLocaleString() + '</div>' +
+                '<div class="__uvd_history_url__">' + escapeHtml(h.url) + '</div>' +
+                (canPreview ? '<div class="btn-row" style="margin-top:6px;">' +
+                    '<button class="__uvd_act_btn__ __uvd_btn_preview__" data-url="' + encodeURIComponent(h.url) + '" data-action="preview" data-type="' + h.type + '" style="flex:1;padding:6px;"><span class="__uvd_btn_accent__"></span>Preview</button>' +
+                    '<button class="__uvd_act_btn__ __uvd_btn_copy__" data-url="' + encodeURIComponent(h.url) + '" data-action="copy" style="flex:1;padding:6px;"><span class="__uvd_btn_accent__"></span>Copy</button>' +
+                    '</div>' : '') +
+                '<div class="btn-row" style="margin-top:4px;">' +
+                    '<button class="__uvd_act_btn__ __uvd_btn_share__" data-url="' + encodeURIComponent(h.url) + '" data-action="share" style="flex:1;padding:6px;"><span class="__uvd_btn_accent__"></span>YTDLnis</button>' +
+                    '</div>';
+            fragment.appendChild(item);
+        });
+        container.appendChild(fragment);
         
-        history.forEach(function(h, i) {
-            var card = document.createElement('div');
-            card.className = '__uvd_card__';
-            card.style.cssText = 
-                'background:rgba(255,255,255,0.04);padding:12px;margin:8px 0;border-radius:10px;' +
-                'border:1px solid rgba(255,255,255,0.06);animation-delay:' + (i*0.03) + 's;';
-            card.innerHTML = 
-                '<div style="display:flex;justify-content:space-between;margin-bottom:5px;">' +
-                    '<b style="color:rgba(38,198,218,0.9);font-size:12px;">' + h.type + '</b>' +
-                    '<span style="color:rgba(255,255,255,0.4);font-size:10px;">' + new Date(h.timestamp).toLocaleString() + '</span>' +
-                '</div>' +
-                '<div style="color:#fff;font-size:12px;">' + h.title + '</div>' +
-                '<div style="color:rgba(255,255,255,0.4);font-size:10px;">🌐 ' + h.host + '</div>' +
-                '<div style="word-break:break-all;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.5);margin-top:5px;max-height:35px;overflow-y:auto;">' + h.url + '</div>';
-            container.appendChild(card);
+        container.addEventListener('click', function(e) {
+            var btn = e.target.closest('.__uvd_act_btn__');
+            if (btn) {
+                var action = btn.dataset.action;
+                var url = decodeURIComponent(btn.dataset.url);
+                if (action === 'preview') {
+                    showPreview(url, btn.dataset.type);
+                } else if (action === 'share') {
+                    shareUrl(url);
+                } else if (action === 'copy') {
+                    copy(url);
+                    toast('Đã copy', 'success');
+                }
+            }
         });
     }
     
-    // ========== RENDER: SETTINGS ==========
     function renderSettings(container) {
-        var html = '<div style="color:#fff;font-weight:700;margin-bottom:18px;font-size:16px;">⚙️ Settings</div>';
-        
-        // Theme
-        html += '<div style="background:rgba(255,255,255,0.05);padding:14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);">';
-        html += '<div style="color:#fff;font-weight:600;margin-bottom:12px;">🎨 Theme</div>';
-        html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">';
-        ['glass', 'dark', 'purple', 'matrix'].forEach(function(th) {
-            var active = data.theme === th;
-            html += '<button class="__uvd_theme__ __uvd_glass_btn__" data-theme="' + th + '" style="background:' + (active ? 'rgba(92,107,192,0.5)' : 'rgba(255,255,255,0.06)') + ';color:#fff;border:1px solid ' + (active ? 'rgba(92,107,192,0.5)' : 'rgba(255,255,255,0.1)') + ';padding:12px;border-radius:8px;font-weight:600;text-transform:capitalize;">' + th + '</button>';
+        var t = getTheme();
+        var html = '';
+        html += '<div class="__uvd_settings_section__"><div class="__uvd_settings_title__"><span class="__uvd_accent_inline__"></span>Theme</div><div class="__uvd_theme_grid__">';
+        Object.keys(themes).forEach(function(key) {
+            var active = data.theme === key;
+            html += '<button class="__uvd_theme_btn__' + (active ? ' active' : '') + '" data-theme="' + key + '">' + themes[key].name + '</button>';
         });
         html += '</div></div>';
-        
-        // Site profiles
-        html += '<div style="background:rgba(255,255,255,0.05);padding:14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);">';
-        html += '<div style="color:#fff;font-weight:600;margin-bottom:12px;">🌐 Site Profiles</div>';
+        html += '<div class="__uvd_settings_section__"><div class="__uvd_settings_title__"><span class="__uvd_accent_inline__"></span>Site Profiles (' + Object.keys(data.siteProfiles).length + ')</div>';
         var profiles = Object.keys(data.siteProfiles);
-        if (!profiles.length) {
-            html += '<div style="color:rgba(255,255,255,0.4);font-size:12px;">Chưa có profile nào. Bấm vào Referer để lưu.</div>';
-        } else {
+        if (!profiles.length) { html += '<div style="color:' + t.text3 + ';font-size:10px;">Chưa có profile. Bấm vào Referer để lưu.</div>'; }
+        else {
             profiles.forEach(function(p) {
-                html += '<div style="background:rgba(0,0,0,0.3);padding:10px;margin-bottom:8px;border-radius:8px;font-size:11px;">';
-                html += '<div style="color:#fff;font-weight:600;">' + p + '</div>';
-                html += '<div style="color:rgba(255,255,255,0.5);font-family:monospace;font-size:10px;word-break:break-all;">' + data.siteProfiles[p].referer + '</div>';
-                html += '<button class="__uvd_delprofile__ __uvd_glass_btn__" data-host="' + p + '" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:5px 10px;border-radius:5px;font-size:10px;margin-top:6px;">🗑️ Xóa</button>';
-                html += '</div>';
+                html += '<div class="__uvd_profile_card__"><div class="__uvd_profile_host__"><span class="__uvd_accent_inline_small__"></span>' + p + '</div>' +
+                    '<div class="__uvd_profile_ref__">' + escapeHtml(data.siteProfiles[p].referer) + '</div>' +
+                    '<button class="__uvd_btn_danger__ __uvd_delprofile__" data-host="' + p + '" style="padding:4px 10px;font-size:10px;margin-top:6px;">Xóa</button></div>';
             });
         }
         html += '</div>';
-        
-        // Backup
-        html += '<div style="background:rgba(255,255,255,0.05);padding:14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);">';
-        html += '<div style="color:#fff;font-weight:600;margin-bottom:12px;">💾 Backup</div>';
-        html += '<button id="__uvd_backup__" class="__uvd_glass_btn__" style="background:rgba(92,107,192,0.3);color:#9FA8DA;border:1px solid rgba(92,107,192,0.3);padding:12px;border-radius:8px;font-weight:600;width:100%;margin-bottom:8px;">📤 Export data</button>';
-        html += '<button id="__uvd_restore__" class="__uvd_glass_btn__" style="background:rgba(38,198,218,0.3);color:#80DEEA;border:1px solid rgba(38,198,218,0.3);padding:12px;border-radius:8px;font-weight:600;width:100%;margin-bottom:8px;">📥 Import data</button>';
-        html += '<button id="__uvd_reset__" class="__uvd_glass_btn__" style="background:rgba(239,83,80,0.3);color:#EF5350;border:1px solid rgba(239,83,80,0.3);padding:12px;border-radius:8px;font-weight:600;width:100%;">🔥 Reset toàn bộ</button>';
-        html += '</div>';
-        
-        // Info
-        html += '<div style="background:rgba(255,255,255,0.05);padding:14px;border-radius:12px;font-size:11px;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.08);">';
-        html += '<div>📦 Version: 3.0 Glass</div>';
-        html += '<div>👤 By: nguyenquocngu93</div>';
-        html += '<div>💾 Favorites: ' + data.favorites.length + '</div>';
-        html += '<div>📜 History: ' + (data.history || []).length + '</div>';
-        html += '</div>';
-        
+        html += '<div class="__uvd_settings_section__"><div class="__uvd_settings_title__"><span class="__uvd_accent_inline__"></span>Backup & Restore</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button class="__uvd_btn_primary__" id="__uvd_backup__" style="flex:1;">Export</button>' +
+            '<button class="__uvd_btn_primary__" id="__uvd_restore__" style="flex:1;background:linear-gradient(135deg,' + t.accent + ',' + t.primary + ');">Import</button>' +
+            '<button class="__uvd_btn_danger__" id="__uvd_reset__" style="flex:1;">Reset</button></div></div>';
+        html += '<div class="__uvd_settings_section__"><div class="__uvd_settings_title__"><span class="__uvd_accent_inline__"></span>Thông tin</div>' +
+            '<div style="color:' + t.text2 + ';font-size:10px;line-height:1.7;">' +
+            '<div><span class="__uvd_accent_inline_small__"></span>Version: 3.8 — Full Fix + Responsive</div>' +
+            '<div><span class="__uvd_accent_inline_small__"></span>Author: nguyenquocngu93</div>' +
+            '<div><span class="__uvd_accent_inline_small__"></span>Favorites: ' + data.favorites.length + '</div>' +
+            '<div><span class="__uvd_accent_inline_small__"></span>History: ' + (data.history || []).length + '</div>' +
+            '<div><span class="__uvd_accent_inline_small__"></span>Site profiles: ' + Object.keys(data.siteProfiles).length + '</div>' +
+            '<div><span class="__uvd_accent_inline_small__"></span>Total streams: ' + urls.size + '</div></div></div>';
         container.innerHTML = html;
         
-        // Bind events
-        document.querySelectorAll('.__uvd_theme__').forEach(function(b) {
-            addRippleEffect(b);
-            b.onclick = function() {
-                data.theme = this.dataset.theme;
-                storage.set(data);
-                buildUI();
-                toast('🎨 Theme: ' + data.theme);
-            };
+        container.addEventListener('click', function(e) {
+            var themeBtn = e.target.closest('.__uvd_theme_btn__');
+            if (themeBtn) { data.theme = themeBtn.dataset.theme; storage.set(data); buildUI(); toast('Theme: ' + themes[data.theme].name, 'success'); return; }
+            var delBtn = e.target.closest('.__uvd_delprofile__');
+            if (delBtn) { delete data.siteProfiles[delBtn.dataset.host]; storage.set(data); renderSettings(container); toast('Đã xóa profile', 'info'); }
         });
         
-        document.querySelectorAll('.__uvd_delprofile__').forEach(function(b) {
-            addRippleEffect(b);
-            b.onclick = function() {
-                delete data.siteProfiles[this.dataset.host];
-                storage.set(data);
-                buildUI();
-                toast('🗑️ Đã xóa profile');
-            };
-        });
-        
-        ['__uvd_backup__', '__uvd_restore__', '__uvd_reset__'].forEach(function(id) {
-            var el = document.getElementById(id);
-            if (el) addRippleEffect(el);
-        });
-        
-        document.getElementById('__uvd_backup__').onclick = function() {
+        document.getElementById('__uvd_backup__').addEventListener('click', function() {
             var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'uvd_backup_' + Date.now() + '.json';
-            a.click();
-            toast('📤 Đã export backup');
-        };
-        
-        document.getElementById('__uvd_restore__').onclick = function() {
+            a.href = URL.createObjectURL(blob); a.download = 'uvd_backup_' + Date.now() + '.json'; a.click();
+            toast('Đã export backup', 'success');
+        });
+        document.getElementById('__uvd_restore__').addEventListener('click', function() {
             var input = document.createElement('input');
             input.type = 'file'; input.accept = '.json';
-            input.onchange = function(e) {
+            input.addEventListener('change', function(e) {
                 var reader = new FileReader();
                 reader.onload = function(ev) {
-                    try {
-                        var newData = JSON.parse(ev.target.result);
-                        data = Object.assign(data, newData);
-                        storage.set(data);
-                        toast('✓ Đã import');
-                        buildUI();
-                    } catch(err) { toast('❌ File không hợp lệ', '#EF5350'); }
+                    try { var newData = JSON.parse(ev.target.result); data = Object.assign(data, newData); storage.set(data); toast('Đã import', 'success'); buildUI(); }
+                    catch(err) { toast('File không hợp lệ', 'error'); }
                 };
                 reader.readAsText(e.target.files[0]);
-            };
+            });
             input.click();
-        };
-        
-        document.getElementById('__uvd_reset__').onclick = function() {
-            if (confirm('Xóa TOÀN BỘ favorites, history, settings?')) {
+        });
+        document.getElementById('__uvd_reset__').addEventListener('click', function() {
+            if (confirm('XÓA TOÀN BỘ favorites, history, settings?')) {
                 localStorage.removeItem(STORAGE_KEY);
-                data = { favorites: [], theme: 'glass', siteProfiles: {}, history: [] };
-                toast('🔥 Đã reset');
-                buildUI();
+                data = { favorites: [], theme: 'glass-dark', siteProfiles: {}, history: [], torrserverUrl: 'http://127.0.0.1:8090' };
+                toast('Đã reset', 'info'); buildUI();
             }
-        };
+        });
     }
     
-    // ========== START ==========
-    buildUI();
-    
-    // Auto refresh counter
-    var lastCount = urls.size;
-    var autoRefresh = setInterval(function() {
-        if (!document.getElementById('__uvd__') && !document.getElementById('__uvd_mini__')) {
-            clearInterval(autoRefresh);
-            stopMonitor();
-            return;
-        }
-        if (urls.size !== lastCount && !isMinimized) {
-            lastCount = urls.size;
-            // Silent update - chỉ rebuild nếu không bị minimize
-            var panel = document.getElementById('__uvd__');
-            if (panel && panel.style.display !== 'none') {
-                buildUI();
+    function startAutoRefresh() {
+        var lastCount = urls.size;
+        var interval = setInterval(function() {
+            if (!document.getElementById('__uvd__')) { clearInterval(interval); stopMonitor(); return; }
+            if (urls.size !== lastCount) {
+                lastCount = urls.size;
+                var videoCount = [...urls.values()].filter(function(u) { return u.category === 'video'; }).length;
+                var photoCount = [...urls.values()].filter(function(u) { return u.category === 'photo'; }).length;
+                var scriptCount = [...urls.values()].filter(function(u) { return u.category === 'script'; }).length;
+                var tabs = document.querySelectorAll('.__uvd_tab__');
+                tabs.forEach(function(tab) {
+                    var badge = tab.querySelector('.__uvd_badge__');
+                    if (!badge) return;
+                    if (tab.dataset.tab === 'video') badge.innerText = videoCount;
+                    else if (tab.dataset.tab === 'photo') badge.innerText = photoCount;
+                    else if (tab.dataset.tab === 'script') badge.innerText = scriptCount;
+                    else if (tab.dataset.tab === 'favorites') badge.innerText = data.favorites.length;
+                    else if (tab.dataset.tab === 'history') badge.innerText = (data.history || []).length;
+                });
+                renderTab(currentTab);
             }
-        }
-    }, 3000);
+        }, 2500);
+    }
     
-    console.log('✅ Universal DL V3 Glass loaded! Found', urls.size, 'streams');
-    toast('✨ V3 Glass Ready! Live monitoring active');
+    buildUI();
+    startAutoRefresh();
+    console.log('✅ Universal DL V3.8 loaded! Found', urls.size, 'streams initially');
+    toast('V3.8 Ready! (Full Fix + Responsive)', 'success');
 })();

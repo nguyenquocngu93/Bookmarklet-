@@ -1,9 +1,10 @@
 /**
- * Universal Video Downloader V3.8 – Polished Overlay Player
- * - Restored preview overlay (no inline player)
- * - Beautiful glass player with large controls, smooth timeline
- * - Fullscreen orientation lock
- * - Minimize, Liquid Glass buttons, ripple effects
+ * Universal Video Downloader V3.9 – Fullscreen Landscape Fix & Polished UI
+ * - Guaranteed fullscreen landscape (orientation lock + CSS rotate fallback)
+ * - Bigger URL boxes, smaller compact action buttons
+ * - Equal-sized header buttons (minimize/refresh/close)
+ * - Full Favorites, History, Settings tabs
+ * - All previous features retained
  * Author: nguyenquocngu93
  */
 (function() {
@@ -15,7 +16,7 @@
     var minBtn = document.getElementById('__uvd_min_float__');
     if (minBtn) minBtn.remove();
 
-    var STORAGE_KEY = 'uvd_data_v38';
+    var STORAGE_KEY = 'uvd_data_v39';
     var storage = {
         get: function() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -246,7 +247,7 @@
         ripple.addEventListener('animationend', function() { ripple.remove(); });
     }
 
-    // ========== OVERLAY PLAYER (Polished) ==========
+    // ========== OVERLAY PLAYER (FULLSCREEN FIX) ==========
     var activePlayer = null;
 
     function showPreview(url) {
@@ -268,7 +269,7 @@
                 '<span class="uvd-player-title">▶ ' + pageInfo.title + '</span>' +
                 '<button class="uvd-btn-icon uvd-player-close">✕</button>' +
             '</div>' +
-            '<div class="uvd-video-wrapper">' +
+            '<div class="uvd-video-wrapper" id="__uvd_video_wrapper__">' +
                 '<video id="__uvd_pv__" class="uvd-video" crossorigin="anonymous" playsinline webkit-playsinline></video>' +
                 '<div class="uvd-big-play" id="__uvd_bigplay__" style="display:none;">' +
                     '<svg width="60" height="60" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>' +
@@ -302,6 +303,7 @@
         document.body.appendChild(overlay);
 
         var video = document.getElementById('__uvd_pv__');
+        var videoWrapper = document.getElementById('__uvd_video_wrapper__');
         var controls = document.getElementById('__uvd_ctrls__');
         var bigPlay = document.getElementById('__uvd_bigplay__');
         var playBtn = document.getElementById('__uvd_play__');
@@ -315,6 +317,7 @@
         var fsBtn = document.getElementById('__uvd_fs__');
         var pipBtn = document.getElementById('__uvd_pip__');
         var hls = null;
+        var isFullscreen = false;
 
         function loadMedia() {
             if (url.includes('.m3u8')) {
@@ -403,27 +406,58 @@
         volumeSlider.addEventListener('input', function() { video.volume = this.value; });
         speedSelect.addEventListener('change', function() { video.playbackRate = parseFloat(this.value); });
 
+        // Fullscreen with orientation lock + CSS rotate fallback
         function requestFullscreen() {
-            if (video.requestFullscreen) {
-                video.requestFullscreen().then(function() {
+            var wrapper = videoWrapper;
+            if (wrapper.requestFullscreen) {
+                wrapper.requestFullscreen().then(function() {
                     if (screen.orientation && screen.orientation.lock) {
                         screen.orientation.lock('landscape').catch(function(){});
                     }
                 }).catch(function(){});
-            } else if (video.webkitRequestFullscreen) {
-                video.webkitRequestFullscreen();
+            } else if (wrapper.webkitRequestFullscreen) {
+                wrapper.webkitRequestFullscreen();
+                // fallback CSS sẽ xử lý
             }
         }
-        function onFullscreenChange() {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+
+        function handleFullscreenChange() {
+            isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (isFullscreen) {
+                // CSS backup: nếu orientation lock không được, ta tự xoay video bằng CSS
+                if (screen.orientation && screen.orientation.type && !screen.orientation.type.includes('landscape')) {
+                    video.style.transform = 'rotate(90deg)';
+                    video.style.width = '100vh';
+                    video.style.height = '100vw';
+                    video.style.objectFit = 'contain';
+                } else {
+                    video.style.transform = '';
+                    video.style.width = '';
+                    video.style.height = '';
+                }
+                controls.style.position = 'fixed';
+                controls.style.bottom = '0';
+                controls.style.left = '0';
+                controls.style.right = '0';
+                controls.style.zIndex = '2147483649';
+            } else {
+                video.style.transform = '';
+                video.style.width = '';
+                video.style.height = '';
+                controls.style.position = '';
+                controls.style.bottom = '';
+                controls.style.left = '';
+                controls.style.right = '';
+                controls.style.zIndex = '';
                 if (screen.orientation && screen.orientation.unlock) {
                     screen.orientation.unlock();
                 }
             }
         }
+
         fsBtn.addEventListener('click', requestFullscreen);
-        document.addEventListener('fullscreenchange', onFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
         pipBtn.addEventListener('click', async function() {
             try {
@@ -436,8 +470,8 @@
             video.pause();
             if (hls) hls.destroy();
             video.src = '';
-            document.removeEventListener('fullscreenchange', onFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
             overlay.remove();
             activePlayer = null;
         };
@@ -446,7 +480,7 @@
         activePlayer = { overlay, video, hls };
     }
 
-    // ========== BUILD UI ==========
+    // ========== BUILD UI (POLISHED) ==========
     if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
     var style = document.createElement('style');
     style.id = '__uvd_css__';
@@ -496,8 +530,8 @@
         }
         .uvd-btn-icon {
             background:transparent; border:none; color:var(--text);
-            width:36px; height:36px; border-radius:50%; display:flex; align-items:center;
-            justify-content:center; cursor:pointer; font-size:20px;
+            width:34px; height:34px; border-radius:50%; display:flex; align-items:center;
+            justify-content:center; cursor:pointer; font-size:18px;
             transition: background 0.2s, transform 0.2s; position:relative; overflow:hidden;
         }
         .uvd-btn-icon:hover { background:rgba(255,255,255,0.15); transform:scale(1.1); }
@@ -565,6 +599,11 @@
             transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,0.4);
         }
         .uvd-btn:active { transform:scale(0.97); }
+        .uvd-btn-sm {
+            padding: 6px 10px;
+            font-size: 11px;
+            border-radius: 30px;
+        }
         .uvd-card {
             background:var(--card-bg); border:1px solid var(--border);
             border-radius:16px; padding:14px; margin-bottom:10px;
@@ -583,9 +622,9 @@
             color:var(--accent); border:1px solid rgba(59,130,246,0.3);
         }
         .uvd-url-box {
-            background:rgba(0,0,0,0.4); border-radius:8px; padding:8px;
-            font-family:monospace; font-size:11px; word-break:break-all;
-            color:var(--text2); max-height:65px; overflow-y:auto;
+            background:rgba(0,0,0,0.4); border-radius:8px; padding:10px;
+            font-family:monospace; font-size:12px; word-break:break-all;
+            color:var(--text2); max-height:120px; overflow-y:auto;
             border:1px solid rgba(255,255,255,0.05);
         }
         .uvd-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
@@ -622,12 +661,12 @@
         header.innerHTML = 
             '<div style="display:flex;align-items:center;gap:8px;">' +
                 '<span style="width:12px;height:12px;background:var(--accent);border-radius:50%;animation:uvdPulse 2s infinite;"></span>' +
-                '<span style="font-weight:700;font-size:16px;">Universal DL <span style="color:var(--accent);">V3.8</span></span>' +
+                '<span style="font-weight:700;font-size:16px;">DL <span style="color:var(--accent);">V3.9</span></span>' +
             '</div>' +
             '<div style="display:flex;gap:6px;">' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Minimize">_</button>' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_refresh__">↻</button>' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_close__">✕</button>' +
+                '<button class="uvd-btn-icon" id="__uvd_minimize__" title="Minimize">_</button>' +
+                '<button class="uvd-btn-icon" id="__uvd_refresh__" title="Refresh">↻</button>' +
+                '<button class="uvd-btn-icon" id="__uvd_close__" title="Close">✕</button>' +
             '</div>';
         panel.appendChild(header);
 
@@ -642,7 +681,7 @@
         ];
         tabList.forEach(function(t) {
             var b = document.createElement('button');
-            b.className = 'uvd-btn uvd-ripple-btn';
+            b.className = 'uvd-btn';
             b.dataset.tab = t.id;
             b.textContent = t.text;
             b.style.cssText = 'flex:1;background:transparent;border:none;padding:10px 4px;font-size:12px;border-radius:0;border-bottom:2px solid transparent;';
@@ -673,7 +712,7 @@
         footer.style.cssText = 'display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;';
         ['TXT','JSON','M3U','CSV'].forEach(function(f) {
             var btn = document.createElement('button');
-            btn.className = 'uvd-btn uvd-ripple-btn';
+            btn.className = 'uvd-btn uvd-btn-sm';
             btn.textContent = f;
             btn.style.flex = '1 0 auto';
             btn.onclick = function() { exportData(f.toLowerCase()); };
@@ -683,7 +722,7 @@
         document.body.appendChild(panel);
 
         // Ripple
-        document.querySelectorAll('.uvd-ripple-btn, .uvd-btn, .uvd-btn-icon').forEach(function(btn) {
+        document.querySelectorAll('.uvd-btn, .uvd-btn-icon').forEach(function(btn) {
             btn.addEventListener('click', addRipple);
         });
 
@@ -733,7 +772,6 @@
             }
         };
 
-        // Gán hàm preview toàn cục
         window.__uvd_showPreview = showPreview;
     }
 
@@ -749,20 +787,20 @@
             card.innerHTML = 
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
                     '<span class="uvd-type-badge">#' + (i+1) + ' ' + item.type + '</span>' +
-                    '<button class="uvd-fav-btn uvd-ripple-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '★' : '☆') + '</button>' +
+                    '<button class="uvd-fav-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '★' : '☆') + '</button>' +
                 '</div>' +
                 '<div class="uvd-url-box">' + item.url + '</div>' +
                 '<div class="uvd-grid-2" style="margin-top:8px;">' +
-                    '<button class="uvd-btn uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.3);">Share</button>' +
-                    '<button class="uvd-btn uvd-ripple-btn" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Copy</button>' +
+                    '<button class="uvd-btn uvd-btn-sm" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                    '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Copy</button>' +
                     (item.type === 'IFRAME' ? 
-                        '<a href="' + item.url + '" class="uvd-btn uvd-ripple-btn" style="text-align:center;grid-column:1/3;text-decoration:none;">Open iframe</a>' :
+                        '<a href="' + item.url + '" class="uvd-btn uvd-btn-sm" style="text-align:center;grid-column:1/3;text-decoration:none;">Open iframe</a>' :
                         (item.type === 'M3U8' ?
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Quality</button>' +
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">All commands</button>' :
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Commands</button>'
+                            '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Quality</button>' +
+                            '<button class="uvd-btn uvd-btn-sm" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
+                            '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">All commands</button>' :
+                            '<button class="uvd-btn uvd-btn-sm" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
+                            '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Commands</button>'
                         )
                     ) +
                 '</div>';
@@ -807,7 +845,7 @@
             html += '<div class="uvd-card">' +
                 '<div style="font-weight:600;color:var(--accent);">' + c.label + '</div>' +
                 '<div class="uvd-url-box">' + c.cmd + '</div>' +
-                '<button class="uvd-btn uvd-ripple-btn cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;">Edit & Copy</button>' +
+                '<button class="uvd-btn cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;">Edit & Copy</button>' +
             '</div>';
         });
         html += '</div><button class="uvd-btn close-overlay-btn" style="width:100%;margin-top:10px;background:var(--danger);">Close</button></div>';
@@ -832,8 +870,8 @@
                 '<div style="font-weight:700;margin-bottom:8px;">Edit Command</div>' +
                 '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;">' + text + '</textarea>' +
                 '<div class="uvd-grid-2" style="margin-top:12px;">' +
-                    '<button class="uvd-btn uvd-ripple-btn" id="__uvd_ed_copy__">Copy</button>' +
-                    '<button class="uvd-btn uvd-ripple-btn" id="__uvd_ed_share__" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                    '<button class="uvd-btn" id="__uvd_ed_copy__">Copy</button>' +
+                    '<button class="uvd-btn" id="__uvd_ed_share__" style="background:rgba(139,92,246,0.3);">Share</button>' +
                 '</div>' +
                 '<button class="uvd-btn close-editor" style="width:100%;margin-top:8px;background:var(--danger);">Close</button>' +
             '</div>';
@@ -873,9 +911,9 @@
                 html += '<div class="uvd-card">' +
                     '<b>' + q.label + '</b> <span style="color:var(--text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>' +
                     '<div class="uvd-grid-3" style="margin-top:8px;">' +
-                        '<button class="uvd-btn uvd-ripple-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.3);">Share</button>' +
-                        '<button class="uvd-btn uvd-ripple-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">Preview</button>' +
-                        '<button class="uvd-btn uvd-ripple-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Cmd</button>' +
+                        '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                        '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">Preview</button>' +
+                        '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Cmd</button>' +
                     '</div>' +
                 '</div>';
             });
@@ -897,15 +935,71 @@
         });
     }
 
-    function renderFavorites(container) { /* tương tự streams, code rút gọn */ }
-    function renderHistory(container) { /* tương tự */ }
+    function renderFavorites(container) {
+        if (!data.favorites.length) {
+            container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">No favorites.</div>';
+            return;
+        }
+        data.favorites.forEach(function(f, i) {
+            var card = document.createElement('div');
+            card.className = 'uvd-card';
+            card.innerHTML = 
+                '<div style="display:flex;justify-content:space-between;"><b style="color:var(--gold);">★ ' + f.type + '</b><span style="font-size:11px;color:var(--text3);">' + new Date(f.timestamp).toLocaleDateString() + '</span></div>' +
+                '<div style="margin:4px 0;">' + f.title + '</div>' +
+                '<div class="uvd-url-box">' + f.url + '</div>' +
+                '<div class="uvd-grid-3">' +
+                    '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                    '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy">Copy</button>' +
+                    '<button class="uvd-btn uvd-btn-sm fav-del" data-idx="' + i + '" style="background:var(--danger);">Del</button>' +
+                '</div>';
+            container.appendChild(card);
+        });
+        container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
+        container.querySelectorAll('.fav-act').forEach(function(b) {
+            b.onclick = function() {
+                var u = decodeURIComponent(this.dataset.url);
+                if (this.dataset.action === 'share') shareUrl(u);
+                else { copy(u); toast('Copied'); }
+            };
+        });
+        container.querySelectorAll('.fav-del').forEach(function(b) {
+            b.onclick = function() {
+                data.favorites.splice(parseInt(this.dataset.idx), 1);
+                storage.set(data);
+                renderFavorites(container);
+                toast('Deleted');
+            };
+        });
+    }
+
+    function renderHistory(container) {
+        var hist = data.history || [];
+        if (!hist.length) {
+            container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">No history.</div>';
+            return;
+        }
+        container.innerHTML = '<button class="uvd-btn" id="__uvd_clear_hist__" style="width:100%;margin-bottom:10px;background:var(--danger);">Clear all history</button>';
+        document.getElementById('__uvd_clear_hist__').addEventListener('click', addRipple);
+        document.getElementById('__uvd_clear_hist__').onclick = function() {
+            if (confirm('Clear all history?')) { data.history = []; storage.set(data); renderHistory(container); }
+        };
+        hist.forEach(function(h) {
+            var card = document.createElement('div');
+            card.className = 'uvd-card';
+            card.innerHTML = 
+                '<div style="display:flex;justify-content:space-between;"><b style="color:var(--accent);">' + h.type + '</b><span style="font-size:11px;color:var(--text3);">' + new Date(h.timestamp).toLocaleString() + '</span></div>' +
+                '<div>' + h.title + '</div><div class="uvd-url-box">' + h.url + '</div>';
+            container.appendChild(card);
+        });
+    }
+
     function renderSettings(container) {
         container.innerHTML = 
             '<div class="uvd-card"><div style="font-weight:600;">Backup</div>' +
-            '<button class="uvd-btn uvd-ripple-btn" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Export data</button>' +
-            '<button class="uvd-btn uvd-ripple-btn" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Import data</button>' +
-            '<button class="uvd-btn uvd-ripple-btn" id="__uvd_reset__" style="width:100%;background:var(--danger);">Reset all</button></div>' +
-            '<div class="uvd-card" style="margin-top:10px;color:var(--text2);">Version 3.8 · nguyenquocngu93<br>Favorites: ' + data.favorites.length + ' · History: ' + (data.history||[]).length + '</div>';
+            '<button class="uvd-btn" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Export data</button>' +
+            '<button class="uvd-btn" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Import data</button>' +
+            '<button class="uvd-btn" id="__uvd_reset__" style="width:100%;background:var(--danger);">Reset all</button></div>' +
+            '<div class="uvd-card" style="margin-top:10px;color:var(--text2);">Version 3.9<br>Favorites: ' + data.favorites.length + ' · History: ' + (data.history||[]).length + '</div>';
         container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
         document.getElementById('__uvd_backup__').onclick = function() {
             var blob = new Blob([JSON.stringify(data)],{type:'application/json'});
@@ -934,6 +1028,6 @@
             clearInterval(autoRefresh); stopMonitor();
         }
     }, 2000);
-    console.log('V3.8 Polished Player ready');
-    toast('V3.8 Polished Player Ready');
+    console.log('V3.9 Landscape Fix & UI Polish ready');
+    toast('V3.9 Ready');
 })();

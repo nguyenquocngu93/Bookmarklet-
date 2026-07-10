@@ -1,10 +1,9 @@
 /**
- * Universal Video Downloader V3.6-Fixed – Taller buttons, no hidden controls
- * - Preview opens directly below buttons (no overlay)
- * - Fullscreen forces landscape
- * - Taller action buttons (padding increased)
- * - Back button larger and always visible
- * - Player controls properly spaced
+ * Universal Video Downloader V4.0 – Proportioned UI & Fixed Orientation
+ * - Tab buttons redesigned (larger)
+ * - Action & Footer buttons proportionally smaller
+ * - Guaranteed landscape fullscreen with orientation lock
+ * - All previous features retained
  * Author: nguyenquocngu93
  */
 (function() {
@@ -16,7 +15,7 @@
     var minBtn = document.getElementById('__uvd_min_float__');
     if (minBtn) minBtn.remove();
 
-    var STORAGE_KEY = 'uvd_data_v36fix';
+    var STORAGE_KEY = 'uvd_data_v40';
     var storage = {
         get: function() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -247,7 +246,7 @@
         ripple.addEventListener('animationend', function() { ripple.remove(); });
     }
 
-    // ========== INLINE PLAYER (taller buttons) ==========
+    // ========== INLINE PLAYER (Fixed Fullscreen & Orientation) ==========
     function showInlinePlayer(url, container) {
         container.innerHTML = '';
         container.style.display = 'flex';
@@ -255,9 +254,9 @@
         container.style.height = '100%';
 
         var backBtn = document.createElement('button');
-        backBtn.className = 'uvd-btn uvd-ripple-btn';
+        backBtn.className = 'uvd-tab-btn';
         backBtn.textContent = '← Back to streams';
-        backBtn.style.cssText = 'margin-bottom:10px;padding:14px 20px;font-size:15px;font-weight:700;';
+        backBtn.style.marginBottom = '12px';
         backBtn.onclick = function() {
             if (activeHls) activeHls.destroy();
             container.innerHTML = '';
@@ -268,12 +267,13 @@
         container.appendChild(backBtn);
 
         var playerDiv = document.createElement('div');
+        playerDiv.id = '__uvd_video_container__';
         playerDiv.className = 'uvd-video-wrapper';
-        playerDiv.style.cssText = 'flex:1;display:flex;flex-direction:column;';
+        playerDiv.style.flex = '1';
         playerDiv.innerHTML = 
             '<video id="__uvd_pv__" class="uvd-video" crossorigin="anonymous" playsinline webkit-playsinline></video>' +
             '<div class="uvd-controls" id="__uvd_ctrls__">' +
-                '<button class="uvd-ctrl-btn" id="__uvd_play__" style="padding:10px;">' +
+                '<button class="uvd-ctrl-btn" id="__uvd_play__">' +
                     '<svg width="20" height="20" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="white"/></svg>' +
                 '</button>' +
                 '<div class="uvd-timeline" id="__uvd_timeline__">' +
@@ -289,10 +289,10 @@
                     '<option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option>' +
                 '</select>' +
                 '<select class="uvd-quality-select" id="__uvd_quality__" style="display:none;"></select>' +
-                '<button class="uvd-ctrl-btn" id="__uvd_pip__" title="Picture-in-Picture" style="padding:10px;">' +
+                '<button class="uvd-ctrl-btn" id="__uvd_pip__" title="Picture-in-Picture">' +
                     '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" fill="white"/></svg>' +
                 '</button>' +
-                '<button class="uvd-ctrl-btn" id="__uvd_fs__" style="padding:10px;">' +
+                '<button class="uvd-ctrl-btn" id="__uvd_fs__">' +
                     '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" fill="white"/></svg>' +
                 '</button>' +
             '</div>';
@@ -311,6 +311,7 @@
         var fsBtn = document.getElementById('__uvd_fs__');
         var pipBtn = document.getElementById('__uvd_pip__');
         var activeHls = null;
+        var containerForFs = playerDiv;
 
         function loadMedia() {
             if (url.includes('.m3u8')) {
@@ -386,28 +387,56 @@
         volumeSlider.addEventListener('input', function() { video.volume = this.value; });
         speedSelect.addEventListener('change', function() { video.playbackRate = parseFloat(this.value); });
 
+        // Fullscreen with orientation lock + CSS fallback
         function requestFullscreen() {
-            var el = video;
-            if (el.requestFullscreen) {
-                el.requestFullscreen().then(function() {
+            if (containerForFs.requestFullscreen) {
+                containerForFs.requestFullscreen().then(function() {
                     if (screen.orientation && screen.orientation.lock) {
                         screen.orientation.lock('landscape').catch(function(){});
                     }
                 }).catch(function(){});
-            } else if (el.webkitRequestFullscreen) {
-                el.webkitRequestFullscreen();
+            } else if (containerForFs.webkitRequestFullscreen) {
+                containerForFs.webkitRequestFullscreen();
             }
         }
-        function onFullscreenChange() {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+
+        function handleFullscreenChange() {
+            var isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (isFullscreen) {
+                // CSS fallback: nếu orientation lock thất bại, tự xoay video
+                if (screen.orientation && screen.orientation.type && !screen.orientation.type.includes('landscape')) {
+                    video.style.transform = 'rotate(90deg)';
+                    video.style.width = '100vh';
+                    video.style.height = '100vw';
+                    video.style.objectFit = 'contain';
+                } else {
+                    video.style.transform = '';
+                    video.style.width = '';
+                    video.style.height = '';
+                }
+                controls.style.position = 'fixed';
+                controls.style.bottom = '0';
+                controls.style.left = '0';
+                controls.style.right = '0';
+                controls.style.zIndex = '2147483649';
+            } else {
+                video.style.transform = '';
+                video.style.width = '';
+                video.style.height = '';
+                controls.style.position = '';
+                controls.style.bottom = '';
+                controls.style.left = '';
+                controls.style.right = '';
+                controls.style.zIndex = '';
                 if (screen.orientation && screen.orientation.unlock) {
                     screen.orientation.unlock();
                 }
             }
         }
+
         fsBtn.addEventListener('click', requestFullscreen);
-        document.addEventListener('fullscreenchange', onFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
         pipBtn.addEventListener('click', async function() {
             try {
@@ -422,12 +451,12 @@
             video.pause();
             if (activeHls) activeHls.destroy();
             video.src = '';
-            document.removeEventListener('fullscreenchange', onFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
         });
     }
 
-    // ========== BUILD UI (Taller buttons, fixed CSS) ==========
+    // ========== BUILD UI (Proportioned) ==========
     if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
     var style = document.createElement('style');
     style.id = '__uvd_css__';
@@ -454,7 +483,7 @@
             --card-bg: rgba(255,255,255,0.04);
         }
         .uvd-overlay {
-            position:fixed; inset:0; background:rgba(0,0,0,0.75);
+            position:fixed; inset:0; background:rgba(0,0,0,0.8);
             backdrop-filter:blur(18px); z-index:2147483648;
             display:flex; align-items:center; justify-content:center;
             padding:16px; overflow-y:auto;
@@ -479,7 +508,7 @@
             background:transparent; border:none; color:#fff; cursor:pointer;
             padding:8px; display:flex; align-items:center; transition:0.2s; position:relative; overflow:hidden;
         }
-        .uvd-ctrl-btn:hover { background:rgba(255,255,255,0.1); border-radius:50%; }
+        .uvd-ctrl-btn:hover { background:rgba(255,255,255,0.15); border-radius:50%; }
         .uvd-ctrl-btn:active { transform:scale(0.9); }
         .uvd-timeline {
             flex:1; height:8px; background:rgba(255,255,255,0.15);
@@ -505,18 +534,79 @@
         .uvd-scroll::-webkit-scrollbar{width:4px}
         .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
         .uvd-scroll::-webkit-scrollbar-track{background:transparent}
-        .uvd-btn {
-            background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
-            color:var(--text); padding:12px 18px; border-radius:40px;
-            font-weight:600; font-size:14px; cursor:pointer; transition: all 0.25s;
-            backdrop-filter:blur(10px); text-align:center; position:relative;
-            overflow:hidden; display:inline-block; box-shadow:0 4px 10px rgba(0,0,0,0.2);
+
+        /* Tab buttons (larger) */
+        .uvd-tab-btn {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: var(--text);
+            padding: 12px 18px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .uvd-btn:hover {
-            background:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.4);
-            transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.4);
+        .uvd-tab-btn:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5), 0 0 15px rgba(59,130,246,0.4);
         }
-        .uvd-btn:active { transform:scale(0.97); }
+        .uvd-tab-btn:active { transform: scale(0.95); }
+
+        /* Action buttons (smaller) */
+        .uvd-action-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .uvd-action-btn:hover {
+            background: rgba(255,255,255,0.18);
+            border-color: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .uvd-action-btn:active { transform: scale(0.96); }
+
+        /* Footer buttons (smallest) */
+        .uvd-footer-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(2px);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .uvd-footer-btn:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.25);
+            transform: translateY(-1px);
+        }
+        .uvd-footer-btn:active { transform: scale(0.96); }
+
         .uvd-card {
             background:var(--card-bg); border:1px solid var(--border);
             border-radius:16px; padding:14px; margin-bottom:10px;
@@ -550,6 +640,7 @@
             z-index:2147483647; cursor:pointer; display:flex; align-items:center;
             justify-content:center; font-weight:700; font-size:18px;
             transition: transform 0.3s; animation:uvdFloatBtnIn 0.3s ease;
+            backdrop-filter:blur(10px);
         }
         #__uvd_min_float__:hover { transform:scale(1.1); }
     `;
@@ -574,24 +665,18 @@
         header.innerHTML = 
             '<div style="display:flex;align-items:center;gap:8px;">' +
                 '<span style="width:12px;height:12px;background:var(--accent);border-radius:50%;animation:uvdPulse 2s infinite;"></span>' +
-                '<span style="font-weight:700;font-size:16px;">Universal DL <span style="color:var(--accent);">V3.6+</span></span>' +
+                '<span style="font-weight:700;font-size:16px;">Universal DL <span style="color:var(--accent);">V4.0</span></span>' +
             '</div>' +
             '<div style="display:flex;gap:6px;">' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Minimize">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,14 10,14 10,20"/><polyline points="20,10 14,10 14,4"/></svg>' +
-                '</button>' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_refresh__">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>' +
-                '</button>' +
-                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_close__">' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-                '</button>' +
+                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Minimize">_</button>' +
+                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_refresh__">↻</button>' +
+                '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_close__">✕</button>' +
             '</div>';
         panel.appendChild(header);
 
-        // Tabs
+        // Tabs (using uvd-tab-btn)
         var tabs = document.createElement('div');
-        tabs.style.cssText = 'display:flex;margin-bottom:10px;flex-wrap:wrap;';
+        tabs.style.cssText = 'display:flex;margin-bottom:10px;flex-wrap:wrap;gap:6px;';
         var tabList = [
             { id: 'streams', text: 'Streams (' + arr.length + ')' },
             { id: 'favorites', text: 'Favorites (' + data.favorites.length + ')' },
@@ -600,10 +685,10 @@
         ];
         tabList.forEach(function(t) {
             var b = document.createElement('button');
-            b.className = 'uvd-btn uvd-ripple-btn';
+            b.className = 'uvd-tab-btn uvd-ripple-btn';
             b.dataset.tab = t.id;
             b.textContent = t.text;
-            b.style.cssText = 'flex:1;background:transparent;border:none;padding:10px 4px;font-size:12px;border-radius:0;border-bottom:2px solid transparent;transition:0.2s;min-width:60px;';
+            b.style.borderBottom = '2px solid transparent';
             tabs.appendChild(b);
         });
         panel.appendChild(tabs);
@@ -613,10 +698,10 @@
         info.style.cssText = 'margin-bottom:10px;font-size:12px;';
         info.innerHTML = 
             '<span style="color:var(--text2);">Title: </span>' +
-            '<span id="__uvd_title__" style="color:var(--accent);text-decoration:underline;cursor:pointer;transition:0.2s;">' + pageInfo.title + '</span> ' +
+            '<span id="__uvd_title__" style="color:var(--accent);text-decoration:underline;cursor:pointer;">' + pageInfo.title + '</span> ' +
             '<span style="color:var(--text3);">(edit)</span><br>' +
             '<span style="color:var(--text2);">Referer: </span>' +
-            '<span id="__uvd_referer__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;transition:0.2s;">' + pageInfo.referer + '</span>';
+            '<span id="__uvd_referer__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;">' + pageInfo.referer + '</span>';
         panel.appendChild(info);
 
         // Content area
@@ -636,14 +721,14 @@
 
         panel.appendChild(contentWrapper);
 
-        // Footer
+        // Footer (using uvd-footer-btn)
         var footer = document.createElement('div');
         footer.style.cssText = 'display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;';
         ['TXT','JSON','M3U','CSV'].forEach(function(f) {
             var btn = document.createElement('button');
-            btn.className = 'uvd-btn uvd-ripple-btn';
+            btn.className = 'uvd-footer-btn uvd-ripple-btn';
             btn.textContent = f;
-            btn.style.cssText = 'flex:1 0 auto;padding:12px 14px;';
+            btn.style.flex = '1 0 auto';
             btn.onclick = function() { exportData(f.toLowerCase()); };
             footer.appendChild(btn);
         });
@@ -651,7 +736,7 @@
         document.body.appendChild(panel);
 
         // Ripple
-        document.querySelectorAll('.uvd-ripple-btn, .uvd-btn, .uvd-btn-icon').forEach(function(btn) {
+        document.querySelectorAll('.uvd-ripple-btn, .uvd-tab-btn, .uvd-action-btn, .uvd-footer-btn, .uvd-btn-icon').forEach(function(btn) {
             btn.addEventListener('click', addRipple);
         });
 
@@ -659,7 +744,13 @@
         function renderTab(tabId) {
             currentTab = tabId;
             document.querySelectorAll('[data-tab]').forEach(function(t) {
-                t.classList.toggle('uvd-tab-active', t.dataset.tab === tabId);
+                if (t.dataset.tab === tabId) {
+                    t.classList.add('uvd-tab-active');
+                    t.style.borderBottom = '2px solid var(--accent)';
+                } else {
+                    t.classList.remove('uvd-tab-active');
+                    t.style.borderBottom = '2px solid transparent';
+                }
             });
             playerContainer.style.display = 'none';
             playerContainer.innerHTML = '';
@@ -692,7 +783,6 @@
                 toast('Saved referer for ' + pageInfo.host);
             }
         };
-
         document.getElementById('__uvd_minimize__').onclick = function() {
             panel.style.display = 'none';
             var floatBtn = document.getElementById('__uvd_min_float__');
@@ -701,10 +791,7 @@
                 floatBtn.id = '__uvd_min_float__';
                 floatBtn.textContent = 'U';
                 floatBtn.title = 'Restore Universal DL';
-                floatBtn.onclick = function() {
-                    panel.style.display = 'flex';
-                    floatBtn.remove();
-                };
+                floatBtn.onclick = function() { panel.style.display = 'flex'; floatBtn.remove(); };
                 document.body.appendChild(floatBtn);
             }
         };
@@ -718,7 +805,7 @@
 
     function renderStreams(container, arr) {
         if (!arr.length) {
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);animation:uvdSlideUp 0.4s;">No streams detected.<br><small>Play video or load more content.</small></div>';
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">No streams detected.</div>';
             return;
         }
         arr.forEach(function(item, i) {
@@ -728,30 +815,27 @@
             card.innerHTML = 
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
                     '<span class="uvd-type-badge">#' + (i+1) + ' ' + item.type + '</span>' +
-                    '<div style="display:flex;align-items:center;gap:8px;">' +
-                        '<span style="font-size:10px;color:var(--text3);">' + item.source + '</span>' +
-                        '<button class="uvd-fav-btn uvd-ripple-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '★' : '☆') + '</button>' +
-                    '</div>' +
+                    '<button class="uvd-fav-btn uvd-ripple-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '★' : '☆') + '</button>' +
                 '</div>' +
                 '<div class="uvd-url-box">' + item.url + '</div>' +
                 '<div class="uvd-grid-2" style="margin-top:8px;">' +
-                    '<button class="uvd-btn uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:var(--accent2);">Share</button>' +
-                    '<button class="uvd-btn uvd-ripple-btn" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Copy</button>' +
+                    '<button class="uvd-action-btn uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                    '<button class="uvd-action-btn uvd-ripple-btn" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Copy</button>' +
                     (item.type === 'IFRAME' ? 
-                        '<a href="' + item.url + '" class="uvd-btn uvd-ripple-btn" style="text-align:center;grid-column:1/3;">➔ Open iframe</a>' :
+                        '<a href="' + item.url + '" class="uvd-action-btn uvd-ripple-btn" style="text-align:center;grid-column:1/3;text-decoration:none;">Open iframe</a>' :
                         (item.type === 'M3U8' ?
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Quality</button>' +
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">All commands</button>' :
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
-                            '<button class="uvd-btn uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Commands</button>'
+                            '<button class="uvd-action-btn uvd-ripple-btn" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Quality</button>' +
+                            '<button class="uvd-action-btn uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
+                            '<button class="uvd-action-btn uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">All commands</button>' :
+                            '<button class="uvd-action-btn uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '">Preview</button>' +
+                            '<button class="uvd-action-btn uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Commands</button>'
                         )
                     ) +
                 '</div>';
             container.appendChild(card);
         });
 
-        container.querySelectorAll('.uvd-btn, .uvd-fav-btn').forEach(function(b) {
+        container.querySelectorAll('.uvd-action-btn, .uvd-fav-btn').forEach(function(b) {
             b.addEventListener('click', addRipple);
         });
         container.querySelectorAll('.uvd-fav-btn').forEach(function(b) {
@@ -762,7 +846,7 @@
                 this.style.color = isFav ? 'var(--gold)' : 'var(--text3)';
             };
         });
-        container.querySelectorAll('.uvd-btn[data-action]').forEach(function(b) {
+        container.querySelectorAll('.uvd-action-btn[data-action]').forEach(function(b) {
             b.onclick = function() {
                 var u = decodeURIComponent(this.dataset.url);
                 var action = this.dataset.action;
@@ -781,30 +865,27 @@
         var cmds = makeCommands(url, type, pageInfo.title);
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
-        overlay.style.animation = 'uvdFadeIn 0.2s ease';
-        var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;display:flex;flex-direction:column;max-height:80vh;animation:uvdScaleIn 0.3s ease;">';
+        var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
         html += '<div style="font-weight:700;margin-bottom:12px;">Select command</div>';
-        html += '<div style="overflow-y:auto;flex:1;">';
+        html += '<div style="overflow-y:auto;max-height:60vh;">';
         Object.keys(cmds).forEach(function(k) {
             var c = cmds[k];
             html += '<div class="uvd-card">' +
                 '<div style="font-weight:600;color:var(--accent);">' + c.label + '</div>' +
-                '<div class="uvd-url-box" style="margin:6px 0;">' + c.cmd + '</div>' +
-                '<button class="uvd-btn uvd-ripple-btn cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;">Edit & Copy</button>' +
+                '<div class="uvd-url-box">' + c.cmd + '</div>' +
+                '<button class="uvd-action-btn cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;">Edit & Copy</button>' +
             '</div>';
         });
-        html += '</div>';
-        html += '<div style="position:sticky;bottom:0;background:var(--glass);padding-top:10px;border-top:1px solid var(--border);"><button class="uvd-btn uvd-ripple-btn close-overlay-btn" style="width:100%;background:var(--danger);">Close</button></div></div>';
+        html += '</div><button class="uvd-action-btn close-overlay-btn" style="width:100%;margin-top:10px;background:var(--danger);">Close</button></div>';
         overlay.innerHTML = html;
         document.body.appendChild(overlay);
 
-        overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
+        overlay.querySelectorAll('.uvd-action-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
         overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
         overlay.querySelectorAll('.cmd-select').forEach(function(b) {
             b.onclick = function() {
-                var cmd = decodeURIComponent(this.dataset.cmd);
                 overlay.remove();
-                showEditor(cmd);
+                showEditor(decodeURIComponent(this.dataset.cmd));
             };
         });
     }
@@ -812,28 +893,26 @@
     function showEditor(text) {
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
-        overlay.style.animation = 'uvdFadeIn 0.2s ease';
         overlay.innerHTML = 
-            '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;animation:uvdScaleIn 0.3s ease;">' +
+            '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">' +
                 '<div style="font-weight:700;margin-bottom:8px;">Edit Command</div>' +
-                '<textarea id="__uvd_edit__" style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;resize:vertical;">' + text.replace(/</g,'&lt;') + '</textarea>' +
+                '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;">' + text + '</textarea>' +
                 '<div class="uvd-grid-2" style="margin-top:12px;">' +
-                    '<button class="uvd-btn uvd-ripple-btn" id="__uvd_ed_copy__">Copy</button>' +
-                    '<button class="uvd-btn uvd-ripple-btn" id="__uvd_ed_share__" style="background:var(--accent2);">Share</button>' +
+                    '<button class="uvd-action-btn" id="__uvd_ed_copy__">Copy</button>' +
+                    '<button class="uvd-action-btn" id="__uvd_ed_share__" style="background:rgba(139,92,246,0.3);">Share</button>' +
                 '</div>' +
-                '<button class="uvd-btn uvd-ripple-btn close-editor" style="width:100%;margin-top:8px;background:var(--danger);">Close</button>' +
+                '<button class="uvd-action-btn close-editor" style="width:100%;margin-top:8px;background:var(--danger);">Close</button>' +
             '</div>';
         document.body.appendChild(overlay);
-        overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
+        overlay.querySelectorAll('.uvd-action-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
         document.getElementById('__uvd_ed_copy__').onclick = function() {
-            copy(document.getElementById('__uvd_edit__').value);
+            copy(overlay.querySelector('textarea').value);
             overlay.remove();
             toast('Copied');
         };
         document.getElementById('__uvd_ed_share__').onclick = function() {
-            var val = document.getElementById('__uvd_edit__').value;
+            shareUrl(overlay.querySelector('textarea').value);
             overlay.remove();
-            shareUrl(val);
         };
         overlay.querySelector('.close-editor').onclick = function() { overlay.remove(); };
     }
@@ -841,40 +920,35 @@
     function showQualityPicker(url) {
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
-        overlay.style.animation = 'uvdFadeIn 0.2s ease';
-        overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;text-align:center;">Analyzing M3U8...</div>';
+        overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">Analyzing M3U8...</div>';
         document.body.appendChild(overlay);
 
         parseM3U8Master(url, function(qualities) {
             if (!qualities) {
                 overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;text-align:center;">' +
-                    '<div style="color:var(--danger);font-weight:700;">Not a Master Playlist</div>' +
-                    '<p style="color:var(--text2);">Single stream, no qualities to choose.</p>' +
-                    '<button class="uvd-btn uvd-ripple-btn close-overlay-btn" style="margin-top:12px;background:var(--danger);width:100%;">Close</button></div>';
-                overlay.querySelector('.close-overlay-btn').addEventListener('click', addRipple);
+                    '<div style="color:var(--danger);">Not a Master Playlist</div>' +
+                    '<button class="uvd-action-btn close-overlay-btn" style="margin-top:12px;background:var(--danger);width:100%;">Close</button></div>';
                 overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
                 return;
             }
 
-            var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;display:flex;flex-direction:column;max-height:80vh;animation:uvdScaleIn 0.3s ease;">';
+            var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
             html += '<div style="font-weight:700;margin-bottom:12px;">Select quality (' + qualities.length + ')</div>';
-            html += '<div style="overflow-y:auto;flex:1;">';
+            html += '<div style="overflow-y:auto;max-height:60vh;">';
             qualities.forEach(function(q) {
                 html += '<div class="uvd-card">' +
-                    '<div style="display:flex;justify-content:space-between;"><b>' + q.label + '</b><span style="color:var(--text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span></div>' +
-                    '<div style="font-size:11px;color:var(--text3);">' + q.resolution + (q.codecs ? ' · ' + q.codecs : '') + '</div>' +
+                    '<b>' + q.label + '</b> <span style="color:var(--text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>' +
                     '<div class="uvd-grid-3" style="margin-top:8px;">' +
-                        '<button class="uvd-btn uvd-ripple-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:var(--accent2);">Share</button>' +
-                        '<button class="uvd-btn uvd-ripple-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">Preview</button>' +
-                        '<button class="uvd-btn uvd-ripple-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Cmd</button>' +
+                        '<button class="uvd-action-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                        '<button class="uvd-action-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">Preview</button>' +
+                        '<button class="uvd-action-btn q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Cmd</button>' +
                     '</div>' +
                 '</div>';
             });
-            html += '</div>';
-            html += '<div style="position:sticky;bottom:0;background:var(--glass);padding-top:10px;border-top:1px solid var(--border);"><button class="uvd-btn uvd-ripple-btn close-overlay-btn" style="width:100%;background:var(--danger);">Close</button></div></div>';
+            html += '</div><button class="uvd-action-btn close-overlay-btn" style="width:100%;margin-top:10px;background:var(--danger);">Close</button></div>';
             overlay.innerHTML = html;
 
-            overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
+            overlay.querySelectorAll('.uvd-action-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
             overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
             overlay.querySelectorAll('.q-act').forEach(function(b) {
                 b.onclick = function() {
@@ -883,7 +957,7 @@
                     overlay.remove();
                     if (action === 'share') shareUrl(u);
                     else if (action === 'preview') window.__uvd_showPreview(u);
-                    else if (action === 'cmd') showCommandPicker(u, 'M3U8');
+                    else showCommandPicker(u, 'M3U8');
                 };
             });
         });
@@ -891,7 +965,7 @@
 
     function renderFavorites(container) {
         if (!data.favorites.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);animation:uvdSlideUp 0.4s;">No favorites yet.</div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">No favorites.</div>';
             return;
         }
         data.favorites.forEach(function(f, i) {
@@ -900,15 +974,15 @@
             card.innerHTML = 
                 '<div style="display:flex;justify-content:space-between;"><b style="color:var(--gold);">★ ' + f.type + '</b><span style="font-size:11px;color:var(--text3);">' + new Date(f.timestamp).toLocaleDateString() + '</span></div>' +
                 '<div style="margin:4px 0;">' + f.title + '</div>' +
-                '<div class="uvd-url-box" style="margin-bottom:8px;">' + f.url + '</div>' +
+                '<div class="uvd-url-box">' + f.url + '</div>' +
                 '<div class="uvd-grid-3">' +
-                    '<button class="uvd-btn uvd-ripple-btn fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:var(--accent2);">Share</button>' +
-                    '<button class="uvd-btn uvd-ripple-btn fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy">Copy</button>' +
-                    '<button class="uvd-btn uvd-ripple-btn fav-del" data-idx="' + i + '" style="background:var(--danger);">Del</button>' +
+                    '<button class="uvd-action-btn fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:rgba(139,92,246,0.3);">Share</button>' +
+                    '<button class="uvd-action-btn fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy">Copy</button>' +
+                    '<button class="uvd-action-btn fav-del" data-idx="' + i + '" style="background:var(--danger);">Del</button>' +
                 '</div>';
             container.appendChild(card);
         });
-        container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
+        container.querySelectorAll('.uvd-action-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
         container.querySelectorAll('.fav-act').forEach(function(b) {
             b.onclick = function() {
                 var u = decodeURIComponent(this.dataset.url);
@@ -929,10 +1003,10 @@
     function renderHistory(container) {
         var hist = data.history || [];
         if (!hist.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);animation:uvdSlideUp 0.4s;">No history.</div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">No history.</div>';
             return;
         }
-        container.innerHTML = '<button class="uvd-btn uvd-ripple-btn" id="__uvd_clear_hist__" style="width:100%;margin-bottom:10px;background:var(--danger);">Clear all history</button>';
+        container.innerHTML = '<button class="uvd-action-btn" id="__uvd_clear_hist__" style="width:100%;margin-bottom:10px;background:var(--danger);">Clear all history</button>';
         document.getElementById('__uvd_clear_hist__').addEventListener('click', addRipple);
         document.getElementById('__uvd_clear_hist__').onclick = function() {
             if (confirm('Clear all history?')) { data.history = []; storage.set(data); renderHistory(container); }
@@ -949,18 +1023,12 @@
 
     function renderSettings(container) {
         container.innerHTML = 
-            '<div class="uvd-card">' +
-                '<div style="font-weight:600;margin-bottom:8px;">Backup</div>' +
-                '<button class="uvd-btn uvd-ripple-btn" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Export data</button>' +
-                '<button class="uvd-btn uvd-ripple-btn" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Import data</button>' +
-                '<button class="uvd-btn uvd-ripple-btn" id="__uvd_reset__" style="width:100%;background:var(--danger);">Reset all</button>' +
-            '</div>' +
-            '<div class="uvd-card" style="margin-top:10px;font-size:12px;color:var(--text2);">' +
-                'Version 3.6-Fixed · nguyenquocngu93<br>' +
-                'Favorites: ' + data.favorites.length + ' · History: ' + (data.history||[]).length +
-            '</div>';
-
-        container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
+            '<div class="uvd-card"><div style="font-weight:600;">Backup</div>' +
+            '<button class="uvd-action-btn" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Export data</button>' +
+            '<button class="uvd-action-btn" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Import data</button>' +
+            '<button class="uvd-action-btn" id="__uvd_reset__" style="width:100%;background:var(--danger);">Reset all</button></div>' +
+            '<div class="uvd-card" style="margin-top:10px;color:var(--text2);">Version 4.0<br>Favorites: ' + data.favorites.length + ' · History: ' + (data.history||[]).length + '</div>';
+        container.querySelectorAll('.uvd-action-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
         document.getElementById('__uvd_backup__').onclick = function() {
             var blob = new Blob([JSON.stringify(data)],{type:'application/json'});
             var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'uvd_backup.json'; a.click();
@@ -985,11 +1053,9 @@
     buildUI();
     var autoRefresh = setInterval(function() {
         if (!document.getElementById('__uvd__') && !document.getElementById('__uvd_min_float__')) {
-            clearInterval(autoRefresh);
-            stopMonitor();
-            return;
+            clearInterval(autoRefresh); stopMonitor();
         }
     }, 2000);
-    console.log('Universal DL V3.6-Fixed Taller Buttons ready');
-    toast('V3.6-Fixed Ready');
+    console.log('V4.0 Proportioned UI & Fixed Orientation ready');
+    toast('V4.0 Ready');
 })();

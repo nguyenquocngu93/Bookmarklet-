@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script>
+// Luôn load file JS mới nhất, không cache
+(function() {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/gh/nguyenquocngu93/bookmarklet-@main/umpdl.js?t=' + Date.now() + '&r=' + Math.random();
+    s.onload = function() {
+        console.log('UMPDL loaded successfully!');
+    };
+    s.onerror = function() {
+        alert('Không thể load UMPDL. Vui lòng kiểm tra kết nối.');
+    };
+    document.head.appendChild(s);
+})();
+</script>
+</head>
+<body style="background:#1a1a2e;color:#fff;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+<div style="text-align:center;">
+    <h1>🎬 UMPDL</h1>
+    <p style="color:#888;">Đang tải...</p>
+</div>
+</body>
+</html>

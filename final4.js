@@ -1,6 +1,6 @@
 /**
  * Universal Video Downloader V5.1 – Dark Liquid Edition (Final)
- * - Fixed UI (all: initial) không bị ảnh hưởng bởi CSS web
+ * - Fixed UI (chỉ reset các thuộc tính cần thiết, không dùng all:initial)
  * - Hỗ trợ blob URL (hiển thị cảnh báo, không preview)
  * - Preview mở tab mới, M3U8 dùng HLS.js
  * - Thêm ffplay/mpv để xem trực tiếp
@@ -172,7 +172,7 @@ function parseM3U8Master(url, callback) {
   }).catch(function(e) { console.error(e); callback(null); });
 }
 
-// ========== COMMANDS (có ffplay/mpv, blob warning) ==========
+// ========== COMMANDS ==========
 function makeCommands(url, type, title) {
   var t = title;
   var ext = type.toLowerCase() === 'iframe' ? 'mp4' : (type === 'BLOB' ? 'blob' : type.toLowerCase());
@@ -270,10 +270,10 @@ function addRipple(e) {
   ripple.addEventListener('animationend', function() { ripple.remove(); });
 }
 
-// ========== PREVIEW (không cho blob) ==========
+// ========== PREVIEW ==========
 function openPreviewInNewTab(url, type) {
   if (type === 'BLOB') {
-    toast('Không thể xem trực tiếp blob URL', 'var(--uvd-danger)');
+    toast('Không thể xem trực tiếp blob URL', '#ff5d72');
     return;
   }
   var directTypes = ['MP4', 'WEBM', 'MKV', 'TS', 'FLV'];
@@ -298,11 +298,11 @@ function openPreviewInNewTab(url, type) {
   window.open(url, '_blank');
 }
 
-// ========== FULLSCREEN AUTO ORIENTATION (giữ nguyên) ==========
+// ========== FULLSCREEN AUTO ORIENTATION ==========
 var __uvdOrientWatchdog = null, __uvdOrientTarget = null;
 function enterFullscreenAuto(element, video) {
   var requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
-  if (!requestFS) { toast('Trình duyệt không hỗ trợ fullscreen', 'var(--uvd-danger)'); return; }
+  if (!requestFS) { toast('Trình duyệt không hỗ trợ fullscreen', '#ff5d72'); return; }
   var promise = requestFS.call(element);
   function afterFullscreen() { lockAutoOrientation(video, element); }
   if (promise && promise.then) { promise.then(afterFullscreen).catch(function(err) { console.warn('Fullscreen error:', err); afterFullscreen(); }); }
@@ -392,37 +392,11 @@ function handleFullscreenChange() {
   }
 }
 
-// ========== CSS (dùng all:initial để tránh ảnh hưởng từ web) ==========
+// ========== CSS (fix: không dùng all:initial) ==========
 if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
 var style = document.createElement('style');
 style.id = '__uvd_css__';
 style.textContent = `
-/* Reset toàn bộ để tránh bị CSS của trang web ghi đè */
-.uvd-glass-panel, .uvd-glass-panel * {
-  all: initial !important;
-  box-sizing: border-box !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
-  line-height: 1.4 !important;
-  color: var(--uvd-text) !important;
-}
-
-.uvd-glass-panel {
-  display: flex !important;
-  flex-direction: column !important;
-  background: var(--uvd-glass) !important;
-  backdrop-filter: blur(28px) saturate(130%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
-  border: 1px solid var(--uvd-border) !important;
-  border-radius: var(--uvd-radius-lg) !important;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 1px 0 rgba(255,255,255,0.08) inset !important;
-  padding: 16px !important;
-  width: 100% !important;
-  position: relative !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  max-width: 100% !important;
-}
-
 :root {
   --uvd-bg: rgba(3,4,8,0.97);
   --uvd-glass: rgba(12,14,20,0.85);
@@ -447,11 +421,6 @@ style.textContent = `
   --uvd-grad-liquid: linear-gradient(135deg, var(--uvd-accent), var(--uvd-accent2));
 }
 
-/* Các class con */
-.uvd-panel-content { position:relative; z-index:1; display:flex; flex-direction:column; height:100%; min-height:0; }
-.uvd-liquid-bg { position:absolute; inset:-30%; z-index:0; pointer-events:none; background: radial-gradient(closest-side, rgba(109,140,255,0.12), transparent 70%) 15% 20% / 55% 55% no-repeat, radial-gradient(closest-side, rgba(185,139,255,0.10), transparent 70%) 85% 75% / 60% 60% no-repeat; filter: blur(50px); animation: uvdLiquidDrift 16s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .uvd-liquid-bg { animation: none; } }
-@keyframes uvdLiquidDrift { 0% { transform: translate(-6%, -4%) scale(1); } 50% { transform: translate(4%, 6%) scale(1.12); } 100% { transform: translate(-6%, -4%) scale(1); } }
 @keyframes uvdSlideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @keyframes uvdPulse{0%,100%{opacity:1;box-shadow:0 0 5px var(--uvd-accent)}50%{opacity:0.4;box-shadow:0 0 20px var(--uvd-accent)}}
 @keyframes uvdScaleIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
@@ -459,37 +428,74 @@ style.textContent = `
 @keyframes uvdCardEnter{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
 @keyframes uvdFloatBtnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes uvdBadgePop{from{opacity:0;transform:translateY(-4px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
+
+/* Panel chính - override để tránh bị web ảnh hưởng */
+.uvd-glass-panel {
+  position: fixed !important;
+  top: 15px !important;
+  left: 15px !important;
+  right: 15px !important;
+  bottom: 15px !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--uvd-glass) !important;
+  backdrop-filter: blur(28px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
+  border: 1px solid var(--uvd-border) !important;
+  border-radius: var(--uvd-radius-lg) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03) inset, 0 1px 0 rgba(255,255,255,0.08) inset !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
+  color: var(--uvd-text) !important;
+  line-height: 1.4 !important;
+  animation: uvdScaleIn 0.4s ease !important;
+}
+
+/* Các phần tử con */
+.uvd-panel-content { position:relative; z-index:1; display:flex; flex-direction:column; height:100%; min-height:0; }
+.uvd-liquid-bg { position:absolute; inset:-30%; z-index:0; pointer-events:none; background: radial-gradient(closest-side, rgba(109,140,255,0.12), transparent 70%) 15% 20% / 55% 55% no-repeat, radial-gradient(closest-side, rgba(185,139,255,0.10), transparent 70%) 85% 75% / 60% 60% no-repeat; filter: blur(50px); animation: uvdLiquidDrift 16s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .uvd-liquid-bg { animation: none; } }
 
 .uvd-overlay { position:fixed; inset:0; background:rgba(2,3,6,0.92); backdrop-filter:blur(18px) saturate(120%); z-index:2147483648; display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
 .uvd-scroll::-webkit-scrollbar{width:4px}
 .uvd-scroll::-webkit-scrollbar-thumb{background:var(--uvd-accent);border-radius:4px}
 .uvd-scroll::-webkit-scrollbar-track{background:transparent}
+
 .uvd-btn { background:var(--uvd-glass-hi); border:1px solid var(--uvd-border); color:var(--uvd-text); padding:9px 16px; border-radius:var(--uvd-radius-md); font-weight:600; font-size:var(--uvd-fs-base); cursor:pointer; transition: all 0.2s; backdrop-filter:blur(10px); text-align:center; position:relative; overflow:hidden; display:inline-block; box-shadow:0 3px 10px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.08) inset; line-height:1.3; }
 .uvd-btn:hover { background:rgba(255,255,255,0.10); border-color:rgba(255,255,255,0.20); transform:translateY(-1px); box-shadow:0 5px 14px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.12) inset; }
 .uvd-btn:active { transform:scale(0.96); }
 .uvd-btn-sm { padding: 7px 12px; font-size: var(--uvd-fs-sm); border-radius: var(--uvd-radius-sm); }
 .uvd-btn-primary { background:var(--uvd-grad-liquid); border-color:transparent; color:#fff; box-shadow:0 5px 16px rgba(109,140,255,0.4), 0 1px 0 rgba(255,255,255,0.25) inset; }
 .uvd-btn-primary:hover { filter:brightness(1.08); box-shadow:0 7px 20px rgba(109,140,255,0.5); }
+
 .uvd-btn-icon { background:var(--uvd-glass-hi); border:1px solid var(--uvd-border); color:var(--uvd-text); width:34px; height:34px; border-radius:var(--uvd-radius-sm); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition: all 0.2s; backdrop-filter:blur(10px); position:relative; overflow:hidden; box-shadow:0 3px 8px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.08) inset; }
 .uvd-btn-icon:hover { background:rgba(255,255,255,0.10); border-color:rgba(255,255,255,0.20); }
 .uvd-btn-icon:active { transform:scale(0.92); }
 .uvd-btn-icon span { display:block; }
+
 .uvd-card { background:var(--uvd-card-bg); border:1px solid var(--uvd-border); border-radius:var(--uvd-radius-md); padding:14px; margin-bottom:10px; font-size:var(--uvd-fs-base); backdrop-filter:blur(6px); box-shadow:0 1px 0 rgba(255,255,255,0.04) inset; transition: transform 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease; animation:uvdCardEnter 0.4s ease both; }
 .uvd-card:nth-child(odd) { animation-delay:0.05s; }
 .uvd-card:nth-child(even) { animation-delay:0.1s; }
 .uvd-card:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(0,0,0,0.7), 0 0 0 1px rgba(109,140,255,0.30) inset, 0 0 24px rgba(109,140,255,0.08); background:rgba(255,255,255,0.05); border-color:rgba(109,140,255,0.25); }
+
 .uvd-type-badge { display:inline-block; padding:4px 12px; border-radius:var(--uvd-radius-sm); font-size:var(--uvd-fs-xs); font-weight:700; background:linear-gradient(135deg, rgba(109,140,255,0.22), rgba(185,139,255,0.18)); color:var(--uvd-accent); border:1px solid rgba(109,140,255,0.28); letter-spacing:0.03em; box-shadow:0 1px 0 rgba(255,255,255,0.06) inset; }
 .uvd-url-box { background:rgba(0,0,0,0.5); border-radius:var(--uvd-radius-sm); padding:12px; font-family:'SFMono-Regular',Consolas,monospace; font-size:var(--uvd-fs-sm); word-break:break-all; color:var(--uvd-text2); max-height:100px; overflow-y:auto; line-height:1.5; border:1px solid rgba(255,255,255,0.04); }
 .uvd-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .uvd-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+
 .uvd-tabbar { position:relative; display:flex; gap:2px; padding:4px; background:rgba(255,255,255,0.04); border:1px solid var(--uvd-border); border-radius:999px; margin-bottom:10px; }
 .uvd-tab-indicator { position:absolute; top:4px; bottom:4px; left:4px; width:0; border-radius:999px; background:var(--uvd-grad-liquid); z-index:0; box-shadow:0 3px 12px rgba(109,140,255,0.45); transition: transform 0.4s cubic-bezier(.4,0,.2,1), width 0.4s cubic-bezier(.4,0,.2,1); }
 .uvd-tab { position:relative; z-index:1; flex:1; min-width:0; background:transparent; border:none; color:var(--uvd-text2); font-weight:600; font-size:var(--uvd-fs-sm); padding:9px 6px; border-radius:999px; cursor:pointer; transition:color 0.25s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .uvd-tab.uvd-tab-active { color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.3); }
+
 #__uvd_orient_badge__ { animation: uvdBadgePop 0.3s ease both; font-weight:600; }
 #__uvd_min_float__ { position:fixed; bottom:20px; right:20px; width:54px; height:54px; border-radius:50%; background:var(--uvd-grad-liquid); color:#fff; border:1px solid rgba(255,255,255,0.25); box-shadow:0 8px 22px rgba(0,0,0,0.6), 0 0 20px rgba(109,140,255,0.35); z-index:2147483647; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:var(--uvd-fs-lg); transition: transform 0.3s; animation:uvdFloatBtnIn 0.3s ease; backdrop-filter:blur(10px); }
 #__uvd_min_float__:hover { transform:scale(1.1); }
 .uvd-ripple { position:absolute; border-radius:50%; background:rgba(255,255,255,0.5); transform:scale(0); animation:uvdRipple 0.6s ease-out; }
+
 #__uvd_video_wrapper__:fullscreen,
 #__uvd_video_wrapper__:-webkit-full-screen,
 #__uvd_video_wrapper__:-moz-full-screen,
@@ -514,8 +520,6 @@ function buildUI() {
   panel = document.createElement('div');
   panel.id = '__uvd__';
   panel.className = 'uvd-glass-panel';
-  // panel.style không dùng vì đã có CSS, nhưng vẫn cần position và z-index
-  panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;bottom:15px;z-index:2147483647;animation:uvdScaleIn 0.4s ease;';
   
   var liquidBg = document.createElement('div');
   liquidBg.className = 'uvd-liquid-bg';
@@ -531,7 +535,7 @@ function buildUI() {
   header.innerHTML = 
     '<div style="display:flex;align-items:center;gap:8px;">' +
       '<span style="width:10px;height:10px;background:var(--uvd-grad-liquid);border-radius:50%;animation:uvdPulse 2s infinite;box-shadow:0 0 8px rgba(109,140,255,0.6);"></span>' +
-      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">Universal DL <span style="background:var(--uvd-grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V5.1</span></span>' +
+      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;color:var(--uvd-text);">Universal DL <span style="background:var(--uvd-grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V5.1</span></span>' +
     '</div>' +
     '<div style="display:flex;gap:6px;">' +
       '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Thu nhỏ"><span style="font-size:18px;">−</span></button>' +
@@ -761,20 +765,20 @@ function showCommandPicker(url, type) {
   var overlay = document.createElement('div');
   overlay.className = 'uvd-overlay';
   
-  var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
-  html += '<div style="font-weight:700;margin-bottom:12px;">Chọn lệnh tải</div>';
+  var html = '<div style="background:var(--uvd-glass);backdrop-filter:blur(28px);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-lg);padding:20px;max-width:600px;width:100%;margin:auto;color:var(--uvd-text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;">';
+  html += '<div style="font-weight:700;margin-bottom:12px;font-size:var(--uvd-fs-md);">Chọn lệnh tải</div>';
   html += '<div style="overflow-y:auto;max-height:60vh;">';
   
   Object.keys(cmds).forEach(function(k) {
     var c = cmds[k];
-    html += '<div class="uvd-card">' +
-      '<div style="font-weight:600;color:var(--uvd-accent);">' + c.label + '</div>' +
-      '<div class="uvd-url-box">' + c.cmd + '</div>' +
-      '<button class="uvd-btn uvd-btn-sm cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;">Chỉnh sửa & Copy</button>' +
+    html += '<div style="background:var(--uvd-card-bg);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-md);padding:14px;margin-bottom:10px;">' +
+      '<div style="font-weight:600;color:var(--uvd-accent);font-size:var(--uvd-fs-base);">' + c.label + '</div>' +
+      '<div style="background:rgba(0,0,0,0.5);border-radius:var(--uvd-radius-sm);padding:12px;font-family:monospace;font-size:var(--uvd-fs-sm);word-break:break-all;color:var(--uvd-text2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid rgba(255,255,255,0.04);margin:6px 0;">' + c.cmd + '</div>' +
+      '<button class="uvd-btn uvd-btn-sm cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;position:relative;overflow:hidden;">Chỉnh sửa & Copy</button>' +
     '</div>';
   });
   
-  html += '</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="width:100%;margin-top:10px;background:var(--uvd-danger);">Đóng</button></div>';
+  html += '</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="width:100%;margin-top:10px;background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:9px 16px;border-radius:var(--uvd-radius-md);font-weight:600;font-size:var(--uvd-fs-base);cursor:pointer;">Đóng</button></div>';
   overlay.innerHTML = html;
   document.body.appendChild(overlay);
   
@@ -793,14 +797,14 @@ function showEditor(text) {
   var overlay = document.createElement('div');
   overlay.className = 'uvd-overlay';
   overlay.innerHTML = 
-    '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">' +
-      '<div style="font-weight:700;margin-bottom:8px;">Chỉnh sửa lệnh</div>' +
-      '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--uvd-border);border-radius:10px;color:var(--uvd-text);padding:12px;font-family:monospace;">' + text + '</textarea>' +
+    '<div style="background:var(--uvd-glass);backdrop-filter:blur(28px);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-lg);padding:20px;max-width:600px;width:100%;margin:auto;color:var(--uvd-text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;">' +
+      '<div style="font-weight:700;margin-bottom:8px;font-size:var(--uvd-fs-md);">Chỉnh sửa lệnh</div>' +
+      '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-sm);color:var(--uvd-text);padding:12px;font-family:monospace;font-size:var(--uvd-fs-sm);resize:vertical;">' + text + '</textarea>' +
       '<div class="uvd-grid-2" style="margin-top:12px;">' +
-        '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_copy__">Sao chép</button>' +
-        '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_share__" style="background:rgba(139,92,246,0.3);">Chia sẻ</button>' +
+        '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_copy__" style="background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;position:relative;overflow:hidden;">Sao chép</button>' +
+        '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_share__" style="background:rgba(139,92,246,0.3);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;position:relative;overflow:hidden;">Chia sẻ</button>' +
       '</div>' +
-      '<button class="uvd-btn uvd-btn-sm close-editor" style="width:100%;margin-top:8px;background:var(--uvd-danger);">Đóng</button>' +
+      '<button class="uvd-btn uvd-btn-sm close-editor" style="width:100%;margin-top:8px;background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:9px 16px;border-radius:var(--uvd-radius-md);font-weight:600;font-size:var(--uvd-fs-base);cursor:pointer;">Đóng</button>' +
     '</div>';
   document.body.appendChild(overlay);
   
@@ -823,34 +827,34 @@ function showEditor(text) {
 function showQualityPicker(url) {
   var overlay = document.createElement('div');
   overlay.className = 'uvd-overlay';
-  overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">Đang phân tích M3U8...</div>';
+  overlay.innerHTML = '<div style="background:var(--uvd-glass);backdrop-filter:blur(28px);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-lg);padding:20px;max-width:600px;width:100%;margin:auto;color:var(--uvd-text);text-align:center;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;">Đang phân tích M3U8...</div>';
   document.body.appendChild(overlay);
   
   parseM3U8Master(url, function(qualities) {
     if (!qualities) {
-      overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;text-align:center;">' +
-        '<div style="color:var(--uvd-danger);">Không phải Master Playlist</div>' +
-        '<button class="uvd-btn uvd-btn-sm close-overlay-btn" style="margin-top:12px;background:var(--uvd-danger);width:100%;">Đóng</button></div>';
+      overlay.innerHTML = '<div style="background:var(--uvd-glass);backdrop-filter:blur(28px);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-lg);padding:20px;max-width:600px;width:100%;margin:auto;color:var(--uvd-text);text-align:center;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;">' +
+        '<div style="color:var(--uvd-danger);font-weight:600;">Không phải Master Playlist</div>' +
+        '<button class="uvd-btn uvd-btn-sm close-overlay-btn" style="margin-top:12px;background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:9px 16px;border-radius:var(--uvd-radius-md);font-weight:600;font-size:var(--uvd-fs-base);cursor:pointer;width:100%;">Đóng</button></div>';
       overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
       return;
     }
     
-    var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
-    html += '<div style="font-weight:700;margin-bottom:12px;">Chọn chất lượng (' + qualities.length + ')</div>';
+    var html = '<div style="background:var(--uvd-glass);backdrop-filter:blur(28px);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-lg);padding:20px;max-width:600px;width:100%;margin:auto;color:var(--uvd-text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;">';
+    html += '<div style="font-weight:700;margin-bottom:12px;font-size:var(--uvd-fs-md);">Chọn chất lượng (' + qualities.length + ')</div>';
     html += '<div style="overflow-y:auto;max-height:60vh;">';
     
     qualities.forEach(function(q) {
-      html += '<div class="uvd-card">' +
-        '<b>' + q.label + '</b> <span style="color:var(--uvd-text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>' +
+      html += '<div style="background:var(--uvd-card-bg);border:1px solid var(--uvd-border);border-radius:var(--uvd-radius-md);padding:14px;margin-bottom:10px;">' +
+        '<b style="color:var(--uvd-text);">' + q.label + '</b> <span style="color:var(--uvd-text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>' +
         '<div class="uvd-grid-3" style="margin-top:8px;">' +
-          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
-          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">Xem</button>' +
-          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Lệnh</button>' +
+          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Chia sẻ</button>' +
+          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview" style="background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Xem</button>' +
+          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd" style="background:rgba(245,158,11,0.2);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Lệnh</button>' +
         '</div>' +
       '</div>';
     });
     
-    html += '</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="width:100%;margin-top:10px;background:var(--uvd-danger);">Đóng</button></div>';
+    html += '</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="width:100%;margin-top:10px;background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:9px 16px;border-radius:var(--uvd-radius-md);font-weight:600;font-size:var(--uvd-fs-base);cursor:pointer;">Đóng</button></div>';
     overlay.innerHTML = html;
     
     overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
@@ -880,12 +884,12 @@ function renderFavorites(container) {
     card.className = 'uvd-card';
     card.innerHTML = 
       '<div style="display:flex;justify-content:space-between;"><b style="color:var(--uvd-gold);">★ '+ f.type + '</b><span style="font-size:11px;color:var(--uvd-text3);">' + new Date(f.timestamp).toLocaleDateString() + '</span></div>' +
-      '<div style="margin:4px 0;">' + f.title + '</div>' +
+      '<div style="margin:4px 0;color:var(--uvd-text);">' + f.title + '</div>' +
       '<div class="uvd-url-box">' + f.url + '</div>' +
       '<div class="uvd-grid-3">' +
-        '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
-        '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy">Copy</button>' +
-        '<button class="uvd-btn uvd-btn-sm fav-del" data-idx="' + i + '" style="background:var(--uvd-danger);">Xóa</button>' +
+        '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Chia sẻ</button>' +
+        '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy" style="background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Copy</button>' +
+        '<button class="uvd-btn uvd-btn-sm fav-del" data-idx="' + i + '" style="background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Xóa</button>' +
       '</div>';
     container.appendChild(card);
   });
@@ -917,7 +921,7 @@ function renderHistory(container) {
     return;
   }
   
-  container.innerHTML = '<button class="uvd-btn uvd-btn-sm" id="__uvd_clear_hist__" style="width:100%;margin-bottom:10px;background:var(--uvd-danger);">Xóa toàn bộ lịch sử</button>';
+  container.innerHTML = '<button class="uvd-btn uvd-btn-sm" id="__uvd_clear_hist__" style="width:100%;margin-bottom:10px;background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Xóa toàn bộ lịch sử</button>';
   document.getElementById('__uvd_clear_hist__').addEventListener('click', addRipple);
   document.getElementById('__uvd_clear_hist__').onclick = function() {
     if (confirm('Xóa toàn bộ lịch sử?')) { data.history = []; storage.set(data); renderHistory(container); }
@@ -928,7 +932,7 @@ function renderHistory(container) {
     card.className = 'uvd-card';
     card.innerHTML = 
       '<div style="display:flex;justify-content:space-between;"><b style="color:var(--uvd-accent);">' + h.type + '</b><span style="font-size:11px;color:var(--uvd-text3);">' + new Date(h.timestamp).toLocaleString() + '</span></div>' +
-      '<div>' + h.title + '</div><div class="uvd-url-box">' + h.url + '</div>';
+      '<div style="color:var(--uvd-text);">' + h.title + '</div><div class="uvd-url-box">' + h.url + '</div>';
     container.appendChild(card);
   });
 }
@@ -938,17 +942,17 @@ function renderSettings(container) {
   var bookmarkletCode = 'javascript:(function(){var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/gh/nguyenquocngu93/uvd@v5.1/uvd_v5.1-1.js";document.head.appendChild(s);})();';
   
   container.innerHTML = 
-    '<div class="uvd-card"><div style="font-weight:600;">Sao lưu & Khôi phục</div>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Xuất dữ liệu</button>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Nhập dữ liệu</button>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_reset__" style="width:100%;background:var(--uvd-danger);">Đặt lại tất cả</button></div>' +
+    '<div class="uvd-card"><div style="font-weight:600;color:var(--uvd-text);">Sao lưu & Khôi phục</div>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_backup__" style="width:100%;margin-bottom:6px;background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Xuất dữ liệu</button>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_restore__" style="width:100%;margin-bottom:6px;background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Nhập dữ liệu</button>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_reset__" style="width:100%;background:var(--uvd-danger);border:1px solid var(--uvd-border);color:#fff;padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Đặt lại tất cả</button></div>' +
     
-    '<div class="uvd-card"><div style="font-weight:600;">📖 Hướng dẫn sử dụng Bookmarklet</div>' +
+    '<div class="uvd-card"><div style="font-weight:600;color:var(--uvd-text);">📖 Hướng dẫn sử dụng Bookmarklet</div>' +
       '<div style="font-size:12px;color:var(--uvd-text2);margin:6px 0;">Kéo bookmarklet dưới đây vào thanh bookmark của trình duyệt, sau đó nhấn vào bookmark khi đang xem video để mở công cụ.</div>' +
-      '<div style="background:rgba(0,0,0,0.5);padding:8px;border-radius:6px;font-family:monospace;font-size:11px;word-break:break-all;border:1px solid var(--uvd-border);">' + bookmarkletCode + '</div>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_copy_bookmarklet__" style="margin-top:6px;">Sao chép bookmarklet</button></div>' +
+      '<div style="background:rgba(0,0,0,0.5);padding:8px;border-radius:6px;font-family:monospace;font-size:11px;word-break:break-all;border:1px solid var(--uvd-border);color:var(--uvd-text2);">' + bookmarkletCode + '</div>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_copy_bookmarklet__" style="margin-top:6px;background:var(--uvd-glass-hi);border:1px solid var(--uvd-border);color:var(--uvd-text);padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Sao chép bookmarklet</button></div>' +
     
-    '<div class="uvd-card"><div style="font-weight:600;">👤 Profile</div>' +
+    '<div class="uvd-card"><div style="font-weight:600;color:var(--uvd-text);">👤 Profile</div>' +
       '<div style="display:flex;align-items:center;gap:12px;margin:8px 0;">' +
         '<div style="width:48px;height:48px;border-radius:50%;background:var(--uvd-glass-hi);border:2px solid var(--uvd-border);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--uvd-text2);overflow:hidden;">' +
           (profile.avatar ? '<img src="' + profile.avatar + '" style="width:100%;height:100%;object-fit:cover;">' : '👤') +
@@ -959,9 +963,9 @@ function renderSettings(container) {
         '</div>' +
       '</div>' +
       '<textarea id="__uvd_profile_bio__" placeholder="Giới thiệu ngắn" style="width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--uvd-border);border-radius:8px;padding:6px 10px;color:var(--uvd-text);resize:vertical;min-height:50px;">' + (profile.bio || '') + '</textarea>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_save_profile__" style="margin-top:6px;">Lưu Profile</button></div>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_save_profile__" style="margin-top:6px;background:var(--uvd-grad-liquid);border:1px solid var(--uvd-border);color:#fff;padding:7px 12px;border-radius:var(--uvd-radius-sm);font-weight:600;font-size:var(--uvd-fs-sm);cursor:pointer;">Lưu Profile</button></div>' +
     
-    '<div class="uvd-card" style="margin-top:10px;color:var(--uvd-text2);">Phiên bản 5.1 Dark Liquid · Toàn màn hình tự động xoay theo hướng video<br>Yêu thích: ' + data.favorites.length + ' · Lịch sử: ' + (data.history||[]).length + '</div>';
+    '<div class="uvd-card" style="margin-top:10px;color:var(--uvd-text2);font-size:var(--uvd-fs-sm);">Phiên bản 5.1 Dark Liquid · Toàn màn hình tự động xoay theo hướng video<br>Yêu thích: ' + data.favorites.length + ' · Lịch sử: ' + (data.history||[]).length + '</div>';
   
   container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
   
@@ -976,7 +980,7 @@ function renderSettings(container) {
       var reader = new FileReader();
       reader.onload = function(ev) {
         try { data = Object.assign(data, JSON.parse(ev.target.result)); storage.set(data); toast('Đã nhập!'); buildUI(); }
-        catch(ex) { toast('File không hợp lệ','var(--uvd-danger)'); }
+        catch(ex) { toast('File không hợp lệ','#ff5d72'); }
       };
       reader.readAsText(e.target.files[0]);
     };

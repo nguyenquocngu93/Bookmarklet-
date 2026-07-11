@@ -2,7 +2,7 @@
 // @name         Universal Video Downloader V5.1 - Dark Liquid Edition
 // @namespace    http://tampermonkey.net/
 // @version      5.1
-// @description  Phát hiện & tải video từ mọi trang web với trình phát Chrome Native, fullscreen tự động xoay theo hướng video
+// @description  Phát hiện & tải video từ mọi trang web, mở video bằng trình phát gốc Chrome
 // @author       nguyenquocngu91
 // @match        *://*/*
 // @grant        none
@@ -271,312 +271,6 @@
         ripple.addEventListener('animationend', function() { ripple.remove(); });
     }
 
-    // ========== NATIVE CHROME PLAYER PREVIEW ==========
-    function showNativePreview(url, type) {
-        var container = document.getElementById('__uvd_player_container__');
-        container.innerHTML = '';
-        container.style.display = 'flex';
-
-        // Header
-        var headerDiv = document.createElement('div');
-        headerDiv.style.cssText = 'padding:14px 16px;background:var(--glass-hi);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;';
-        headerDiv.innerHTML =
-            '<div style="min-width:0;">' +
-            '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + pageInfo.title + '</div>' +
-            '<div style="font-size:11px;color:var(--text3);">Định dạng: <span style="color:var(--accent);">' + type + '</span> - <span id="_uvd_orient_badge_" style="color:var(--accent2);">Đang phát hiện...</span></div>' +
-            '</div>' +
-            '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" id="_uvd_back_btn_" style="background:var(--glass-hi);flex-shrink:0;">Quay lại</button>';
-        container.appendChild(headerDiv);
-
-        // Video
-        var videoWrapper = document.createElement('div');
-        videoWrapper.id = '_uvd_video_wrapper_';
-        videoWrapper.style.cssText = 'flex:1;background:#000;position:relative;display:flex;align-items:center;justify-content:center;min-height:250px;';
-
-        var video = document.createElement('video');
-        video.id = '_uvd_preview_video_';
-        video.style.cssText = 'width:100%;height:100%;display:block;object-fit:contain;';
-        video.setAttribute('controls', '');
-        video.setAttribute('playsinline', '');
-        video.setAttribute('webkit-playsinline', '');
-        video.setAttribute('crossorigin', 'anonymous');
-
-        video.addEventListener('loadedmetadata', function() {
-            var badge = document.getElementById('_uvd_orient_badge_');
-            if (!badge) return;
-            var isPortrait = video.videoHeight > video.videoWidth;
-            badge.textContent = isPortrait ? 'Video dọc' : 'Video ngang';
-        });
-
-        videoWrapper.appendChild(video);
-        container.appendChild(videoWrapper);
-
-        // Actions (không icon)
-        var actionsDiv = document.createElement('div');
-        actionsDiv.style.cssText = 'padding:12px;background:var(--glass-hi);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:8px;';
-
-        var btnCopy = document.createElement('button');
-        btnCopy.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        btnCopy.textContent = 'Sao chép';
-        btnCopy.style.backgroundColor = 'var(--glass-hi)';
-        btnCopy.onclick = function() { copy(url); toast('Đã sao chép URL!'); };
-
-        var btnShare = document.createElement('button');
-        btnShare.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        btnShare.textContent = 'Chia sẻ';
-        btnShare.style.background = 'rgba(139,92,246,0.2)';
-        btnShare.onclick = function() { shareUrl(url); };
-
-        var btnCmd = document.createElement('button');
-        btnCmd.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        btnCmd.textContent = 'Lệnh tải';
-        btnCmd.style.background = 'rgba(245,158,11,0.2)';
-        btnCmd.onclick = function() { showCommandPicker(url, type); };
-
-        var btnFav = document.createElement('button');
-        btnFav.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        var isFav = isFavorite(url);
-        btnFav.textContent = isFav ? 'Đã thích' : 'Yêu thích';
-        btnFav.style.background = isFav ? 'rgba(251,191,36,0.2)' : 'var(--glass-hi)';
-        btnFav.onclick = function() {
-            var nowFav = toggleFavorite(url, type);
-            btnFav.textContent = nowFav ? 'Đã thích' : 'Yêu thích';
-            btnFav.style.background = nowFav ? 'rgba(251,191,36,0.2)' : 'var(--glass-hi)';
-        };
-
-        var btnFullscreen = document.createElement('button');
-        btnFullscreen.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn uvd-btn-primary';
-        btnFullscreen.textContent = 'Toàn màn hình (Tự động)';
-        btnFullscreen.style.gridColumn = '2 / 4';
-        btnFullscreen.onclick = function() { enterFullscreenAuto(videoWrapper, video); };
-
-        actionsDiv.appendChild(btnCopy);
-        actionsDiv.appendChild(btnShare);
-        actionsDiv.appendChild(btnCmd);
-        actionsDiv.appendChild(btnFav);
-        actionsDiv.appendChild(btnFullscreen);
-
-        container.appendChild(actionsDiv);
-
-        // Load media
-        var activeHls = null;
-        if (url.includes('.m3u8')) {
-            if (window.Hls && Hls.isSupported()) {
-                activeHls = new Hls();
-                activeHls.loadSource(url);
-                activeHls.attachMedia(video);
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = url;
-            } else {
-                var s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
-                s.onload = function() { showNativePreview(url, type); };
-                document.head.appendChild(s);
-                return;
-            }
-        } else {
-            video.src = url;
-        }
-
-        // Back button
-        document.getElementById('_uvd_back_btn_').addEventListener('click', addRipple);
-        document.getElementById('_uvd_back_btn_').onclick = function() {
-            if (activeHls) activeHls.destroy();
-            video.pause();
-            video.src = '';
-            container.style.display = 'none';
-            document.getElementById('__uvd_stream_list__').style.display = 'block';
-        };
-
-        // Ripple
-        actionsDiv.querySelectorAll('.uvd-btn').forEach(function(b) {
-            b.addEventListener('click', addRipple);
-        });
-    }
-
-    // ========== FULLSCREEN WITH AUTO ORIENTATION (IMPROVED) ==========
-    var __uvdOrientationWatchdog = null;
-    var __uvdOrientationTarget = null;
-    var __uvdCurrentWrapper = null;
-    var __uvdCurrentVideo = null;
-
-    function enterFullscreenAuto(element, video) {
-        __uvdCurrentWrapper = element;
-        __uvdCurrentVideo = video;
-        var requestFS = element.requestFullscreen || element.webkitRequestFullscreen ||
-            element.mozRequestFullScreen || element.msRequestFullscreen;
-        if (!requestFS) {
-            toast('Trình duyệt không hỗ trợ fullscreen', 'var(--danger)');
-            return;
-        }
-        var promise = requestFS.call(element);
-        function afterFullscreen() {
-            lockAutoOrientation(video, element);
-            // Luôn hiện nút xoay
-            ensureFlipButton(element);
-        }
-        if (promise && promise.then) {
-            promise.then(afterFullscreen).catch(function(err) {
-                console.warn('Fullscreen error:', err);
-                afterFullscreen();
-            });
-        } else {
-            setTimeout(afterFullscreen, 100);
-        }
-    }
-
-    function isDocFullscreen() {
-        return !!(document.fullscreenElement || document.webkitFullscreenElement ||
-            document.mozFullScreenElement || document.msFullscreenElement);
-    }
-
-    function tryNativeOrientationLock(target) {
-        try {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock(target).catch(function() {});
-            } else if (screen.lockOrientation) {
-                screen.lockOrientation(target);
-            } else if (screen.mozLockOrientation) {
-                screen.mozLockOrientation(target);
-            } else if (screen.msLockOrientation) {
-                screen.msLockOrientation(target);
-            }
-        } catch(e) {}
-    }
-
-    function enforceVisualOrientation(wrapper, target) {
-        if (!wrapper || !isDocFullscreen()) {
-            clearForceRotate(wrapper);
-            return;
-        }
-        var wantLandscape = target === 'landscape';
-        var actualLandscape = window.innerWidth > window.innerHeight;
-        if (wantLandscape !== actualLandscape) {
-            wrapper.classList.add('uvd-force-rotate');
-            if (!wrapper.dataset.rotateDir) wrapper.dataset.rotateDir = '90';
-            wrapper.classList.toggle('uvd-rotate-neg', wrapper.dataset.rotateDir === '-90');
-        } else {
-            wrapper.classList.remove('uvd-force-rotate', 'uvd-rotate-neg');
-        }
-        // Luôn giữ nút xoay
-        ensureFlipButton(wrapper);
-    }
-
-    function ensureFlipButton(wrapper) {
-        if (document.getElementById('__uvd_flip_btn__')) return;
-        var btn = document.createElement('button');
-        btn.id = '__uvd_flip_btn__';
-        btn.className = 'uvd-flip-btn';
-        btn.title = 'Xoay video 90°';
-        btn.textContent = '↻';
-        btn.onclick = function(e) {
-            e.stopPropagation();
-            wrapper.dataset.rotateDir = wrapper.dataset.rotateDir === '90' ? '-90' : '90';
-            wrapper.classList.toggle('uvd-rotate-neg', wrapper.dataset.rotateDir === '-90');
-        };
-        document.body.appendChild(btn);
-    }
-
-    function removeFlipButton() {
-        var btn = document.getElementById('__uvd_flip_btn__');
-        if (btn) btn.remove();
-    }
-
-    function clearForceRotate(wrapper) {
-        if (wrapper) wrapper.classList.remove('uvd-force-rotate', 'uvd-rotate-neg');
-        removeFlipButton();
-        if (__uvdOrientationWatchdog) {
-            clearInterval(__uvdOrientationWatchdog);
-            __uvdOrientationWatchdog = null;
-            __uvdOrientationTarget = null;
-        }
-    }
-
-    function lockAutoOrientation(video, wrapper) {
-        function applyLock() {
-            if (!video.videoWidth || !video.videoHeight) return;
-            var isPortrait = video.videoHeight > video.videoWidth;
-            __uvdOrientationTarget = isPortrait ? 'portrait' : 'landscape';
-            tryNativeOrientationLock(__uvdOrientationTarget);
-            setTimeout(function() {
-                enforceVisualOrientation(wrapper, __uvdOrientationTarget);
-            }, 100);
-            setTimeout(function() {
-                enforceVisualOrientation(wrapper, __uvdOrientationTarget);
-            }, 400);
-        }
-
-        if (video.videoWidth && video.videoHeight) {
-            applyLock();
-        } else {
-            video.addEventListener('loadedmetadata', applyLock, { once: true });
-            setTimeout(function() {
-                if (!__uvdOrientationTarget && video.videoWidth && video.videoHeight) applyLock();
-            }, 500);
-        }
-
-        // Watchdog
-        if (__uvdOrientationWatchdog) clearInterval(__uvdOrientationWatchdog);
-        __uvdOrientationWatchdog = setInterval(function() {
-            if (!isDocFullscreen()) {
-                clearForceRotate(wrapper);
-                return;
-            }
-            if (__uvdOrientationTarget) {
-                enforceVisualOrientation(wrapper, __uvdOrientationTarget);
-            }
-        }, 300);
-
-        window.addEventListener('orientationchange', function() {
-            if (__uvdOrientationTarget) {
-                setTimeout(function() {
-                    enforceVisualOrientation(wrapper, __uvdOrientationTarget);
-                }, 50);
-            }
-        });
-
-        window.addEventListener('resize', function() {
-            if (__uvdOrientationTarget) {
-                enforceVisualOrientation(wrapper, __uvdOrientationTarget);
-            }
-        });
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-        function handleFullscreenChange() {
-            var isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement ||
-                document.mozFullScreenElement || document.msFullscreenElement);
-            if (!isFullscreen) {
-                var w = document.getElementById('_uvd_video_wrapper_');
-                clearForceRotate(w);
-                try {
-                    if (screen.orientation && screen.orientation.unlock) {
-                        screen.orientation.unlock();
-                    } else if (screen.unlockOrientation) {
-                        screen.unlockOrientation();
-                    } else if (screen.mozUnlockOrientation) {
-                        screen.mozUnlockOrientation();
-                    } else if (screen.msUnlockOrientation) {
-                        screen.msUnlockOrientation();
-                    }
-                } catch(e) {}
-            } else {
-                // Vào fullscreen: hiện nút xoay
-                if (__uvdCurrentWrapper) {
-                    ensureFlipButton(__uvdCurrentWrapper);
-                }
-                if (__uvdOrientationTarget && __uvdCurrentWrapper) {
-                    setTimeout(function() {
-                        enforceVisualOrientation(__uvdCurrentWrapper, __uvdOrientationTarget);
-                    }, 50);
-                }
-            }
-        }
-    }
-
     // ========== BUILD UI ==========
     if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
     var style = document.createElement('style');
@@ -623,12 +317,6 @@
         .uvd-liquid-bg{position:absolute;inset:-30%;z-index:0;pointer-events:none;background:radial-gradient(closest-side,rgba(109,140,255,0.12),transparent 70%) 15% 20%/55% 55% no-repeat,radial-gradient(closest-side,rgba(185,139,255,0.10),transparent 70%) 85% 75%/60% 60% no-repeat;filter:blur(50px);animation:uvdLiquidDrift 16s ease-in-out infinite}
         @media (prefers-reduced-motion:reduce){.uvd-liquid-bg{animation:none}}
         .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
-        #_uvd_video_wrapper_:fullscreen,#_uvd_video_wrapper_:-webkit-full-screen,#_uvd_video_wrapper_:-moz-full-screen,#_uvd_video_wrapper_:-ms-fullscreen{width:100vw!important;height:100vh!important;background:#000!important}
-        #_uvd_video_wrapper_:fullscreen video,#_uvd_video_wrapper_:-webkit-full-screen video,#_uvd_video_wrapper_:-moz-full-screen video,#_uvd_video_wrapper_:-ms-fullscreen video{width:100%!important;height:100%!important;object-fit:contain!important}
-        #_uvd_video_wrapper_:fullscreen.uvd-force-rotate,#_uvd_video_wrapper_:-webkit-full-screen.uvd-force-rotate,#_uvd_video_wrapper_:-moz-full-screen.uvd-force-rotate,#_uvd_video_wrapper_:-ms-fullscreen.uvd-force-rotate{width:100vh!important;height:100vw!important;position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center center!important;transition:none!important}
-        #_uvd_video_wrapper_:fullscreen.uvd-force-rotate.uvd-rotate-neg,#_uvd_video_wrapper_:-webkit-full-screen.uvd-force-rotate.uvd-rotate-neg,#_uvd_video_wrapper_:-moz-full-screen.uvd-force-rotate.uvd-rotate-neg,#_uvd_video_wrapper_:-ms-fullscreen.uvd-force-rotate.uvd-rotate-neg{transform:translate(-50%,-50%) rotate(-90deg)!important}
-        .uvd-flip-btn{position:fixed;z-index:2147483647;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(20,22,30,0.8);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,0.6);transition:transform 0.2s}
-        .uvd-flip-btn:hover{transform:scale(1.1)}
         .uvd-scroll::-webkit-scrollbar{width:4px}
         .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
         .uvd-scroll::-webkit-scrollbar-track{background:transparent}
@@ -653,7 +341,6 @@
         .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(109,140,255,0.45);transition:transform 0.4s cubic-bezier(.4,0,.2,1),width 0.4s cubic-bezier(.4,0,.2,1)}
         .uvd-tab{position:relative;z-index:1;flex:1;min-width:0;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:9px 6px;border-radius:999px;cursor:pointer;transition:color 0.25s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .uvd-tab.uvd-tab-active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.3)}
-        #_uvd_orient_badge_{animation:uvdBadgePop 0.3s ease both;font-weight:600}
         #__uvd_min_float__{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;background:var(--grad-liquid);color:#fff;border:1px solid rgba(255,255,255,0.25);box-shadow:0 8px 22px rgba(0,0,0,0.6),0 0 20px rgba(109,140,255,0.35);z-index:2147483647;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--fs-lg);transition:transform 0.3s;animation:uvdFloatBtnIn 0.3s ease;backdrop-filter:blur(10px)}
         #__uvd_min_float__:hover{transform:scale(1.1)}
         .uvd-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);animation:uvdRipple 0.6s ease-out}
@@ -664,13 +351,11 @@
         .uvd-settings-cv .key-cv{display:inline-block;background:rgba(0,0,0,0.4);padding:1px 10px;border-radius:6px;font-family:monospace;font-size:var(--fs-xs);color:var(--accent2);border:1px solid var(--border)}
         .uvd-footer-cv{text-align:center;padding:16px 0 4px 0;border-top:1px solid var(--border);margin-top:8px;color:var(--text3);font-size:var(--fs-xs)}
         .uvd-footer-cv strong{color:var(--accent2)}
-        /* Hiệu ứng minimize */
-        .uvd-minimizing {
-            transition: all 0.4s cubic-bezier(.4,0,.2,1);
-            transform: scale(0.8) !important;
-            opacity: 0 !important;
-            pointer-events: none;
-        }
+        .uvd-profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--grad-liquid);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 4px 14px rgba(109,140,255,0.3)}
+        .uvd-profile-info{display:flex;flex-direction:column;gap:4px}
+        .uvd-profile-info .label{color:var(--text3);font-size:var(--fs-xs)}
+        .uvd-profile-info .value{color:var(--text);font-weight:500}
+        .uvd-minimizing{transition:all 0.4s cubic-bezier(.4,0,.2,1);transform:scale(0.8)!important;opacity:0!important;pointer-events:none}
     `;
     document.head.appendChild(style);
 
@@ -684,7 +369,6 @@
         panel = document.createElement('div');
         panel.id = '__uvd__';
         panel.className = 'uvd-glass-panel';
-        // Full màn hình
         panel.style.cssText = 'position:fixed;inset:0;z-index:2147483647;animation:uvdScaleIn 0.4s ease;';
 
         var liquidBg = document.createElement('div');
@@ -695,7 +379,7 @@
         content.className = 'uvd-panel-content';
         panel.appendChild(content);
 
-        // Header (không icon)
+        // Header
         var header = document.createElement('div');
         header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:10px;';
         header.innerHTML =
@@ -709,7 +393,7 @@
             '</div>';
         content.appendChild(header);
 
-        // Tabs (không icon)
+        // Tabs
         var tabbar = document.createElement('div');
         tabbar.className = 'uvd-tabbar';
         var indicator = document.createElement('div');
@@ -739,7 +423,7 @@
             indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
         }
 
-        // Info (không icon)
+        // Info
         var info = document.createElement('div');
         info.style.cssText = 'margin-bottom:10px;font-size:12px;';
         info.innerHTML =
@@ -761,14 +445,9 @@
         streamList.style.cssText = 'overflow-y:auto;height:100%;padding-right:4px;';
         contentWrapper.appendChild(streamList);
 
-        var playerContainer = document.createElement('div');
-        playerContainer.id = '__uvd_player_container__';
-        playerContainer.style.cssText = 'display:none;flex-direction:column;height:100%;background:var(--glass);border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border);';
-        contentWrapper.appendChild(playerContainer);
-
         content.appendChild(contentWrapper);
 
-        // Footer (không icon)
+        // Footer
         var footer = document.createElement('div');
         footer.style.cssText = 'display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;';
         ['TXT', 'JSON', 'M3U', 'CSV'].forEach(function(f) {
@@ -801,8 +480,6 @@
                 }
             });
 
-            playerContainer.style.display = 'none';
-            playerContainer.innerHTML = '';
             streamList.style.display = 'block';
             streamList.innerHTML = '';
 
@@ -871,14 +548,9 @@
                 }
             }, 400);
         };
-
-        window.__uvd_showPreview = function(url, type) {
-            streamList.style.display = 'none';
-            showNativePreview(url, type);
-        };
     }
 
-    // ========== RENDER STREAMS (không icon) ==========
+    // ========== RENDER STREAMS ==========
     function renderStreams(container, arr) {
         if (!arr.length) {
             container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">Không phát hiện stream nào.</div>';
@@ -928,8 +600,7 @@
         container.querySelectorAll('[data-action="preview"]').forEach(function(b) {
             b.onclick = function() {
                 var url = decodeURIComponent(this.dataset.url);
-                var type = this.dataset.type;
-                window.__uvd_showPreview(url, type);
+                window.open(url, '_blank');
             };
         });
 
@@ -964,7 +635,7 @@
         });
     }
 
-    // ========== RENDER FAVORITES (không icon) ==========
+    // ========== RENDER FAVORITES ==========
     function renderFavorites(container) {
         if (!data.favorites.length) {
             container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">Chưa có yêu thích.</div>';
@@ -1011,7 +682,7 @@
         });
     }
 
-    // ========== RENDER HISTORY (không icon) ==========
+    // ========== RENDER HISTORY ==========
     function renderHistory(container) {
         var hist = data.history || [];
         if (!hist.length) {
@@ -1043,20 +714,40 @@
         });
     }
 
-    // ========== RENDER SETTINGS (CV Style, không icon) ==========
+    // ========== RENDER SETTINGS (CV Style + Hướng dẫn cài đặt + Thông tin cá nhân) ==========
     function renderSettings(container) {
         container.innerHTML = `
+            <!-- Hướng dẫn cài đặt -->
             <div class="uvd-settings-cv">
-                <h3>Hướng dẫn sử dụng</h3>
-                <p><span class="badge-cv">1</span> <strong>Phát hiện tự động</strong> — Quét toàn bộ trang, phát hiện các luồng video (M3U8, MP4, WEBM, MKV, FLV, TS, MPD).</p>
-                <p><span class="badge-cv">2</span> <strong>Xem trước</strong> — Nhấn <span class="key-cv">Xem trước</span> để mở trình phát Chrome Native. Hỗ trợ HLS.js cho M3U8.</p>
-                <p><span class="badge-cv">3</span> <strong>Toàn màn hình tự động xoay</strong> — Video dọc → xoay dọc, video ngang → xoay ngang. Đã khắc phục lỗi tự trả về bằng cơ chế ép CSS + watchdog.</p>
-                <p><span class="badge-cv">4</span> <strong>Lệnh tải</strong> — Hỗ trợ <span class="key-cv">yt-dlp</span> <span class="key-cv">ffmpeg</span> <span class="key-cv">curl</span> với referer & header tự động.</p>
-                <p><span class="badge-cv">5</span> <strong>Yêu thích & Lịch sử</strong> — Lưu lại các stream yêu thích và lịch sử xem (tối đa 50).</p>
-                <p><span class="badge-cv">6</span> <strong>Xuất dữ liệu</strong> — Hỗ trợ xuất danh sách stream dạng <span class="key-cv">TXT</span> <span class="key-cv">JSON</span> <span class="key-cv">M3U</span> <span class="key-cv">CSV</span>.</p>
-                <p style="margin-top:8px;color:var(--text3);font-style:italic;">Mẹo: Bấm vào tên video hoặc referer để chỉnh sửa.</p>
+                <h3>Cài đặt Universal DL</h3>
+                <p><span class="badge-cv">1</span> Cài <span class="key-cv">Tampermonkey</span> (hoặc <span class="key-cv">Violentmonkey</span>) trên trình duyệt.</p>
+                <p><span class="badge-cv">2</span> Tạo script mới và dán toàn bộ code này vào.</p>
+                <p><span class="badge-cv">3</span> Lưu script và tải lại trang.</p>
+                <p style="margin-top:6px;color:var(--text3);font-style:italic;">💡 Nếu dùng trên Android, hãy dùng <span class="key-cv">Kiwi Browser</span> hoặc <span class="key-cv">Firefox</span> có hỗ trợ extension.</p>
             </div>
 
+            <!-- Hướng dẫn sử dụng nhanh -->
+            <div class="uvd-settings-cv">
+                <h3>Sử dụng nhanh</h3>
+                <p><span class="badge-cv">▶</span> Mở panel: <span class="key-cv">Ctrl+U</span> (hoặc bấm nút nổi).</p>
+                <p><span class="badge-cv">▶</span> Phát hiện tự động các luồng video (M3U8, MP4, WEBM...).</p>
+                <p><span class="badge-cv">▶</span> Bấm <span class="key-cv">Xem trước</span> để mở video trong trình phát gốc Chrome.</p>
+                <p><span class="badge-cv">▶</span> Bấm <span class="key-cv">Lệnh tải</span> để copy lệnh tải về (yt-dlp, ffmpeg, curl).</p>
+                <p><span class="badge-cv">▶</span> Bấm <span class="key-cv">Chất lượng</span> để chọn chất lượng (với M3U8 master).</p>
+            </div>
+
+            <!-- Thông tin cá nhân (avatar + các trường) -->
+            <div class="uvd-settings-cv" style="display:flex;gap:16px;align-items:center;border-color:rgba(109,140,255,0.25);background:rgba(109,140,255,0.04);">
+                <div class="uvd-profile-avatar">NQN</div>
+                <div class="uvd-profile-info">
+                    <div><span class="label">Tên</span><br><span class="value">Nguyễn Quốc Ngự</span></div>
+                    <div><span class="label">Email</span><br><span class="value">nguyenquocngu91@gmail.com</span></div>
+                    <div><span class="label">Website</span><br><span class="value">github.com/nguyenquocngu</span></div>
+                    <div><span class="label">Giới thiệu</span><br><span class="value" style="font-weight:400;color:var(--text2);">Tác giả của Universal Video Downloader, đam mê code và phát triển công cụ hữu ích cho cộng đồng.</span></div>
+                </div>
+            </div>
+
+            <!-- Sao lưu & khôi phục -->
             <div class="uvd-settings-cv">
                 <h3>Sao lưu & Khôi phục</h3>
                 <div class="uvd-grid-2">
@@ -1066,16 +757,9 @@
                 <button class="uvd-btn uvd-btn-sm" id="_uvd_reset_" style="width:100%;margin-top:6px;background:var(--danger);">Đặt lại tất cả</button>
             </div>
 
-            <div class="uvd-settings-cv" style="border-color:rgba(109,140,255,0.2);background:rgba(109,140,255,0.04);">
-                <h3>Thông tin</h3>
-                <p><strong>Phiên bản:</strong> 5.1 Dark Liquid</p>
-                <p><strong>Tác giả:</strong> <span style="color:var(--accent2);font-weight:700;">nguyenquocngu91</span></p>
-                <p><strong>Yêu thích:</strong> ${data.favorites.length} · <strong>Lịch sử:</strong> ${(data.history||[]).length}</p>
-                <p style="font-size:10px;color:var(--text3);margin-top:6px;">© 2025 nguyenquocngu91 · Universal Video Downloader</p>
-            </div>
-
+            <!-- Thông tin phiên bản -->
             <div class="uvd-footer-cv">
-                Made with <span style="color:var(--danger);">♥</span> by <strong>nguyenquocngu91</strong> · Fullscreen Auto-Rotate Enhanced
+                Phiên bản 5.1 · <strong>nguyenquocngu91</strong> · Yêu thích: ${data.favorites.length} · Lịch sử: ${(data.history||[]).length}
             </div>
         `;
 
@@ -1124,7 +808,7 @@
         };
     }
 
-    // ========== COMMAND PICKER (không icon) ==========
+    // ========== COMMAND PICKER ==========
     function showCommandPicker(url, type) {
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
@@ -1201,7 +885,7 @@
         };
     }
 
-    // ========== QUALITY PICKER (không icon) ==========
+    // ========== QUALITY PICKER ==========
     function showQualityPicker(url) {
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
@@ -1251,7 +935,7 @@
                     var action = this.dataset.action;
                     overlay.remove();
                     if (action === 'share') shareUrl(u);
-                    else if (action === 'preview') window.__uvd_showPreview(u, 'M3U8');
+                    else if (action === 'preview') window.open(u, '_blank');
                     else showCommandPicker(u, 'M3U8');
                 };
             });

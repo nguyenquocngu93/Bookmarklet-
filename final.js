@@ -305,48 +305,48 @@
             var badge = document.getElementById('_uvd_orient_badge_');
             if (!badge) return;
             var isPortrait = video.videoHeight > video.videoWidth;
-            badge.textContent = isPortrait ? '📱 Video dọc' : '🖥️ Video ngang';
+            badge.textContent = isPortrait ? 'Video dọc' : 'Video ngang';
         });
 
         videoWrapper.appendChild(video);
         container.appendChild(videoWrapper);
 
-        // Actions
+        // Actions (không icon)
         var actionsDiv = document.createElement('div');
         actionsDiv.style.cssText = 'padding:12px;background:var(--glass-hi);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:8px;';
 
         var btnCopy = document.createElement('button');
         btnCopy.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        btnCopy.textContent = '📋 Sao chép';
+        btnCopy.textContent = 'Sao chép';
         btnCopy.style.backgroundColor = 'var(--glass-hi)';
         btnCopy.onclick = function() { copy(url); toast('Đã sao chép URL!'); };
 
         var btnShare = document.createElement('button');
         btnShare.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        btnShare.textContent = '📤 Chia sẻ';
+        btnShare.textContent = 'Chia sẻ';
         btnShare.style.background = 'rgba(139,92,246,0.2)';
         btnShare.onclick = function() { shareUrl(url); };
 
         var btnCmd = document.createElement('button');
         btnCmd.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-        btnCmd.textContent = '⚡ Lệnh tải';
+        btnCmd.textContent = 'Lệnh tải';
         btnCmd.style.background = 'rgba(245,158,11,0.2)';
         btnCmd.onclick = function() { showCommandPicker(url, type); };
 
         var btnFav = document.createElement('button');
         btnFav.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
         var isFav = isFavorite(url);
-        btnFav.textContent = isFav ? '⭐ Đã thích' : '☆ Yêu thích';
+        btnFav.textContent = isFav ? 'Đã thích' : 'Yêu thích';
         btnFav.style.background = isFav ? 'rgba(251,191,36,0.2)' : 'var(--glass-hi)';
         btnFav.onclick = function() {
             var nowFav = toggleFavorite(url, type);
-            btnFav.textContent = nowFav ? '⭐ Đã thích' : '☆ Yêu thích';
+            btnFav.textContent = nowFav ? 'Đã thích' : 'Yêu thích';
             btnFav.style.background = nowFav ? 'rgba(251,191,36,0.2)' : 'var(--glass-hi)';
         };
 
         var btnFullscreen = document.createElement('button');
         btnFullscreen.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn uvd-btn-primary';
-        btnFullscreen.textContent = '⛶ Toàn màn hình (Tự động)';
+        btnFullscreen.textContent = 'Toàn màn hình (Tự động)';
         btnFullscreen.style.gridColumn = '2 / 4';
         btnFullscreen.onclick = function() { enterFullscreenAuto(videoWrapper, video); };
 
@@ -412,6 +412,8 @@
         var promise = requestFS.call(element);
         function afterFullscreen() {
             lockAutoOrientation(video, element);
+            // Luôn hiện nút xoay
+            ensureFlipButton(element);
         }
         if (promise && promise.then) {
             promise.then(afterFullscreen).catch(function(err) {
@@ -449,16 +451,15 @@
         }
         var wantLandscape = target === 'landscape';
         var actualLandscape = window.innerWidth > window.innerHeight;
-        // Nếu không khớp → ép xoay CSS
         if (wantLandscape !== actualLandscape) {
             wrapper.classList.add('uvd-force-rotate');
             if (!wrapper.dataset.rotateDir) wrapper.dataset.rotateDir = '90';
             wrapper.classList.toggle('uvd-rotate-neg', wrapper.dataset.rotateDir === '-90');
-            ensureFlipButton(wrapper);
         } else {
             wrapper.classList.remove('uvd-force-rotate', 'uvd-rotate-neg');
-            removeFlipButton();
         }
+        // Luôn giữ nút xoay
+        ensureFlipButton(wrapper);
     }
 
     function ensureFlipButton(wrapper) {
@@ -466,8 +467,8 @@
         var btn = document.createElement('button');
         btn.id = '__uvd_flip_btn__';
         btn.className = 'uvd-flip-btn';
-        btn.title = 'Video bị lộn ngược? Bấm để xoay lại';
-        btn.textContent = '🔄';
+        btn.title = 'Xoay video 90°';
+        btn.textContent = '↻';
         btn.onclick = function(e) {
             e.stopPropagation();
             wrapper.dataset.rotateDir = wrapper.dataset.rotateDir === '90' ? '-90' : '90';
@@ -496,13 +497,10 @@
             if (!video.videoWidth || !video.videoHeight) return;
             var isPortrait = video.videoHeight > video.videoWidth;
             __uvdOrientationTarget = isPortrait ? 'portrait' : 'landscape';
-            // Thử native lock
             tryNativeOrientationLock(__uvdOrientationTarget);
-            // Ép CSS ngay lập tức
             setTimeout(function() {
                 enforceVisualOrientation(wrapper, __uvdOrientationTarget);
             }, 100);
-            // Thử lại sau 300ms vì một số hệ thống trả về rất nhanh
             setTimeout(function() {
                 enforceVisualOrientation(wrapper, __uvdOrientationTarget);
             }, 400);
@@ -517,7 +515,7 @@
             }, 500);
         }
 
-        // Watchdog: kiểm tra định kỳ, ép CSS liên tục
+        // Watchdog
         if (__uvdOrientationWatchdog) clearInterval(__uvdOrientationWatchdog);
         __uvdOrientationWatchdog = setInterval(function() {
             if (!isDocFullscreen()) {
@@ -527,7 +525,7 @@
             if (__uvdOrientationTarget) {
                 enforceVisualOrientation(wrapper, __uvdOrientationTarget);
             }
-        }, 300); // Tăng tần suất lên 300ms để phản ứng nhanh hơn
+        }, 300);
 
         window.addEventListener('orientationchange', function() {
             if (__uvdOrientationTarget) {
@@ -566,7 +564,10 @@
                     }
                 } catch(e) {}
             } else {
-                // Khi vào fullscreen, áp lại orientation
+                // Vào fullscreen: hiện nút xoay
+                if (__uvdCurrentWrapper) {
+                    ensureFlipButton(__uvdCurrentWrapper);
+                }
                 if (__uvdOrientationTarget && __uvdCurrentWrapper) {
                     setTimeout(function() {
                         enforceVisualOrientation(__uvdCurrentWrapper, __uvdOrientationTarget);
@@ -626,7 +627,8 @@
         #_uvd_video_wrapper_:fullscreen video,#_uvd_video_wrapper_:-webkit-full-screen video,#_uvd_video_wrapper_:-moz-full-screen video,#_uvd_video_wrapper_:-ms-fullscreen video{width:100%!important;height:100%!important;object-fit:contain!important}
         #_uvd_video_wrapper_:fullscreen.uvd-force-rotate,#_uvd_video_wrapper_:-webkit-full-screen.uvd-force-rotate,#_uvd_video_wrapper_:-moz-full-screen.uvd-force-rotate,#_uvd_video_wrapper_:-ms-fullscreen.uvd-force-rotate{width:100vh!important;height:100vw!important;position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center center!important;transition:none!important}
         #_uvd_video_wrapper_:fullscreen.uvd-force-rotate.uvd-rotate-neg,#_uvd_video_wrapper_:-webkit-full-screen.uvd-force-rotate.uvd-rotate-neg,#_uvd_video_wrapper_:-moz-full-screen.uvd-force-rotate.uvd-rotate-neg,#_uvd_video_wrapper_:-ms-fullscreen.uvd-force-rotate.uvd-rotate-neg{transform:translate(-50%,-50%) rotate(-90deg)!important}
-        .uvd-flip-btn{position:fixed;z-index:2147483647;bottom:16px;right:16px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);background:rgba(20,22,30,0.75);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,0.5)}
+        .uvd-flip-btn{position:fixed;z-index:2147483647;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(20,22,30,0.8);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,0.6);transition:transform 0.2s}
+        .uvd-flip-btn:hover{transform:scale(1.1)}
         .uvd-scroll::-webkit-scrollbar{width:4px}
         .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
         .uvd-scroll::-webkit-scrollbar-track{background:transparent}
@@ -655,57 +657,19 @@
         #__uvd_min_float__{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;background:var(--grad-liquid);color:#fff;border:1px solid rgba(255,255,255,0.25);box-shadow:0 8px 22px rgba(0,0,0,0.6),0 0 20px rgba(109,140,255,0.35);z-index:2147483647;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--fs-lg);transition:transform 0.3s;animation:uvdFloatBtnIn 0.3s ease;backdrop-filter:blur(10px)}
         #__uvd_min_float__:hover{transform:scale(1.1)}
         .uvd-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);animation:uvdRipple 0.6s ease-out}
-        .uvd-settings-cv {
-            background: var(--card-bg);
-            border-radius: var(--radius-md);
-            padding: 20px;
-            border: 1px solid var(--border);
-            margin-bottom: 12px;
-        }
-        .uvd-settings-cv h3 {
-            color: var(--accent);
-            font-size: var(--fs-md);
-            margin: 0 0 8px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .uvd-settings-cv p {
-            color: var(--text2);
-            font-size: var(--fs-sm);
-            line-height: 1.6;
-            margin: 4px 0;
-        }
-        .uvd-settings-cv .badge-cv {
-            display: inline-block;
-            background: var(--grad-liquid);
-            color: #fff;
-            padding: 2px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 700;
-            margin-right: 4px;
-        }
-        .uvd-settings-cv .key-cv {
-            display: inline-block;
-            background: rgba(0,0,0,0.4);
-            padding: 1px 10px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: var(--fs-xs);
-            color: var(--accent2);
-            border: 1px solid var(--border);
-        }
-        .uvd-footer-cv {
-            text-align: center;
-            padding: 16px 0 4px 0;
-            border-top: 1px solid var(--border);
-            margin-top: 8px;
-            color: var(--text3);
-            font-size: var(--fs-xs);
-        }
-        .uvd-footer-cv strong {
-            color: var(--accent2);
+        .uvd-settings-cv{background:var(--card-bg);border-radius:var(--radius-md);padding:20px;border:1px solid var(--border);margin-bottom:12px}
+        .uvd-settings-cv h3{color:var(--accent);font-size:var(--fs-md);margin:0 0 8px 0;display:flex;align-items:center;gap:8px}
+        .uvd-settings-cv p{color:var(--text2);font-size:var(--fs-sm);line-height:1.6;margin:4px 0}
+        .uvd-settings-cv .badge-cv{display:inline-block;background:var(--grad-liquid);color:#fff;padding:2px 12px;border-radius:20px;font-size:10px;font-weight:700;margin-right:4px}
+        .uvd-settings-cv .key-cv{display:inline-block;background:rgba(0,0,0,0.4);padding:1px 10px;border-radius:6px;font-family:monospace;font-size:var(--fs-xs);color:var(--accent2);border:1px solid var(--border)}
+        .uvd-footer-cv{text-align:center;padding:16px 0 4px 0;border-top:1px solid var(--border);margin-top:8px;color:var(--text3);font-size:var(--fs-xs)}
+        .uvd-footer-cv strong{color:var(--accent2)}
+        /* Hiệu ứng minimize */
+        .uvd-minimizing {
+            transition: all 0.4s cubic-bezier(.4,0,.2,1);
+            transform: scale(0.8) !important;
+            opacity: 0 !important;
+            pointer-events: none;
         }
     `;
     document.head.appendChild(style);
@@ -720,7 +684,8 @@
         panel = document.createElement('div');
         panel.id = '__uvd__';
         panel.className = 'uvd-glass-panel';
-        panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;bottom:15px;z-index:2147483647;animation:uvdScaleIn 0.4s ease;';
+        // Full màn hình
+        panel.style.cssText = 'position:fixed;inset:0;z-index:2147483647;animation:uvdScaleIn 0.4s ease;';
 
         var liquidBg = document.createElement('div');
         liquidBg.className = 'uvd-liquid-bg';
@@ -730,23 +695,21 @@
         content.className = 'uvd-panel-content';
         panel.appendChild(content);
 
-        // Header
+        // Header (không icon)
         var header = document.createElement('div');
         header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:10px;';
         header.innerHTML =
             '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<span style="width:10px;height:10px;background:var(--grad-liquid);border-radius:50%;animation:uvdPulse 2s infinite;box-shadow:0 0 8px rgba(109,140,255,0.6);"></span>' +
             '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">Universal DL <span style="background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V5.1</span></span>' +
-            '<span style="font-size:10px;color:var(--text3);margin-left:4px;">by nguyenquocngu91</span>' +
             '</div>' +
             '<div style="display:flex;gap:6px;">' +
-            '<button class="uvd-btn-icon uvd-ripple-btn" id="_uvd_minimize_" title="Thu nhỏ"><span style="font-size:18px;">−</span></button>' +
-            '<button class="uvd-btn-icon uvd-ripple-btn" id="_uvd_refresh_" title="Làm mới"><span style="font-size:16px;">↻</span></button>' +
-            '<button class="uvd-btn-icon uvd-ripple-btn" id="_uvd_close_" title="Đóng"><span style="font-size:16px;">✕</span></button>' +
+            '<button class="uvd-btn-icon uvd-ripple-btn" id="_uvd_minimize_" title="Thu nhỏ">−</button>' +
+            '<button class="uvd-btn-icon uvd-ripple-btn" id="_uvd_refresh_" title="Làm mới">↻</button>' +
+            '<button class="uvd-btn-icon uvd-ripple-btn" id="_uvd_close_" title="Đóng">✕</button>' +
             '</div>';
         content.appendChild(header);
 
-        // Tabs
+        // Tabs (không icon)
         var tabbar = document.createElement('div');
         tabbar.className = 'uvd-tabbar';
         var indicator = document.createElement('div');
@@ -755,10 +718,10 @@
         tabbar.appendChild(indicator);
 
         var tabList = [
-            { id: 'streams', text: '📡 Streams (' + arr.length + ')' },
-            { id: 'favorites', text: '⭐ Yêu thích (' + data.favorites.length + ')' },
-            { id: 'history', text: '📜 Lịch sử (' + (data.history || []).length + ')' },
-            { id: 'settings', text: '⚙️ Cài đặt' }
+            { id: 'streams', text: 'Streams (' + arr.length + ')' },
+            { id: 'favorites', text: 'Yêu thích (' + data.favorites.length + ')' },
+            { id: 'history', text: 'Lịch sử (' + (data.history || []).length + ')' },
+            { id: 'settings', text: 'Cài đặt' }
         ];
 
         tabList.forEach(function(t) {
@@ -776,14 +739,14 @@
             indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
         }
 
-        // Info
+        // Info (không icon)
         var info = document.createElement('div');
         info.style.cssText = 'margin-bottom:10px;font-size:12px;';
         info.innerHTML =
-            '<span style="color:var(--text2);">📄 Tên: </span>' +
+            '<span style="color:var(--text2);">Tên: </span>' +
             '<span id="__uvd_title__" style="color:var(--accent);text-decoration:underline;cursor:pointer;">' + pageInfo.title + '</span> ' +
             '<span style="color:var(--text3);">(sửa)</span><br>' +
-            '<span style="color:var(--text2);">🔗 Referer: </span>' +
+            '<span style="color:var(--text2);">Referer: </span>' +
             '<span id="__uvd_referer__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + pageInfo.referer + '</span>';
         content.appendChild(info);
 
@@ -805,7 +768,7 @@
 
         content.appendChild(contentWrapper);
 
-        // Footer
+        // Footer (không icon)
         var footer = document.createElement('div');
         footer.style.cssText = 'display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;';
         ['TXT', 'JSON', 'M3U', 'CSV'].forEach(function(f) {
@@ -888,20 +851,25 @@
             }
         };
 
+        // Minimize with animation
         document.getElementById('_uvd_minimize_').onclick = function() {
-            panel.style.display = 'none';
-            var floatBtn = document.getElementById('__uvd_min_float__');
-            if (!floatBtn) {
-                floatBtn = document.createElement('button');
-                floatBtn.id = '__uvd_min_float__';
-                floatBtn.textContent = '▶';
-                floatBtn.title = 'Khôi phục Universal DL';
-                floatBtn.onclick = function() {
-                    panel.style.display = 'flex';
-                    floatBtn.remove();
-                };
-                document.body.appendChild(floatBtn);
-            }
+            panel.classList.add('uvd-minimizing');
+            setTimeout(function() {
+                panel.style.display = 'none';
+                panel.classList.remove('uvd-minimizing');
+                var floatBtn = document.getElementById('__uvd_min_float__');
+                if (!floatBtn) {
+                    floatBtn = document.createElement('button');
+                    floatBtn.id = '__uvd_min_float__';
+                    floatBtn.textContent = '▶';
+                    floatBtn.title = 'Khôi phục Universal DL';
+                    floatBtn.onclick = function() {
+                        panel.style.display = 'flex';
+                        floatBtn.remove();
+                    };
+                    document.body.appendChild(floatBtn);
+                }
+            }, 400);
         };
 
         window.__uvd_showPreview = function(url, type) {
@@ -910,7 +878,7 @@
         };
     }
 
-    // ========== RENDER STREAMS ==========
+    // ========== RENDER STREAMS (không icon) ==========
     function renderStreams(container, arr) {
         if (!arr.length) {
             container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">Không phát hiện stream nào.</div>';
@@ -925,20 +893,20 @@
             card.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
                 '<span class="uvd-type-badge">#' + (i+1) + ' ' + item.type + '</span>' +
-                '<button class="uvd-fav-btn uvd-ripple-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '⭐' : '☆') + '</button>' +
+                '<button class="uvd-fav-btn uvd-ripple-btn" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + (fav ? 'var(--gold)' : 'var(--text3)') + ';">' + (fav ? '★' : '☆') + '</button>' +
                 '</div>' +
                 '<div class="uvd-url-box">' + item.url + '</div>' +
                 '<div class="uvd-grid-2" style="margin-top:8px;">' +
-                '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.2);">📤 Chia sẻ</button>' +
-                '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">📋 Sao chép</button>' +
+                '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
+                '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
                 (item.type === 'IFRAME' ?
-                    '<a href="' + item.url + '" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="text-align:center;grid-column:1/3;text-decoration:none;">🔗 Mở iframe</a>' :
+                    '<a href="' + item.url + '" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="text-align:center;grid-column:1/3;text-decoration:none;">Mở iframe</a>' :
                     (item.type === 'M3U8' ?
-                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">📊 Chất lượng</button>' +
-                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">▶️ Xem trước</button>' +
-                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">⚡ Lệnh tải</button>' :
-                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">▶️ Xem trước</button>' +
-                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">⚡ Lệnh tải</button>'
+                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
+                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Xem trước</button>' +
+                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">Lệnh tải</button>' :
+                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="preview" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Xem trước</button>' +
+                        '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Lệnh tải</button>'
                     )
                 ) +
                 '</div>';
@@ -985,19 +953,18 @@
                 var url = decodeURIComponent(this.dataset.url);
                 var type = this.dataset.type;
                 var nowFav = toggleFavorite(url, type);
-                this.textContent = nowFav ? '⭐' : '☆';
+                this.textContent = nowFav ? '★' : '☆';
                 this.style.color = nowFav ? 'var(--gold)' : 'var(--text3)';
-                // Cập nhật lại tab yêu thích
                 var favTab = document.querySelector('[data-tab="favorites"]');
                 if (favTab) {
                     var count = data.favorites.length;
-                    favTab.textContent = '⭐ Yêu thích (' + count + ')';
+                    favTab.textContent = 'Yêu thích (' + count + ')';
                 }
             };
         });
     }
 
-    // ========== RENDER FAVORITES ==========
+    // ========== RENDER FAVORITES (không icon) ==========
     function renderFavorites(container) {
         if (!data.favorites.length) {
             container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">Chưa có yêu thích.</div>';
@@ -1011,9 +978,9 @@
                 '<div style="margin:4px 0;">' + f.title + '</div>' +
                 '<div class="uvd-url-box">' + f.url + '</div>' +
                 '<div class="uvd-grid-3">' +
-                '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">📤 Chia sẻ</button>' +
-                '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy">📋 Copy</button>' +
-                '<button class="uvd-btn uvd-btn-sm fav-del" data-idx="' + i + '" style="background:var(--danger);">🗑️ Xóa</button>' +
+                '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
+                '<button class="uvd-btn uvd-btn-sm fav-act" data-url="' + encodeURIComponent(f.url) + '" data-action="copy">Sao chép</button>' +
+                '<button class="uvd-btn uvd-btn-sm fav-del" data-idx="' + i + '" style="background:var(--danger);">Xóa</button>' +
                 '</div>';
             container.appendChild(card);
         });
@@ -1038,20 +1005,20 @@
                 toast('Đã xóa');
                 var favTab = document.querySelector('[data-tab="favorites"]');
                 if (favTab) {
-                    favTab.textContent = '⭐ Yêu thích (' + data.favorites.length + ')';
+                    favTab.textContent = 'Yêu thích (' + data.favorites.length + ')';
                 }
             };
         });
     }
 
-    // ========== RENDER HISTORY ==========
+    // ========== RENDER HISTORY (không icon) ==========
     function renderHistory(container) {
         var hist = data.history || [];
         if (!hist.length) {
             container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">Chưa có lịch sử.</div>';
             return;
         }
-        container.innerHTML = '<button class="uvd-btn uvd-btn-sm" id="_uvd_clear_hist_" style="width:100%;margin-bottom:10px;background:var(--danger);">🗑️ Xóa toàn bộ lịch sử</button>';
+        container.innerHTML = '<button class="uvd-btn uvd-btn-sm" id="_uvd_clear_hist_" style="width:100%;margin-bottom:10px;background:var(--danger);">Xóa toàn bộ lịch sử</button>';
         document.getElementById('_uvd_clear_hist_').addEventListener('click', addRipple);
         document.getElementById('_uvd_clear_hist_').onclick = function() {
             if (confirm('Xóa toàn bộ lịch sử?')) {
@@ -1060,7 +1027,7 @@
                 renderHistory(container);
                 var histTab = document.querySelector('[data-tab="history"]');
                 if (histTab) {
-                    histTab.textContent = '📜 Lịch sử (0)';
+                    histTab.textContent = 'Lịch sử (0)';
                 }
             }
         };
@@ -1076,34 +1043,31 @@
         });
     }
 
-    // ========== RENDER SETTINGS (CV Style) ==========
+    // ========== RENDER SETTINGS (CV Style, không icon) ==========
     function renderSettings(container) {
         container.innerHTML = `
-            <!-- Hướng dẫn sử dụng - CV Style -->
             <div class="uvd-settings-cv">
-                <h3>📖 Hướng dẫn sử dụng</h3>
-                <p><span class="badge-cv">1</span> <strong>Phát hiện tự động</strong> — Script quét toàn bộ trang, phát hiện các luồng video (M3U8, MP4, WEBM, MKV, FLV, TS, MPD).</p>
-                <p><span class="badge-cv">2</span> <strong>Xem trước</strong> — Nhấn <span class="key-cv">▶️ Xem trước</span> để mở trình phát Chrome Native. Hỗ trợ HLS.js cho M3U8.</p>
-                <p><span class="badge-cv">3</span> <strong>Toàn màn hình tự động xoay</strong> — Video dọc → xoay dọc, video ngang → xoay ngang. <span style="color:var(--gold);">Đã khắc phục lỗi tự trả về</span> bằng cơ chế ép CSS + watchdog.</p>
+                <h3>Hướng dẫn sử dụng</h3>
+                <p><span class="badge-cv">1</span> <strong>Phát hiện tự động</strong> — Quét toàn bộ trang, phát hiện các luồng video (M3U8, MP4, WEBM, MKV, FLV, TS, MPD).</p>
+                <p><span class="badge-cv">2</span> <strong>Xem trước</strong> — Nhấn <span class="key-cv">Xem trước</span> để mở trình phát Chrome Native. Hỗ trợ HLS.js cho M3U8.</p>
+                <p><span class="badge-cv">3</span> <strong>Toàn màn hình tự động xoay</strong> — Video dọc → xoay dọc, video ngang → xoay ngang. Đã khắc phục lỗi tự trả về bằng cơ chế ép CSS + watchdog.</p>
                 <p><span class="badge-cv">4</span> <strong>Lệnh tải</strong> — Hỗ trợ <span class="key-cv">yt-dlp</span> <span class="key-cv">ffmpeg</span> <span class="key-cv">curl</span> với referer & header tự động.</p>
                 <p><span class="badge-cv">5</span> <strong>Yêu thích & Lịch sử</strong> — Lưu lại các stream yêu thích và lịch sử xem (tối đa 50).</p>
                 <p><span class="badge-cv">6</span> <strong>Xuất dữ liệu</strong> — Hỗ trợ xuất danh sách stream dạng <span class="key-cv">TXT</span> <span class="key-cv">JSON</span> <span class="key-cv">M3U</span> <span class="key-cv">CSV</span>.</p>
-                <p style="margin-top:8px;color:var(--text3);font-style:italic;">💡 Mẹo: Bấm vào tên video hoặc referer để chỉnh sửa.</p>
+                <p style="margin-top:8px;color:var(--text3);font-style:italic;">Mẹo: Bấm vào tên video hoặc referer để chỉnh sửa.</p>
             </div>
 
-            <!-- Sao lưu & khôi phục -->
             <div class="uvd-settings-cv">
-                <h3>💾 Sao lưu & Khôi phục</h3>
+                <h3>Sao lưu & Khôi phục</h3>
                 <div class="uvd-grid-2">
-                    <button class="uvd-btn uvd-btn-sm" id="_uvd_backup_">📤 Xuất dữ liệu</button>
-                    <button class="uvd-btn uvd-btn-sm" id="_uvd_restore_">📥 Nhập dữ liệu</button>
+                    <button class="uvd-btn uvd-btn-sm" id="_uvd_backup_">Xuất dữ liệu</button>
+                    <button class="uvd-btn uvd-btn-sm" id="_uvd_restore_">Nhập dữ liệu</button>
                 </div>
-                <button class="uvd-btn uvd-btn-sm" id="_uvd_reset_" style="width:100%;margin-top:6px;background:var(--danger);">🔄 Đặt lại tất cả</button>
+                <button class="uvd-btn uvd-btn-sm" id="_uvd_reset_" style="width:100%;margin-top:6px;background:var(--danger);">Đặt lại tất cả</button>
             </div>
 
-            <!-- Thông tin & bản quyền -->
             <div class="uvd-settings-cv" style="border-color:rgba(109,140,255,0.2);background:rgba(109,140,255,0.04);">
-                <h3>📌 Thông tin</h3>
+                <h3>Thông tin</h3>
                 <p><strong>Phiên bản:</strong> 5.1 Dark Liquid</p>
                 <p><strong>Tác giả:</strong> <span style="color:var(--accent2);font-weight:700;">nguyenquocngu91</span></p>
                 <p><strong>Yêu thích:</strong> ${data.favorites.length} · <strong>Lịch sử:</strong> ${(data.history||[]).length}</p>
@@ -1111,7 +1075,7 @@
             </div>
 
             <div class="uvd-footer-cv">
-                Made with <span style="color:var(--danger);">❤</span> by <strong>nguyenquocngu91</strong> · Fullscreen Auto-Rotate Enhanced
+                Made with <span style="color:var(--danger);">♥</span> by <strong>nguyenquocngu91</strong> · Fullscreen Auto-Rotate Enhanced
             </div>
         `;
 
@@ -1160,21 +1124,21 @@
         };
     }
 
-    // ========== COMMAND PICKER ==========
+    // ========== COMMAND PICKER (không icon) ==========
     function showCommandPicker(url, type) {
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
 
         var cmds = makeCommands(url, type, pageInfo.title);
         var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
-        html += '<div style="font-weight:700;margin-bottom:10px;">⚡ Chọn lệnh tải</div>';
+        html += '<div style="font-weight:700;margin-bottom:10px;">Chọn lệnh tải</div>';
 
         Object.keys(cmds).forEach(function(key) {
             var c = cmds[key];
             html += '<div class="uvd-card" style="margin-bottom:6px;padding:10px;">';
             html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
             html += '<span style="font-weight:600;">' + c.label + '</span>';
-            html += '<button class="uvd-btn uvd-btn-sm cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '">📋 Lấy lệnh</button>';
+            html += '<button class="uvd-btn uvd-btn-sm cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '">Lấy lệnh</button>';
             html += '</div>';
             html += '<div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-top:4px;">' + c.cmd.substring(0, 120) + (c.cmd.length > 120 ? '...' : '') + '</div>';
             html += '</div>';
@@ -1207,11 +1171,11 @@
         overlay.className = 'uvd-overlay';
         overlay.innerHTML =
             '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">' +
-            '<div style="font-weight:700;margin-bottom:8px;">✏️ Chỉnh sửa lệnh</div>' +
+            '<div style="font-weight:700;margin-bottom:8px;">Chỉnh sửa lệnh</div>' +
             '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;font-size:12px;resize:vertical;">' + text + '</textarea>' +
             '<div class="uvd-grid-2" style="margin-top:12px;">' +
-            '<button class="uvd-btn uvd-btn-sm" id="_uvd_ed_copy_">📋 Sao chép</button>' +
-            '<button class="uvd-btn uvd-btn-sm" id="_uvd_ed_share_" style="background:rgba(139,92,246,0.3);">📤 Chia sẻ</button>' +
+            '<button class="uvd-btn uvd-btn-sm" id="_uvd_ed_copy_">Sao chép</button>' +
+            '<button class="uvd-btn uvd-btn-sm" id="_uvd_ed_share_" style="background:rgba(139,92,246,0.3);">Chia sẻ</button>' +
             '</div>' +
             '<button class="uvd-btn uvd-btn-sm close-editor" style="width:100%;margin-top:8px;background:var(--danger);">Đóng</button>' +
             '</div>';
@@ -1237,18 +1201,18 @@
         };
     }
 
-    // ========== QUALITY PICKER ==========
+    // ========== QUALITY PICKER (không icon) ==========
     function showQualityPicker(url) {
         var overlay = document.createElement('div');
         overlay.className = 'uvd-overlay';
-        overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">⏳ Đang phân tích M3U8...</div>';
+        overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">Đang phân tích M3U8...</div>';
         document.body.appendChild(overlay);
 
         parseM3U8Master(url, function(qualities) {
             if (!qualities || !qualities.length) {
                 overlay.innerHTML =
                     '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;text-align:center;">' +
-                    '<div style="color:var(--danger);">❌ Không phải Master Playlist hoặc không có chất lượng nào.</div>' +
+                    '<div style="color:var(--danger);">Không phải Master Playlist hoặc không có chất lượng nào.</div>' +
                     '<button class="uvd-btn uvd-btn-sm close-overlay-btn" style="margin-top:12px;background:var(--danger);width:100%;">Đóng</button>' +
                     '</div>';
                 overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
@@ -1256,16 +1220,16 @@
             }
 
             var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
-            html += '<div style="font-weight:700;margin-bottom:12px;">📊 Chọn chất lượng (' + qualities.length + ')</div>';
+            html += '<div style="font-weight:700;margin-bottom:12px;">Chọn chất lượng (' + qualities.length + ')</div>';
             html += '<div style="overflow-y:auto;max-height:60vh;">';
 
             qualities.forEach(function(q) {
                 html += '<div class="uvd-card">' +
                     '<b>' + q.label + '</b> <span style="color:var(--text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>' +
                     '<div class="uvd-grid-3" style="margin-top:8px;">' +
-                    '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">📤 Chia sẻ</button>' +
-                    '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">▶️ Xem</button>' +
-                    '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">⚡ Lệnh</button>' +
+                    '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
+                    '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="preview">Xem</button>' +
+                    '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Lệnh</button>' +
                     '</div>' +
                     '</div>';
             });

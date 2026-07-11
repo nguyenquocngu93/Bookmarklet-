@@ -1,7 +1,9 @@
 /**
- * Universal Video Downloader V5.1 – Dark Liquid Edition
- * - Native Chrome player (clean & simple)
- * - Auto-orientation fullscreen: video dọc → dọc, video ngang → ngang
+ * Universal Video Downloader V5.2 – Overlay Player Edition
+ * - Video player dạng overlay riêng biệt
+ * - Chọn chất lượng (M3U8), tốc độ phát
+ * - Hiệu ứng thu nhỏ / phóng to mượt mà
+ * - Giữ nguyên referer, hỗ trợ HLS
  * Author: nguyenquocngu93
  */
 (function() {
@@ -13,7 +15,7 @@ if (old) old.remove();
 var minBtn = document.getElementById('__uvd_min_float__');
 if (minBtn) minBtn.remove();
 
-var STORAGE_KEY = 'uvd_data_v50';
+var STORAGE_KEY = 'uvd_data_v52';
 var storage = {
   get: function() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -277,28 +279,59 @@ function unlockOrientation() {
   } catch(e) {}
 }
 
-// ========== VIDEO PLAYER ==========
+// ========== PLAYER STATE ==========
+var playerState = {
+  overlay: null,
+  mini: null,
+  video: null,
+  hls: null,
+  qualities: [],
+  currentQuality: 0,
+  speed: 1,
+  isMinimized: false,
+  url: '',
+  type: '',
+  onFullscreenChange: null
+};
+
+// ========== OVERLAY PLAYER ==========
 function showVideoPlayer(url, type) {
-  var container = document.getElementById('__uvd_player_container__');
-  container.innerHTML = '';
-  container.style.display = 'flex';
+  // Nếu đã có player thì đóng
+  if (playerState.overlay) {
+    closePlayer();
+  }
   
-  // Header
-  var headerDiv = document.createElement('div');
-  headerDiv.style.cssText = 'padding:10px 14px;background:var(--glass-hi);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;';
-  headerDiv.innerHTML = 
-    '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + pageInfo.title + ' <span style="color:var(--text3);font-weight:400;">(' + type + ')</span></div>' +
-    '<div style="display:flex;gap:6px;">' +
-      '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" id="__uvd_player_fullscreen__" style="background:rgba(109,140,255,0.2);">⛶</button>' +
-      '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" id="__uvd_player_close__" style="background:var(--glass-hi);">✕</button>' +
+  playerState.url = url;
+  playerState.type = type;
+  
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_player_overlay__';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:2147483648;display:flex;flex-direction:column;animation:uvdFadeIn 0.3s ease;';
+  document.body.appendChild(overlay);
+  playerState.overlay = overlay;
+  
+  // Header controls
+  var header = document.createElement('div');
+  header.style.cssText = 'padding:12px 16px;background:rgba(0,0,0,0.7);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.1);';
+  header.innerHTML = 
+    '<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">' +
+      '<span style="font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + pageInfo.title + '</span>' +
+      '<span style="font-size:11px;color:#aaa;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;">' + type + '</span>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+      '<select id="__uvd_quality_sel__" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;max-width:100px;"></select>' +
+      '<select id="__uvd_speed_sel__" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;">' +
+        '<option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1x</option>' +
+        '<option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option>' +
+      '</select>' +
+      '<button id="__uvd_player_minimize__" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="background:rgba(255,255,255,0.1);color:#fff;">−</button>' +
+      '<button id="__uvd_player_close__" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="background:rgba(255,0,0,0.3);color:#fff;">✕</button>' +
     '</div>';
-  container.appendChild(headerDiv);
+  overlay.appendChild(header);
   
-  // Video wrapper
+  // Video container
   var videoWrapper = document.createElement('div');
-  videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'flex:1;background:#000;position:relative;display:flex;align-items:center;justify-content:center;min-height:200px;';
-  
+  videoWrapper.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
   video.style.cssText = 'width:100%;height:100%;display:block;object-fit:contain;';
@@ -306,34 +339,70 @@ function showVideoPlayer(url, type) {
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
   video.setAttribute('crossorigin', 'anonymous');
-  
   videoWrapper.appendChild(video);
-  container.appendChild(videoWrapper);
+  overlay.appendChild(videoWrapper);
+  playerState.video = video;
+  
+  // Bottom info
+  var footer = document.createElement('div');
+  footer.style.cssText = 'padding:8px 16px;background:rgba(0,0,0,0.7);border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:#aaa;display:flex;justify-content:space-between;flex-shrink:0;';
+  footer.innerHTML = '<span id="__uvd_player_status__">Đang tải...</span><span id="__uvd_player_time__"></span>';
+  overlay.appendChild(footer);
   
   // Load video
-  var activeHls = null;
   var isHls = url.includes('.m3u8') || url.includes('m3u8');
+  var activeHls = null;
   
   function onMetadataLoaded() {
-    // Tự động khóa hướng khi video load xong metadata
     lockOrientation(video);
+    // Update status
+    document.getElementById('__uvd_player_status__').textContent = 'Đang phát';
+    // Nếu là HLS và chưa có quality thì thử parse
+    if (isHls && playerState.qualities.length === 0) {
+      parseM3U8Master(url, function(qualities) {
+        if (qualities && qualities.length > 0) {
+          playerState.qualities = qualities;
+          populateQualitySelect(qualities);
+        }
+      });
+    }
   }
   
   video.addEventListener('loadedmetadata', onMetadataLoaded);
+  video.addEventListener('timeupdate', function() {
+    var t = video.currentTime;
+    var d = video.duration;
+    if (d) {
+      document.getElementById('__uvd_player_time__').textContent = formatTime(t) + ' / ' + formatTime(d);
+    }
+  });
+  
+  function formatTime(sec) {
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
   
   if (isHls) {
     if (window.Hls && Hls.isSupported()) {
       activeHls = new Hls();
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
-      // HLS.js cũng có thể trigger loadedmetadata sau khi manifest parsed
       activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
-        // Đảm bảo khóa hướng sau khi manifest parsed
         setTimeout(function() { lockOrientation(video); }, 100);
+        // Parse quality
+        parseM3U8Master(url, function(qualities) {
+          if (qualities && qualities.length > 0) {
+            playerState.qualities = qualities;
+            populateQualitySelect(qualities);
+          }
+        });
       });
+      playerState.hls = activeHls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
     } else {
+      // Load HLS.js
       var s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
       s.onload = function() { showVideoPlayer(url, type); };
@@ -344,33 +413,53 @@ function showVideoPlayer(url, type) {
     video.src = url;
   }
   
-  // Fullscreen handler
-  function enterFullscreen() {
-    var fs = videoWrapper.requestFullscreen || videoWrapper.webkitRequestFullscreen || 
-             videoWrapper.mozRequestFullScreen || videoWrapper.msRequestFullscreen;
-    if (fs) {
-      fs.call(videoWrapper);
-    }
+  // Quality select
+  function populateQualitySelect(qualities) {
+    var sel = document.getElementById('__uvd_quality_sel__');
+    sel.innerHTML = '';
+    qualities.forEach(function(q, idx) {
+      var opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : '');
+      sel.appendChild(opt);
+    });
+    sel.style.display = qualities.length > 1 ? 'inline-block' : 'none';
+    sel.onchange = function() {
+      var idx = parseInt(this.value);
+      var q = qualities[idx];
+      if (q && playerState.hls) {
+        // Chuyển quality trong HLS
+        var levels = playerState.hls.levels;
+        for (var i = 0; i < levels.length; i++) {
+          if (levels[i].height === parseInt(q.resolution.split('x')[1]) || levels[i].bitrate === q.bandwidth) {
+            playerState.hls.currentLevel = i;
+            break;
+          }
+        }
+        toast('Chuyển sang ' + q.label);
+      }
+    };
   }
   
-  document.getElementById('__uvd_player_fullscreen__').addEventListener('click', addRipple);
-  document.getElementById('__uvd_player_fullscreen__').onclick = function() {
-    enterFullscreen();
+  // Speed select
+  document.getElementById('__uvd_speed_sel__').onchange = function() {
+    video.playbackRate = parseFloat(this.value);
   };
   
-  // Close handler
+  // Minimize
+  document.getElementById('__uvd_player_minimize__').addEventListener('click', addRipple);
+  document.getElementById('__uvd_player_minimize__').onclick = function() {
+    minimizePlayer();
+  };
+  
+  // Close
   document.getElementById('__uvd_player_close__').addEventListener('click', addRipple);
   document.getElementById('__uvd_player_close__').onclick = function() {
-    if (activeHls) activeHls.destroy();
-    video.pause();
-    video.src = '';
-    video.removeEventListener('loadedmetadata', onMetadataLoaded);
-    unlockOrientation();
-    container.style.display = 'none';
+    closePlayer();
     document.getElementById('__uvd_stream_list__').style.display = 'block';
   };
   
-  // Listen to fullscreen change to lock orientation
+  // Fullscreen change
   function onFullscreenChange() {
     var isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || 
                          document.mozFullScreenElement || document.msFullscreenElement);
@@ -380,27 +469,123 @@ function showVideoPlayer(url, type) {
       unlockOrientation();
     }
   }
-  
+  playerState.onFullscreenChange = onFullscreenChange;
   document.addEventListener('fullscreenchange', onFullscreenChange);
   document.addEventListener('webkitfullscreenchange', onFullscreenChange);
   document.addEventListener('mozfullscreenchange', onFullscreenChange);
   document.addEventListener('MSFullscreenChange', onFullscreenChange);
+}
+
+// ========== MINIMIZE / RESTORE ==========
+function minimizePlayer() {
+  if (playerState.isMinimized) return;
+  playerState.isMinimized = true;
   
-  // Cleanup on close
-  var originalClose = document.getElementById('__uvd_player_close__').onclick;
-  document.getElementById('__uvd_player_close__').onclick = function() {
-    document.removeEventListener('fullscreenchange', onFullscreenChange);
-    document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
-    document.removeEventListener('mozfullscreenchange', onFullscreenChange);
-    document.removeEventListener('MSFullscreenChange', onFullscreenChange);
-    if (activeHls) activeHls.destroy();
-    video.pause();
-    video.src = '';
-    video.removeEventListener('loadedmetadata', onMetadataLoaded);
-    unlockOrientation();
-    container.style.display = 'none';
-    document.getElementById('__uvd_stream_list__').style.display = 'block';
+  var overlay = playerState.overlay;
+  var video = playerState.video;
+  
+  // Tạo mini icon từ thumbnail của video
+  var mini = document.createElement('div');
+  mini.id = '__uvd_player_mini__';
+  mini.style.cssText = 'position:fixed;bottom:20px;right:20px;width:160px;height:90px;background:#000;border-radius:12px;z-index:2147483647;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,0.8);border:2px solid rgba(255,255,255,0.2);overflow:hidden;transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);';
+  
+  // Canvas để vẽ thumbnail
+  var canvas = document.createElement('canvas');
+  canvas.width = 160;
+  canvas.height = 90;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 160, 90);
+  if (video.videoWidth) {
+    ctx.drawImage(video, 0, 0, 160, 90);
+  }
+  mini.appendChild(canvas);
+  
+  // Label
+  var label = document.createElement('div');
+  label.textContent = '▶ ' + pageInfo.title;
+  label.style.cssText = 'position:absolute;bottom:4px;left:8px;color:#fff;font-size:11px;font-weight:600;text-shadow:0 2px 4px rgba(0,0,0,0.8);background:rgba(0,0,0,0.5);padding:2px 8px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90%;';
+  mini.appendChild(label);
+  
+  document.body.appendChild(mini);
+  playerState.mini = mini;
+  
+  // Ẩn overlay với hiệu ứng
+  overlay.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease';
+  overlay.style.transform = 'scale(0.8)';
+  overlay.style.opacity = '0';
+  
+  setTimeout(function() {
+    overlay.style.display = 'none';
+  }, 400);
+  
+  // Bấm vào mini để restore
+  mini.onclick = function() {
+    restorePlayer();
   };
+  
+  // Thu nhỏ video để tiết kiệm tài nguyên
+  video.pause();
+}
+
+function restorePlayer() {
+  if (!playerState.isMinimized) return;
+  playerState.isMinimized = false;
+  
+  var overlay = playerState.overlay;
+  var mini = playerState.mini;
+  
+  // Xóa mini
+  if (mini) {
+    mini.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+    mini.style.transform = 'scale(0.5)';
+    mini.style.opacity = '0';
+    setTimeout(function() { mini.remove(); }, 300);
+    playerState.mini = null;
+  }
+  
+  // Hiện overlay
+  overlay.style.display = 'flex';
+  overlay.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease';
+  overlay.style.transform = 'scale(1)';
+  overlay.style.opacity = '1';
+  
+  // Tiếp tục phát
+  if (playerState.video) {
+    playerState.video.play().catch(function(){});
+  }
+}
+
+function closePlayer() {
+  if (playerState.overlay) {
+    // Xóa mini nếu có
+    if (playerState.mini) {
+      playerState.mini.remove();
+      playerState.mini = null;
+    }
+    // Dừng video
+    if (playerState.video) {
+      playerState.video.pause();
+      playerState.video.src = '';
+      playerState.video.removeEventListener('loadedmetadata', function(){});
+    }
+    if (playerState.hls) {
+      playerState.hls.destroy();
+      playerState.hls = null;
+    }
+    if (playerState.onFullscreenChange) {
+      document.removeEventListener('fullscreenchange', playerState.onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', playerState.onFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', playerState.onFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', playerState.onFullscreenChange);
+    }
+    unlockOrientation();
+    playerState.overlay.remove();
+    playerState.overlay = null;
+    playerState.video = null;
+    playerState.isMinimized = false;
+    playerState.qualities = [];
+  }
 }
 
 // ========== BUILD UI ==========
@@ -419,6 +604,7 @@ style.textContent = `
   50% { transform: translate(4%, 6%) scale(1.12); }
   100% { transform: translate(-6%, -4%) scale(1); }
 }
+@keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 
 :root {
   --bg: rgba(3,4,8,0.97);
@@ -629,7 +815,7 @@ function buildUI() {
   header.innerHTML = 
     '<div style="display:flex;align-items:center;gap:8px;">' +
       '<span style="width:10px;height:10px;background:var(--grad-liquid);border-radius:50%;animation:uvdPulse 2s infinite;box-shadow:0 0 8px rgba(109,140,255,0.6);"></span>' +
-      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">Universal DL <span style="background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V5.1</span></span>' +
+      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">Universal DL <span style="background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V5.2</span></span>' +
     '</div>' +
     '<div style="display:flex;gap:6px;">' +
       '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Thu nhỏ"><span style="font-size:18px;">−</span></button>' +
@@ -690,11 +876,6 @@ function buildUI() {
   streamList.style.cssText = 'overflow-y:auto;height:100%;padding-right:4px;';
   contentWrapper.appendChild(streamList);
   
-  var playerContainer = document.createElement('div');
-  playerContainer.id = '__uvd_player_container__';
-  playerContainer.style.cssText = 'display:none;flex-direction:column;height:100%;background:var(--glass);border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border);';
-  contentWrapper.appendChild(playerContainer);
-  
   content.appendChild(contentWrapper);
   
   // Footer
@@ -729,8 +910,6 @@ function buildUI() {
       }
     });
     
-    playerContainer.style.display = 'none';
-    playerContainer.innerHTML = '';
     streamList.style.display = 'block';
     streamList.innerHTML = '';
     
@@ -783,7 +962,6 @@ function buildUI() {
   };
   
   window.__uvd_showPlayer = function(url, type) {
-    streamList.style.display = 'none';
     showVideoPlayer(url, type);
   };
 }
@@ -1045,7 +1223,7 @@ function renderSettings(container) {
       <div style="margin-bottom:10px;">
         <div style="font-weight:600;color:var(--accent);font-size:13px;">1. Cài đặt Bookmarklet</div>
         <div style="background:rgba(0,0,0,0.5);border-radius:8px;padding:10px;font-family:monospace;font-size:10px;word-break:break-all;border:1px solid var(--border);margin:4px 0;">
-          javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/uvd@main/uvd_v5.1.js';document.head.appendChild(s);})();
+          javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/uvd@main/uvd_v5.2.js';document.head.appendChild(s);})();
         </div>
         <div style="font-size:12px;color:var(--text3);">➜ Kéo thả vào thanh bookmark của trình duyệt</div>
       </div>
@@ -1055,10 +1233,10 @@ function renderSettings(container) {
         <div style="font-size:13px;color:var(--text2);line-height:1.6;">
           • Mở trang web có video<br>
           • Bấm vào bookmark đã tạo<br>
-          • Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để phát<br>
-          • Bấm <strong style="color:var(--gold);">Chất lượng</strong> để chọn chất lượng M3U8<br>
-          • Bấm <strong style="color:var(--accent2);">Lệnh tải</strong> để lấy lệnh tải về<br>
-          • Khi phát, bấm <strong style="color:var(--accent);">⛶</strong> hoặc fullscreen của trình duyệt để xem toàn màn hình, video sẽ tự xoay theo hướng.
+          • Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để mở player overlay<br>
+          • Trong player: chọn <strong style="color:var(--accent);">chất lượng</strong> (nếu có) và <strong style="color:var(--accent);">tốc độ</strong><br>
+          • Bấm <strong style="color:var(--accent);">−</strong> để thu nhỏ player thành icon có hiệu ứng mượt<br>
+          • Bấm vào icon để khôi phục
         </div>
       </div>
       
@@ -1068,12 +1246,11 @@ function renderSettings(container) {
           javascript:(function(){var v=document.querySelector('video');if(v&&v.src&&v.src.startsWith('blob:')){var a=document.createElement('a');a.href=v.src;a.download='video.mp4';document.body.appendChild(a);a.click();a.remove();alert('Đã tải blob video!');}else{alert('Không tìm thấy video blob!');}})();
         </div>
         <div style="font-size:12px;color:var(--text3);">➜ Dùng để tải video đang phát dạng blob</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:4px;">1. Mở trang có video đang phát<br>2. Chạy bookmarklet này → tự động tải blob video</div>
       </div>
     </div>
     
     <div class="uvd-card" style="color:var(--text2);font-size:12px;">
-      Phiên bản 5.1 Dark Liquid · Trình phát tích hợp<br>
+      Phiên bản 5.2 · Player overlay với chất lượng, tốc độ, thu nhỏ<br>
       Yêu thích: ${data.favorites.length} · Lịch sử: ${(data.history||[]).length}
     </div>
   `;
@@ -1111,7 +1288,7 @@ var autoRefresh = setInterval(function() {
   }
 }, 2000);
 
-console.log('V5.1 Dark Liquid - Auto-orientation Player Ready');
-toast('V5.1 sẵn sàng — Bấm Xem để phát video!');
+console.log('V5.2 Overlay Player Ready');
+toast('V5.2 sẵn sàng — Player overlay với chất lượng, tốc độ, thu nhỏ mượt!');
 
 })();

@@ -1218,14 +1218,17 @@ function renderSettings(container) {
     </div>
     
     <div class="uvd-card">
-      <div style="font-weight:600;margin-bottom:8px;">Hướng dẫn sử dụng</div>
+      <div style="font-weight:600;margin-bottom:8px;">Hướng dẫn sử dụng & Force Update</div>
       
       <div style="margin-bottom:10px;">
         <div style="font-weight:600;color:var(--accent);font-size:13px;">1. Cài đặt Bookmarklet</div>
         <div style="background:rgba(0,0,0,0.5);border-radius:8px;padding:10px;font-family:monospace;font-size:10px;word-break:break-all;border:1px solid var(--border);margin:4px 0;">
-          javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/uvd@main/uvd_v5.2.js';document.head.appendChild(s);})();
+          javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/uvd@main/uvd_v5.2.js?v=2';document.head.appendChild(s);})();
         </div>
         <div style="font-size:12px;color:var(--text3);">➜ Kéo thả vào thanh bookmark của trình duyệt</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;">
+          <strong>⚠️ Force update:</strong> Khi có bản cập nhật, chỉ cần đổi số <code>?v=2</code> thành <code>?v=3</code> (hoặc số bất kỳ) trong bookmarklet, trình duyệt sẽ tải file mới nhất.
+        </div>
       </div>
       
       <div style="margin-bottom:10px;">

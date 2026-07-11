@@ -327,7 +327,7 @@ function showVideoPlayer(url, type) {
     '<button id="__uvd_player_close__" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="background:rgba(255,0,0,0.3);color:#fff;">✕</button>';
   header.appendChild(titleRow);
   
-  // Dòng 2: Toolbar (Chất lượng, Tốc độ, Toàn màn hình, Thu nhỏ)
+  // Dòng 2: Toolbar
   var toolbar = document.createElement('div');
   toolbar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
   
@@ -1311,7 +1311,7 @@ function renderSettings(container) {
           <span style="color:var(--text2);">💡 Nếu không thấy bookmark, vào Settings → Bookmarks.</span>
         </div>
         <div style="font-size:12px;color:var(--accent2);margin-top:6px;">
-          <strong>🔁 Force update:</strong> Bookmarklet trên đã có <code>?v=`+Date.now()</code> nên luôn tải file mới nhất, không bị cache.
+          <strong>🔁 Force update:</strong> Bookmarklet trên đã có <code>?v='+Date.now()</code> nên luôn tải file mới nhất, không bị cache.
         </div>
       </div>
       

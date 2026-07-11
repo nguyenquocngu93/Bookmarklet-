@@ -1,5 +1,5 @@
 /**
- * Universal Media Player & Downloader – V5.3
+ * Universal Media Player & Downloader - V5.4
  * - Overlay player với menu dropdown
  * - Chọn chất lượng, tốc độ, fullscreen, thu nhỏ
  * - Hiệu ứng thu nhỏ mượt mà
@@ -11,13 +11,13 @@
 'use strict';
 
 // ========== INIT ==========
-var VERSION = '5.3';
+var VERSION = '5.4';
 var old = document.getElementById('__uvd__');
 if (old) old.remove();
 var minBtn = document.getElementById('__uvd_min_float__');
 if (minBtn) minBtn.remove();
 
-var STORAGE_KEY = 'uvd_data_v53';
+var STORAGE_KEY = 'uvd_data_v54';
 var storage = {
   get: function() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
@@ -297,7 +297,7 @@ var playerState = {
   menuOpen: false
 };
 
-// ========== OVERLAY PLAYER WITH MENU ==========
+// ========== OVERLAY PLAYER WITH TOOLBAR ==========
 function showVideoPlayer(url, type) {
   if (playerState.overlay) {
     closePlayer();
@@ -312,22 +312,78 @@ function showVideoPlayer(url, type) {
   document.body.appendChild(overlay);
   playerState.overlay = overlay;
   
-  // Header với menu
+  // Header
   var header = document.createElement('div');
-  header.style.cssText = 'padding:10px 16px;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.1);';
-  header.innerHTML = 
+  header.style.cssText = 'padding:10px 16px;background:rgba(0,0,0,0.7);display:flex;flex-direction:column;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.1);';
+  
+  // Dòng 1: Tiêu đề
+  var titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
+  titleRow.innerHTML = 
     '<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">' +
       '<span style="font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + pageInfo.title + '</span>' +
       '<span style="font-size:11px;color:#aaa;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;">' + type + '</span>' +
     '</div>' +
-    '<div style="position:relative;">' +
-      '<button id="__uvd_menu_btn__" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="background:rgba(255,255,255,0.1);color:#fff;font-size:18px;padding:4px 10px;">☰</button>' +
-      '<div id="__uvd_menu_dropdown__" style="display:none;position:absolute;right:0;top:40px;background:rgba(20,22,30,0.95);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:8px;min-width:160px;box-shadow:0 8px 30px rgba(0,0,0,0.6);z-index:10;flex-direction:column;gap:4px;"></div>' +
-    '</div>';
+    '<button id="__uvd_player_close__" class="uvd-btn uvd-btn-sm uvd-ripple-btn" style="background:rgba(255,0,0,0.3);color:#fff;">✕</button>';
+  header.appendChild(titleRow);
+  
+  // Dòng 2: Toolbar (Chất lượng, Tốc độ, Toàn màn hình, Thu nhỏ)
+  var toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
+  
+  // Chất lượng
+  var qualityBtn = document.createElement('button');
+  qualityBtn.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
+  qualityBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  qualityBtn.textContent = 'Chất lượng';
+  qualityBtn.onclick = function() {
+    if (playerState.qualities.length > 0) {
+      showQualitySubMenu();
+    } else {
+      toast('Không có chất lượng để chọn');
+    }
+  };
+  toolbar.appendChild(qualityBtn);
+  
+  // Tốc độ
+  var speedBtn = document.createElement('button');
+  speedBtn.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
+  speedBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  speedBtn.textContent = 'Tốc độ';
+  speedBtn.onclick = function() {
+    showSpeedSubMenu();
+  };
+  toolbar.appendChild(speedBtn);
+  
+  // Toàn màn hình
+  var fsBtn = document.createElement('button');
+  fsBtn.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
+  fsBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  fsBtn.textContent = 'Toàn màn hình';
+  fsBtn.onclick = function() {
+    var videoWrapper = document.getElementById('__uvd_video_wrapper__');
+    var fs = videoWrapper.requestFullscreen || videoWrapper.webkitRequestFullscreen || 
+             videoWrapper.mozRequestFullScreen || videoWrapper.msRequestFullscreen;
+    if (fs) fs.call(videoWrapper);
+  };
+  toolbar.appendChild(fsBtn);
+  
+  // Thu nhỏ
+  var minBtn = document.createElement('button');
+  minBtn.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
+  minBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  minBtn.textContent = 'Thu nhỏ';
+  minBtn.onclick = function() {
+    minimizePlayer();
+  };
+  toolbar.appendChild(minBtn);
+  
+  header.appendChild(toolbar);
   overlay.appendChild(header);
   
   // Video container
   var videoWrapper = document.createElement('div');
+  videoWrapper.id = '__uvd_video_wrapper__';
   videoWrapper.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
@@ -346,322 +402,82 @@ function showVideoPlayer(url, type) {
   footer.innerHTML = '<span id="__uvd_player_status__">Đang tải...</span><span id="__uvd_player_time__"></span>';
   overlay.appendChild(footer);
   
-  // ===== MENU BUILD =====
-  var menu = document.getElementById('__uvd_menu_dropdown__');
-  var menuBtn = document.getElementById('__uvd_menu_btn__');
-  
-  function toggleMenu() {
-    playerState.menuOpen = !playerState.menuOpen;
-    menu.style.display = playerState.menuOpen ? 'flex' : 'none';
-  }
-  
-  menuBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleMenu();
-  });
-  
-  // Đóng menu khi click ra ngoài
-  document.addEventListener('click', function(e) {
-    if (playerState.menuOpen && !menu.contains(e.target) && e.target !== menuBtn) {
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-    }
-  });
-  
-  // Các item trong menu
-  function addMenuItem(label, icon, action) {
-    var item = document.createElement('button');
-    item.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-    item.style.cssText = 'background:transparent;color:#fff;border:0;padding:8px 12px;border-radius:8px;text-align:left;width:100%;font-size:13px;display:flex;align-items:center;gap:8px;';
-    item.innerHTML = '<span style="font-size:16px;">' + icon + '</span> ' + label;
-    item.onclick = function(e) {
-      e.stopPropagation();
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-      action();
-    };
-    menu.appendChild(item);
-    return item;
-  }
-  
-  // 1. Chất lượng (chỉ hiển thị nếu có quality)
-  var qualityItem = addMenuItem('Chất lượng', '🎞️', function() {
+  // ===== SUB MENU FUNCTIONS =====
+  function showQualitySubMenu() {
+    var overlay2 = document.createElement('div');
+    overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483649;display:flex;align-items:center;justify-content:center;';
+    var panel = document.createElement('div');
+    panel.style.cssText = 'background:rgba(20,22,30,0.95);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid rgba(255,255,255,0.15);';
+    panel.innerHTML = '<div style="color:#fff;font-weight:600;margin-bottom:12px;">Chọn chất lượng</div>';
+    
     var sel = document.createElement('select');
-    sel.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;';
-    // sẽ được populate sau
-    var container = menu;
-    // tạm thời thay menu content bằng select
-    container.innerHTML = '';
-    container.appendChild(sel);
-    // populate quality
-    if (playerState.qualities.length) {
-      playerState.qualities.forEach(function(q, idx) {
-        var opt = document.createElement('option');
-        opt.value = idx;
-        opt.textContent = q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : '');
-        sel.appendChild(opt);
-      });
-      sel.onchange = function() {
-        var idx = parseInt(this.value);
-        var q = playerState.qualities[idx];
-        if (q && playerState.hls) {
-          var levels = playerState.hls.levels;
-          for (var i = 0; i < levels.length; i++) {
-            if (levels[i].height === parseInt(q.resolution.split('x')[1]) || levels[i].bitrate === q.bandwidth) {
-              playerState.hls.currentLevel = i;
-              break;
-            }
-          }
-          toast('Chuyển sang ' + q.label);
-        }
-        // quay lại menu chính sau khi chọn
-        rebuildMenu();
-      };
-      // thêm nút back
-      var back = document.createElement('button');
-      back.textContent = '← Quay lại';
-      back.className = 'uvd-btn uvd-btn-sm';
-      back.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:0;padding:6px;border-radius:6px;width:100%;margin-top:6px;';
-      back.onclick = function() { rebuildMenu(); };
-      container.appendChild(back);
-    } else {
-      sel.innerHTML = '<option>Không có chất lượng</option>';
-      sel.disabled = true;
-      var back2 = document.createElement('button');
-      back2.textContent = '← Quay lại';
-      back2.className = 'uvd-btn uvd-btn-sm';
-      back2.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:0;padding:6px;border-radius:6px;width:100%;margin-top:6px;';
-      back2.onclick = function() { rebuildMenu(); };
-      container.appendChild(back2);
-    }
-  });
-  
-  // 2. Tốc độ
-  addMenuItem('Tốc độ', '⚡', function() {
-    var sel = document.createElement('select');
-    sel.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;';
-    var speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
-    speeds.forEach(function(s) {
+    sel.style.cssText = 'width:100%;padding:10px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;font-size:14px;';
+    playerState.qualities.forEach(function(q, idx) {
       var opt = document.createElement('option');
-      opt.value = s;
-      opt.textContent = s + 'x';
-      if (s === 1) opt.selected = true;
+      opt.value = idx;
+      opt.textContent = q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : '');
       sel.appendChild(opt);
     });
     sel.onchange = function() {
-      video.playbackRate = parseFloat(this.value);
-      toast('Tốc độ: ' + this.value + 'x');
-      rebuildMenu();
-    };
-    var container = menu;
-    container.innerHTML = '';
-    container.appendChild(sel);
-    var back = document.createElement('button');
-    back.textContent = '← Quay lại';
-    back.className = 'uvd-btn uvd-btn-sm';
-    back.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:0;padding:6px;border-radius:6px;width:100%;margin-top:6px;';
-    back.onclick = function() { rebuildMenu(); };
-    container.appendChild(back);
-  });
-  
-  // 3. Toàn màn hình
-  addMenuItem('Toàn màn hình', '⛶', function() {
-    var fs = videoWrapper.requestFullscreen || videoWrapper.webkitRequestFullscreen || 
-             videoWrapper.mozRequestFullScreen || videoWrapper.msRequestFullscreen;
-    if (fs) fs.call(videoWrapper);
-  });
-  
-  // 4. Thu nhỏ
-  addMenuItem('Thu nhỏ', '−', function() {
-    minimizePlayer();
-  });
-  
-  // 5. Đóng
-  addMenuItem('Đóng', '✕', function() {
-    closePlayer();
-    document.getElementById('__uvd_stream_list__').style.display = 'block';
-  });
-  
-  function rebuildMenu() {
-    // Xóa tất cả menu item và tạo lại
-    menu.innerHTML = '';
-    // Tạo lại các item (chỉ gọi lại hàm addMenuItem)
-    // Nhưng để đơn giản, ta sẽ gọi lại hàm build menu từ đầu
-    // Cách nhanh: lưu các action vào mảng và rebuild
-    // Ở đây ta dùng cách đơn giản là xóa và thêm lại các item đã biết
-    var items = [
-      { label: 'Chất lượng', icon: '🎞️', action: function() { /* quality logic */ } },
-      { label: 'Tốc độ', icon: '⚡', action: function() { /* speed logic */ } },
-      { label: 'Toàn màn hình', icon: '⛶', action: function() { /* fs logic */ } },
-      { label: 'Thu nhỏ', icon: '−', action: function() { minimizePlayer(); } },
-      { label: 'Đóng', icon: '✕', action: function() { closePlayer(); document.getElementById('__uvd_stream_list__').style.display = 'block'; } }
-    ];
-    // Thực tế ta sẽ gọi lại các hàm addMenuItem với các action cụ thể
-    // Nhưng vì chúng đã được định nghĩa ở trên, ta có thể tạo lại menu bằng cách gọi lại các hàm đó
-    // Tuy nhiên để đơn giản, ta sẽ tạo lại menu từ đầu bằng cách gọi lại các hàm addMenuItem với cùng action.
-    // Ở đây do đóng gói, ta sẽ viết lại logic.
-    // Cách nhanh: reload lại toàn bộ menu từ đầu (sử dụng một hàm buildMenu)
-    buildMenuItems();
-  }
-  
-  function buildMenuItems() {
-    menu.innerHTML = '';
-    // Chất lượng
-    var qItem = document.createElement('button');
-    qItem.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-    qItem.style.cssText = 'background:transparent;color:#fff;border:0;padding:8px 12px;border-radius:8px;text-align:left;width:100%;font-size:13px;display:flex;align-items:center;gap:8px;';
-    qItem.innerHTML = '<span style="font-size:16px;">🎞️</span> Chất lượng';
-    qItem.onclick = function(e) {
-      e.stopPropagation();
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-      // Mở submenu chất lượng
-      showQualitySubMenu();
-    };
-    menu.appendChild(qItem);
-    
-    // Tốc độ
-    var sItem = document.createElement('button');
-    sItem.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-    sItem.style.cssText = 'background:transparent;color:#fff;border:0;padding:8px 12px;border-radius:8px;text-align:left;width:100%;font-size:13px;display:flex;align-items:center;gap:8px;';
-    sItem.innerHTML = '<span style="font-size:16px;">⚡</span> Tốc độ';
-    sItem.onclick = function(e) {
-      e.stopPropagation();
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-      showSpeedSubMenu();
-    };
-    menu.appendChild(sItem);
-    
-    // Toàn màn hình
-    var fsItem = document.createElement('button');
-    fsItem.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-    fsItem.style.cssText = 'background:transparent;color:#fff;border:0;padding:8px 12px;border-radius:8px;text-align:left;width:100%;font-size:13px;display:flex;align-items:center;gap:8px;';
-    fsItem.innerHTML = '<span style="font-size:16px;">⛶</span> Toàn màn hình';
-    fsItem.onclick = function(e) {
-      e.stopPropagation();
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-      var fs = videoWrapper.requestFullscreen || videoWrapper.webkitRequestFullscreen || 
-               videoWrapper.mozRequestFullScreen || videoWrapper.msRequestFullscreen;
-      if (fs) fs.call(videoWrapper);
-    };
-    menu.appendChild(fsItem);
-    
-    // Thu nhỏ
-    var minItem = document.createElement('button');
-    minItem.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-    minItem.style.cssText = 'background:transparent;color:#fff;border:0;padding:8px 12px;border-radius:8px;text-align:left;width:100%;font-size:13px;display:flex;align-items:center;gap:8px;';
-    minItem.innerHTML = '<span style="font-size:16px;">−</span> Thu nhỏ';
-    minItem.onclick = function(e) {
-      e.stopPropagation();
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-      minimizePlayer();
-    };
-    menu.appendChild(minItem);
-    
-    // Đóng
-    var closeItem = document.createElement('button');
-    closeItem.className = 'uvd-btn uvd-btn-sm uvd-ripple-btn';
-    closeItem.style.cssText = 'background:transparent;color:#fff;border:0;padding:8px 12px;border-radius:8px;text-align:left;width:100%;font-size:13px;display:flex;align-items:center;gap:8px;';
-    closeItem.innerHTML = '<span style="font-size:16px;">✕</span> Đóng';
-    closeItem.onclick = function(e) {
-      e.stopPropagation();
-      menu.style.display = 'none';
-      playerState.menuOpen = false;
-      closePlayer();
-      document.getElementById('__uvd_stream_list__').style.display = 'block';
-    };
-    menu.appendChild(closeItem);
-  }
-  
-  function showQualitySubMenu() {
-    menu.innerHTML = '';
-    var sel = document.createElement('select');
-    sel.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;';
-    if (playerState.qualities.length) {
-      playerState.qualities.forEach(function(q, idx) {
-        var opt = document.createElement('option');
-        opt.value = idx;
-        opt.textContent = q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : '');
-        sel.appendChild(opt);
-      });
-      sel.onchange = function() {
-        var idx = parseInt(this.value);
-        var q = playerState.qualities[idx];
-        if (q && playerState.hls) {
-          var levels = playerState.hls.levels;
-          for (var i = 0; i < levels.length; i++) {
-            if (levels[i].height === parseInt(q.resolution.split('x')[1]) || levels[i].bitrate === q.bandwidth) {
-              playerState.hls.currentLevel = i;
-              break;
-            }
+      var idx = parseInt(this.value);
+      var q = playerState.qualities[idx];
+      if (q && playerState.hls) {
+        var levels = playerState.hls.levels;
+        for (var i = 0; i < levels.length; i++) {
+          if (levels[i].height === parseInt(q.resolution.split('x')[1]) || levels[i].bitrate === q.bandwidth) {
+            playerState.hls.currentLevel = i;
+            break;
           }
-          toast('Chuyển sang ' + q.label);
         }
-        // quay lại menu chính
-        playerState.menuOpen = true;
-        menu.style.display = 'flex';
-        buildMenuItems();
-      };
-      menu.appendChild(sel);
-    } else {
-      var msg = document.createElement('div');
-      msg.textContent = 'Không có chất lượng';
-      msg.style.cssText = 'color:#aaa;padding:8px;';
-      menu.appendChild(msg);
-    }
-    var back = document.createElement('button');
-    back.textContent = '← Quay lại';
-    back.className = 'uvd-btn uvd-btn-sm';
-    back.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:0;padding:6px;border-radius:6px;width:100%;margin-top:6px;';
-    back.onclick = function() {
-      playerState.menuOpen = true;
-      menu.style.display = 'flex';
-      buildMenuItems();
+        toast('Chuyển sang ' + q.label);
+      }
+      overlay2.remove();
     };
-    menu.appendChild(back);
-    menu.style.display = 'flex';
-    playerState.menuOpen = true;
+    panel.appendChild(sel);
+    
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Đóng';
+    closeBtn.style.cssText = 'width:100%;margin-top:12px;padding:10px;background:rgba(255,0,0,0.3);color:#fff;border:0;border-radius:8px;font-weight:600;';
+    closeBtn.onclick = function() { overlay2.remove(); };
+    panel.appendChild(closeBtn);
+    
+    overlay2.appendChild(panel);
+    document.body.appendChild(overlay2);
   }
   
   function showSpeedSubMenu() {
-    menu.innerHTML = '';
-    var sel = document.createElement('select');
-    sel.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;';
+    var overlay2 = document.createElement('div');
+    overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483649;display:flex;align-items:center;justify-content:center;';
+    var panel = document.createElement('div');
+    panel.style.cssText = 'background:rgba(20,22,30,0.95);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid rgba(255,255,255,0.15);';
+    panel.innerHTML = '<div style="color:#fff;font-weight:600;margin-bottom:12px;">Chọn tốc độ</div>';
+    
     var speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:8px;';
     speeds.forEach(function(s) {
-      var opt = document.createElement('option');
-      opt.value = s;
-      opt.textContent = s + 'x';
-      if (s === 1) opt.selected = true;
-      sel.appendChild(opt);
+      var btn = document.createElement('button');
+      btn.textContent = s + 'x';
+      btn.style.cssText = 'padding:10px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer;font-size:14px;';
+      if (s === 1) btn.style.background = 'rgba(109,140,255,0.3)';
+      btn.onclick = function() {
+        video.playbackRate = s;
+        toast('Tốc độ: ' + s + 'x');
+        overlay2.remove();
+      };
+      grid.appendChild(btn);
     });
-    sel.onchange = function() {
-      video.playbackRate = parseFloat(this.value);
-      toast('Tốc độ: ' + this.value + 'x');
-      playerState.menuOpen = true;
-      menu.style.display = 'flex';
-      buildMenuItems();
-    };
-    menu.appendChild(sel);
-    var back = document.createElement('button');
-    back.textContent = '← Quay lại';
-    back.className = 'uvd-btn uvd-btn-sm';
-    back.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;border:0;padding:6px;border-radius:6px;width:100%;margin-top:6px;';
-    back.onclick = function() {
-      playerState.menuOpen = true;
-      menu.style.display = 'flex';
-      buildMenuItems();
-    };
-    menu.appendChild(back);
-    menu.style.display = 'flex';
-    playerState.menuOpen = true;
+    panel.appendChild(grid);
+    
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Đóng';
+    closeBtn.style.cssText = 'width:100%;margin-top:12px;padding:10px;background:rgba(255,0,0,0.3);color:#fff;border:0;border-radius:8px;font-weight:600;';
+    closeBtn.onclick = function() { overlay2.remove(); };
+    panel.appendChild(closeBtn);
+    
+    overlay2.appendChild(panel);
+    document.body.appendChild(overlay2);
   }
-  
-  // Khởi tạo menu lần đầu
-  buildMenuItems();
   
   // Load video
   var isHls = url.includes('.m3u8') || url.includes('m3u8');
@@ -721,6 +537,13 @@ function showVideoPlayer(url, type) {
     video.src = url;
   }
   
+  // Close
+  document.getElementById('__uvd_player_close__').addEventListener('click', addRipple);
+  document.getElementById('__uvd_player_close__').onclick = function() {
+    closePlayer();
+    document.getElementById('__uvd_stream_list__').style.display = 'block';
+  };
+  
   // Fullscreen change
   function onFullscreenChange() {
     var isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || 
@@ -748,7 +571,7 @@ function minimizePlayer() {
   
   var mini = document.createElement('div');
   mini.id = '__uvd_player_mini__';
-  mini.style.cssText = 'position:fixed;bottom:20px;right:20px;width:160px;height:90px;background:#000;border-radius:12px;z-index:2147483647;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,0.8);border:2px solid rgba(255,255,255,0.2);overflow:hidden;transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);';
+  mini.style.cssText = 'position:fixed;bottom:20px;right:20px;width:160px;height:90px;background:#000;border-radius:12px;z-index:2147483647;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,0.8);border:2px solid rgba(255,255,255,0.2);overflow:hidden;transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);';
   
   var canvas = document.createElement('canvas');
   canvas.width = 160;
@@ -769,13 +592,13 @@ function minimizePlayer() {
   document.body.appendChild(mini);
   playerState.mini = mini;
   
-  overlay.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease';
+  overlay.style.transition = 'transform 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease';
   overlay.style.transform = 'scale(0.8)';
   overlay.style.opacity = '0';
   
   setTimeout(function() {
     overlay.style.display = 'none';
-  }, 400);
+  }, 650);
   
   mini.onclick = function() {
     restorePlayer();
@@ -792,15 +615,15 @@ function restorePlayer() {
   var mini = playerState.mini;
   
   if (mini) {
-    mini.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+    mini.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
     mini.style.transform = 'scale(0.5)';
     mini.style.opacity = '0';
-    setTimeout(function() { mini.remove(); }, 300);
+    setTimeout(function() { mini.remove(); }, 500);
     playerState.mini = null;
   }
   
   overlay.style.display = 'flex';
-  overlay.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease';
+  overlay.style.transition = 'transform 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease';
   overlay.style.transform = 'scale(1)';
   overlay.style.opacity = '1';
   
@@ -1067,7 +890,7 @@ function buildUI() {
   header.innerHTML = 
     '<div style="display:flex;align-items:center;gap:8px;">' +
       '<span style="width:10px;height:10px;background:var(--grad-liquid);border-radius:50%;animation:uvdPulse 2s infinite;box-shadow:0 0 8px rgba(109,140,255,0.6);"></span>' +
-      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">UMP DL <span style="background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V5.3</span></span>' +
+      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">Universal Media Player DL <span style="background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">(UMPDL)</span></span>' +
     '</div>' +
     '<div style="display:flex;gap:6px;">' +
       '<button class="uvd-btn-icon uvd-ripple-btn" id="__uvd_minimize__" title="Thu nhỏ"><span style="font-size:18px;">−</span></button>' +
@@ -1474,9 +1297,9 @@ function renderSettings(container) {
       <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">📌 Phiên bản hiện tại: <strong style="color:var(--accent);">${VERSION}</strong></div>
       
       <div style="margin-bottom:10px;">
-        <div style="font-weight:600;color:var(--accent);font-size:13px;">1. Cài đặt Bookmarklet (dành cho Android)</div>
+        <div style="font-weight:600;color:var(--accent);font-size:13px;">1. Cài đặt Bookmarklet</div>
         <div style="background:rgba(0,0,0,0.5);border-radius:8px;padding:10px;font-family:monospace;font-size:10px;word-break:break-all;border:1px solid var(--border);margin:4px 0;">
-          javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/bookmarklet-@main/umpdl.js?v=3';document.head.appendChild(s);})();
+          javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/bookmarklet-@main/umpdl.js?_='+Date.now();document.head.appendChild(s);})();
         </div>
         <div style="font-size:12px;color:var(--text3);line-height:1.6;">
           <strong>Cách cài trên Chrome Android:</strong><br>
@@ -1488,7 +1311,7 @@ function renderSettings(container) {
           <span style="color:var(--text2);">💡 Nếu không thấy bookmark, vào Settings → Bookmarks.</span>
         </div>
         <div style="font-size:12px;color:var(--accent2);margin-top:6px;">
-          <strong>🔁 Force update:</strong> Khi có bản cập nhật, chỉ cần đổi số <code>?v=3</code> thành <code>?v=4</code> (hoặc số bất kỳ) trong bookmarklet (bước 1), sau đó lưu lại bookmark hoặc tạo bookmark mới. Trình duyệt sẽ tự động tải file mới nhất.
+          <strong>🔁 Force update:</strong> Bookmarklet trên đã có <code>?v=`+Date.now()</code> nên luôn tải file mới nhất, không bị cache.
         </div>
       </div>
       
@@ -1498,24 +1321,31 @@ function renderSettings(container) {
           • Mở trang web có video<br>
           • Bấm vào bookmark đã tạo<br>
           • Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để mở player overlay<br>
-          • Trong player: bấm <strong style="color:var(--accent);">☰</strong> để mở menu<br>
-          • Menu gồm: Chất lượng (nếu có), Tốc độ, Toàn màn hình, Thu nhỏ, Đóng<br>
+          • Trong player: thanh công cụ gồm <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Tốc độ</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong>, <strong style="color:var(--accent);">Thu nhỏ</strong><br>
           • Bấm <strong style="color:var(--accent);">Thu nhỏ</strong> để thu nhỏ player thành icon có hiệu ứng mượt<br>
           • Bấm vào icon để khôi phục
         </div>
       </div>
       
-      <div>
-        <div style="font-weight:600;color:var(--accent);font-size:13px;">3. Xử lý file Blob</div>
-        <div style="background:rgba(0,0,0,0.5);border-radius:8px;padding:10px;font-family:monospace;font-size:10px;word-break:break-all;border:1px solid var(--border);margin:4px 0;">
-          javascript:(function(){var v=document.querySelector('video');if(v&&v.src&&v.src.startsWith('blob:')){var a=document.createElement('a');a.href=v.src;a.download='video.mp4';document.body.appendChild(a);a.click();a.remove();alert('Đã tải blob video!');}else{alert('Không tìm thấy video blob!');}})();
+      <div style="margin-bottom:10px;">
+        <div style="font-weight:600;color:var(--accent);font-size:13px;">3. Tải video với yt-dlp và Termux</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;">
+          <strong>Cài đặt yt-dlp trên Termux:</strong><br>
+          <code style="background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px;color:var(--accent2);">pkg update && pkg upgrade -y</code><br>
+          <code style="background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px;color:var(--accent2);">pkg install python ffmpeg -y</code><br>
+          <code style="background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px;color:var(--accent2);">pip install yt-dlp</code><br><br>
+          <strong>Sau khi cài đặt, copy lệnh từ tab "Lệnh tải":</strong><br>
+          • Mở tab <strong style="color:var(--accent);">Streams</strong>, chọn stream cần tải<br>
+          • Bấm <strong style="color:var(--accent);">Lệnh tải</strong> → chọn lệnh phù hợp<br>
+          • Copy lệnh, mở Termux, dán vào và bấm Enter để tải.<br><br>
+          <strong>Lưu ý:</strong> Nhớ cấp quyền lưu file cho Termux (Android 11+):
+          <code style="background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px;color:var(--accent2);">termux-setup-storage</code>
         </div>
-        <div style="font-size:12px;color:var(--text3);">➜ Dùng để tải video đang phát dạng blob (vd: các trang xem phim)</div>
       </div>
     </div>
     
     <div class="uvd-card" style="color:var(--text2);font-size:12px;">
-      Phiên bản ${VERSION} · Player overlay với menu, chất lượng, tốc độ, thu nhỏ<br>
+      Phiên bản ${VERSION} · Player overlay với toolbar đơn giản<br>
       Yêu thích: ${data.favorites.length} · Lịch sử: ${(data.history||[]).length}
     </div>
   `;
@@ -1553,7 +1383,7 @@ var autoRefresh = setInterval(function() {
   }
 }, 2000);
 
-console.log('V5.3 UMP DL - Overlay Player with Menu Ready');
-toast('V5.3 sẵn sàng — Player overlay với menu, chất lượng, tốc độ, thu nhỏ mượt!');
+console.log('V5.4 UMP DL - Overlay Player with Toolbar Ready');
+toast('V5.4 sẵn sàng — Player overlay với toolbar đơn giản!');
 
 })();

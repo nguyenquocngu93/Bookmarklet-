@@ -246,7 +246,149 @@ function addRipple(e) {
   ripple.addEventListener('animationend', function() { ripple.remove(); });
 }
 
-// ========== SIMPLE VIDEO PLAYER ==========
+// ========== HLS PLAYER (chôm từ nhiều nguồn) ==========
+// Tự implement HLS player đơn giản với fetch + referer
+function SimpleHLSPlayer(video, url, referer) {
+  var that = this;
+  this.video = video;
+  this.url = url;
+  this.referer = referer || pageInfo.referer;
+  this.segments = [];
+  this.currentSegment = 0;
+  this.playing = false;
+  this.buffer = [];
+  this.mediaSource = null;
+  this.sourceBuffer = null;
+  
+  this.init = function() {
+    this.fetchPlaylist();
+  };
+  
+  this.fetchPlaylist = function() {
+    var self = this;
+    fetch(this.url, { headers: { 'Referer': this.referer } })
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (text.includes('#EXT-X-STREAM-INF')) {
+          // Master playlist - lấy quality cao nhất
+          var lines = text.split('\n');
+          var bestUrl = null;
+          var bestResolution = 0;
+          for (var i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('#EXT-X-STREAM-INF')) {
+              var res = (lines[i].match(/RESOLUTION=(\d+x(\d+))/) || [])[2];
+              var height = parseInt(res) || 0;
+              var nextLine = (lines[i + 1] || '').trim();
+              if (nextLine && !nextLine.startsWith('#')) {
+                if (height > bestResolution) {
+                  bestResolution = height;
+                  bestUrl = nextLine;
+                }
+              }
+            }
+          }
+          if (bestUrl) {
+            if (!bestUrl.startsWith('http')) {
+              var baseUrl = self.url.substring(0, self.url.lastIndexOf('/') + 1);
+              bestUrl = baseUrl + bestUrl;
+            }
+            self.url = bestUrl;
+            self.fetchPlaylist();
+            return;
+          }
+        }
+        self.parseSegments(text);
+      })
+      .catch(function(e) {
+        console.error('HLS fetch error:', e);
+        // Fallback: thử dùng native HLS hoặc video direct
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = url;
+        } else {
+          video.src = url;
+        }
+      });
+  };
+  
+  this.parseSegments = function(text) {
+    var lines = text.split('\n');
+    this.segments = [];
+    var duration = 0;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.startsWith('#EXTINF:')) {
+        var dur = parseFloat(line.replace('#EXTINF:', '').split(',')[0]) || 10;
+        duration += dur;
+        var nextLine = (lines[i + 1] || '').trim();
+        if (nextLine && !nextLine.startsWith('#')) {
+          var segUrl = nextLine;
+          if (!segUrl.startsWith('http')) {
+            var baseUrl = this.url.substring(0, this.url.lastIndexOf('/') + 1);
+            segUrl = baseUrl + segUrl;
+          }
+          this.segments.push({ url: segUrl, duration: dur });
+          i++;
+        }
+      }
+    }
+    if (this.segments.length === 0) {
+      // Không parse được segment, play trực tiếp
+      this.video.src = this.url;
+      return;
+    }
+    this.initMediaSource();
+  };
+  
+  this.initMediaSource = function() {
+    var self = this;
+    if (!window.MediaSource) {
+      this.video.src = this.url;
+      return;
+    }
+    
+    this.mediaSource = new MediaSource();
+    this.video.src = URL.createObjectURL(this.mediaSource);
+    this.mediaSource.addEventListener('sourceopen', function() {
+      self.sourceBuffer = self.mediaSource.addSourceBuffer('video/mp2t');
+      self.sourceBuffer.mode = 'sequence';
+      self.loadNextSegment();
+    });
+    this.mediaSource.addEventListener('sourceended', function() {
+      console.log('MediaSource ended');
+    });
+  };
+  
+  this.loadNextSegment = function() {
+    var self = this;
+    if (this.currentSegment >= this.segments.length) {
+      this.mediaSource.endOfStream();
+      return;
+    }
+    
+    var seg = this.segments[this.currentSegment];
+    fetch(seg.url, { headers: { 'Referer': this.referer } })
+      .then(function(r) { return r.arrayBuffer(); })
+      .then(function(data) {
+        try {
+          self.sourceBuffer.appendBuffer(data);
+          self.currentSegment++;
+        } catch(e) {
+          // Buffer full, đợi
+          setTimeout(function() { self.loadNextSegment(); }, 500);
+        }
+      })
+      .catch(function(e) {
+        console.error('Segment fetch error:', e);
+        // Thử segment tiếp theo
+        self.currentSegment++;
+        setTimeout(function() { self.loadNextSegment(); }, 500);
+      });
+  };
+  
+  this.init();
+}
+
+// ========== VIDEO PLAYER ==========
 function showVideoPlayer(url, type) {
   var container = document.getElementById('__uvd_player_container__');
   container.innerHTML = '';
@@ -257,7 +399,10 @@ function showVideoPlayer(url, type) {
   headerDiv.style.cssText = 'padding:10px 14px;background:var(--glass-hi);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;';
   headerDiv.innerHTML = 
     '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + pageInfo.title + ' <span style="color:var(--text3);font-weight:400;">(' + type + ')</span></div>' +
-    '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" id="__uvd_player_close__" style="background:var(--glass-hi);flex-shrink:0;">✕</button>';
+    '<div style="display:flex;gap:6px;">' +
+      '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" id="__uvd_player_open__" style="background:rgba(109,140,255,0.2);">📱 Mở tab mới</button>' +
+      '<button class="uvd-btn uvd-btn-sm uvd-ripple-btn" id="__uvd_player_close__" style="background:var(--glass-hi);">✕</button>' +
+    '</div>';
   container.appendChild(headerDiv);
   
   // Video wrapper
@@ -273,16 +418,22 @@ function showVideoPlayer(url, type) {
   video.setAttribute('webkit-playsinline', '');
   video.setAttribute('crossorigin', 'anonymous');
   
+  videoWrapper.appendChild(video);
+  container.appendChild(videoWrapper);
+  
   // Load video
-  var activeHls = null;
+  var player = null;
   if (url.includes('.m3u8') || url.includes('m3u8')) {
+    // Thử dùng HLS.js trước
     if (window.Hls && Hls.isSupported()) {
-      activeHls = new Hls();
-      activeHls.loadSource(url);
-      activeHls.attachMedia(video);
+      var hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      player = hls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
     } else {
+      // Tải HLS.js từ CDN
       var s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
       s.onload = function() { showVideoPlayer(url, type); };
@@ -293,13 +444,63 @@ function showVideoPlayer(url, type) {
     video.src = url;
   }
   
-  videoWrapper.appendChild(video);
-  container.appendChild(videoWrapper);
+  // Mở tab mới với referer
+  document.getElementById('__uvd_player_open__').addEventListener('click', addRipple);
+  document.getElementById('__uvd_player_open__').onclick = function() {
+    // Tạo trang HTML đơn giản để phát video với referer
+    var html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${pageInfo.title}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden}
+video{width:100%;height:100%;object-fit:contain;display:block}
+</style>
+</head>
+<body>
+<video id="v" controls playsinline crossorigin="anonymous"></video>
+<script>
+var url = '${url}';
+var referer = '${pageInfo.referer}';
+var video = document.getElementById('v');
+
+if (url.includes('.m3u8')) {
+  // Thử dùng HLS.js
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+  script.onload = function() {
+    if (Hls.isSupported()) {
+      var hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+    }
+  };
+  document.head.appendChild(script);
+} else {
+  video.src = url;
+}
+<\/script>
+</body>
+</html>
+    `;
+    
+    var blob = new Blob([html], { type: 'text/html' });
+    var blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+    toast('Đã mở tab mới với referer');
+  };
   
   // Close handler
   document.getElementById('__uvd_player_close__').addEventListener('click', addRipple);
   document.getElementById('__uvd_player_close__').onclick = function() {
-    if (activeHls) activeHls.destroy();
+    if (player && player.destroy) player.destroy();
     video.pause();
     video.src = '';
     container.style.display = 'none';
@@ -314,9 +515,7 @@ style.id = '__uvd_css__';
 style.textContent = `
 @keyframes uvdSlideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @keyframes uvdPulse{0%,100%{opacity:1;box-shadow:0 0 5px var(--accent)}50%{opacity:0.4;box-shadow:0 0 20px var(--accent)}}
-@keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes uvdScaleIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
-@keyframes uvdSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes uvdRipple{to{transform:scale(4);opacity:0}}
 @keyframes uvdCardEnter{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
 @keyframes uvdFloatBtnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
@@ -416,13 +615,6 @@ style.textContent = `
   font-size: var(--fs-sm);
   border-radius: var(--radius-sm);
 }
-
-.uvd-btn-primary {
-  background:var(--grad-liquid); border-color:transparent; color:#fff;
-  box-shadow:0 5px 16px rgba(109,140,255,0.4), 0 1px 0 rgba(255,255,255,0.25) inset;
-}
-
-.uvd-btn-primary:hover { filter:brightness(1.08); box-shadow:0 7px 20px rgba(109,140,255,0.5); }
 
 .uvd-btn-icon {
   background:var(--glass-hi); border:1px solid var(--border);
@@ -533,6 +725,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// ========== BUILD UI MAIN ==========
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
     return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority };
@@ -719,6 +912,7 @@ function buildUI() {
   };
 }
 
+// ========== RENDER FUNCTIONS ==========
 function renderStreams(container, arr) {
   if (!arr.length) {
     container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">Không phát hiện stream nào.</div>';
@@ -963,15 +1157,6 @@ function renderHistory(container) {
 function renderSettings(container) {
   container.innerHTML = `
     <div class="uvd-card">
-      <div style="font-weight:600;margin-bottom:8px;">🎨 Giao diện</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="uvd-btn uvd-btn-sm theme-btn" data-theme="dark">Tối</button>
-        <button class="uvd-btn uvd-btn-sm theme-btn" data-theme="light">Sáng</button>
-        <button class="uvd-btn uvd-btn-sm theme-btn" data-theme="purple">Tím</button>
-      </div>
-    </div>
-    
-    <div class="uvd-card">
       <div style="font-weight:600;margin-bottom:8px;">💾 Sao lưu & Khôi phục</div>
       <button class="uvd-btn uvd-btn-sm" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Xuất dữ liệu</button>
       <button class="uvd-btn uvd-btn-sm" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Nhập dữ liệu</button>
@@ -996,7 +1181,8 @@ function renderSettings(container) {
           • Bấm vào bookmark đã tạo<br>
           • Chọn stream và bấm <strong style="color:var(--accent);">▶ Xem</strong> để phát<br>
           • Bấm <strong style="color:var(--gold);">Chất lượng</strong> để chọn chất lượng M3U8<br>
-          • Bấm <strong style="color:var(--accent2);">Lệnh tải</strong> để lấy lệnh tải về
+          • Bấm <strong style="color:var(--accent2);">Lệnh tải</strong> để lấy lệnh tải về<br>
+          • Bấm <strong style="color:var(--accent);">📱 Mở tab mới</strong> để phát video trong tab riêng (giữ Referer)
         </div>
       </div>
       
@@ -1039,19 +1225,6 @@ function renderSettings(container) {
   document.getElementById('__uvd_reset__').onclick = function() {
     if (confirm('Xóa toàn bộ dữ liệu?')) { localStorage.removeItem(STORAGE_KEY); data = {favorites:[],siteProfiles:{},history:[]}; buildUI(); }
   };
-  
-  // Theme buttons
-  container.querySelectorAll('.theme-btn').forEach(function(b) {
-    b.onclick = function() {
-      var theme = this.dataset.theme;
-      document.querySelector(':root').style.setProperty('--bg', theme === 'light' ? 'rgba(240,242,248,0.97)' : 'rgba(3,4,8,0.97)');
-      document.querySelector(':root').style.setProperty('--glass', theme === 'light' ? 'rgba(240,242,248,0.85)' : 'rgba(12,14,20,0.85)');
-      document.querySelector(':root').style.setProperty('--text', theme === 'light' ? '#1a1a2e' : '#f3f5ff');
-      document.querySelector(':root').style.setProperty('--text2', theme === 'light' ? '#4a4a5e' : '#9ca3bd');
-      document.querySelector(':root').style.setProperty('--text3', theme === 'light' ? '#8a8a9e' : '#5d6377');
-      toast('Theme: ' + theme);
-    };
-  });
 }
 
 buildUI();

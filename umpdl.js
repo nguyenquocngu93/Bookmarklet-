@@ -1,24 +1,29 @@
 /**
- * Universal Media Player & Downloader - V6.4 FINAL
- * - 3 tab chia đều khoảng cách
- * - Blur mặc định 24px (tối hơn)
- * - Fix header minimize khi Chrome ẩn thanh địa chỉ
- * - Xóa đổi màu chủ đạo
- * - Thêm tùy chọn số giây khi nhấn đúp (default 10s)
- * - Block link trong streams -> thêm filter
- * - Đã xóa nút Yêu thích (⭐), nút Chặn màu trắng
- * Author: nguyenquocngu91 (fixed)
+ * Universal Media Player & Downloader - V6.7.6 PRO (UI Enhanced)
+ * - Hỗ trợ theme sáng/tối
+ * - Responsive, touch-friendly
+ * - Card stream hiển thị domain, bitrate/resolution
+ * - Thanh tìm kiếm stream
+ * - Trình phát: hiện controls khi hover, nút toggle auto-hide
+ * - Mã hóa SubDL API key (Base64)
+ * - Giảm glow mặc định
+ * - Fix lỗi và tối ưu
+ * 
+ * Author: nguyenquocngu91
  */
 (function() {
 'use strict';
 
-// ========== INIT ==========
-var VERSION = '6.4-final';
+// ========== VERSION ==========
+var VERSION = '6.7.6-UI+';
+
+// ========== CLEANUP ==========
 var old = document.getElementById('__uvd__');
 if (old) old.remove();
 var oldMinBtn = document.getElementById('__uvd_min_float__');
 if (oldMinBtn) oldMinBtn.remove();
 
+// ========== STORAGE ==========
 var STORAGE_KEY = 'uvd_data_v54';
 var storage = {
   get: function() {
@@ -50,9 +55,23 @@ data.settings = Object.assign({
   blurIntensity: 24,
   transitionSpeed: 0.3,
   transitionEasing: 'ease',
-  doubleTapSeconds: 10
+  doubleTapSeconds: 10,
+  autoHideControls: true,
+  showRemainingTime: true,
+  hideDelay: 5,
+  maxStoredUrls: 200,
+  blockAutoplay: true,
+  glowEffects: true,
+  effectsIntensity: 30,        // đã giảm từ 55
+  subdlApiKey: '',
+  theme: 'dark'                // 'dark' hoặc 'light'
 }, data.settings || {});
 
+// Mã hóa/giải mã SubDL API key (Base64)
+function encodeKey(key) { return btoa(key); }
+function decodeKey(enc) { try { return atob(enc); } catch(e) { return ''; } }
+
+// ========== PROFILES ==========
 var defaultProfiles = {
   'videoplay.us': { referer: 'https://videoplay.us/', userAgent: '' },
   'streamtape.com': { referer: 'https://streamtape.com/', userAgent: '' },
@@ -77,19 +96,27 @@ var pageInfo = {
   userAgent: profile.userAgent || navigator.userAgent
 };
 
-// ========== ACCENT THEME (giữ nguyên, nhưng không hiển thị trong UI) ==========
-var ACCENT_PALETTES = {
-  blue:   { name: 'Xanh dương', a: '#6d8cff', b: '#b98bff' },
-  purple: { name: 'Tím',        a: '#a855f7', b: '#ec4899' },
-  green:  { name: 'Xanh lá',    a: '#22c55e', b: '#10b981' },
-  pink:   { name: 'Hồng',       a: '#f472b6', b: '#fb7185' },
-  orange: { name: 'Cam',        a: '#fb923c', b: '#f59e0b' }
-};
-function applyAccent(el) {
+// ========== APPEND ROOT ==========
+function __uvdAppendRoot(el) {
+  (document.documentElement || document.body).appendChild(el);
+}
+
+// ========== ESCAPE HTML ==========
+function escapeHtml(text) {
+  if (!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.textContent;
+}
+
+// ========== HIỆU ỨNG (GLOW) ==========
+function applyEffectsPref(el) {
   if (!el) return;
-  var p = ACCENT_PALETTES[data.settings.accent] || ACCENT_PALETTES.blue;
-  el.style.setProperty('--accent', p.a);
-  el.style.setProperty('--accent2', p.b);
+  var on = !!data.settings.glowEffects && !data.settings.reduceMotion;
+  el.classList.toggle('uvd-fx-on', on);
+  var intensity = Math.max(0, Math.min(100, data.settings.effectsIntensity == null ? 30 : data.settings.effectsIntensity));
+  el.style.setProperty('--glow-px', on ? Math.round(4 + intensity * 0.18) + 'px' : '0px');
+  el.style.setProperty('--glow-op', on ? (0.15 + intensity * 0.0035).toFixed(3) : '0');
 }
 function applyMotionPref(el) {
   if (!el) return;
@@ -98,6 +125,12 @@ function applyMotionPref(el) {
   var speed = data.settings.reduceMotion ? 0 : data.settings.transitionSpeed;
   el.style.setProperty('--uvd-blur', blur + 'px');
   el.style.setProperty('--uvd-transition', speed + 's ' + data.settings.transitionEasing);
+}
+// Áp dụng theme
+function applyThemePref(el) {
+  if (!el) return;
+  var theme = data.settings.theme || 'dark';
+  el.setAttribute('data-theme', theme);
 }
 
 // ========== AD FILTER ==========
@@ -160,6 +193,13 @@ function findUrls(text, source) {
       });
     }
   });
+  if (urls.size > data.settings.maxStoredUrls) {
+    var toRemove = urls.size - data.settings.maxStoredUrls;
+    var keys = [...urls.keys()].sort(function(a, b) { return urls.get(a).timestamp - urls.get(b).timestamp; });
+    for (var i = 0; i < toRemove; i++) {
+      urls.delete(keys[i]);
+    }
+  }
 }
 
 function scan(doc, src) {
@@ -292,13 +332,17 @@ function autoClickPlayButtons(root, depth, allowVideoPlayFallback) {
         if (v.paused) {
           var wasMuted = v.muted;
           v.muted = true;
+          v.__uvdAllow = true;
           var p = v.play();
           if (p && p.then) {
             p.then(function() {
               setTimeout(function() {
                 try { v.pause(); v.currentTime = 0; v.muted = wasMuted; } catch(e) {}
+                v.__uvdAllow = false;
               }, 600);
-            }).catch(function() {});
+            }).catch(function() { v.__uvdAllow = false; });
+          } else {
+            v.__uvdAllow = false;
           }
         }
       });
@@ -338,8 +382,11 @@ function pauseAllPlayingVideos(root, depth) {
 // ========== LIVE MONITORING ==========
 var originalFetch = window.fetch;
 var originalXHROpen = XMLHttpRequest.prototype.open;
+var monitorActive = false;
 
 function installMonitor() {
+  if (monitorActive) return;
+  monitorActive = true;
   window.fetch = function() {
     var url = arguments[0];
     if (typeof url === 'string') {
@@ -359,12 +406,85 @@ function stopMonitor() {
   window.fetch = originalFetch;
   XMLHttpRequest.prototype.open = originalXHROpen;
   uninstallPopupBlock();
+  monitorActive = false;
 }
 
+// ========== CLEANUP FUNCTION ==========
+var cleanupFunctions = [];
+function addCleanup(fn) {
+  cleanupFunctions.push(fn);
+}
+function runCleanup() {
+  cleanupFunctions.forEach(function(fn) { try { fn(); } catch(e) {} });
+  cleanupFunctions = [];
+}
+
+// ========== CHẶN MẠNH VIDEO/AUDIO TỰ PHÁT ==========
+var __uvdNativeMediaPlay = HTMLMediaElement.prototype.play;
+function __uvdIsAllowedMedia(el) {
+  return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
+}
+HTMLMediaElement.prototype.play = function() {
+  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this)) {
+    var self = this;
+    setTimeout(function() { try { self.pause(); } catch(e) {} }, 0);
+    return Promise.reject(new DOMException('UVD: đã chặn tự phát', 'NotAllowedError'));
+  }
+  return __uvdNativeMediaPlay.apply(this, arguments);
+};
+addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
+
+function __uvdNeutralizeMedia(el) {
+  if (!el || __uvdIsAllowedMedia(el)) return;
+  try {
+    el.removeAttribute('autoplay');
+    el.autoplay = false;
+    if (!el.paused) el.pause();
+  } catch(e) {}
+}
+function __uvdBlockPlayEvent(e) {
+  if (!data.settings.blockAutoplay) return;
+  var el = e.target;
+  if (el && (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') && !__uvdIsAllowedMedia(el)) {
+    try { el.pause(); } catch(err) {}
+  }
+}
+document.addEventListener('play', __uvdBlockPlayEvent, true);
+addCleanup(function() { document.removeEventListener('play', __uvdBlockPlayEvent, true); });
+
+var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
+  if (!data.settings.blockAutoplay) return;
+  mutations.forEach(function(m) {
+    if (!m.addedNodes) return;
+    m.addedNodes.forEach(function(node) {
+      if (!(node instanceof Element)) return;
+      if (node.tagName === 'VIDEO' || node.tagName === 'AUDIO') __uvdNeutralizeMedia(node);
+      if (node.querySelectorAll) {
+        node.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia);
+      }
+    });
+  });
+});
+__uvdAutoplayObserver.observe(document.documentElement, { childList: true, subtree: true });
+addCleanup(function() { __uvdAutoplayObserver.disconnect(); });
+
+try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {}
+
+// ========== INIT ==========
 scan(document, 'main');
 try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
 installMonitor();
 installPopupBlock();
+
+var panelObserver = new MutationObserver(function() {
+  if (!document.getElementById('__uvd__')) {
+    stopMonitor();
+    panelObserver.disconnect();
+    runCleanup();
+  }
+});
+panelObserver.observe(document.body, { childList: true, subtree: true });
+addCleanup(function() { panelObserver.disconnect(); });
 
 function runAutoClickAndRescan(silent) {
   var beforeCount = urls.size;
@@ -393,8 +513,10 @@ setTimeout(function() { runAutoClickAndRescan(true); }, 400);
 
 // ========== M3U8 MASTER PARSER ==========
 function parseM3U8Master(url, callback) {
-  fetch(url, { headers: { 'Referer': pageInfo.referer } })
-  .then(function(r) { return r.text(); })
+  var controller = new AbortController();
+  var timeout = setTimeout(function() { controller.abort(); }, 15000);
+  fetch(url, { headers: { 'Referer': pageInfo.referer }, signal: controller.signal })
+  .then(function(r) { clearTimeout(timeout); return r.text(); })
   .then(function(text) {
     if (!text.includes('#EXT-X-STREAM-INF')) { callback(null); return; }
     var qualities = [];
@@ -420,7 +542,7 @@ function parseM3U8Master(url, callback) {
     }
     qualities.sort(function(a, b) { return (parseInt(b.resolution.split('x')[1]) || 0) - (parseInt(a.resolution.split('x')[1]) || 0); });
     callback(qualities);
-  }).catch(function(e) { console.error(e); callback(null); });
+  }).catch(function(e) { clearTimeout(timeout); console.error(e); callback(null); });
 }
 
 // ========== COMMANDS ==========
@@ -448,7 +570,7 @@ function toast(msg, color) {
   var el = document.createElement('div');
   el.textContent = msg;
   el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:' + (color || '#3b82f6') + ';color:#fff;padding:12px 24px;border-radius:30px;z-index:2147483649;font:600 13px Segoe UI;box-shadow:0 4px 15px rgba(0,0,0,0.4);animation:uvdSlideIn 0.3s ease;';
-  document.body.appendChild(el);
+  __uvdAppendRoot(el);
   setTimeout(function() { el.remove(); }, 2500);
 }
 
@@ -467,16 +589,6 @@ function addToHistory(url, type) {
   storage.set(data);
 }
 
-function isFavorite(url) { return data.favorites.some(function(f) { return f.url === url; }); }
-
-function toggleFavorite(url, type) {
-  var idx = data.favorites.findIndex(function(f) { return f.url === url; });
-  if (idx >= 0) { data.favorites.splice(idx, 1); toast('Đã xóa khỏi yêu thích'); }
-  else { data.favorites.unshift({ url, type, title: pageInfo.title, host: pageInfo.host, timestamp: Date.now() }); toast('Đã thêm vào yêu thích'); }
-  storage.set(data);
-  return isFavorite(url);
-}
-
 function addToFilterlist(pattern) {
   if (!pattern) return;
   pattern = pattern.trim().toLowerCase();
@@ -492,7 +604,12 @@ function addToFilterlist(pattern) {
 }
 
 function exportData(format) {
-  var arr = [...urls.entries()].map(function(e) { return { url: e[0], type: e[1].type, source: e[1].source, title: pageInfo.title }; });
+  var arr = [...urls.entries()].map(function(e) {
+    var obj = { url: e[0], type: e[1].type, source: e[1].source, title: pageInfo.title };
+    // Nếu có thông tin bitrate/resolution từ M3U8, thêm vào
+    if (e[1].qualityInfo) obj.qualityInfo = e[1].qualityInfo;
+    return obj;
+  });
   var content, mime, filename;
   if (format === 'json') {
     content = JSON.stringify({ page: pageInfo, streams: arr }, null, 2);
@@ -565,7 +682,13 @@ var playerState = {
   sleepTimerId: null,
   sleepEndAt: 0,
   savePosTimer: null,
-  wasReduceMotion: false
+  wasReduceMotion: false,
+  hideTimeout: null,
+  controlsVisible: true,
+  pinned: false,
+  timeMode: 0,
+  animationFrame: null,
+  autoHideEnabled: true   // thêm để toggle nhanh
 };
 
 // ========== RESUME PLAYBACK POSITION ==========
@@ -624,10 +747,216 @@ function showSleepMenu() {
   });
   overlay2.appendChild(panel);
   overlay2.onclick = function(e) { if (e.target === overlay2) overlay2.remove(); };
-  document.body.appendChild(overlay2);
+  __uvdAppendRoot(overlay2);
 }
 
-// ========== VOLUME BOOST (Web Audio) ==========
+// ========== PHỤ ĐỀ (THỬ NGHIỆM) ==========
+function srtToVtt(text) {
+  var body = text.replace(/\r/g, '').replace(/^\uFEFF/, '');
+  if (/^WEBVTT/.test(body.trim())) return body;
+  body = body.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+  return 'WEBVTT\n\n' + body;
+}
+
+function attachSubtitleTrack(video, vttUrl, label) {
+  if (!video) return;
+  video.querySelectorAll('track[data-uvd-sub="1"]').forEach(function(t) { t.remove(); });
+  var track = document.createElement('track');
+  track.setAttribute('data-uvd-sub', '1');
+  track.kind = 'subtitles';
+  track.label = label || 'Phụ đề';
+  track.srclang = 'vi';
+  track.src = vttUrl;
+  track.default = true;
+  video.appendChild(track);
+  setTimeout(function() {
+    if (video.textTracks && video.textTracks.length) {
+      for (var i = 0; i < video.textTracks.length; i++) {
+        video.textTracks[i].mode = video.textTracks[i].label === (label || 'Phụ đề') ? 'showing' : 'disabled';
+      }
+    }
+  }, 100);
+  toast('✅ Đã bật phụ đề: ' + (label || ''));
+}
+
+function searchSubDL(query, cb) {
+  var apiKey = decodeKey(data.settings.subdlApiKey || '').trim();
+  if (!apiKey) { toast('Chưa có SubDL API Key, xem hướng dẫn trong bảng Phụ đề'); cb([]); return; }
+  console.log('[UMP DL] SubDL: bắt đầu tìm "' + query + '"');
+  var settled = false;
+  function finish(fn) { if (settled) return; settled = true; clearTimeout(hardTimeoutId); fn(); }
+  var hardTimeoutId = setTimeout(function() {
+    finish(function() {
+      console.error('[UMP DL] SubDL: hết 15s vẫn không có phản hồi');
+      toast('SubDL không phản hồi sau 15s — có thể do CORS hoặc trang chặn kết nối');
+      cb([]);
+    });
+  }, 15000);
+  var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  if (controller) { setTimeout(function() { controller.abort(); }, 15000); }
+
+  fetch('https://api.subdl.com/api/v2/subtitles/search?film_name=' + encodeURIComponent(query) + '&languages=vi,en&unpack=1', {
+    headers: { 'Authorization': 'Bearer ' + apiKey },
+    signal: controller ? controller.signal : undefined
+  })
+  .then(function(r) {
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    return r.json();
+  })
+  .then(function(json) {
+    finish(function() {
+      if (json && json.status === false) {
+        console.warn('[UMP DL] SubDL trả lỗi:', json.message || json);
+        toast('SubDL: ' + (json.message || 'yêu cầu bị từ chối (kiểm tra API key)'));
+        cb([]); return;
+      }
+      var subs = (json && json.subtitles) || [];
+      var flat = [];
+      subs.forEach(function(s) {
+        if (s && Array.isArray(s.unpack_files) && s.unpack_files.length) {
+          s.unpack_files.forEach(function(f) {
+            flat.push(Object.assign({
+              release_name: s.release_name || s.name,
+              language: f.language
+            }, f));
+          });
+        } else if (s) {
+          flat.push(s);
+        }
+      });
+      console.log('[UMP DL] SubDL: nhận được ' + flat.length + ' phụ đề');
+      cb(flat);
+    });
+  })
+  .catch(function(err) {
+    finish(function() {
+      console.error('[UMP DL] Lỗi SubDL search:', err);
+      toast('Lỗi kết nối SubDL: ' + (err && err.message ? err.message : 'CORS/mạng'));
+      cb([]);
+    });
+  });
+}
+
+function downloadSubDLFile(item, cb) {
+  var apiKey = decodeKey(data.settings.subdlApiKey || '').trim();
+  var directUrl = item.url || item.file_url || item.download_url || (item.files && item.files[0] && item.files[0].url);
+  var nId = item.file_n_id || item.nId || item.n_id || item.id;
+  var reqPromise;
+  if (directUrl) {
+    reqPromise = fetch(directUrl.indexOf('http') === 0 ? directUrl : 'https://dl.subdl.com' + directUrl);
+  } else if (nId) {
+    reqPromise = fetch('https://api.subdl.com/api/v2/subtitles/' + encodeURIComponent(nId) + '/download?format=file', {
+      headers: { 'Authorization': 'Bearer ' + apiKey }
+    }).then(function(r) {
+      var ct = r.headers.get('content-type') || '';
+      return ct.indexOf('application/json') !== -1 ? r.json() : r.text();
+    }).then(function(result) {
+      if (typeof result === 'string') return result;
+      var link = result && (result.url || result.download_url || result.link);
+      if (!link) throw new Error('no-link');
+      return fetch(link).then(function(r2) { return r2.text(); });
+    });
+  } else {
+    toast('Không có file để tải'); if (cb) cb(false); return;
+  }
+  Promise.resolve(reqPromise)
+  .then(function(res) { return (typeof res === 'string') ? res : res.text(); })
+  .then(function(text) {
+    if (!text) throw new Error('empty');
+    var vtt = srtToVtt(text);
+    var blobUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
+    attachSubtitleTrack(playerState.video, blobUrl, 'SubDL');
+    if (cb) cb(true);
+  })
+  .catch(function() { toast('Lỗi tải phụ đề từ SubDL'); if (cb) cb(false); });
+}
+
+function showSubtitlePanel(video) {
+  var overlay2 = document.createElement('div');
+  overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483649;display:flex;align-items:center;justify-content:center;padding:16px;';
+  var panel = document.createElement('div');
+  applyEffectsPref(panel);
+  panel.style.cssText = 'background:rgba(20,22,30,0.96);border-radius:16px;padding:20px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto;border:1px solid rgba(255,255,255,0.15);';
+  panel.innerHTML =
+    '<div style="color:#fff;font-weight:600;margin-bottom:4px;">💬 Phụ đề <span style="font-size:10px;color:var(--gold);font-weight:400;">(thử nghiệm)</span></div>' +
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Tải file có sẵn hoặc tìm trên SubDL.</div>' +
+    '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Tải file .srt / .vtt từ máy</div>' +
+    '<input type="file" id="__uvd_sub_file__" accept=".srt,.vtt" style="width:100%;color:var(--text2);font-size:12px;margin-bottom:14px;">' +
+    '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Tìm trên SubDL</div>' +
+    '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
+      '<input type="text" id="__uvd_sub_query__" placeholder="Tên phim..." value="' + escapeHtml(pageInfo.title) + '" style="flex:1;padding:9px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;font-size:12px;">' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_sub_search__">Tìm</button>' +
+    '</div>' +
+    '<div id="__uvd_sub_results__" style="max-height:200px;overflow-y:auto;"></div>' +
+    '<details style="margin-top:12px;">' +
+      '<summary style="font-size:11px;color:var(--text3);cursor:pointer;">API Key SubDL</summary>' +
+      '<input type="password" id="__uvd_sub_apikey__" placeholder="Dán API key cá nhân (subdl.com)" value="' + escapeHtml(data.settings.subdlApiKey || '') + '" style="width:100%;margin-top:8px;padding:9px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;font-size:11px;">' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:4px;">Đăng ký free tại subdl.com/panel/api để lấy API key cá nhân (không cần app \"consumer\" riêng, 2000 lượt tìm + 50 lượt tải/ngày).</div>' +
+    '</details>' +
+    '<div class="uvd-grid-2" style="margin-top:14px;">' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_sub_off__">Tắt phụ đề</button>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_sub_close__" style="background:var(--btn-danger-bg);">Đóng</button>' +
+    '</div>';
+  overlay2.appendChild(panel);
+  overlay2.onclick = function(e) { if (e.target === overlay2) overlay2.remove(); };
+  __uvdAppendRoot(overlay2);
+
+  panel.querySelector('#__uvd_sub_file__').onchange = function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      var vtt = srtToVtt(String(reader.result || ''));
+      var blobUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
+      attachSubtitleTrack(video, blobUrl, file.name.replace(/\.(srt|vtt)$/i, ''));
+      overlay2.remove();
+    };
+    reader.readAsText(file);
+  };
+
+  panel.querySelector('#__uvd_sub_apikey__').onchange = function() {
+    var raw = this.value.trim();
+    data.settings.subdlApiKey = raw ? encodeKey(raw) : '';
+    storage.set(data);
+  };
+
+  panel.querySelector('#__uvd_sub_search__').onclick = function() {
+    var q = panel.querySelector('#__uvd_sub_query__').value.trim();
+    if (!q) return;
+    var box = panel.querySelector('#__uvd_sub_results__');
+    box.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 0;">Đang tìm...</div>';
+    searchSubDL(q, function(list) {
+      if (!list.length) { box.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 0;">Không tìm thấy kết quả.</div>'; return; }
+      box.innerHTML = '';
+      list.slice(0, 10).forEach(function(item) {
+        var title = item.release_name || item.name || item.film_name || q;
+        var lang = item.language || item.lang || '';
+        var row = document.createElement('div');
+        row.className = 'uvd-card';
+        row.style.cssText = 'padding:8px 10px;margin-bottom:6px;cursor:pointer;';
+        row.innerHTML = '<div style="font-size:12px;color:#fff;">' + escapeHtml(title) + '</div>' +
+          '<div style="font-size:10px;color:var(--text3);">' + escapeHtml(String(lang).toUpperCase()) + '</div>';
+        row.onclick = function() {
+          toast('Đang tải phụ đề...');
+          downloadSubDLFile(item, function(ok) { if (ok) overlay2.remove(); });
+        };
+        box.appendChild(row);
+      });
+    });
+  };
+
+  panel.querySelector('#__uvd_sub_off__').onclick = function() {
+    if (video && video.textTracks) {
+      for (var i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = 'disabled';
+    }
+    toast('Đã tắt phụ đề');
+    overlay2.remove();
+  };
+
+  panel.querySelector('#__uvd_sub_close__').onclick = function() { overlay2.remove(); };
+}
+
+// ========== VOLUME BOOST ==========
 function enableVolumeBoost(video, percent) {
   try {
     if (!playerState.audioCtx) {
@@ -647,7 +976,7 @@ function disableVolumeBoost() {
   try { if (playerState.gainNode) playerState.gainNode.gain.value = 1; } catch(e) {}
 }
 
-// ========== GESTURE: chạm đúp trái/phải để tua ±X giây (dùng data.settings.doubleTapSeconds) ==========
+// ========== GESTURE: TUA ĐÚP ==========
 function attachPlayerGestures(wrapper, video) {
   var lastTap = { time: 0, side: null };
   var tapSeconds = data.settings.doubleTapSeconds || 10;
@@ -691,15 +1020,66 @@ function hideGestureHintSoon() {
 }
 
 // ========== OVERLAY PLAYER ==========
+function __uvdMountVjs10(wrapper, video) {
+  var FALLBACK_MS = 4000;
+  var done = false;
+  function fallbackToNative() {
+    if (done) return;
+    done = true;
+    if (!video.parentNode) wrapper.appendChild(video);
+    video.setAttribute('controls', '');
+  }
+  function wrapWithSkin() {
+    if (done) return;
+    done = true;
+    try {
+      var player = document.createElement('video-player');
+      player.style.cssText = 'width:100%;height:100%;display:block;';
+      var skin = document.createElement('video-skin');
+      skin.style.cssText = 'width:100%;height:100%;display:block;';
+      if (video.parentNode) video.parentNode.removeChild(video);
+      skin.appendChild(video);
+      player.appendChild(skin);
+      wrapper.appendChild(player);
+    } catch (e) {
+      console.error('[UMP DL] Video.js v10 mount lỗi, dùng controls gốc:', e);
+      done = false;
+      fallbackToNative();
+    }
+  }
+  if (customElements.get('video-player')) { wrapWithSkin(); return; }
+  if (!window.__uvdVjs10Loading) {
+    window.__uvdVjs10Loading = true;
+    var s = document.createElement('script');
+    s.type = 'module';
+    s.src = 'https://cdn.jsdelivr.net/npm/@videojs/html/cdn/video.js';
+    s.onerror = function() { console.error('[UMP DL] Không tải được Video.js v10 (có thể do CSP chặn trang), dùng controls gốc'); };
+    document.head.appendChild(s);
+  }
+  var checkStart = Date.now();
+  var iv = setInterval(function() {
+    if (customElements.get('video-player')) {
+      clearInterval(iv);
+      wrapWithSkin();
+    } else if (Date.now() - checkStart > FALLBACK_MS) {
+      clearInterval(iv);
+      console.warn('[UMP DL] Video.js v10 chưa sẵn sàng sau ' + FALLBACK_MS + 'ms, dùng controls gốc');
+      fallbackToNative();
+    }
+  }, 100);
+}
+
 function showVideoPlayer(url, type) {
   if (playerState.overlay && playerState.url === url) return;
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
   playerState._displayedResolution = '';
+  playerState.timeMode = 0;
+  playerState.pinned = false;
+  playerState.autoHideEnabled = data.settings.autoHideControls;
   pauseAllPlayingVideos();
 
-  // Tạm thời bật reduceMotion để giảm tải khi xem video
   playerState.wasReduceMotion = data.settings.reduceMotion;
   if (!data.settings.reduceMotion) {
     data.settings.reduceMotion = true;
@@ -709,20 +1089,22 @@ function showVideoPlayer(url, type) {
   var overlay = document.createElement('div');
   overlay.id = '__uvd_player_overlay__';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:2147483648;display:flex;flex-direction:column;animation:uvdFadeIn 0.3s ease;';
-  document.body.appendChild(overlay);
+  __uvdAppendRoot(overlay);
   playerState.overlay = overlay;
-  applyAccent(overlay);
+  applyEffectsPref(overlay);
   applyMotionPref(overlay);
+  applyThemePref(overlay);
 
+  // HEADER
   var header = document.createElement('div');
-  header.style.cssText = 'padding:10px 16px;background:rgba(14,16,22,0.92);display:flex;flex-direction:column;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.2);box-shadow:0 4px 20px rgba(0,0,0,0.5);';
-
+  header.id = '__uvd_player_header__';
+  header.style.cssText = 'padding:10px 16px;background:rgba(14,16,22,0.92);display:flex;flex-direction:column;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.2);box-shadow:0 4px 20px rgba(0,0,0,0.5);transition: opacity 0.3s ease;';
   var titleRow = document.createElement('div');
   titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
   var titleInfo = document.createElement('div');
   titleInfo.className = 'uvd-title-info';
   titleInfo.style.cssText = 'min-width:0;flex:1;';
-  titleInfo.innerHTML = '<div style="font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + pageInfo.title + '</div><div style="font-size:11px;color:#aaa;margin-top:2px;">' + type + '</div>';
+  titleInfo.innerHTML = '<div style="font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + escapeHtml(pageInfo.title) + '</div><div style="font-size:11px;color:#aaa;margin-top:2px;">' + escapeHtml(type) + '</div>';
   titleRow.appendChild(titleInfo);
 
   var btnGroup = document.createElement('div');
@@ -736,32 +1118,79 @@ function showVideoPlayer(url, type) {
   var closeBtn = document.createElement('button');
   closeBtn.id = '__uvd_player_close__';
   closeBtn.className = 'uvd-btn uvd-btn-sm';
-  closeBtn.style.cssText = 'background:rgba(255,0,0,0.3);color:#fff;';
+  closeBtn.style.cssText = 'background:var(--btn-danger-bg);color:#fff;border:1px solid var(--btn-danger-border);';
   closeBtn.textContent = '✕';
   btnGroup.appendChild(closeBtn);
   titleRow.appendChild(btnGroup);
   header.appendChild(titleRow);
 
+  // TOOLBAR
   var toolbar = document.createElement('div');
-  toolbar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
+  toolbar.id = '__uvd_player_toolbar__';
+  toolbar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;transition: opacity 0.3s ease;';
+  
   var qualityBtn = document.createElement('button');
   qualityBtn.className = 'uvd-btn uvd-btn-sm';
-  qualityBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  qualityBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
   qualityBtn.textContent = 'Chất lượng';
   qualityBtn.onclick = function() {
     if (playerState.qualities.length > 0) showQualitySubMenu();
     else toast('Không có chất lượng để chọn');
   };
   toolbar.appendChild(qualityBtn);
-  var speedBtn = document.createElement('button');
-  speedBtn.className = 'uvd-btn uvd-btn-sm';
-  speedBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
-  speedBtn.textContent = 'Tốc độ';
-  speedBtn.onclick = showSpeedSubMenu;
-  toolbar.appendChild(speedBtn);
+  
+  var speedLabel = document.createElement('span');
+  speedLabel.className = 'uvd-btn uvd-btn-sm';
+  speedLabel.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;padding:7px 6px;';
+  speedLabel.textContent = '1x';
+  speedLabel.id = '__uvd_speed_label__';
+  toolbar.appendChild(speedLabel);
+  
+  var speedDecBtn = document.createElement('button');
+  speedDecBtn.className = 'uvd-btn uvd-btn-sm';
+  speedDecBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;padding:7px 8px;';
+  speedDecBtn.textContent = '−';
+  speedDecBtn.onclick = function() {
+    var video = playerState.video;
+    if (!video) return;
+    var rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    var cur = video.playbackRate;
+    var idx = rates.indexOf(cur);
+    if (idx > 0) {
+      video.playbackRate = rates[idx - 1];
+    } else {
+      video.playbackRate = 0.25;
+    }
+    speedLabel.textContent = video.playbackRate + 'x';
+    toast('Tốc độ: ' + video.playbackRate + 'x');
+    resetHideTimer();
+  };
+  toolbar.appendChild(speedDecBtn);
+  
+  var speedIncBtn = document.createElement('button');
+  speedIncBtn.className = 'uvd-btn uvd-btn-sm';
+  speedIncBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;padding:7px 8px;';
+  speedIncBtn.textContent = '+';
+  speedIncBtn.onclick = function() {
+    var video = playerState.video;
+    if (!video) return;
+    var rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    var cur = video.playbackRate;
+    var idx = rates.indexOf(cur);
+    if (idx < rates.length - 1) {
+      video.playbackRate = rates[idx + 1];
+    } else {
+      video.playbackRate = 2;
+    }
+    speedLabel.textContent = video.playbackRate + 'x';
+    toast('Tốc độ: ' + video.playbackRate + 'x');
+    resetHideTimer();
+  };
+  toolbar.appendChild(speedIncBtn);
+
   var fsBtn = document.createElement('button');
   fsBtn.className = 'uvd-btn uvd-btn-sm';
-  fsBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  fsBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
   fsBtn.textContent = 'Toàn màn hình';
   fsBtn.onclick = function() {
     var videoWrapper = document.getElementById('__uvd_video_wrapper__');
@@ -773,7 +1202,7 @@ function showVideoPlayer(url, type) {
   if (document.pictureInPictureEnabled) {
     var pipBtn = document.createElement('button');
     pipBtn.className = 'uvd-btn uvd-btn-sm';
-    pipBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+    pipBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
     pipBtn.textContent = 'PiP';
     pipBtn.onclick = function() {
       var v = playerState.video;
@@ -786,7 +1215,7 @@ function showVideoPlayer(url, type) {
 
   var sleepBtn = document.createElement('button');
   sleepBtn.className = 'uvd-btn uvd-btn-sm';
-  sleepBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  sleepBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
   sleepBtn.textContent = '⏰ Hẹn giờ';
   sleepBtn.onclick = showSleepMenu;
   toolbar.appendChild(sleepBtn);
@@ -794,22 +1223,21 @@ function showVideoPlayer(url, type) {
   var boostBtn = document.createElement('button');
   boostBtn.className = 'uvd-btn uvd-btn-sm';
   boostBtn.id = '__uvd_boost_btn__';
-  boostBtn.style.cssText = 'background:' + (data.settings.volumeBoost ? 'rgba(255,184,77,0.35)' : 'rgba(255,255,255,0.1)') + ';color:#fff;font-size:12px;';
+  boostBtn.style.cssText = 'background:' + (data.settings.volumeBoost ? 'var(--btn-gold-bg)' : 'var(--btn-bg)') + ';color:#fff;font-size:12px;';
   boostBtn.textContent = '🔊 Boost';
   boostBtn.onclick = function() {
     data.settings.volumeBoost = !data.settings.volumeBoost;
     storage.set(data);
     if (data.settings.volumeBoost) { enableVolumeBoost(video, data.settings.volumeBoostMax); toast('Đã bật tăng âm lượng ' + data.settings.volumeBoostMax + '%'); }
     else { disableVolumeBoost(); toast('Đã tắt tăng âm lượng'); }
-    boostBtn.style.background = data.settings.volumeBoost ? 'rgba(255,184,77,0.35)' : 'rgba(255,255,255,0.1)';
+    boostBtn.style.background = data.settings.volumeBoost ? 'var(--btn-gold-bg)' : 'var(--btn-bg)';
   };
   toolbar.appendChild(boostBtn);
 
-  // Mute
   var muteBtn = document.createElement('button');
   muteBtn.className = 'uvd-btn uvd-btn-sm';
   muteBtn.id = '__uvd_mute_btn__';
-  muteBtn.style.cssText = 'background:rgba(255,255,255,0.1);color:#fff;font-size:12px;';
+  muteBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
   muteBtn.textContent = '🔇 Mute';
   var isMuted = false;
   muteBtn.onclick = function() {
@@ -824,19 +1252,91 @@ function showVideoPlayer(url, type) {
   var autoNextBtn = document.createElement('button');
   autoNextBtn.className = 'uvd-btn uvd-btn-sm';
   autoNextBtn.id = '__uvd_autonext_btn__';
-  autoNextBtn.style.cssText = 'background:' + (data.settings.autoNext ? 'rgba(109,140,255,0.35)' : 'rgba(255,255,255,0.1)') + ';color:#fff;font-size:12px;';
+  autoNextBtn.style.cssText = 'background:' + (data.settings.autoNext ? 'var(--btn-accent-bg)' : 'var(--btn-bg)') + ';color:#fff;font-size:12px;';
   autoNextBtn.textContent = '⏭ Tự động phát tiếp';
   autoNextBtn.onclick = function() {
     data.settings.autoNext = !data.settings.autoNext;
     storage.set(data);
-    autoNextBtn.style.background = data.settings.autoNext ? 'rgba(109,140,255,0.35)' : 'rgba(255,255,255,0.1)';
+    autoNextBtn.style.background = data.settings.autoNext ? 'var(--btn-accent-bg)' : 'var(--btn-bg)';
     toast(data.settings.autoNext ? 'Sẽ tự động phát stream tiếp theo' : 'Đã tắt tự động phát tiếp');
   };
   toolbar.appendChild(autoNextBtn);
+
+  var pinBtn = document.createElement('button');
+  pinBtn.className = 'uvd-btn uvd-btn-sm';
+  pinBtn.id = '__uvd_pin_btn__';
+  pinBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
+  pinBtn.textContent = '📌';
+  pinBtn.title = 'Ghim thanh điều khiển (không tự ẩn)';
+  pinBtn.onclick = function() {
+    playerState.pinned = !playerState.pinned;
+    pinBtn.style.background = playerState.pinned ? 'var(--btn-accent-bg)' : 'var(--btn-bg)';
+    toast(playerState.pinned ? 'Đã ghim controls' : 'Bỏ ghim controls');
+    if (playerState.pinned) {
+      header.style.opacity = '1';
+      toolbar.style.opacity = '1';
+      footer.style.opacity = '1';
+      playerState.controlsVisible = true;
+      clearTimeout(playerState.hideTimeout);
+    } else {
+      resetHideTimer();
+    }
+  };
+  toolbar.appendChild(pinBtn);
+
+  // Nút toggle auto-hide
+  var autoHideToggle = document.createElement('button');
+  autoHideToggle.className = 'uvd-btn uvd-btn-sm';
+  autoHideToggle.id = '__uvd_autohide_toggle__';
+  autoHideToggle.style.cssText = 'background:' + (playerState.autoHideEnabled ? 'var(--btn-bg)' : 'var(--btn-accent-bg)') + ';color:#fff;font-size:12px;';
+  autoHideToggle.textContent = '👁️';
+  autoHideToggle.title = 'Bật/tắt tự ẩn controls';
+  autoHideToggle.onclick = function() {
+    playerState.autoHideEnabled = !playerState.autoHideEnabled;
+    autoHideToggle.style.background = playerState.autoHideEnabled ? 'var(--btn-bg)' : 'var(--btn-accent-bg)';
+    toast(playerState.autoHideEnabled ? 'Tự ẩn controls: BẬT' : 'Tự ẩn controls: TẮT');
+    resetHideTimer();
+  };
+  toolbar.appendChild(autoHideToggle);
+
+  var screenshotBtn = document.createElement('button');
+  screenshotBtn.className = 'uvd-btn uvd-btn-sm';
+  screenshotBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
+  screenshotBtn.textContent = '📷 Screenshot';
+  screenshotBtn.onclick = function() {
+    var v = playerState.video;
+    if (!v || !v.videoWidth) { toast('Chưa có video'); return; }
+    var canvas = document.createElement('canvas');
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    var link = document.createElement('a');
+    link.download = pageInfo.title + '_screenshot.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    var flash = document.createElement('div');
+    flash.style.cssText = 'position:absolute;inset:0;background:#fff;opacity:0.6;z-index:10;pointer-events:none;transition:opacity 0.2s;';
+    var wrapper = document.getElementById('__uvd_video_wrapper__');
+    if (wrapper) wrapper.appendChild(flash);
+    setTimeout(function() { flash.style.opacity = '0'; }, 100);
+    setTimeout(function() { if (flash.parentNode) flash.remove(); }, 400);
+    toast('Đã chụp ảnh màn hình');
+  };
+  toolbar.appendChild(screenshotBtn);
+
+  var subtitleBtn = document.createElement('button');
+  subtitleBtn.className = 'uvd-btn uvd-btn-sm';
+  subtitleBtn.style.cssText = 'background:var(--btn-bg);color:#fff;font-size:12px;';
+  subtitleBtn.textContent = '💬 Phụ đề';
+  subtitleBtn.title = 'Phụ đề (thử nghiệm)';
+  subtitleBtn.onclick = function() { showSubtitlePanel(playerState.video); };
+  toolbar.appendChild(subtitleBtn);
+
   if (type === 'MP4' || type === 'MKV' || type === 'WEBM') {
     var downloadBtn = document.createElement('button');
     downloadBtn.className = 'uvd-btn uvd-btn-sm';
-    downloadBtn.style.cssText = 'background:rgba(34,197,94,0.3);color:#fff;font-size:12px;';
+    downloadBtn.style.cssText = 'background:var(--btn-success-bg);color:#fff;font-size:12px;border:1px solid var(--btn-success-border);';
     downloadBtn.textContent = 'Tải xuống';
     downloadBtn.onclick = function() {
       var a = document.createElement('a');
@@ -852,50 +1352,208 @@ function showVideoPlayer(url, type) {
   if (type === 'M3U8' || type === 'MPD') {
     var shareBtn = document.createElement('button');
     shareBtn.className = 'uvd-btn uvd-btn-sm';
-    shareBtn.style.cssText = 'background:rgba(139,92,246,0.3);color:#fff;font-size:12px;';
+    shareBtn.style.cssText = 'background:var(--btn-purple-bg);color:#fff;font-size:12px;';
     shareBtn.textContent = 'Chia sẻ';
     shareBtn.onclick = function() { shareUrl(url); };
     toolbar.appendChild(shareBtn);
   }
+
   header.appendChild(toolbar);
   overlay.appendChild(header);
 
+  // VIDEO WRAPPER
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
   videoWrapper.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative;overflow:hidden;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
-  video.style.cssText = 'max-width:100%;max-height:100%;width:auto;height:auto;display:block;object-fit:contain;';
-  video.setAttribute('controls', '');
+  video.style.cssText = 'max-width:100%;max-height:100%;width:100%;height:100%;display:block;object-fit:contain;';
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
   video.setAttribute('crossorigin', 'anonymous');
   videoWrapper.appendChild(video);
   overlay.appendChild(videoWrapper);
   playerState.video = video;
+  __uvdMountVjs10(videoWrapper, video);
 
+  // FOOTER
   var footer = document.createElement('div');
-  footer.style.cssText = 'padding:8px 16px;background:rgba(0,0,0,0.7);border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:#aaa;display:flex;justify-content:space-between;flex-shrink:0;';
-  footer.innerHTML = '<span id="__uvd_player_status__">Đang tải...</span><span id="__uvd_player_size__" style="color:#8ab4ff;">Đang ước tính dung lượng...</span><span id="__uvd_player_time__"></span>';
+  footer.id = '__uvd_player_footer__';
+  footer.style.cssText = 'padding:8px 16px;background:rgba(0,0,0,0.7);border-top:1px solid var(--btn-bg);font-size:12px;color:#aaa;display:flex;justify-content:space-between;flex-shrink:0;transition: opacity 0.3s ease;';
+  footer.innerHTML = '<span id="__uvd_player_status__">Đang tải...</span><span id="__uvd_player_size__" style="color:#8ab4ff;">Đang ước tính dung lượng...</span><span id="__uvd_player_time__" style="cursor:pointer;">00:00</span>';
   overlay.appendChild(footer);
 
-  function showQualitySubMenu() {
+  // ===== AUTO-HIDE CONTROLS =====
+  function resetHideTimer() {
+    if (playerState.pinned || !playerState.autoHideEnabled) {
+      header.style.opacity = '1';
+      toolbar.style.opacity = '1';
+      footer.style.opacity = '1';
+      playerState.controlsVisible = true;
+      clearTimeout(playerState.hideTimeout);
+      return;
+    }
+    clearTimeout(playerState.hideTimeout);
+    header.style.opacity = '1';
+    toolbar.style.opacity = '1';
+    footer.style.opacity = '1';
+    playerState.controlsVisible = true;
+    var delay = (data.settings.hideDelay || 5) * 1000;
+    playerState.hideTimeout = setTimeout(function() {
+      if (video.paused || playerState.pinned) return;
+      header.style.opacity = '0';
+      toolbar.style.opacity = '0';
+      footer.style.opacity = '0.3';
+      playerState.controlsVisible = false;
+    }, delay);
+  }
+
+  // Hover hiện controls (desktop)
+  videoWrapper.addEventListener('mouseenter', function() {
+    if (!playerState.pinned && playerState.autoHideEnabled) {
+      clearTimeout(playerState.hideTimeout);
+      header.style.opacity = '1';
+      toolbar.style.opacity = '1';
+      footer.style.opacity = '1';
+      playerState.controlsVisible = true;
+    }
+  });
+  videoWrapper.addEventListener('mouseleave', function() {
+    if (!playerState.pinned && playerState.autoHideEnabled && !video.paused) {
+      var delay = (data.settings.hideDelay || 5) * 1000;
+      playerState.hideTimeout = setTimeout(function() {
+        if (video.paused || playerState.pinned) return;
+        header.style.opacity = '0';
+        toolbar.style.opacity = '0';
+        footer.style.opacity = '0.3';
+        playerState.controlsVisible = false;
+      }, delay);
+    }
+  });
+
+  videoWrapper.addEventListener('click', resetHideTimer);
+  videoWrapper.addEventListener('touchstart', resetHideTimer);
+  video.addEventListener('play', resetHideTimer);
+  video.addEventListener('playing', resetHideTimer);
+  video.addEventListener('pause', function() {
+    clearTimeout(playerState.hideTimeout);
+    header.style.opacity = '1';
+    toolbar.style.opacity = '1';
+    footer.style.opacity = '1';
+    playerState.controlsVisible = true;
+  });
+  video.addEventListener('ended', function() {
+    clearTimeout(playerState.hideTimeout);
+    header.style.opacity = '1';
+    toolbar.style.opacity = '1';
+    footer.style.opacity = '1';
+    playerState.controlsVisible = true;
+  });
+  toolbar.addEventListener('click', resetHideTimer);
+  header.addEventListener('click', resetHideTimer);
+  addCleanup(function() { clearTimeout(playerState.hideTimeout); });
+
+  // ===== HIỂN THỊ THỜI GIAN =====
+  var timeEl = document.getElementById('__uvd_player_time__');
+  function formatTime(sec) {
+    if (!sec || sec < 0) return '00:00';
+    sec = Math.floor(sec);
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    if (h > 0) return h + ':' + (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
+    return (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
+  }
+
+  function updateTimeDisplay() {
+    var t = video.currentTime || 0;
+    var d = video.duration || 0;
+    if (!d) { timeEl.textContent = '00:00'; return; }
+    var remaining = d - t;
+    var elapsed = t;
+    var total = d;
+    var text = '';
+    var mode = playerState.timeMode;
+    if (data.settings.showRemainingTime && mode === 0) {
+      text = '-' + formatTime(remaining);
+    } else if (mode === 1) {
+      text = formatTime(elapsed);
+    } else {
+      text = formatTime(elapsed) + ' / ' + formatTime(total);
+    }
+    var icon = mode === 0 ? ' ⏳' : (mode === 1 ? ' ▶' : ' 📋');
+    timeEl.textContent = text + icon;
+  }
+
+  timeEl.addEventListener('click', function() {
+    playerState.timeMode = (playerState.timeMode + 1) % 3;
+    updateTimeDisplay();
+    var modes = ['còn lại', 'đã qua', 'tổng'];
+    toast('Chế độ: ' + modes[playerState.timeMode]);
+    resetHideTimer();
+  });
+
+  var rafId = null;
+  function scheduleTimeUpdate() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(function() {
+      updateTimeDisplay();
+      rafId = null;
+    });
+  }
+  video.addEventListener('timeupdate', scheduleTimeUpdate);
+  video.addEventListener('loadedmetadata', function() {
+    updateTimeDisplay();
+    var label = document.getElementById('__uvd_speed_label__');
+    if (label) label.textContent = video.playbackRate + 'x';
+    resetHideTimer();
+  });
+  video.addEventListener('ratechange', function() {
+    var label = document.getElementById('__uvd_speed_label__');
+    if (label) label.textContent = video.playbackRate + 'x';
+  });
+  addCleanup(function() { if (rafId) cancelAnimationFrame(rafId); });
+
+  // ===== CÁC HÀM MENU =====
+  function createMenuPanel(title, options, callback) {
     var overlay2 = document.createElement('div');
     overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483649;display:flex;align-items:center;justify-content:center;';
     var panel = document.createElement('div');
     panel.style.cssText = 'background:rgba(20,22,30,0.95);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid rgba(255,255,255,0.15);';
-    panel.innerHTML = '<div style="color:#fff;font-weight:600;margin-bottom:12px;">Chọn chất lượng</div>';
-    var sel = document.createElement('select');
-    sel.style.cssText = 'width:100%;padding:10px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;font-size:14px;';
-    playerState.qualities.forEach(function(q, idx) {
-      var opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : '');
-      sel.appendChild(opt);
+    panel.innerHTML = '<div style="color:#fff;font-weight:600;margin-bottom:12px;">' + escapeHtml(title) + '</div>';
+    var content = document.createElement('div');
+    content.style.cssText = 'max-height:60vh;overflow-y:auto;';
+    options.forEach(function(opt) {
+      var btn = document.createElement('button');
+      btn.className = 'uvd-btn uvd-btn-sm';
+      btn.style.cssText = 'width:100%;margin-bottom:6px;text-align:center;';
+      btn.textContent = opt.label;
+      btn.onclick = function() {
+        callback(opt.value);
+        overlay2.remove();
+        resetHideTimer();
+      };
+      content.appendChild(btn);
     });
-    sel.onchange = function() {
-      var idx = parseInt(this.value);
-      var q = playerState.qualities[idx];
+    panel.appendChild(content);
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Đóng';
+    closeBtn.className = 'uvd-btn uvd-btn-sm';
+    closeBtn.style.cssText = 'width:100%;margin-top:10px;background:var(--danger);';
+    closeBtn.onclick = function() { overlay2.remove(); resetHideTimer(); };
+    panel.appendChild(closeBtn);
+    overlay2.appendChild(panel);
+    __uvdAppendRoot(overlay2);
+  }
+
+  function showQualitySubMenu() {
+    var qualities = playerState.qualities;
+    if (!qualities.length) { toast('Không có chất lượng'); return; }
+    var opts = qualities.map(function(q, idx) {
+      return { label: q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : ''), value: idx };
+    });
+    createMenuPanel('Chọn chất lượng', opts, function(idx) {
+      var q = qualities[idx];
       if (q && playerState.hls) {
         var levels = playerState.hls.levels;
         for (var i = 0; i < levels.length; i++) {
@@ -906,52 +1564,10 @@ function showVideoPlayer(url, type) {
         }
         toast('Chuyển sang ' + q.label);
       }
-      overlay2.remove();
-    };
-    panel.appendChild(sel);
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Đóng';
-    closeBtn.style.cssText = 'width:100%;margin-top:12px;padding:10px;background:rgba(255,0,0,0.3);color:#fff;border:0;border-radius:8px;font-weight:600;';
-    closeBtn.onclick = function() { overlay2.remove(); };
-    panel.appendChild(closeBtn);
-    overlay2.appendChild(panel);
-    document.body.appendChild(overlay2);
-  }
-
-  function showSpeedSubMenu() {
-    var overlay2 = document.createElement('div');
-    overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483649;display:flex;align-items:center;justify-content:center;';
-    var panel = document.createElement('div');
-    panel.style.cssText = 'background:rgba(20,22,30,0.95);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid rgba(255,255,255,0.15);';
-    panel.innerHTML = '<div style="color:#fff;font-weight:600;margin-bottom:12px;">Chọn tốc độ</div>';
-    var speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
-    var grid = document.createElement('div');
-    grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:8px;';
-    speeds.forEach(function(s) {
-      var btn = document.createElement('button');
-      btn.textContent = s + 'x';
-      btn.style.cssText = 'padding:10px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;cursor:pointer;font-size:14px;';
-      if (s === 1) btn.style.background = 'rgba(109,140,255,0.3)';
-      btn.onclick = function() {
-        video.playbackRate = s;
-        toast('Tốc độ: ' + s + 'x');
-        overlay2.remove();
-      };
-      grid.appendChild(btn);
     });
-    panel.appendChild(grid);
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Đóng';
-    closeBtn.style.cssText = 'width:100%;margin-top:12px;padding:10px;background:rgba(255,0,0,0.3);color:#fff;border:0;border-radius:8px;font-weight:600;';
-    closeBtn.onclick = function() { overlay2.remove(); };
-    panel.appendChild(closeBtn);
-    overlay2.appendChild(panel);
-    document.body.appendChild(overlay2);
   }
 
-  var isHls = url.includes('.m3u8') || url.includes('m3u8');
-  var activeHls = null;
-
+  // ===== PHÁT VIDEO =====
   function updateTitleDisplay() {
     var infoDiv = document.querySelector('#__uvd_player_overlay__ .uvd-title-info');
     if (!infoDiv) return;
@@ -964,7 +1580,7 @@ function showVideoPlayer(url, type) {
     if (playerState._displayedResolution !== currentRes) {
       playerState._displayedResolution = currentRes;
       var sub = playerState.type + (currentRes ? ' · ' + currentRes : '');
-      infoDiv.innerHTML = '<div style="font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + pageInfo.title + '</div><div style="font-size:11px;color:#aaa;margin-top:2px;">' + sub + '</div>';
+      infoDiv.innerHTML = '<div style="font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">▶ ' + escapeHtml(pageInfo.title) + '</div><div style="font-size:11px;color:#aaa;margin-top:2px;">' + escapeHtml(sub) + '</div>';
     }
   }
 
@@ -1016,10 +1632,15 @@ function showVideoPlayer(url, type) {
     updateTitleDisplay();
     updateSizeEstimate();
     if (isHls && playerState.qualities.length === 0) {
+      // Hiển thị spinner
+      statusEl.textContent = '• Đang phân tích chất lượng...';
       parseM3U8Master(url, function(qualities) {
         if (qualities && qualities.length > 0) {
           playerState.qualities = qualities;
           updateSizeEstimate();
+          statusEl.textContent = '• Đã tìm thấy ' + qualities.length + ' chất lượng';
+        } else {
+          statusEl.textContent = '• Không phân tích được chất lượng';
         }
       });
     }
@@ -1043,20 +1664,20 @@ function showVideoPlayer(url, type) {
         toast('▶ Tiếp tục từ ' + formatTime(pos.time));
       }
     }
+    resetHideTimer();
+    var label = document.getElementById('__uvd_speed_label__');
+    if (label) label.textContent = video.playbackRate + 'x';
   }
 
   video.addEventListener('loadedmetadata', onMetadataLoaded);
   video.addEventListener('durationchange', updateSizeEstimate);
   var __lastPosSave = 0;
   video.addEventListener('timeupdate', function() {
-    var t = video.currentTime;
-    var d = video.duration;
-    if (d) document.getElementById('__uvd_player_time__').textContent = formatTime(t) + ' / ' + formatTime(d);
-    updateTitleDisplay();
     if (data.settings.resumePlayback && Date.now() - __lastPosSave > 5000) {
       __lastPosSave = Date.now();
       savePlaybackPosition(url, video);
     }
+    updateTitleDisplay();
   });
   video.addEventListener('ended', function() {
     if (data.settings.resumePlayback) { delete data.playbackPositions[url]; storage.set(data); }
@@ -1076,11 +1697,8 @@ function showVideoPlayer(url, type) {
     return list[idx + 1];
   }
 
-  function formatTime(sec) {
-    var m = Math.floor(sec / 60);
-    var s = Math.floor(sec % 60);
-    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-  }
+  var isHls = url.includes('.m3u8') || url.includes('m3u8');
+  var activeHls = null;
 
   if (isHls) {
     if (window.Hls && Hls.isSupported()) {
@@ -1096,6 +1714,7 @@ function showVideoPlayer(url, type) {
           }
         });
         applyDefaultQualityPreference();
+        resetHideTimer();
       });
       activeHls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
         var lvl = activeHls.levels[data.level];
@@ -1150,14 +1769,22 @@ function showVideoPlayer(url, type) {
   document.addEventListener('webkitfullscreenchange', onFullscreenChange);
   document.addEventListener('mozfullscreenchange', onFullscreenChange);
   document.addEventListener('MSFullscreenChange', onFullscreenChange);
+  addCleanup(function() {
+    document.removeEventListener('fullscreenchange', onFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    document.removeEventListener('mozfullscreenchange', onFullscreenChange);
+    document.removeEventListener('MSFullscreenChange', onFullscreenChange);
+  });
 }
 
+// ===== CÁC HÀM MINIMIZE / RESTORE / CLOSE =====
 function minimizePlayer() {
   if (playerState.isMinimized) return;
   playerState.isMinimized = true;
   var overlay = playerState.overlay;
   var video = playerState.video;
   video.pause();
+  clearTimeout(playerState.hideTimeout);
   
   var mini = document.createElement('div');
   mini.id = '__uvd_player_mini__';
@@ -1175,11 +1802,11 @@ function minimizePlayer() {
   mini.appendChild(canvas);
   
   var label = document.createElement('div');
-  label.textContent = '▶ ' + pageInfo.title;
+  label.textContent = '▶ ' + escapeHtml(pageInfo.title);
   label.style.cssText = 'position:absolute;bottom:4px;left:8px;color:#fff;font-size:11px;font-weight:600;text-shadow:0 2px 4px rgba(0,0,0,0.8);background:rgba(0,0,0,0.5);padding:2px 8px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90%;';
   mini.appendChild(label);
   
-  document.body.appendChild(mini);
+  __uvdAppendRoot(mini);
   playerState.mini = mini;
   
   overlay.style.transition = 'opacity 0.25s ease';
@@ -1204,6 +1831,7 @@ function restorePlayer() {
   overlay.style.opacity = '1';
   if (playerState.video) {
     playerState.video.play().catch(function(){});
+    if (playerState._resetHideTimer) playerState._resetHideTimer();
   }
 }
 
@@ -1213,6 +1841,7 @@ function closePlayer() {
       savePlaybackPosition(playerState.url, playerState.video);
     }
     clearSleepTimer();
+    clearTimeout(playerState.hideTimeout);
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}
       playerState.audioCtx = null;
@@ -1246,7 +1875,7 @@ function closePlayer() {
   }
 }
 
-// ========== CSS (chia đều 3 tab, blur 24px, fix header, bỏ màu) ==========
+// ========== CSS (CẢI TIẾN) ==========
 if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
 var style = document.createElement('style');
 style.id = '__uvd_css__';
@@ -1254,7 +1883,89 @@ style.textContent = `
 :root {
   --uvd-blur: 24px;
   --uvd-transition: 0.3s ease;
+  --bg: rgba(3,4,8,0.97);
+  --glass: rgba(12,14,20,0.85);
+  --glass-hi: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.08);
+  --text: #f3f5ff;
+  --text2: #9ca3bd;
+  --text3: #5d6377;
+  --accent: #6d8cff;
+  --accent2: #b98bff;
+  --danger: #ff5d72;
+  --gold: #ffb84d;
+  --success: #34d399;
+  --card-bg: rgba(255,255,255,0.03);
+  --fs-xs: clamp(10px, 1.2vw, 12px);
+  --fs-sm: clamp(11px, 1.4vw, 13px);
+  --fs-base: clamp(12px, 1.6vw, 14px);
+  --fs-md: clamp(13px, 1.8vw, 15px);
+  --fs-lg: clamp(15px, 2vw, 18px);
+  --radius-sm: clamp(10px, 1.2vw, 14px);
+  --radius-md: clamp(14px, 1.6vw, 18px);
+  --radius-lg: clamp(20px, 2.2vw, 28px);
+  --grad-liquid: linear-gradient(135deg,var(--accent),var(--accent2));
+  --glow-px: 0px;
+  --glow-op: 0;
+  --btn-bg: rgba(255,255,255,0.1);
+  --btn-danger-bg: rgba(255,93,114,0.22);
+  --btn-danger-border: rgba(255,93,114,0.4);
+  --btn-success-bg: rgba(52,211,153,0.2);
+  --btn-success-border: rgba(52,211,153,0.4);
+  --btn-accent-bg: rgba(109,140,255,0.28);
+  --btn-purple-bg: rgba(167,139,250,0.24);
+  --btn-gold-bg: rgba(255,184,77,0.26);
 }
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: rgba(245,247,255,0.95);
+  --glass: rgba(255,255,255,0.85);
+  --glass-hi: rgba(0,0,0,0.06);
+  --border: rgba(0,0,0,0.12);
+  --text: #1a1c2a;
+  --text2: #3d4055;
+  --text3: #6b6f8a;
+  --card-bg: rgba(0,0,0,0.03);
+  --btn-bg: rgba(0,0,0,0.06);
+  --btn-danger-bg: rgba(255,93,114,0.15);
+  --btn-success-bg: rgba(52,211,153,0.15);
+  --btn-accent-bg: rgba(109,140,255,0.15);
+  --btn-purple-bg: rgba(167,139,250,0.15);
+  --btn-gold-bg: rgba(255,184,77,0.15);
+}
+[data-theme="light"] .uvd-glass-panel {
+  background: var(--glass);
+  border-color: var(--border);
+  color: var(--text);
+}
+[data-theme="light"] .uvd-glass-panel .uvd-btn {
+  color: var(--text);
+}
+[data-theme="light"] .uvd-glass-panel .uvd-btn-icon {
+  color: var(--text);
+}
+[data-theme="light"] .uvd-glass-panel .uvd-card {
+  color: var(--text);
+}
+[data-theme="light"] .uvd-glass-panel .uvd-url-box {
+  color: var(--text2);
+}
+[data-theme="light"] .uvd-glass-panel .uvd-tab {
+  color: var(--text2);
+}
+[data-theme="light"] .uvd-glass-panel .uvd-tab.uvd-tab-active {
+  color: var(--text);
+}
+[data-theme="light"] .uvd-glass-panel #__uvd_player_header__ {
+  background: rgba(255,255,255,0.9);
+  border-bottom-color: var(--border);
+}
+[data-theme="light"] .uvd-glass-panel #__uvd_player_footer__ {
+  background: rgba(255,255,255,0.7);
+  color: var(--text2);
+}
+
 @keyframes uvdSlideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @keyframes uvdPulse{0%,100%{opacity:1;box-shadow:0 0 5px var(--accent)}50%{opacity:0.4;box-shadow:0 0 20px var(--accent)}}
 @keyframes uvdScaleIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
@@ -1263,25 +1974,62 @@ style.textContent = `
 @keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
 @keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 *{box-sizing:border-box}
-.uvd-glass-panel{background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 20px 50px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.08) inset;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto;transition: backdrop-filter var(--uvd-transition), background var(--uvd-transition);}
+.uvd-glass-panel{background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 20px 50px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.08) inset;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:clamp(12px, 2vw, 20px);width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto;transition: backdrop-filter var(--uvd-transition), background var(--uvd-transition);}
 .uvd-glass-panel::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(109,140,255,0.6),rgba(185,139,255,0.6),transparent);opacity:0.7}
 .uvd-liquid-bg{position:absolute;inset:-30%;z-index:0;pointer-events:none;background:radial-gradient(closest-side,rgba(109,140,255,0.12),transparent 70%) 15% 20%/55% 55% no-repeat,radial-gradient(closest-side,rgba(185,139,255,0.10),transparent 70%) 85% 75%/60% 60% no-repeat;filter:blur(50px);animation:uvdLiquidDrift 16s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.uvd-liquid-bg{animation:none}}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
-.uvd-panel-minimized .uvd-panel-content>*:not(:first-child){pointer-events:none;opacity:0;transition:opacity .18s ease}
+.uvd-panel-minimized .uvd-panel-content > *:not(#__uvd_header__) {
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.25s ease, transform 0.3s ease;
+  max-height: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+.uvd-panel-minimized .uvd-panel-content #__uvd_header__ {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+.uvd-panel-minimized .uvd-glass-panel {
+  background: rgba(10,11,16,0.95) !important;
+  backdrop-filter: blur(0) !important;
+}
 .uvd-reduce-motion .uvd-liquid-bg{animation:none}
 .uvd-reduce-motion *{animation:none!important;transition:none!important}
-.uvd-reduce-motion .uvd-glass-panel{backdrop-filter:blur(0px)!important; -webkit-backdrop-filter:blur(0px)!important}
-
-/* Chia đều 3 tab */
-.uvd-tabbar{display:flex;gap:2px;padding:4px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:999px;margin-bottom:10px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;}
+.uvd-reduce-motion .uvd-glass-panel {
+  backdrop-filter: blur(0px)!important;
+  -webkit-backdrop-filter: blur(0px)!important;
+  background: rgba(10,11,16, 0.98) !important;
+  border-color: rgba(255,255,255,0.12);
+}
+.uvd-reduce-motion .uvd-glass-panel .uvd-panel-content {
+  color: var(--text);
+}
+.uvd-reduce-motion .uvd-glass-panel .uvd-tab {
+  color: var(--text2);
+}
+.uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active {
+  color: #fff;
+}
+.uvd-reduce-motion .uvd-glass-panel .uvd-card {
+  background: rgba(255,255,255,0.06);
+}
+.uvd-reduce-motion .uvd-glass-panel .uvd-btn {
+  background: rgba(255,255,255,0.08);
+}
+.uvd-tabbar{display:flex;gap:2px;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:999px;margin-bottom:10px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;}
 .uvd-tabbar::-webkit-scrollbar{display:none}
-.uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(109,140,255,0.45);transition:transform 0.4s cubic-bezier(.4,0,.2,1),width 0.4s cubic-bezier(.4,0,.2,1)}
-.uvd-tab{position:relative;z-index:1;flex:1;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:9px 8px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;min-width:0;}
+.uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(109,140,255,0.45);transition:transform 0.4s cubic-bezier(.4,0,.2,1),width 0.4s cubic-bezier(.4,0,.2,1)}
+.uvd-tab{position:relative;z-index:1;flex:1;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:clamp(8px, 1vw, 12px) clamp(10px, 1.4vw, 18px);border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;min-width:0;}
 .uvd-tab.uvd-tab-active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.3)}
-
-/* Các style khác giữ nguyên */
-:root{--bg:rgba(3,4,8,0.97);--glass:rgba(12,14,20,0.85);--glass-hi:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.08);--text:#f3f5ff;--text2:#9ca3bd;--text3:#5d6377;--accent:#6d8cff;--accent2:#b98bff;--danger:#ff5d72;--gold:#ffb84d;--card-bg:rgba(255,255,255,0.03);--fs-xs:11px;--fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--radius-sm:12px;--radius-md:16px;--radius-lg:26px;--grad-liquid:linear-gradient(135deg,var(--accent),var(--accent2))}
+.uvd-fx-on .uvd-btn{transition:box-shadow .25s ease,transform .15s ease}
+.uvd-fx-on .uvd-btn:active{transform:scale(0.95)}
+.uvd-fx-on.uvd-glass-panel,.uvd-fx-on #__uvd_player_header__{box-shadow:0 0 var(--glow-px) rgba(109,140,255,var(--glow-op)),0 8px 30px rgba(0,0,0,0.5)}
+.uvd-fx-on #__uvd_player_close__{box-shadow:0 0 calc(var(--glow-px) * 0.6) rgba(255,93,114,var(--glow-op))}
 .uvd-overlay{position:fixed;inset:0;background:rgba(2,3,6,0.92);backdrop-filter:blur(10px) saturate(120%);z-index:2147483648;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
 .uvd-toggle-switch{width:44px;height:26px;border-radius:14px;background:rgba(255,255,255,0.15);border:none;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s ease;padding:0;}
 .uvd-toggle-switch .uvd-toggle-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s ease;box-shadow:0 1px 3px rgba(0,0,0,0.4);}
@@ -1290,15 +2038,15 @@ style.textContent = `
 .uvd-scroll::-webkit-scrollbar{width:4px}
 .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
 .uvd-scroll::-webkit-scrollbar-track{background:transparent}
-.uvd-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:var(--radius-md);font-weight:600;font-size:var(--fs-base);cursor:pointer;text-align:center;position:relative;overflow:hidden;display:inline-block;box-shadow:0 3px 10px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.08) inset;line-height:1.3;transition:all var(--uvd-transition);}
+.uvd-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);padding:clamp(8px, 1.2vw, 12px) clamp(12px, 1.6vw, 20px);border-radius:var(--radius-md);font-weight:600;font-size:var(--fs-base);cursor:pointer;text-align:center;position:relative;overflow:hidden;display:inline-block;box-shadow:0 3px 10px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.08) inset;line-height:1.3;transition:all var(--uvd-transition);min-height:44px;min-width:44px;}
 .uvd-btn:active{transform:scale(0.96)}
-.uvd-btn-sm{padding:7px 12px;font-size:var(--fs-sm);border-radius:var(--radius-sm)}
-.uvd-btn-icon{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.08) inset;transition:all var(--uvd-transition);}
+.uvd-btn-sm{padding:clamp(6px, 0.8vw, 10px) clamp(10px, 1.2vw, 16px);font-size:var(--fs-sm);border-radius:var(--radius-sm);min-height:36px;min-width:36px;}
+.uvd-btn-icon{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:44px;height:44px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.08) inset;transition:all var(--uvd-transition);}
 .uvd-btn-icon:active{transform:scale(0.92)}
-.uvd-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:10px;font-size:var(--fs-base);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset;animation:uvdCardEnter 0.4s ease both;color:var(--text);transition:all var(--uvd-transition);}
-.uvd-card:hover{transform:translateY(-5px) scale(1.01);box-shadow:0 18px 40px rgba(0,0,0,0.8),0 0 0 1px rgba(109,140,255,0.4) inset;}
+.uvd-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:clamp(10px, 1.4vw, 18px);margin-bottom:10px;font-size:var(--fs-base);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset;animation:uvdCardEnter 0.4s ease both;color:var(--text);transition:all var(--uvd-transition);}
+.uvd-card:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 12px 30px rgba(0,0,0,0.6),0 0 0 1px rgba(109,140,255,0.4) inset;}
 .uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(109,140,255,0.22),rgba(185,139,255,0.18));color:var(--accent);border:1px solid rgba(109,140,255,0.28);letter-spacing:0.03em}
-.uvd-url-box{background:rgba(0,0,0,0.5);border-radius:var(--radius-sm);padding:12px;font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);word-break:break-all;color:var(--text2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid rgba(255,255,255,0.04)}
+.uvd-url-box{background:rgba(0,0,0,0.5);border-radius:var(--radius-sm);padding:clamp(8px, 1vw, 14px);font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);word-break:break-all;color:var(--text2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid rgba(255,255,255,0.04)}
 .uvd-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .uvd-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .uvd-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);animation:uvdRipple 0.6s ease-out}
@@ -1330,37 +2078,52 @@ style.textContent = `
 .uvd-code-block textarea{width:100%;background:transparent;border:none;color:var(--accent2);padding:10px 40px 10px 12px;font-size:10px;font-family:'SFMono-Regular',Consolas,monospace;resize:none;}
 .uvd-code-copy{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .uvd-code-copy:active{background:rgba(255,255,255,0.18);}
+/* Thanh tìm kiếm */
+.uvd-search-box{width:100%;padding:clamp(8px, 1vw, 12px);background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:var(--fs-sm);margin-bottom:10px;outline:none;transition: border-color 0.2s;}
+.uvd-search-box:focus{border-color:var(--accent);}
+.uvd-search-box::placeholder{color:var(--text3);}
+.uvd-card-domain{font-size:var(--fs-xs);color:var(--text3);margin:4px 0;display:block;}
+.uvd-card-meta{font-size:var(--fs-xs);color:var(--text2);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;}
+.uvd-card-meta span{background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:12px;}
 `;
 document.head.appendChild(style);
 
-// ========== FIX HEADER MINIMIZE KHI CHROME ẨN THANH ĐỊA CHỈ ==========
-function __uvdSyncViewport() {
-  var panel = document.getElementById('__uvd__');
-  if (!panel) return;
-  if (window.visualViewport) {
-    var offset = window.visualViewport.offsetTop || 0;
-    if (!panel.classList.contains('uvd-panel-minimized')) {
-      panel.style.transform = 'translateZ(0) translateY(' + offset + 'px)';
-    } else {
-      panel.style.transform = 'translateZ(0) translateY(' + offset + 'px)';
-    }
-  }
+// ========== FIX VISUAL VIEWPORT GLITCH ==========
+function __uvdSyncViewport() {}
+function __uvdForceRepaint(el) {
+  if (!el) return;
+  requestAnimationFrame(function() {
+    el.style.transform = 'translateZ(0.01px)';
+    requestAnimationFrame(function() {
+      el.style.transform = '';
+    });
+  });
+}
+var __uvdRepaintTimer = null;
+function __uvdOnViewportSettle() {
+  clearTimeout(__uvdRepaintTimer);
+  __uvdRepaintTimer = setTimeout(function() {
+    __uvdForceRepaint(document.getElementById('__uvd__'));
+    __uvdForceRepaint(document.getElementById('__uvd_player_overlay__'));
+  }, 150);
 }
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', __uvdSyncViewport);
-  window.visualViewport.addEventListener('scroll', __uvdSyncViewport);
+  window.visualViewport.addEventListener('resize', __uvdOnViewportSettle);
+  addCleanup(function() { window.visualViewport.removeEventListener('resize', __uvdOnViewportSettle); });
+} else {
+  window.addEventListener('resize', __uvdOnViewportSettle);
+  addCleanup(function() { window.removeEventListener('resize', __uvdOnViewportSettle); });
 }
-
-var origBuild = buildUI;
-buildUI = function() {
-  origBuild();
-  setTimeout(__uvdSyncViewport, 100);
-};
+window.addEventListener('scroll', __uvdOnViewportSettle, { passive: true, capture: true });
+addCleanup(function() { window.removeEventListener('scroll', __uvdOnViewportSettle, { capture: true }); });
 
 // ========== BUILD UI ==========
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority };
+    var obj = { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority };
+    // Nếu có qualityInfo (từ M3U8) thì thêm
+    if (e[1].qualityInfo) obj.qualityInfo = e[1].qualityInfo;
+    return obj;
   }).sort(function(a, b) { return a.priority - b.priority; });
 
   var panel = document.getElementById('__uvd__');
@@ -1369,7 +2132,8 @@ function buildUI() {
   panel = document.createElement('div');
   panel.id = '__uvd__';
   panel.className = 'uvd-glass-panel';
-  panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;bottom:15px;z-index:2147483647;animation:uvdScaleIn 0.4s ease;overscroll-behavior:contain;';
+  panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;height:calc(100dvh - 30px);z-index:2147483647;animation:uvdScaleIn 0.4s ease;overscroll-behavior:contain;';
+  applyThemePref(panel);
   
   var liquidBg = document.createElement('div');
   liquidBg.className = 'uvd-liquid-bg';
@@ -1395,6 +2159,13 @@ function buildUI() {
     '</div>';
   content.appendChild(header);
   
+  // Thanh tìm kiếm
+  var searchBox = document.createElement('input');
+  searchBox.id = '__uvd_search__';
+  searchBox.className = 'uvd-search-box';
+  searchBox.placeholder = '🔍 Lọc stream (URL hoặc loại)...';
+  content.appendChild(searchBox);
+  
   var tabbar = document.createElement('div');
   tabbar.className = 'uvd-tabbar';
   var indicator = document.createElement('div');
@@ -1419,24 +2190,27 @@ function buildUI() {
   
   function moveIndicatorTo(btn) {
     if (!btn) return;
-    var padding = 4;
-    var width = btn.offsetWidth + padding * 2;
+    var width = btn.offsetWidth;
     indicator.style.width = width + 'px';
-    var left = btn.offsetLeft - padding;
-    indicator.style.transform = 'translateX(' + left + 'px)';
+    indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
+    if (btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
   
   var info = document.createElement('div');
   info.style.cssText = 'margin-bottom:10px;font-size:12px;flex-shrink:0;';
   var savedPlaySel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
   info.innerHTML = 
-    '<span style="color:var(--text2);">Tên: </span>' +
-    '<span id="__uvd_title__" style="color:var(--accent);text-decoration:underline;cursor:pointer;">' + pageInfo.title + '</span> ' +
-    '<span style="color:var(--text3);">(sửa)</span><br>' +
-    '<span style="color:var(--text2);">Referer: </span>' +
-    '<span id="__uvd_referer__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + pageInfo.referer + '</span><br>' +
-    '<span style="color:var(--text2);">Play selector: </span>' +
-    '<span id="__uvd_playsel__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + (savedPlaySel || '(chưa đặt · bấm để thêm)') + '</span>';
+    '<div style="display:flex;flex-wrap:wrap;gap:4px 12px;">' +
+      '<span style="color:var(--text2);">Tên: </span>' +
+      '<span id="__uvd_title__" style="color:var(--accent);text-decoration:underline;cursor:pointer;">' + escapeHtml(pageInfo.title) + '</span> ' +
+      '<span style="color:var(--text3);">(sửa)</span>' +
+      '<span style="color:var(--text2);">Referer: </span>' +
+      '<span id="__uvd_referer__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + escapeHtml(pageInfo.referer) + '</span>' +
+    '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:2px;">' +
+      '<span style="color:var(--text2);">Play selector: </span>' +
+      '<span id="__uvd_playsel__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + escapeHtml(savedPlaySel || '(chưa đặt · bấm để thêm)') + '</span>' +
+    '</div>';
   content.appendChild(info);
   
   var contentWrapper = document.createElement('div');
@@ -1468,8 +2242,8 @@ function buildUI() {
   author.textContent = '© nguyenquocngu91';
   content.appendChild(author);
   
-  document.body.appendChild(panel);
-  applyAccent(panel);
+  __uvdAppendRoot(panel);
+  applyEffectsPref(panel);
   applyMotionPref(panel);
   
   document.querySelectorAll('.uvd-btn, .uvd-btn-icon, .uvd-tab').forEach(function(btn) {
@@ -1502,11 +2276,31 @@ function buildUI() {
   
   renderTab('streams');
   
+  // Lọc theo tìm kiếm
+  searchBox.addEventListener('input', function() {
+    var term = this.value.toLowerCase().trim();
+    var cards = streamList.querySelectorAll('.uvd-card');
+    if (!term) {
+      cards.forEach(function(c) { c.style.display = ''; });
+      return;
+    }
+    cards.forEach(function(c) {
+      var url = c.dataset.url || '';
+      var type = c.dataset.type || '';
+      var match = url.toLowerCase().includes(term) || type.toLowerCase().includes(term);
+      c.style.display = match ? '' : 'none';
+    });
+  });
+  
   window.addEventListener('resize', function() {
     moveIndicatorTo(document.querySelector('.uvd-tab.uvd-tab-active'));
   });
   
-  document.getElementById('__uvd_close__').onclick = function() { stopMonitor(); panel.remove(); };
+  document.getElementById('__uvd_close__').onclick = function() { 
+    stopMonitor(); 
+    panel.remove();
+    runCleanup();
+  };
   document.getElementById('__uvd_refresh__').onclick = function() { buildUI(); toast('Đã làm mới'); };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false);
@@ -1517,14 +2311,18 @@ function buildUI() {
   
   document.getElementById('__uvd_title__').onclick = function() {
     var newTitle = prompt('Tên file:', pageInfo.title);
-    if (newTitle) { pageInfo.title = newTitle.replace(/[^\w\s\u00C0-\u1EF9.-]/g, '').substring(0,100); this.textContent = pageInfo.title; }
+    if (newTitle) { 
+      newTitle = newTitle.replace(/[^\w\s\u00C0-\u1EF9.-]/g, '').substring(0,100);
+      pageInfo.title = newTitle; 
+      this.textContent = escapeHtml(pageInfo.title);
+    }
   };
   
   document.getElementById('__uvd_referer__').onclick = function() {
     var newRef = prompt('Referer:', pageInfo.referer);
     if (newRef) {
       pageInfo.referer = newRef;
-      this.textContent = newRef;
+      this.textContent = escapeHtml(newRef);
       data.siteProfiles[pageInfo.host] = Object.assign({}, data.siteProfiles[pageInfo.host], { referer: newRef, userAgent: pageInfo.userAgent });
       storage.set(data);
       toast('Đã lưu referer cho ' + pageInfo.host);
@@ -1538,7 +2336,7 @@ function buildUI() {
       newSel = newSel.trim();
       data.siteProfiles[pageInfo.host] = Object.assign({}, data.siteProfiles[pageInfo.host], { playSelector: newSel });
       storage.set(data);
-      this.textContent = newSel || '(chưa đặt · bấm để thêm)';
+      this.textContent = escapeHtml(newSel || '(chưa đặt · bấm để thêm)');
       if (newSel) {
         toast('Đã lưu selector cho ' + pageInfo.host);
         autoClickPlayButtons(document, 0, false);
@@ -1557,15 +2355,26 @@ function buildUI() {
 // ========== RENDER FUNCTIONS ==========
 var UVD_LAZY_BATCH = 40;
 
-function buildStreamCardHTML(item, i) {
-  // Đã XÓA nút Yêu thích (⭐)
+function buildStreamCardHTML(item, i, historyUrls) {
+  var domain = '';
+  try { domain = new URL(item.url).hostname; } catch(e) {}
+  var qualityInfo = item.qualityInfo || '';
+  var metaHtml = '';
+  if (qualityInfo) {
+    metaHtml = '<div class="uvd-card-meta"><span>📊 ' + escapeHtml(qualityInfo) + '</span></div>';
+  }
+  var isWatched = historyUrls && historyUrls.includes(item.url);
+  var watchedBadge = isWatched ? ' <span style="color:var(--gold);font-size:10px;">(đã xem)</span>' : '';
+  
   return (
-    '<div class="uvd-card">' +
+    '<div class="uvd-card" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<span class="uvd-type-badge">#' + (i+1) + ' ' + item.type + '</span>' +
-        '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" style="background:none;border:none;font-size:16px;cursor:pointer;color:#fff;opacity:0.7;" title="Chặn link này">⛔</button>' +
+        '<span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + watchedBadge + '</span>' +
+        '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" style="background:none;border:none;font-size:16px;cursor:pointer;color:#fff;opacity:0.5;" title="Chặn link này">⛔</button>' +
       '</div>' +
-      '<div class="uvd-url-box">' + item.url + '</div>' +
+      '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
+      (domain ? '<div class="uvd-card-domain">🌐 ' + escapeHtml(domain) + '</div>' : '') +
+      metaHtml +
       '<div class="uvd-grid-2" style="margin-top:8px;">' +
         '<button class="uvd-btn uvd-btn-sm" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
         '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
@@ -1573,10 +2382,10 @@ function buildStreamCardHTML(item, i) {
           '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '" style="text-align:center;grid-column:1/3;">Mở iframe</button>' :
           (item.type === 'M3U8' ?
             '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
-            '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:rgba(109,140,255,0.25);">Xem</button>' +
-            '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="grid-column:1/3;">Lệnh tải</button>' :
-            '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '" style="background:rgba(109,140,255,0.25);">Xem</button>' +
-            '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + item.type + '">Lệnh tải</button>'
+            '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(109,140,255,0.25);">Xem</button>' +
+            '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="grid-column:1/3;">Lệnh tải</button>' :
+            '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(109,140,255,0.25);">Xem</button>' +
+            '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>'
           )
         ) +
       '</div>' +
@@ -1590,6 +2399,7 @@ function renderStreams(container, arr) {
     return;
   }
 
+  var historyUrls = (data.history || []).map(function(h) { return h.url; });
   var listWrap = document.createElement('div');
   container.appendChild(listWrap);
   var rendered = 0;
@@ -1598,7 +2408,7 @@ function renderStreams(container, arr) {
   function renderNextBatch() {
     var end = Math.min(rendered + UVD_LAZY_BATCH, arr.length);
     var html = '';
-    for (var i = rendered; i < end; i++) html += buildStreamCardHTML(arr[i], i);
+    for (var i = rendered; i < end; i++) html += buildStreamCardHTML(arr[i], i, historyUrls);
     var frag = document.createElement('div');
     frag.innerHTML = html;
     while (frag.firstChild) listWrap.appendChild(frag.firstChild);
@@ -1607,7 +2417,7 @@ function renderStreams(container, arr) {
     if (moreBtn) { moreBtn.remove(); moreBtn = null; }
     if (rendered < arr.length) {
       moreBtn = document.createElement('button');
-      moreBtn.className = 'uvd-btn uvd-btn-sm';
+      moreBtn.className = 'uvd-btn uvd-btn-sm uvd-more-btn';
       moreBtn.style.cssText = 'width:100%;margin-top:8px;';
       moreBtn.textContent = 'Xem thêm (' + (arr.length - rendered) + ')';
       moreBtn.onclick = function() { renderNextBatch(); };
@@ -1616,9 +2426,7 @@ function renderStreams(container, arr) {
   }
   renderNextBatch();
 
-  // Event delegation: chỉ xử lý block, share, copy, quality, play, cmd, iframe
   container.onclick = function(e) {
-    // Đã xóa xử lý favBtn
     var blockBtn = e.target.closest('.uvd-block-btn');
     if (blockBtn) {
       addRipple({ currentTarget: blockBtn, clientX: e.clientX, clientY: e.clientY });
@@ -1630,12 +2438,7 @@ function renderStreams(container, arr) {
       } catch(ex) {}
       if (confirm('Chặn tất cả stream chứa "' + pattern + '" ?')) {
         addToFilterlist(pattern);
-        blockBtn.style.color = '#4ade80';
-        blockBtn.textContent = '✓';
-        setTimeout(function() { 
-          blockBtn.textContent = '⛔';
-          blockBtn.style.color = '#fff';
-        }, 1500);
+        toast('Đã chặn "' + pattern + '"');
       }
       return;
     }
@@ -1658,124 +2461,143 @@ function renderStreams(container, arr) {
   };
 }
 
-// Các hàm showCommandPicker, showEditor, showQualityPicker giữ nguyên
 function showCommandPicker(url, type) {
   var cmds = makeCommands(url, type, pageInfo.title);
+  var opts = Object.keys(cmds).map(function(k) {
+    var c = cmds[k];
+    return { label: c.label, value: c.cmd };
+  });
   var overlay = document.createElement('div');
   overlay.className = 'uvd-overlay';
-  
-  var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
-  html += '<div style="font-weight:700;margin-bottom:12px;">Chọn lệnh tải</div>';
-  html += '<div style="overflow-y:auto;max-height:60vh;">';
-  
-  Object.keys(cmds).forEach(function(k) {
-    var c = cmds[k];
-    html += '<div class="uvd-card">' +
-      '<div style="font-weight:600;color:var(--accent);">' + c.label + '</div>' +
-      '<div class="uvd-url-box">' + c.cmd + '</div>' +
-      '<button class="uvd-btn uvd-btn-sm cmd-select" data-cmd="' + encodeURIComponent(c.cmd) + '" style="width:100%;">Chỉnh sửa & Copy</button>' +
-    '</div>';
-  });
-  
-  html += '</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="width:100%;margin-top:10px;background:var(--danger);">Đóng</button></div>';
-  overlay.innerHTML = html;
-  document.body.appendChild(overlay);
-  
-  overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
-  overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
-  
-  overlay.querySelectorAll('.cmd-select').forEach(function(b) {
-    b.onclick = function() {
+  var panel = document.createElement('div');
+  panel.className = 'uvd-glass-panel';
+  panel.style.cssText = 'max-width:600px;margin:auto;';
+  applyThemePref(panel);
+  var titleDiv = document.createElement('div');
+  titleDiv.style.cssText = 'font-weight:700;margin-bottom:12px;';
+  titleDiv.textContent = 'Chọn lệnh tải';
+  panel.appendChild(titleDiv);
+  var content = document.createElement('div');
+  content.style.cssText = 'overflow-y:auto;max-height:60vh;';
+  opts.forEach(function(opt) {
+    var card = document.createElement('div');
+    card.className = 'uvd-card';
+    card.innerHTML = '<div style="font-weight:600;color:var(--accent);">' + escapeHtml(opt.label) + '</div><div class="uvd-url-box">' + escapeHtml(opt.value) + '</div>';
+    var btn = document.createElement('button');
+    btn.className = 'uvd-btn uvd-btn-sm';
+    btn.style.cssText = 'width:100%;';
+    btn.textContent = 'Chỉnh sửa & Copy';
+    btn.onclick = function() {
       overlay.remove();
-      showEditor(decodeURIComponent(this.dataset.cmd));
+      showEditor(opt.value);
     };
+    card.appendChild(btn);
+    content.appendChild(card);
   });
+  panel.appendChild(content);
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'uvd-btn uvd-btn-sm';
+  closeBtn.style.cssText = 'width:100%;margin-top:10px;background:var(--danger);';
+  closeBtn.textContent = 'Đóng';
+  closeBtn.onclick = function() { overlay.remove(); };
+  panel.appendChild(closeBtn);
+  overlay.appendChild(panel);
+  __uvdAppendRoot(overlay);
 }
 
 function showEditor(text) {
   var overlay = document.createElement('div');
   overlay.className = 'uvd-overlay';
-  overlay.innerHTML = 
-    '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">' +
-      '<div style="font-weight:700;margin-bottom:8px;">Chỉnh sửa lệnh</div>' +
-      '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;">' + text + '</textarea>' +
-      '<div class="uvd-grid-2" style="margin-top:12px;">' +
-        '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_copy__">Sao chép</button>' +
-        '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_share__" style="background:rgba(139,92,246,0.3);">Chia sẻ</button>' +
-      '</div>' +
-      '<button class="uvd-btn uvd-btn-sm close-editor" style="width:100%;margin-top:8px;background:var(--danger);">Đóng</button>' +
-    '</div>';
-  document.body.appendChild(overlay);
+  var panel = document.createElement('div');
+  panel.className = 'uvd-glass-panel';
+  panel.style.cssText = 'max-width:600px;margin:auto;';
+  applyThemePref(panel);
+  panel.innerHTML = 
+    '<div style="font-weight:700;margin-bottom:8px;">Chỉnh sửa lệnh</div>' +
+    '<textarea style="width:100%;height:120px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:monospace;">' + escapeHtml(text) + '</textarea>' +
+    '<div class="uvd-grid-2" style="margin-top:12px;">' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_copy__">Sao chép</button>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_ed_share__" style="background:var(--btn-purple-bg);">Chia sẻ</button>' +
+    '</div>' +
+    '<button class="uvd-btn uvd-btn-sm close-editor" style="width:100%;margin-top:8px;background:var(--danger);">Đóng</button>';
+  overlay.appendChild(panel);
+  __uvdAppendRoot(overlay);
   
-  overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
-  
-  document.getElementById('__uvd_ed_copy__').onclick = function() {
+  overlay.querySelector('#__uvd_ed_copy__').onclick = function() {
     copy(overlay.querySelector('textarea').value);
     overlay.remove();
     toast('Đã sao chép!');
   };
-  
-  document.getElementById('__uvd_ed_share__').onclick = function() {
+  overlay.querySelector('#__uvd_ed_share__').onclick = function() {
     shareUrl(overlay.querySelector('textarea').value);
     overlay.remove();
   };
-  
   overlay.querySelector('.close-editor').onclick = function() { overlay.remove(); };
 }
 
 function showQualityPicker(url) {
   var overlay = document.createElement('div');
   overlay.className = 'uvd-overlay';
-  overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">Đang phân tích M3U8...</div>';
-  document.body.appendChild(overlay);
+  var panel = document.createElement('div');
+  panel.className = 'uvd-glass-panel';
+  panel.style.cssText = 'max-width:600px;margin:auto;text-align:center;';
+  applyThemePref(panel);
+  panel.innerHTML = '<div style="padding:20px;color:var(--text2);">⏳ Đang phân tích M3U8...</div>';
+  overlay.appendChild(panel);
+  __uvdAppendRoot(overlay);
   
   parseM3U8Master(url, function(qualities) {
     if (!qualities) {
-      overlay.innerHTML = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;text-align:center;">' +
-        '<div style="color:var(--danger);">Không phải Master Playlist</div>' +
-        '<button class="uvd-btn uvd-btn-sm close-overlay-btn" style="margin-top:12px;background:var(--danger);width:100%;">Đóng</button></div>';
-      overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
+      panel.innerHTML = '<div style="color:var(--danger);">Không phải Master Playlist</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="margin-top:12px;background:var(--danger);width:100%;">Đóng</button>';
+      panel.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
       return;
     }
-    
-    var html = '<div class="uvd-glass-panel" style="max-width:600px;margin:auto;">';
-    html += '<div style="font-weight:700;margin-bottom:12px;">Chọn chất lượng (' + qualities.length + ')</div>';
-    html += '<div style="overflow-y:auto;max-height:60vh;">';
-    
+    panel.innerHTML = '';
+    var title = document.createElement('div');
+    title.style.cssText = 'font-weight:700;margin-bottom:12px;';
+    title.textContent = 'Chọn chất lượng (' + qualities.length + ')';
+    panel.appendChild(title);
+    var content = document.createElement('div');
+    content.style.cssText = 'overflow-y:auto;max-height:60vh;';
     qualities.forEach(function(q) {
-      html += '<div class="uvd-card">' +
-        '<b>' + q.label + '</b> <span style="color:var(--text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>' +
-        '<div class="uvd-grid-3" style="margin-top:8px;">' +
-          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="share" style="background:rgba(139,92,246,0.2);">Chia sẻ</button>' +
-          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="play" style="background:rgba(109,140,255,0.25);">Xem</button>' +
-          '<button class="uvd-btn uvd-btn-sm q-act" data-url="' + encodeURIComponent(q.url) + '" data-action="cmd">Lệnh</button>' +
-        '</div>' +
-      '</div>';
+      var card = document.createElement('div');
+      card.className = 'uvd-card';
+      card.innerHTML = '<b>' + escapeHtml(q.label) + '</b> <span style="color:var(--text3);">' + Math.round(q.bandwidth/1000) + 'kbps</span>';
+      var grid = document.createElement('div');
+      grid.className = 'uvd-grid-3';
+      grid.style.marginTop = '8px';
+      var shareBtn = document.createElement('button');
+      shareBtn.className = 'uvd-btn uvd-btn-sm';
+      shareBtn.textContent = 'Chia sẻ';
+      shareBtn.onclick = function() { shareUrl(q.url); overlay.remove(); };
+      grid.appendChild(shareBtn);
+      var playBtn = document.createElement('button');
+      playBtn.className = 'uvd-btn uvd-btn-sm';
+      playBtn.style.background = 'rgba(109,140,255,0.25)';
+      playBtn.textContent = 'Xem';
+      playBtn.onclick = function() { overlay.remove(); window.__uvd_showPlayer(q.url, 'M3U8'); };
+      grid.appendChild(playBtn);
+      var cmdBtn = document.createElement('button');
+      cmdBtn.className = 'uvd-btn uvd-btn-sm';
+      cmdBtn.textContent = 'Lệnh';
+      cmdBtn.onclick = function() { overlay.remove(); showCommandPicker(q.url, 'M3U8'); };
+      grid.appendChild(cmdBtn);
+      card.appendChild(grid);
+      content.appendChild(card);
     });
-    
-    html += '</div><button class="uvd-btn uvd-btn-sm close-overlay-btn" style="width:100%;margin-top:10px;background:var(--danger);">Đóng</button></div>';
-    overlay.innerHTML = html;
-    
-    overlay.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
-    overlay.querySelector('.close-overlay-btn').onclick = function() { overlay.remove(); };
-    
-    overlay.querySelectorAll('.q-act').forEach(function(b) {
-      b.onclick = function() {
-        var u = decodeURIComponent(this.dataset.url);
-        var action = this.dataset.action;
-        overlay.remove();
-        if (action === 'share') shareUrl(u);
-        else if (action === 'play') window.__uvd_showPlayer(u, 'M3U8');
-        else showCommandPicker(u, 'M3U8');
-      };
-    });
+    panel.appendChild(content);
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'uvd-btn uvd-btn-sm';
+    closeBtn.style.cssText = 'width:100%;margin-top:10px;background:var(--danger);';
+    closeBtn.textContent = 'Đóng';
+    closeBtn.onclick = function() { overlay.remove(); };
+    panel.appendChild(closeBtn);
   });
 }
 
-// Các hàm buildToggleRow, renderPlayerSettings, renderSettings giữ nguyên (chỉ bỏ phần đổi màu)
 function buildToggleRow(id, label, checked) {
   return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
-    '<span style="font-size:13px;color:var(--text2);">' + label + '</span>' +
+    '<span style="font-size:13px;color:var(--text2);">' + escapeHtml(label) + '</span>' +
     '<button id="' + id + '" class="uvd-toggle-switch' + (checked ? ' uvd-toggle-on' : '') + '"><span class="uvd-toggle-knob"></span></button>' +
   '</div>';
 }
@@ -1803,6 +2625,8 @@ function renderPlayerSettings(container) {
       buildToggleRow('__uvd_toggle_autofs__', 'Tự động toàn màn hình khi mở', s.autoFullscreen) +
       buildToggleRow('__uvd_toggle_autonext__', 'Tự động phát stream tiếp theo', s.autoNext) +
       buildToggleRow('__uvd_toggle_datasaver__', 'Chế độ tiết kiệm data (ép chất lượng thấp)', s.dataSaver) +
+      buildToggleRow('__uvd_toggle_autohide__', 'Tự động ẩn thanh điều khiển', s.autoHideControls) +
+      buildToggleRow('__uvd_toggle_showremaining__', 'Hiển thị thời gian còn lại', s.showRemainingTime) +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -1818,6 +2642,12 @@ function renderPlayerSettings(container) {
       '<input type="number" id="__uvd_doubletap_seconds__" min="1" max="60" step="1" value="' + s.doubleTapSeconds + '" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
     '</div>' +
 
+    '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:10px;">⏱️ Tự động ẩn sau</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Số giây trước khi ẩn thanh điều khiển</div>' +
+      '<input type="number" id="__uvd_hide_delay__" min="1" max="30" step="1" value="' + s.hideDelay + '" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
+    '</div>' +
+
     '<div style="text-align:center;font-size:11px;color:var(--text3);margin-top:4px;">Vị trí xem dở đã lưu: ' + Object.keys(data.playbackPositions||{}).length + ' video</div>';
 
   container.querySelectorAll('.uvd-toggle-switch').forEach(function(btn) {
@@ -1829,6 +2659,8 @@ function renderPlayerSettings(container) {
         case '__uvd_toggle_autonext__': s.autoNext = isOn; break;
         case '__uvd_toggle_datasaver__': s.dataSaver = isOn; break;
         case '__uvd_toggle_boost__': s.volumeBoost = isOn; break;
+        case '__uvd_toggle_autohide__': s.autoHideControls = isOn; break;
+        case '__uvd_toggle_showremaining__': s.showRemainingTime = isOn; break;
       }
       storage.set(data);
     };
@@ -1854,6 +2686,14 @@ function renderPlayerSettings(container) {
     s.doubleTapSeconds = val;
     storage.set(data);
     toast('Đã đặt tua ' + val + ' giây');
+  };
+  document.getElementById('__uvd_hide_delay__').onchange = function() {
+    var val = parseInt(this.value) || 5;
+    if (val < 1) val = 1;
+    if (val > 30) val = 30;
+    s.hideDelay = val;
+    storage.set(data);
+    toast('Đã đặt ẩn sau ' + val + ' giây');
   };
 }
 
@@ -1895,16 +2735,35 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">✨ Hiệu ứng giao diện</div>' +
+      buildToggleRow('__uvd_toggle_glow__', 'Hiệu ứng phát sáng (glow) cho nút & panel', data.settings.glowEffects) +
+      '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Cường độ hiệu ứng: <span id="__uvd_fx_val__">' + data.settings.effectsIntensity + '%</span></div>' +
+      '<input type="range" id="__uvd_fx_range__" min="0" max="100" step="5" value="' + data.settings.effectsIntensity + '" style="width:100%;">' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Tắt hoàn toàn nếu đã bật chế độ hiệu suất ở trên.</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">⛔ Chặn tự phát</div>' +
+      buildToggleRow('__uvd_toggle_blockautoplay__', 'Chặn mạnh web tự mở/phát video sau khi chạy script', data.settings.blockAutoplay) +
+      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Video/audio do chính trang web tự bật (quảng cáo, autoplay ẩn...) sẽ luôn bị tạm dừng ngay. Video mở qua UMP DL Player không bị ảnh hưởng.</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🛡️ Lọc quảng cáo (Filterlist)</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">' +
         'Nhập mỗi dòng một từ khóa hoặc domain (vd: <code>doubleclick.net</code>). Hỗ trợ regex nếu bắt đầu bằng <code>regex:</code>. Các URL chứa pattern sẽ bị bỏ qua.' +
       '</div>' +
-      '<textarea id="__uvd_filter_text__" style="width:100%;height:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-size:12px;">' + (data.filterlist||[]).join('\n') + '</textarea>' +
+      '<textarea id="__uvd_filter_text__" style="width:100%;height:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-size:12px;">' + escapeHtml((data.filterlist||[]).join('\n')) + '</textarea>' +
       '<div class="uvd-grid-2" style="margin-top:8px;">' +
         '<button class="uvd-btn uvd-btn-sm" id="__uvd_save_filter__">💾 Lưu</button>' +
         '<button class="uvd-btn uvd-btn-sm" id="__uvd_import_filter__">📂 Import file</button>' +
       '</div>' +
       '<div style="margin-top:6px;font-size:11px;color:var(--text3);">Đã chặn <span id="__uvd_blocked_ads__">' + __uvdAdBlockedCount + '</span> URL quảng cáo trong phiên này.</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">🎨 Giao diện</div>' +
+      buildToggleRow('__uvd_toggle_theme__', 'Theme sáng (bật) / tối (tắt)', data.settings.theme === 'light') +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -1920,7 +2779,7 @@ function renderSettings(container) {
       '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit).</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">UMP DL</code></span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text"><strong>Xóa toàn bộ địa chỉ</strong> trong ô URL, dán đoạn code sau vào:</span></div>' +
-      '<div class="uvd-code-block"><textarea readonly rows="3">' + bookmarkletCode + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
+      '<div class="uvd-code-block"><textarea readonly rows="3">' + escapeHtml(bookmarkletCode) + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save).</span></div>' +
       '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, bạn chỉ cần gõ tên bookmark (<strong style="color:var(--accent);">UMP DL</strong>) vào thanh địa chỉ rồi chọn nó để kích hoạt. Script luôn tự động cập nhật phiên bản mới nhất.</span></div>' +
     '</div>' +
@@ -1930,9 +2789,10 @@ function renderSettings(container) {
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark (vd: <code class="uvd-inline-code">UMP DL</code>) vào thanh địa chỉ và chọn nó</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để mở player overlay</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: thanh công cụ gồm <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Tốc độ</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong>, <strong style="color:var(--accent);">PiP</strong>, <strong style="color:var(--accent);">Hẹn giờ</strong>, <strong style="color:var(--accent);">Boost</strong>, <strong style="color:var(--accent);">Mute</strong></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: thanh công cụ gồm <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Tốc độ (+/-)</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong>, <strong style="color:var(--accent);">PiP</strong>, <strong style="color:var(--accent);">Hẹn giờ</strong>, <strong style="color:var(--accent);">Boost</strong>, <strong style="color:var(--accent);">Mute</strong>, <strong style="color:var(--accent);">📷 Screenshot</strong>, <strong style="color:var(--accent);">📌 Ghim</strong>, <strong style="color:var(--accent);">👁️ Toggle auto-hide</strong></span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chạm đúp 2 lần vào nửa trái/phải video để tua lùi/tiến (số giây tùy chỉnh trong tab Trình phát)</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">▶</span><span>Nút <strong style="color:var(--accent);">▶</strong> trên header: tự động bấm giúp các nút Play ẩn (eporner, JAV...) để link stream lộ ra. Nếu không ăn, đặt CSS selector riêng ở dòng "Play selector" bên dưới tên file.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Click vào thời gian để chuyển đổi giữa <strong>còn lại</strong> / <strong>đã qua</strong> / <strong>tổng</strong>.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">▶</span><span>Nút <strong style="color:var(--accent);">▶</strong> trên header: tự động bấm giúp các nút Play ẩn để link stream lộ ra. Nếu không ăn, đặt CSS selector riêng ở dòng "Play selector".</span></div>' +
     '</div>' +
 
     '<div class="uvd-section-title"><span class="uvd-section-num">3</span> Tải video với yt-dlp và Termux</div>' +
@@ -1957,6 +2817,18 @@ function renderSettings(container) {
     };
   });
 
+  // Theme toggle
+  document.getElementById('__uvd_toggle_theme__').onclick = function() {
+    var isOn = this.classList.toggle('uvd-toggle-on');
+    data.settings.theme = isOn ? 'light' : 'dark';
+    storage.set(data);
+    applyThemePref(document.getElementById('__uvd__'));
+    // Cập nhật lại các overlay đang mở (nếu có)
+    var overlays = document.querySelectorAll('.uvd-overlay');
+    overlays.forEach(function(o) { applyThemePref(o); });
+    toast(isOn ? 'Đã chuyển sang theme sáng' : 'Đã chuyển sang theme tối');
+  };
+
   document.getElementById('__uvd_toggle_reducemotion__').onclick = function() {
     var isOn = this.classList.toggle('uvd-toggle-on');
     data.settings.reduceMotion = isOn;
@@ -1979,6 +2851,32 @@ function renderSettings(container) {
     document.getElementById('__uvd_transition_val__').textContent = val + 's';
     storage.set(data);
     applyMotionPref(document.getElementById('__uvd__'));
+  };
+
+  document.getElementById('__uvd_toggle_glow__').onclick = function() {
+    var isOn = this.classList.toggle('uvd-toggle-on');
+    data.settings.glowEffects = isOn;
+    storage.set(data);
+    applyEffectsPref(document.getElementById('__uvd__'));
+    if (playerState.overlay) applyEffectsPref(playerState.overlay);
+    toast(isOn ? 'Đã bật hiệu ứng phát sáng' : 'Đã tắt hiệu ứng phát sáng');
+  };
+
+  document.getElementById('__uvd_fx_range__').oninput = function() {
+    var val = parseInt(this.value);
+    data.settings.effectsIntensity = val;
+    document.getElementById('__uvd_fx_val__').textContent = val + '%';
+    storage.set(data);
+    applyEffectsPref(document.getElementById('__uvd__'));
+    if (playerState.overlay) applyEffectsPref(playerState.overlay);
+  };
+
+  document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {
+    var isOn = this.classList.toggle('uvd-toggle-on');
+    data.settings.blockAutoplay = isOn;
+    storage.set(data);
+    if (isOn) { try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {} }
+    toast(isOn ? 'Đã bật chặn tự phát (mạnh)' : 'Đã tắt chặn tự phát');
   };
 
   document.getElementById('__uvd_backup__').onclick = function() {
@@ -2050,7 +2948,6 @@ function minimizeScriptPanel() {
   if (!panel || !header || panel.classList.contains('uvd-panel-minimized')) return;
   var startHeight = panel.getBoundingClientRect().height;
   var targetHeight = (header.getBoundingClientRect().bottom - panel.getBoundingClientRect().top) + 16;
-  panel.style.bottom = 'auto';
   panel.style.height = startHeight + 'px';
   panel.style.transition = 'height .38s cubic-bezier(.4,0,.2,1)';
   void panel.offsetHeight;
@@ -2070,8 +2967,7 @@ function restoreScriptPanel() {
   panel.addEventListener('transitionend', function onEnd(e) {
     if (e.propertyName !== 'height') return;
     panel.removeEventListener('transitionend', onEnd);
-    panel.style.bottom = '15px';
-    panel.style.height = '';
+    panel.style.height = 'calc(100dvh - 30px)';
     panel.style.transition = '';
     __uvdSyncViewport();
   });
@@ -2081,14 +2977,7 @@ function restoreScriptPanel() {
 // ========== START ==========
 buildUI();
 
-var autoRefresh = setInterval(function() {
-  if (!document.getElementById('__uvd__')) {
-    clearInterval(autoRefresh); stopMonitor();
-  }
-}, 2000);
-
-console.log('V' + VERSION + ' UMP DL PRO - Final: xóa nút yêu thích, block màu trắng');
+console.log('V' + VERSION + ' UMP DL PRO - UI Enhanced, Theme support, Search, Better cards');
 toast('V' + VERSION + ' PRO sẵn sàng!');
 
 })();
-

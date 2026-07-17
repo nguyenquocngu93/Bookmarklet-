@@ -1,5 +1,3 @@
-[file name]: umpdl677_vjs10.js
-[file content begin]
 /**
  * Universal Media Player & Downloader - V6.7.16 PRO
  * - SỬA: Hàm quét server giờ ƯU TIÊN dùng playSelector nếu có,

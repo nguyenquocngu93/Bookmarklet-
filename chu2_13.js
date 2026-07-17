@@ -1,5 +1,3 @@
-[file name]: umpdl677_vjs10.js
-[file content begin]
 /**
  * Universal Media Player & Downloader - V6.7.15 PRO
  * - SỬA: "🖥 Quét server" trước đây dò theo CHỮ "server" — vô dụng với site

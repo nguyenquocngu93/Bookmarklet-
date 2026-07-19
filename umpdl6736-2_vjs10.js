@@ -1842,6 +1842,13 @@ style.textContent = `
 .uvd-thumb-type{position:absolute;z-index:2;top:10px;left:11px;padding:5px 9px;border:1px solid rgba(255,255,255,.34);border-radius:999px;background:rgba(43,24,54,.3);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em}
 .uvd-thumb-play{position:absolute;z-index:3;left:50%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(255,255,255,.88);color:var(--accent);font-size:20px;cursor:pointer;box-shadow:0 8px 20px rgba(43,24,54,.22);transition:transform .18s ease,background .18s ease}
 .uvd-thumb-play:hover{transform:translate(-50%,-50%) scale(1.08);background:#fff}
+.uvd-thumb-strip{display:flex;align-items:center;gap:7px;padding:0 0 10px;overflow-x:auto;scrollbar-width:none}
+.uvd-thumb-strip::-webkit-scrollbar{display:none}
+.uvd-thumb-strip-label{flex:0 0 auto;color:var(--text3);font-size:9px;font-weight:800;letter-spacing:.08em;writing-mode:vertical-rl;transform:rotate(180deg)}
+.uvd-extra-thumb{position:relative;flex:0 0 76px;height:48px;overflow:hidden;padding:0;border:1px solid var(--border);border-radius:10px;background:rgba(255,47,200,.08);cursor:pointer}
+.uvd-extra-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.uvd-extra-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(43,24,54,.5))}
+.uvd-extra-thumb span{position:absolute;z-index:1;right:5px;bottom:3px;color:#fff;font-size:9px;font-weight:700}
 @keyframes uvdThumbLaunch{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.012);filter:brightness(1.08)}100%{transform:scale(1);filter:brightness(1)}}
 .uvd-card.uvd-thumb-launch{animation:uvdThumbLaunch .28s ease both;z-index:3}
 .uvd-card.uvd-thumb-launch .uvd-card-preview{transform:scale(1.012);border-radius:var(--radius-md) var(--radius-md) 14px 14px;box-shadow:0 0 0 2px rgba(255,47,200,.22),0 8px 20px rgba(155,61,255,.16);transition:transform .26s cubic-bezier(.22,1,.36,1),box-shadow .26s ease}
@@ -2199,6 +2206,62 @@ function buildStreamCardHTML(item, i) {
   );
 }
 
+function loadExtraVideoThumbnails(preview) {
+  if (!preview || preview.dataset.extraThumbs === 'loading' || preview.dataset.extraThumbs === 'ready') return;
+  var media = preview.__thumbVideo;
+  if (!media || !isFinite(media.duration) || media.duration <= 1) return;
+  var card = preview.closest('.uvd-card');
+  if (!card) return;
+  preview.dataset.extraThumbs = 'loading';
+  var times = [12, 30, 60, 90, 120].map(function(t) {
+    return Math.min(t, Math.max(0, media.duration - .5));
+  }).filter(function(t, i, a) { return a.indexOf(t) === i; });
+  var strip = document.createElement('div');
+  strip.className = 'uvd-thumb-strip';
+  strip.innerHTML = '<span class="uvd-thumb-strip-label">CẢNH KHÁC</span>';
+  card.insertBefore(strip, card.querySelector('.uvd-card-head'));
+  var canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 180;
+  var index = 0;
+  function next() {
+    if (index >= times.length) {
+      preview.dataset.extraThumbs = 'ready';
+      return;
+    }
+    var time = times[index++];
+    var done = false;
+    function capture() {
+      if (done) return;
+      done = true;
+      try {
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+        var item = document.createElement('button');
+        item.className = 'uvd-extra-thumb';
+        item.type = 'button';
+        item.title = 'Xem từ giây ' + Math.round(time);
+        item.innerHTML = '<img alt=""><span>' + Math.round(time) + 's</span>';
+        item.querySelector('img').src = canvas.toDataURL('image/jpeg', .72);
+        item.onclick = function() {
+          try { media.currentTime = time; } catch(e) {}
+          var play = card.querySelector('.uvd-thumb-play');
+          if (play) play.click();
+        };
+        strip.appendChild(item);
+      } catch(e) {
+        // Canvas bị CORS thì vẫn giữ thumbnail chính, không làm hỏng card.
+      }
+      media.removeEventListener('seeked', capture);
+      next();
+    }
+    media.addEventListener('seeked', capture, { once: true });
+    try { media.currentTime = time; } catch(e) { capture(); }
+    setTimeout(capture, 1800);
+  }
+  next();
+}
+
 function hydrateVideoThumbnails(root) {
   if (!root) return;
   root.querySelectorAll('.uvd-card-preview[data-thumb-url]').forEach(function(preview) {
@@ -2220,6 +2283,7 @@ function hydrateVideoThumbnails(root) {
     media.setAttribute('aria-hidden', 'true');
     var thumbUrl = preview.getAttribute('data-thumb-url');
     var thumbHls = null;
+    preview.__thumbVideo = media;
     function showFrame() {
       preview.dataset.thumbState = 'ready';
       if (image) image.classList.add('uvd-thumb-ready');
@@ -2242,6 +2306,12 @@ function hydrateVideoThumbnails(root) {
       try { media.remove(); } catch(e) {}
     }, { once: true });
     if (image) image.appendChild(media);
+    var pressTimer = null;
+    preview.addEventListener('touchstart', function() {
+      pressTimer = setTimeout(function() { loadExtraVideoThumbnails(preview); }, 520);
+    }, { passive: true });
+    preview.addEventListener('touchend', function() { if (pressTimer) clearTimeout(pressTimer); }, { passive: true });
+    preview.addEventListener('touchcancel', function() { if (pressTimer) clearTimeout(pressTimer); }, { passive: true });
     if (type === 'M3U8' && window.Hls && Hls.isSupported()) {
       try {
         thumbHls = new Hls({ maxBufferLength: 2, maxMaxBufferLength: 4 });

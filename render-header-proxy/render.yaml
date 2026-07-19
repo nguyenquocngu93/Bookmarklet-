@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: umpdl-header-proxy
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PROXY_KEY
+        sync: false
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: MAX_REDIRECTS
+        value: "5"

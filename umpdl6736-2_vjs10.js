@@ -1274,10 +1274,10 @@ function showVideoPlayer(url, type) {
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
   var videoArea = document.createElement('div');
-  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 18% 18%,rgba(255,47,200,0.14),transparent 38%),radial-gradient(circle at 84% 78%,rgba(155,61,255,0.12),transparent 42%),linear-gradient(135deg,rgba(255,238,249,0.96),rgba(245,232,255,0.96));';
+  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:flex-start; justify-content:center; padding:12px 0; background:radial-gradient(circle at 18% 18%,rgba(255,47,200,0.14),transparent 38%),radial-gradient(circle at 84% 78%,rgba(155,61,255,0.12),transparent 42%),linear-gradient(135deg,rgba(255,238,249,0.96),rgba(245,232,255,0.96));';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:transparent;';
+  videoWrapper.style.cssText = 'display:flex; align-items:flex-start; justify-content:center; width:100%; height:auto; flex:0 0 auto; background:transparent;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:transparent;';
@@ -1325,7 +1325,7 @@ function showVideoPlayer(url, type) {
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
-      playerEl.style.margin = 'auto';
+      playerEl.style.margin = '0 auto';
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
       playerEl.style.width = '100%';
       playerEl.style.height = '';
@@ -1344,7 +1344,7 @@ function showVideoPlayer(url, type) {
       var boxW = Math.max(0, availW - PORTRAIT_INSET * 2);
       var boxH = Math.max(0, availH - PORTRAIT_INSET * 2);
       playerEl.style.position = 'relative';
-      playerEl.style.margin = 'auto';
+      playerEl.style.margin = '0 auto';
       playerEl.style.aspectRatio = 'auto';
       if (boxW > 0 && boxH > 0) {
         playerEl.style.width = boxW + 'px';
@@ -1361,7 +1361,7 @@ function showVideoPlayer(url, type) {
       // Video ngang: giữ nguyên (đã đẹp) — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
-      playerEl.style.margin = 'auto';
+      playerEl.style.margin = '0 auto';
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
       playerEl.style.width = '95%';
       playerEl.style.height = '';

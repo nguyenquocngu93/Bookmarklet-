@@ -1806,6 +1806,11 @@ style.textContent = `
 .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(255,47,200,.45);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
 .uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center}
 .uvd-tab.uvd-tab-active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.uvd-filter-bar{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;flex-shrink:0}
+.uvd-filter-bar::-webkit-scrollbar{display:none}
+.uvd-filter-btn{flex:0 0 auto;border:1px solid var(--border);border-radius:999px;padding:6px 12px;background:rgba(255,255,255,.24);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer}
+.uvd-filter-btn:hover{background:var(--btn-accent-bg);color:var(--accent2)}
+.uvd-filter-btn.uvd-filter-active{background:var(--grad-liquid);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(255,47,200,.2)}
 .uvd-scope{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;--bg:rgba(255,246,251,0.97);--glass:rgba(255,250,253,0.82);--glass-hi:rgba(155,61,255,0.08);--border:rgba(255,47,200,0.22);--text:#2b1836;--text2:#7c6a8f;--text3:#a698ba;--accent:#ff2fc8;--accent2:#9b3dff;--danger:#ff5d72;--gold:#e0900a;--success:#1fa97a;--card-bg:rgba(255,255,255,0.55);--fs-xs:11px;--fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--radius-sm:14px;--radius-md:20px;--radius-lg:32px;--grad-liquid:linear-gradient(135deg,var(--accent),var(--accent2));--glow-px:0px;--glow-op:0;--btn-bg:rgba(255,47,200,0.10);--btn-danger-bg:rgba(255,93,114,0.16);--btn-danger-border:rgba(255,93,114,0.35);--btn-success-bg:rgba(31,169,122,0.14);--btn-success-border:rgba(31,169,122,0.35);--btn-accent-bg:rgba(255,47,200,0.16);--btn-purple-bg:rgba(155,61,255,0.16);--btn-gold-bg:rgba(224,144,10,0.16)}
 .uvd-fx-on .uvd-btn{transition:box-shadow .25s ease,transform .15s ease}
 .uvd-fx-on .uvd-btn:active{transform:scale(.95)}
@@ -1869,7 +1874,7 @@ style.textContent = `
 .uvd-action-list .uvd-btn{width:100%;min-width:0}
 @media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{align-items:flex-start}.uvd-brand-sub{display:none}.uvd-header-actions{max-width:190px}.uvd-header-actions .uvd-btn-icon{width:29px;height:29px;font-size:13px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}}
 @media (prefers-reduced-motion:reduce){.uvd-card:hover{transform:none}}
-.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}
+.uvd-card-badges{display:flex;align-items:center;gap:6px;min-width:0}.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}.uvd-card-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;white-space:nowrap}.uvd-status-loading{color:var(--gold);background:rgba(224,144,10,.12);border:1px solid rgba(224,144,10,.25)}.uvd-status-ok{color:var(--success);background:rgba(31,169,122,.12);border:1px solid rgba(31,169,122,.25)}.uvd-status-muted{color:var(--text3);background:rgba(43,24,54,.06);border:1px solid var(--border)}
 .uvd-url-box{background:var(--btn-bg);border-radius:var(--radius-sm);padding:12px;font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);font-weight:600;word-break:break-all;color:var(--accent2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid var(--border)}
 .uvd-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .uvd-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
@@ -2001,6 +2006,23 @@ function buildUI() {
     tabbar.appendChild(b);
   });
   content.appendChild(tabbar);
+
+  var streamFilter = 'ALL';
+  var filterBar = document.createElement('div');
+  filterBar.className = 'uvd-filter-bar';
+  ['ALL','MP4','M3U8','IFRAME','BLOB'].forEach(function(filter) {
+    var filterBtn = document.createElement('button');
+    filterBtn.className = 'uvd-filter-btn' + (filter === 'ALL' ? ' uvd-filter-active' : '');
+    filterBtn.dataset.filter = filter;
+    filterBtn.textContent = filter === 'ALL' ? 'Tất cả' : filter;
+    filterBtn.onclick = function() {
+      streamFilter = filter;
+      filterBar.querySelectorAll('.uvd-filter-btn').forEach(function(b) { b.classList.toggle('uvd-filter-active', b.dataset.filter === filter); });
+      renderTab('streams');
+    };
+    filterBar.appendChild(filterBtn);
+  });
+  content.appendChild(filterBar);
   
   function moveIndicatorTo(btn) {
     if (!btn) return;
@@ -2080,7 +2102,7 @@ function buildUI() {
     streamList.style.display = 'block';
     streamList.innerHTML = '';
     
-    if (tabId === 'streams') renderStreams(streamList, arr);
+    if (tabId === 'streams') renderStreams(streamList, streamFilter === 'ALL' ? arr : arr.filter(function(item) { return String(item.type || '').toUpperCase() === streamFilter; }));
     else if (tabId === 'clicked') renderClickedButtons(streamList);
     else if (tabId === 'player') renderPlayerSettings(streamList);
   }
@@ -2196,7 +2218,7 @@ function buildStreamCardHTML(item, i) {
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
       '</div>' +
       '<div class="uvd-card-head">' +
-        '<span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span>' +
+        '<div class="uvd-card-badges"><span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span><span class="uvd-card-status ' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted') + '">' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'PREVIEW…' : 'NO PREVIEW') + '</span></div>' +
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
@@ -2286,6 +2308,8 @@ function hydrateVideoThumbnails(root) {
     preview.__thumbVideo = media;
     function showFrame() {
       preview.dataset.thumbState = 'ready';
+      var status = card && card.querySelector('.uvd-card-status');
+      if (status) { status.textContent = 'PREVIEW OK'; status.className = 'uvd-card-status uvd-status-ok'; }
       if (image) image.classList.add('uvd-thumb-ready');
       try { media.pause(); } catch(e) {}
     }
@@ -2302,6 +2326,8 @@ function hydrateVideoThumbnails(root) {
     media.addEventListener('seeked', showFrame, { once: true });
     media.addEventListener('error', function() {
       preview.dataset.thumbState = 'unavailable';
+      var errorStatus = card && card.querySelector('.uvd-card-status');
+      if (errorStatus) { errorStatus.textContent = 'NO PREVIEW'; errorStatus.className = 'uvd-card-status uvd-status-muted'; }
       if (image) image.classList.add('uvd-thumb-fallback');
       try { media.remove(); } catch(e) {}
     }, { once: true });
@@ -2320,6 +2346,8 @@ function hydrateVideoThumbnails(root) {
         thumbHls.on(Hls.Events.ERROR, function(_, data) {
           if (data && data.fatal) {
             preview.dataset.thumbState = 'unavailable';
+            var hlsStatus = card && card.querySelector('.uvd-card-status');
+            if (hlsStatus) { hlsStatus.textContent = 'NO PREVIEW'; hlsStatus.className = 'uvd-card-status uvd-status-muted'; }
             if (image) image.classList.add('uvd-thumb-fallback');
           }
         });
@@ -2330,6 +2358,8 @@ function hydrateVideoThumbnails(root) {
     setTimeout(function() {
       if (preview.dataset.thumbState === 'loading') {
         preview.dataset.thumbState = 'timeout';
+        var timeoutStatus = card && card.querySelector('.uvd-card-status');
+        if (timeoutStatus) { timeoutStatus.textContent = 'TIMEOUT'; timeoutStatus.className = 'uvd-card-status uvd-status-muted'; }
         if (image) image.classList.add('uvd-thumb-fallback');
       }
     }, 9000);
@@ -2370,6 +2400,7 @@ function renderStreams(container, arr) {
   renderNextBatch();
 
   container.onclick = function(e) {
+    if (!e.target.closest('.uvd-action-menu')) container.querySelectorAll('.uvd-action-menu[open]').forEach(function(menu) { menu.open = false; });
     var blockBtn = e.target.closest('.uvd-block-btn');
     if (blockBtn) {
       addRipple({ currentTarget: blockBtn, clientX: e.clientX, clientY: e.clientY });
@@ -2391,6 +2422,8 @@ function renderStreams(container, arr) {
       var u2 = decodeURIComponent(actionBtn.dataset.url);
       var action = actionBtn.dataset.action;
       var t = actionBtn.dataset.type;
+      var actionMenu = actionBtn.closest('.uvd-action-menu');
+      if (actionMenu) actionMenu.open = false;
       addToHistory(u2, t || 'IFRAME');
       if (action === 'share') shareUrl(u2);
       else if (action === 'copy') { copy(u2); toast('Đã sao chép!'); }

@@ -894,6 +894,7 @@ var playerState = {
   resolution: '',
   bandwidth: 0,
   playbackError: '',
+  closing: false,
   _displayedResolution: '',
   onFullscreenChange: null,
   __uvdLayoutFn: null,
@@ -1233,6 +1234,7 @@ function showVideoPlayer(url, type) {
   playerState.url = url;
   playerState.type = type;
   playerState.playbackError = '';
+  playerState.closing = false;
   playerState._displayedResolution = '';
   playerState.timeMode = 0;
   pauseAllPlayingVideos();
@@ -1589,6 +1591,7 @@ function showVideoPlayer(url, type) {
   video.addEventListener('loadedmetadata', onMetadataLoaded);
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
+    if (playerState.closing || playerState.video !== video) return;
     var code = video.error && video.error.code;
     if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc nguồn trả dữ liệu sai).');
     else if (code === 4) setPlaybackError('Nguồn video không được browser hỗ trợ hoặc đã bị chặn.');
@@ -1636,7 +1639,7 @@ function showVideoPlayer(url, type) {
         applyDefaultQualityPreference();
       });
       activeHls.on(Hls.Events.ERROR, function(event, data) {
-        if (!data || !data.fatal) return;
+        if (playerState.closing || !data || !data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setPlaybackError('HLS bị chặn hoặc segment đã hết hạn (network error).');
         else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) setPlaybackError('HLS không giải mã được codec/container của video.');
         else setPlaybackError('HLS không đọc được playlist hoặc segment.');
@@ -1700,6 +1703,7 @@ function showVideoPlayer(url, type) {
 // ========== CLOSE PLAYER ==========
 function closePlayer() {
   if (playerState.overlay) {
+    playerState.closing = true;
     if (data.settings.resumePlayback && playerState.url && playerState.video) {
       savePlaybackPosition(playerState.url, playerState.video);
     }

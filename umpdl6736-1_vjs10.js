@@ -1187,10 +1187,10 @@ function __uvdMountVjs10(wrapper, video, onMount) {
     done = true;
     try {
       var player = document.createElement('video-player');
-      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:inherit;';
+      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:inherit;background:#000;';
       player.id = '__uvd_player_el__';
       var skin = document.createElement('video-skin');
-      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:inherit;';
+      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:inherit;background:#000;';
       if (video.parentNode) video.parentNode.removeChild(video);
       skin.appendChild(video);
       player.appendChild(skin);
@@ -1274,13 +1274,13 @@ function showVideoPlayer(url, type) {
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
   var videoArea = document.createElement('div');
-  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; background:transparent;';
+  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; background:#000;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:transparent;';
+  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:#000;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
-  video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain;';
+  video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:#000;';
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
   video.setAttribute('crossorigin', 'anonymous');

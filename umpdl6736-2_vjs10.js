@@ -1820,12 +1820,30 @@ style.textContent = `
 .uvd-btn-icon:active{transform:scale(.92)}
 .uvd-card{position:relative;border-radius:var(--radius-md);padding:14px;margin-bottom:10px;font-size:var(--fs-base);animation:uvdCardEnter .28s cubic-bezier(.22,1,.36,1) both;will-change:transform}
 .uvd-card:hover{transform:translateY(-3px);border-color:rgba(255,47,200,.38);box-shadow:0 16px 34px rgba(112,45,126,.18),0 0 0 1px rgba(255,47,200,.16) inset,0 1px 0 rgba(255,255,255,.7) inset}
+.uvd-card-preview{position:relative;height:150px;margin:-14px -14px 13px;overflow:hidden;border-radius:var(--radius-md) var(--radius-md) 14px 14px;background:linear-gradient(135deg,rgba(255,47,200,.18),rgba(155,61,255,.2));isolation:isolate}
+.uvd-thumb-image,.uvd-thumb-video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.uvd-thumb-image{background:linear-gradient(120deg,rgba(255,47,200,.22),rgba(155,61,255,.2));transition:filter .25s ease}
+.uvd-thumb-video{opacity:0;transition:opacity .25s ease}
+.uvd-thumb-ready .uvd-thumb-video{opacity:1}
+.uvd-thumb-fallback{filter:saturate(1.15) brightness(1.03)}
+.uvd-thumb-sheen{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(20,8,30,.04),rgba(20,8,30,.42));pointer-events:none}
+.uvd-thumb-type{position:absolute;z-index:2;top:10px;left:11px;padding:5px 9px;border:1px solid rgba(255,255,255,.34);border-radius:999px;background:rgba(43,24,54,.3);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em}
+.uvd-thumb-play{position:absolute;z-index:3;left:50%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(255,255,255,.88);color:var(--accent);font-size:20px;cursor:pointer;box-shadow:0 8px 20px rgba(43,24,54,.22);transition:transform .18s ease,background .18s ease}
+.uvd-thumb-play:hover{transform:translate(-50%,-50%) scale(1.08);background:#fff}
 .uvd-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
 .uvd-block-btn{width:30px;height:30px;padding:0;border:1px solid rgba(255,93,114,.22);border-radius:10px;background:rgba(255,93,114,.08);color:var(--danger);opacity:.8;cursor:pointer}
 .uvd-block-btn:hover{opacity:1;background:rgba(255,93,114,.16)}
 .uvd-card-url-label{margin:0 0 5px 2px;color:var(--text3);font-size:9px;font-weight:800;letter-spacing:.1em}
 .uvd-card-actions{margin-top:10px}
 .uvd-card-actions .uvd-btn{min-height:36px}
+.uvd-action-menu{position:relative}
+.uvd-action-menu summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,47,200,.09);color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
+.uvd-action-menu summary::-webkit-details-marker{display:none}
+.uvd-action-menu[open] summary{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:rgba(255,47,200,.15)}
+.uvd-action-menu summary span{font-size:16px;transition:transform .18s ease}
+.uvd-action-menu[open] summary span{transform:rotate(180deg)}
+.uvd-action-list{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:9px;border:1px solid var(--border);border-top:0;border-radius:0 0 var(--radius-sm) var(--radius-sm);background:rgba(255,250,253,.66);backdrop-filter:blur(12px)}
+.uvd-action-list .uvd-btn{width:100%;min-width:0}
 @media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{align-items:flex-start}.uvd-brand-sub{display:none}.uvd-header-actions{max-width:190px}.uvd-header-actions .uvd-btn-icon{width:29px;height:29px;font-size:13px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}}
 @media (prefers-reduced-motion:reduce){.uvd-card:hover{transform:none}}
 .uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}
@@ -2145,17 +2163,87 @@ function buildStreamCardHTML(item, i) {
         )
       );
   }
+  actionsHtml = '<details class="uvd-action-menu"><summary>Thao tác <span>⌄</span></summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   return (
     '<div class="uvd-card" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
+      '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
+        '<div class="uvd-thumb-image"></div>' +
+        '<div class="uvd-thumb-sheen"></div>' +
+        '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
+        '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
+      '</div>' +
       '<div class="uvd-card-head">' +
         '<span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
       '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-card-actions uvd-grid-2">' + actionsHtml + '</div>' +
+      '<div class="uvd-card-actions">' + actionsHtml + '</div>' +
     '</div>'
   );
+}
+
+function hydrateVideoThumbnails(root) {
+  if (!root) return;
+  root.querySelectorAll('.uvd-card-preview[data-thumb-url]').forEach(function(preview) {
+    if (preview.dataset.thumbState) return;
+    var card = preview.closest('.uvd-card');
+    var type = card ? (card.dataset.type || '').toUpperCase() : '';
+    if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO') {
+      preview.dataset.thumbState = 'unsupported';
+      return;
+    }
+    preview.dataset.thumbState = 'loading';
+    var image = preview.querySelector('.uvd-thumb-image');
+    var media = document.createElement('video');
+    media.className = 'uvd-thumb-video';
+    media.muted = true;
+    media.defaultMuted = true;
+    media.playsInline = true;
+    media.preload = 'metadata';
+    media.setAttribute('aria-hidden', 'true');
+    var thumbUrl = preview.getAttribute('data-thumb-url');
+    var thumbHls = null;
+    function showFrame() {
+      preview.dataset.thumbState = 'ready';
+      if (image) image.classList.add('uvd-thumb-ready');
+      try { media.pause(); } catch(e) {}
+    }
+    media.addEventListener('loadedmetadata', function() {
+      try {
+        if (isFinite(media.duration) && media.duration > 1) media.currentTime = Math.min(2, media.duration * .12);
+      } catch(e) {}
+    });
+    media.addEventListener('loadeddata', showFrame, { once: true });
+    media.addEventListener('seeked', showFrame, { once: true });
+    media.addEventListener('error', function() {
+      preview.dataset.thumbState = 'unavailable';
+      if (image) image.classList.add('uvd-thumb-fallback');
+      try { media.remove(); } catch(e) {}
+    }, { once: true });
+    if (image) image.appendChild(media);
+    if (type === 'M3U8' && window.Hls && Hls.isSupported()) {
+      try {
+        thumbHls = new Hls({ maxBufferLength: 2, maxMaxBufferLength: 4 });
+        thumbHls.loadSource(thumbUrl);
+        thumbHls.attachMedia(media);
+        thumbHls.on(Hls.Events.ERROR, function(_, data) {
+          if (data && data.fatal) {
+            preview.dataset.thumbState = 'unavailable';
+            if (image) image.classList.add('uvd-thumb-fallback');
+          }
+        });
+      } catch(e) { media.src = thumbUrl; }
+    } else {
+      media.src = thumbUrl;
+    }
+    setTimeout(function() {
+      if (preview.dataset.thumbState === 'loading') {
+        preview.dataset.thumbState = 'timeout';
+        if (image) image.classList.add('uvd-thumb-fallback');
+      }
+    }, 9000);
+  });
 }
 
 function renderStreams(container, arr) {
@@ -2176,6 +2264,7 @@ function renderStreams(container, arr) {
     var frag = document.createElement('div');
     frag.innerHTML = html;
     while (frag.firstChild) listWrap.appendChild(frag.firstChild);
+    hydrateVideoThumbnails(listWrap);
     rendered = end;
 
     if (moreBtn) { moreBtn.remove(); moreBtn = null; }

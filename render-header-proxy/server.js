@@ -66,11 +66,19 @@ function requestHeaders(req, target, refererOverride) {
 }
 
 async function fetchSource(target, req, referer) {
-  return fetch(target, {
-    headers: requestHeaders(req, target, referer),
-    redirect: 'follow',
-    signal: AbortSignal.timeout(30000)
-  });
+  let current = target;
+  for (let attempt = 0; attempt <= MAX_REDIRECTS; attempt++) {
+    const response = await fetch(current, {
+      headers: requestHeaders(req, current, referer),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(30000)
+    });
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+    const location = response.headers.get('location');
+    if (!location) return response;
+    current = parseTarget(new URL(location, current).toString());
+  }
+  throw new Error('Quá nhiều redirect');
 }
 
 function forwardMediaHeaders(source, res) {

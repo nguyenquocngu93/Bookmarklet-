@@ -9,6 +9,7 @@
 'use strict';
 
 var VERSION = '6.7.26';
+var HEADER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
 
 // ========== CLEANUP ==========
 var old = document.getElementById('__uvd__');
@@ -55,6 +56,7 @@ data.settings = Object.assign({
   blockAutoplay: true,
   glowEffects: true,
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
+  headerProxyKey: '',
   subdlApiKey: ''
 }, data.settings || {});
 
@@ -894,6 +896,7 @@ var playerState = {
   resolution: '',
   bandwidth: 0,
   playbackError: '',
+  proxyRetried: false,
   closing: false,
   _displayedResolution: '',
   onFullscreenChange: null,
@@ -1227,12 +1230,35 @@ function __uvdMountVjs10(wrapper, video, onMount) {
   }, 100);
 }
 
+// ========== HEADER PROXY ==========
+function buildHeaderProxyUrl(sourceUrl, type) {
+  if (!HEADER_PROXY_BASE || !sourceUrl || sourceUrl.indexOf(HEADER_PROXY_BASE) === 0) return '';
+  var isHlsSource = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(sourceUrl);
+  var endpoint = isHlsSource ? '/hls' : '/proxy';
+  var params = new URLSearchParams();
+  params.set('url', sourceUrl);
+  params.set('referer', pageInfo.referer || location.href);
+  if (data.settings.headerProxyKey) params.set('key', data.settings.headerProxyKey);
+  return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
+}
+
+function retryThroughHeaderProxy(sourceUrl, type) {
+  if (playerState.proxyRetried) return false;
+  var proxyUrl = buildHeaderProxyUrl(sourceUrl, type);
+  if (!proxyUrl) return false;
+  playerState.proxyRetried = true;
+  toast('🔁 Nguồn lỗi, đang thử proxy header…');
+  setTimeout(function() { showVideoPlayer(proxyUrl, type, true); }, 180);
+  return true;
+}
+
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type) {
+function showVideoPlayer(url, type, fromProxy) {
   if (playerState.overlay && playerState.url === url) return;
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
+  if (!fromProxy) playerState.proxyRetried = false;
   playerState.playbackError = '';
   playerState.closing = false;
   playerState._displayedResolution = '';
@@ -1592,6 +1618,7 @@ function showVideoPlayer(url, type) {
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
+    if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
     var code = video.error && video.error.code;
     if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc nguồn trả dữ liệu sai).');
     else if (code === 4) setPlaybackError('Nguồn video không được browser hỗ trợ hoặc đã bị chặn.');
@@ -1640,6 +1667,7 @@ function showVideoPlayer(url, type) {
       });
       activeHls.on(Hls.Events.ERROR, function(event, data) {
         if (playerState.closing || !data || !data.fatal) return;
+        if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setPlaybackError('HLS bị chặn hoặc segment đã hết hạn (network error).');
         else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) setPlaybackError('HLS không giải mã được codec/container của video.');
         else setPlaybackError('HLS không đọc được playlist hoặc segment.');
@@ -2835,6 +2863,13 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">🌐 Header proxy</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tự thử Render proxy khi MP4/HLS lỗi do thiếu Referer hoặc User-Agent.</div>' +
+      '<input id="__uvd_proxy_key__" type="password" autocomplete="off" placeholder="PROXY_KEY (nếu Render yêu cầu)" value="' + escapeHtml(data.settings.headerProxyKey || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:12px;">' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Proxy: ' + escapeHtml(HEADER_PROXY_BASE) + '</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">⛔ Chặn tự phát</div>' +
       buildToggleRow('__uvd_toggle_blockautoplay__', 'Chặn mạnh web tự mở/phát video sau khi chạy script', data.settings.blockAutoplay) +
       '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Video/audio do chính trang web tự bật (quảng cáo, autoplay ẩn...) sẽ luôn bị tạm dừng ngay. Video mở qua UMP DL Player không bị ảnh hưởng.</div>' +
@@ -2950,6 +2985,13 @@ function renderSettings(container) {
     storage.set(data);
     applyEffectsPref(document.getElementById('__uvd__'));
     if (playerState.overlay) applyEffectsPref(playerState.overlay);
+  };
+
+  var proxyKeyInput = document.getElementById('__uvd_proxy_key__');
+  if (proxyKeyInput) proxyKeyInput.onchange = function() {
+    data.settings.headerProxyKey = this.value.trim();
+    storage.set(data);
+    toast(data.settings.headerProxyKey ? 'Đã lưu proxy key' : 'Đã xóa proxy key');
   };
 
   document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {

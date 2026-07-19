@@ -1,0 +1,88 @@
+name: Purge jsDelivr cache
+
+# Tự động purge cache jsDelivr sau mỗi lần push lên main
+# để URL @main luôn phục vụ bản mới nhất, không phải chờ 12h.
+#
+# jsDelivr Purge API: https://www.jsdelivr.com/documentation#id-purge-cache
+# - Không cần token/secret.
+# - Purge theo path (nhánh @main). File pinned SHA (@abc123) không bị ảnh hưởng.
+# - Có rate limit ~1000 lệnh/ngày, dư sức cho repo cá nhân.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.js'
+      - '**/*.html'
+      - '**/*.css'
+  workflow_dispatch:  # cho phép chạy tay từ tab Actions
+
+concurrency:
+  group: purge-jsdelivr
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (chỉ cần commit hiện tại)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # cần commit trước để diff
+
+      - name: Xác định danh sách file cần purge
+        id: files
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Chạy tay: purge toàn bộ file js/html/css ở root
+            mapfile -t FILES < <(git ls-files '*.js' '*.html' '*.css')
+          else
+            # Push: chỉ purge file bị thay đổi trong commit này
+            mapfile -t FILES < <(
+              git diff --name-only --diff-filter=AMR \
+                "${{ github.event.before }}" "${{ github.sha }}" \
+                -- '*.js' '*.html' '*.css'
+            )
+          fi
+
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "Không có file nào cần purge."
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Sẽ purge ${#FILES[@]} file:"
+          printf '  - %s\n' "${FILES[@]}"
+
+          # Build JSON payload: {"path":["/gh/owner/repo@main/file1", ...]}
+          REPO="${{ github.repository }}"   # dạng owner/repo
+          PATHS_JSON=$(printf '"/gh/%s@main/%s",' "$REPO" "${FILES[@]}")
+          PATHS_JSON="[${PATHS_JSON%,}]"
+          PAYLOAD="{\"path\":$PATHS_JSON}"
+
+          echo "$PAYLOAD" > payload.json
+          echo "count=${#FILES[@]}" >> "$GITHUB_OUTPUT"
+
+      - name: Gọi jsDelivr Purge API
+        if: steps.files.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          echo "Payload:"
+          cat payload.json
+          echo ""
+          echo "Gửi POST tới https://purge.jsdelivr.net/ ..."
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
+            -X POST https://purge.jsdelivr.net/ \
+            -H "Content-Type: application/json" \
+            --data @payload.json)
+          echo "HTTP $HTTP_CODE"
+          echo "Response:"
+          cat response.json
+          echo ""
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::jsDelivr purge thất bại (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+          echo "::notice::Đã purge ${{ steps.files.outputs.count }} file thành công."

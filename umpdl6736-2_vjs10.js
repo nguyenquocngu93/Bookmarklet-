@@ -2211,7 +2211,11 @@ function hydrateVideoThumbnails(root) {
     }
     media.addEventListener('loadedmetadata', function() {
       try {
-        if (isFinite(media.duration) && media.duration > 1) media.currentTime = Math.min(2, media.duration * .12);
+        if (isFinite(media.duration) && media.duration > 1) {
+          // Bỏ qua logo/intro ở đầu video; ưu tiên thumbnail khoảng giây 12.
+          var thumbTime = Math.min(Math.max(12, media.duration * .2), Math.max(0, media.duration - .5));
+          media.currentTime = thumbTime;
+        }
       } catch(e) {}
     });
     media.addEventListener('loadeddata', showFrame, { once: true });

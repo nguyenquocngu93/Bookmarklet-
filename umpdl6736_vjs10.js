@@ -1187,10 +1187,10 @@ function __uvdMountVjs10(wrapper, video, onMount) {
     done = true;
     try {
       var player = document.createElement('video-player');
-      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;';
+      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:inherit;';
       player.id = '__uvd_player_el__';
       var skin = document.createElement('video-skin');
-      skin.style.cssText = 'width:100%;height:100%;display:block;';
+      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:inherit;';
       if (video.parentNode) video.parentNode.removeChild(video);
       skin.appendChild(video);
       player.appendChild(skin);
@@ -1353,9 +1353,10 @@ function showVideoPlayer(url, type) {
         playerEl.style.width = '95%';
         playerEl.style.height = '95%';
       }
-      playerEl.style.borderRadius = '0';
+      playerEl.style.borderRadius = '16px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
       video.style.objectFit = 'cover';
+      video.style.borderRadius = 'inherit';
     } else {
       // Video ngang: giữ nguyên (đã đẹp) — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
       videoWrapper.style.padding = '0';
@@ -1367,6 +1368,7 @@ function showVideoPlayer(url, type) {
       playerEl.style.borderRadius = '16px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
       video.style.objectFit = 'contain';
+      video.style.borderRadius = 'inherit';
     }
   }
   video.addEventListener('loadedmetadata', __uvdApplyPlayerLayout);

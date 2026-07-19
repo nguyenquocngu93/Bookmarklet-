@@ -61,6 +61,11 @@ function requestHeaders(req, target, refererOverride) {
   if (referer) headers.referer = referer;
   const origin = req.query.origin || process.env.DEFAULT_ORIGIN;
   if (origin) headers.origin = origin;
+  if (origin) {
+    headers['sec-fetch-site'] = 'same-site';
+    headers['sec-fetch-mode'] = 'cors';
+    headers['sec-fetch-dest'] = 'video';
+  }
   if (req.query.cookie) headers.cookie = req.query.cookie;
   return headers;
 }

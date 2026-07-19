@@ -1238,6 +1238,7 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   var params = new URLSearchParams();
   params.set('url', sourceUrl);
   params.set('referer', pageInfo.referer || location.href);
+  params.set('origin', location.origin);
   if (data.settings.headerProxyKey) params.set('key', data.settings.headerProxyKey);
   return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
 }

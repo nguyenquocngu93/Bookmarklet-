@@ -523,7 +523,7 @@ function openSettingsOverlay() {
     '<div class="uvd-settings-sheet">' +
       '<div class="uvd-settings-header">' +
         '<button class="uvd-back-btn" id="__uvd_settings_back__" title="Đóng">←</button>' +
-        '<span class="uvd-settings-title">⚙ Cài đặt</span>' +
+        '<div class="uvd-settings-title-wrap"><span class="uvd-settings-title">⚙ Cài đặt</span><span class="uvd-settings-subtitle">Tùy chỉnh workspace</span></div>' +
       '</div>' +
       '<div class="uvd-settings-body" id="__uvd_settings_body__"></div>' +
     '</div>';
@@ -1758,7 +1758,7 @@ style.textContent = `
 .uvd-player-sheet{transition:none!important;will-change:auto!important}
 .uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
-.uvd-settings-title{font-weight:700;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}
+.uvd-settings-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}.uvd-settings-title{font-weight:800;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}.uvd-settings-subtitle{font-size:10px;color:var(--text3);font-weight:600}
 .uvd-player-info-panel{flex-shrink:0;padding:14px 18px 18px;border-top:1px solid var(--border);background:linear-gradient(180deg,rgba(255,47,200,0.05),rgba(155,61,255,0.03));}
 .uvd-player-info-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(255,47,200,0.4)}
@@ -1766,6 +1766,25 @@ style.textContent = `
 .uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
+.uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}
+.uvd-app-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%);z-index:0}
+.uvd-app-shell>.uvd-panel-content{z-index:1}
+.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.uvd-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:14px;background:var(--grad-liquid);color:#fff;font-size:15px;box-shadow:0 5px 14px rgba(255,47,200,.25)}
+.uvd-brand-name{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.uvd-brand-name span{background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent}
+.uvd-brand-sub{margin-top:2px;color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.uvd-header-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.uvd-header-actions .uvd-btn-icon{width:32px;height:32px;border-radius:11px;font-size:14px}
+.uvd-header-actions .uvd-close-action{color:var(--danger)}
+.uvd-context-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:14px 15px;margin-bottom:14px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(135deg,rgba(255,47,200,.09),rgba(155,61,255,.06));flex-shrink:0}
+.uvd-context-main{min-width:0;display:flex;flex-direction:column;gap:5px}
+.uvd-context-kicker{font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--accent);opacity:.8}
+.uvd-context-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;padding:0;background:transparent;color:var(--text);font:700 15px inherit;text-align:left;cursor:pointer}
+.uvd-context-meta{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:5px}
+.uvd-meta-chip{border:1px solid var(--border);border-radius:999px;padding:6px 9px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.28);color:var(--accent2);font-size:10px;cursor:pointer}
+.uvd-meta-chip:hover{background:var(--btn-accent-bg)}
 .uvd-reduce-motion *{animation:none!important;transition:none!important}
 .uvd-reduce-motion .uvd-glass-panel{backdrop-filter:blur(0)!important;-webkit-backdrop-filter:blur(0)!important;background:rgba(255,248,252,.98)!important;border-color:rgba(255,47,200,.18)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
@@ -1801,6 +1820,14 @@ style.textContent = `
 .uvd-btn-icon:active{transform:scale(.92)}
 .uvd-card{position:relative;border-radius:var(--radius-md);padding:14px;margin-bottom:10px;font-size:var(--fs-base);animation:uvdCardEnter .28s cubic-bezier(.22,1,.36,1) both;will-change:transform}
 .uvd-card:hover{transform:translateY(-3px);border-color:rgba(255,47,200,.38);box-shadow:0 16px 34px rgba(112,45,126,.18),0 0 0 1px rgba(255,47,200,.16) inset,0 1px 0 rgba(255,255,255,.7) inset}
+.uvd-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.uvd-block-btn{width:30px;height:30px;padding:0;border:1px solid rgba(255,93,114,.22);border-radius:10px;background:rgba(255,93,114,.08);color:var(--danger);opacity:.8;cursor:pointer}
+.uvd-block-btn:hover{opacity:1;background:rgba(255,93,114,.16)}
+.uvd-card-url-label{margin:0 0 5px 2px;color:var(--text3);font-size:9px;font-weight:800;letter-spacing:.1em}
+.uvd-card-actions{margin-top:10px}
+.uvd-card-actions .uvd-btn{min-height:36px}
+@media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{align-items:flex-start}.uvd-brand-sub{display:none}.uvd-header-actions{max-width:190px}.uvd-header-actions .uvd-btn-icon{width:29px;height:29px;font-size:13px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}}
+@media (prefers-reduced-motion:reduce){.uvd-card:hover{transform:none}}
 .uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}
 .uvd-url-box{background:var(--btn-bg);border-radius:var(--radius-sm);padding:12px;font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);font-weight:600;word-break:break-all;color:var(--accent2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid var(--border)}
 .uvd-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -1881,7 +1908,7 @@ function buildUI() {
   
   panel = document.createElement('div');
   panel.id = '__uvd__';
-  panel.className = 'uvd-glass-panel';
+  panel.className = 'uvd-glass-panel uvd-app-shell';
   panel.style.cssText = 'position:fixed;top:15px;left:15px;right:15px;height:calc(100dvh - 30px);z-index:2147483647;animation:uvdScaleIn 0.4s ease;overscroll-behavior:contain;' + (playerState.overlay ? 'visibility:hidden;' : '');
   
   var liquidBg = document.createElement('div');
@@ -1894,19 +1921,20 @@ function buildUI() {
   
   var header = document.createElement('div');
   header.id = '__uvd_header__';
-  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:10px;flex-shrink:0;';
-  header.innerHTML = 
-    '<div style="display:flex;align-items:center;gap:8px;">' +
-      '<span style="width:10px;height:10px;background:var(--grad-liquid);border-radius:50%;animation:uvdPulse 2s infinite;box-shadow:0 0 8px rgba(255,47,200,0.6);"></span>' +
-      '<span style="font-weight:700;font-size:16px;letter-spacing:-0.01em;">UMP DL <span style="background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent;">V' + VERSION + '</span></span>' +
+  header.style.cssText = 'flex-shrink:0;';
+  header.innerHTML =
+    '<div class="uvd-brand">' +
+      '<span class="uvd-brand-mark">▶</span>' +
+      '<div><div class="uvd-brand-name">UMP DL <span>V' + VERSION + '</span></div>' +
+      '<div class="uvd-brand-sub">Universal media workspace</div></div>' +
     '</div>' +
-    '<div style="display:flex;gap:6px;">' +
-      '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play (bấm hết cùng lúc)">▶</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Thử lần lượt từng server tới khi ra link">⏭</button>' +
+    '<div class="uvd-header-actions">' +
+      '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Thử lần lượt từng server">⏭</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_refresh__" title="Làm mới">↻</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script (vẫn chạy nền, chặn popup)">▾</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_close__" title="Đóng">×</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script">▾</button>' +
+      '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
     '</div>';
   content.appendChild(header);
   
@@ -1942,16 +1970,18 @@ function buildUI() {
   }
   
   var info = document.createElement('div');
-  info.style.cssText = 'margin-bottom:10px;font-size:12px;flex-shrink:0;';
+  info.style.cssText = 'flex-shrink:0;';
   var savedPlaySel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
-  info.innerHTML = 
-    '<span style="color:var(--text2);">Tên: </span>' +
-    '<span id="__uvd_title__" style="color:var(--accent);text-decoration:underline;cursor:pointer;">' + escapeHtml(pageInfo.title) + '</span> ' +
-    '<span style="color:var(--text3);">(sửa)</span><br>' +
-    '<span style="color:var(--text2);">Referer: </span>' +
-    '<span id="__uvd_referer__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + escapeHtml(pageInfo.referer) + '</span><br>' +
-    '<span style="color:var(--text2);">Play selector: </span>' +
-    '<span id="__uvd_playsel__" style="color:var(--accent2);font-family:monospace;text-decoration:underline;cursor:pointer;font-size:11px;">' + escapeHtml(savedPlaySel || '(chưa đặt · bấm để thêm)') + '</span>';
+  info.className = 'uvd-context-bar';
+  info.innerHTML =
+    '<div class="uvd-context-main">' +
+      '<span class="uvd-context-kicker">CURRENT SESSION</span>' +
+      '<button id="__uvd_title__" class="uvd-context-title">' + escapeHtml(pageInfo.title) + '</button>' +
+    '</div>' +
+    '<div class="uvd-context-meta">' +
+      '<button id="__uvd_referer__" class="uvd-meta-chip">↗ ' + escapeHtml(pageInfo.host || pageInfo.referer) + '</button>' +
+      '<button id="__uvd_playsel__" class="uvd-meta-chip">◉ ' + escapeHtml(savedPlaySel || 'Play selector chưa đặt') + '</button>' +
+    '</div>';
   content.appendChild(info);
   
   var contentWrapper = document.createElement('div');
@@ -2117,12 +2147,13 @@ function buildStreamCardHTML(item, i) {
   }
   return (
     '<div class="uvd-card" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<div class="uvd-card-head">' +
         '<span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span>' +
-        '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--danger);opacity:0.65;" title="Chặn link này">⛔</button>' +
+        '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
+      '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
       '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-grid-2" style="margin-top:8px;">' + actionsHtml + '</div>' +
+      '<div class="uvd-card-actions uvd-grid-2">' + actionsHtml + '</div>' +
     '</div>'
   );
 }

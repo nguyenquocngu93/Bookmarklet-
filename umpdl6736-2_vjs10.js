@@ -1625,9 +1625,9 @@ function showVideoPlayer(url, type, fromProxy) {
     if (playerState.closing || playerState.video !== video) return;
     if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
     var code = video.error && video.error.code;
-    if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc nguồn trả dữ liệu sai).');
-    else if (code === 4) setPlaybackError('Nguồn video không được browser hỗ trợ hoặc đã bị chặn.');
-    else setPlaybackError('Không thể tải nguồn video. Có thể link hết hạn hoặc server đang chặn phát ngoài.');
+    if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc dữ liệu đọc chưa đúng).');
+    else if (code === 4) setPlaybackError('Browser không hỗ trợ hoặc không đọc được nguồn video.');
+    else setPlaybackError('Không thể tải nguồn video. Có thể link hết hạn hoặc nguồn tạm thời không phản hồi.');
   });
   var __lastPosSave = 0;
   video.addEventListener('timeupdate', function() {
@@ -1673,7 +1673,7 @@ function showVideoPlayer(url, type, fromProxy) {
       activeHls.on(Hls.Events.ERROR, function(event, data) {
         if (playerState.closing || !data || !data.fatal) return;
         if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setPlaybackError('HLS bị chặn hoặc segment đã hết hạn (network error).');
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setPlaybackError('HLS gặp lỗi mạng hoặc không đọc được segment.');
         else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) setPlaybackError('HLS không giải mã được codec/container của video.');
         else setPlaybackError('HLS không đọc được playlist hoặc segment.');
       });

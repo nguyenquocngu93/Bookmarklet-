@@ -1,12 +1,13 @@
 name: Purge jsDelivr cache
 
-# Tự động purge cache jsDelivr sau mỗi lần push lên main
-# để URL @main luôn phục vụ bản mới nhất, không phải chờ 12h.
+# Tự động purge cache jsDelivr sau mỗi push lên main
+# để URL @main luôn phục vụ bản mới nhất (tránh chờ 12h cache branch).
 #
-# jsDelivr Purge API: https://www.jsdelivr.com/documentation#id-purge-cache
-# - Không cần token/secret.
-# - Purge theo path (nhánh @main). File pinned SHA (@abc123) không bị ảnh hưởng.
-# - Có rate limit ~1000 lệnh/ngày, dư sức cho repo cá nhân.
+# Chiến lược:
+# - Dùng GET https://purge.jsdelivr.net/gh/<owner>/<repo>@main/<file>
+#   (endpoint tolerant hơn POST API, không đòi semver, hoạt động cho branch).
+# - Purge từng file song song bằng xargs, không fail toàn workflow nếu 1 file lỗi.
+# - Chỉ log warning cho file lỗi lẻ (ví dụ file mới toanh chưa từng được cache).
 
 on:
   push:
@@ -15,7 +16,7 @@ on:
       - '**/*.js'
       - '**/*.html'
       - '**/*.css'
-  workflow_dispatch:  # cho phép chạy tay từ tab Actions
+  workflow_dispatch:
 
 concurrency:
   group: purge-jsdelivr
@@ -26,24 +27,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout (chỉ cần commit hiện tại)
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2  # cần commit trước để diff
+          fetch-depth: 2
 
       - name: Xác định danh sách file cần purge
         id: files
+        shell: bash
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Chạy tay: purge toàn bộ file js/html/css ở root
             mapfile -t FILES < <(git ls-files '*.js' '*.html' '*.css')
           else
-            # Push: chỉ purge file bị thay đổi trong commit này
+            BEFORE="${{ github.event.before }}"
+            # Nếu before là 000... (push đầu tiên/force push) thì diff với HEAD~1
+            if [[ "$BEFORE" =~ ^0+$ ]]; then
+              BEFORE="HEAD~1"
+            fi
             mapfile -t FILES < <(
-              git diff --name-only --diff-filter=AMR \
-                "${{ github.event.before }}" "${{ github.sha }}" \
-                -- '*.js' '*.html' '*.css'
+              git diff --name-only --diff-filter=AMR "$BEFORE" "${{ github.sha }}" \
+                -- '*.js' '*.html' '*.css' 2>/dev/null || true
             )
           fi
 
@@ -55,34 +59,77 @@ jobs:
 
           echo "Sẽ purge ${#FILES[@]} file:"
           printf '  - %s\n' "${FILES[@]}"
-
-          # Build JSON payload: {"path":["/gh/owner/repo@main/file1", ...]}
-          REPO="${{ github.repository }}"   # dạng owner/repo
-          PATHS_JSON=$(printf '"/gh/%s@main/%s",' "$REPO" "${FILES[@]}")
-          PATHS_JSON="[${PATHS_JSON%,}]"
-          PAYLOAD="{\"path\":$PATHS_JSON}"
-
-          echo "$PAYLOAD" > payload.json
+          printf '%s\n' "${FILES[@]}" > files.txt
           echo "count=${#FILES[@]}" >> "$GITHUB_OUTPUT"
 
-      - name: Gọi jsDelivr Purge API
+      - name: Purge từng file (GET endpoint)
         if: steps.files.outputs.count != '0'
+        shell: bash
         run: |
-          set -euo pipefail
-          echo "Payload:"
-          cat payload.json
+          set -uo pipefail
+          REPO="${{ github.repository }}"
+          OK=0
+          FAIL=0
+          SKIP=0
+
+          purge_one() {
+            local file="$1"
+            local url="https://purge.jsdelivr.net/gh/${REPO}@main/${file}"
+            local resp
+            local code
+            resp=$(curl -sS -w "\nHTTP_CODE:%{http_code}" -m 30 "$url" 2>&1 || true)
+            code=$(echo "$resp" | grep -oE 'HTTP_CODE:[0-9]+' | tail -1 | cut -d: -f2)
+            body=$(echo "$resp" | sed '/^HTTP_CODE:/d')
+
+            case "$code" in
+              200)
+                echo "✅ [$code] $file"
+                echo "OK"
+                ;;
+              404)
+                # File chưa từng được cache → không có gì để purge, coi như skip
+                echo "⚠️  [$code] $file (chưa cache, bỏ qua)"
+                echo "SKIP"
+                ;;
+              429)
+                echo "⏳ [$code] $file (rate-limited)"
+                echo "FAIL"
+                ;;
+              *)
+                echo "❌ [$code] $file"
+                echo "   Response: $(echo "$body" | head -c 300)"
+                echo "FAIL"
+                ;;
+            esac
+          }
+          export -f purge_one
+          export REPO
+
+          # Chạy tuần tự (an toàn với rate limit) — với repo nhỏ vẫn nhanh
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            result=$(purge_one "$file" | tail -1)
+            case "$result" in
+              OK)   OK=$((OK+1)) ;;
+              SKIP) SKIP=$((SKIP+1)) ;;
+              *)    FAIL=$((FAIL+1)) ;;
+            esac
+            # tránh spam API
+            sleep 0.3
+          done < files.txt
+
           echo ""
-          echo "Gửi POST tới https://purge.jsdelivr.net/ ..."
-          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" \
-            -X POST https://purge.jsdelivr.net/ \
-            -H "Content-Type: application/json" \
-            --data @payload.json)
-          echo "HTTP $HTTP_CODE"
-          echo "Response:"
-          cat response.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "::error::jsDelivr purge thất bại (HTTP $HTTP_CODE)"
+          echo "===== KẾT QUẢ ====="
+          echo "✅ Purge OK: $OK"
+          echo "⚠️  Skip (chưa cache): $SKIP"
+          echo "❌ Fail: $FAIL"
+
+          if [ "$OK" -gt 0 ] || [ "$SKIP" -gt 0 ]; then
+            echo "::notice::Purged $OK file, skipped $SKIP file, failed $FAIL file"
+          fi
+
+          # Chỉ fail workflow nếu KHÔNG có file nào purge/skip được (tức toàn bộ đều lỗi)
+          if [ "$OK" -eq 0 ] && [ "$SKIP" -eq 0 ] && [ "$FAIL" -gt 0 ]; then
+            echo "::error::Toàn bộ purge request đều thất bại"
             exit 1
           fi
-          echo "::notice::Đã purge ${{ steps.files.outputs.count }} file thành công."

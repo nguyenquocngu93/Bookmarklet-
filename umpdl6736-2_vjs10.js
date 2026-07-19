@@ -1317,7 +1317,11 @@ function showVideoPlayer(url, type, fromProxy) {
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:var(--glass);';
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
-  video.setAttribute('crossorigin', 'anonymous');
+  // MP4 nguồn gốc thường không trả CORS; không ép anonymous vì sẽ khiến browser từ chối phát.
+  // Chỉ cần CORS khi phát qua proxy hoặc HLS/hls.js.
+  if (url.indexOf(HEADER_PROXY_BASE) === 0 || String(type || '').toUpperCase() === 'M3U8') {
+    video.setAttribute('crossorigin', 'anonymous');
+  }
   videoWrapper.appendChild(video);
   videoArea.appendChild(videoWrapper);
   sheetBody.appendChild(videoArea);

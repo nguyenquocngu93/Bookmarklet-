@@ -1818,7 +1818,10 @@ style.textContent = `
 .uvd-btn-sm{padding:7px 12px;font-size:var(--fs-sm);border-radius:var(--radius-sm)}
 .uvd-btn-icon{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.08) inset;transition:all var(--uvd-transition)}
 .uvd-btn-icon:active{transform:scale(.92)}
-.uvd-card{position:relative;border-radius:var(--radius-md);padding:14px;margin-bottom:10px;font-size:var(--fs-base);animation:uvdCardEnter .28s cubic-bezier(.22,1,.36,1) both;will-change:transform}
+.uvd-card{position:relative;width:100%;max-width:100%;min-width:0;border-radius:var(--radius-md);padding:14px;margin:0 0 10px;font-size:var(--fs-base);animation:uvdCardEnter .28s cubic-bezier(.22,1,.36,1) both;will-change:transform}
+.uvd-app-shell .uvd-scroll{min-width:0;max-width:100%;overflow-x:hidden}
+.uvd-app-shell #__uvd_stream_list__{padding-left:0!important;padding-right:0!important}
+.uvd-card-preview{width:calc(100% + 28px)}
 .uvd-card:hover{transform:translateY(-3px);border-color:rgba(255,47,200,.38);box-shadow:0 16px 34px rgba(112,45,126,.18),0 0 0 1px rgba(255,47,200,.16) inset,0 1px 0 rgba(255,255,255,.7) inset}
 .uvd-card-preview{position:relative;height:150px;margin:-14px -14px 13px;overflow:hidden;border-radius:var(--radius-md) var(--radius-md) 14px 14px;background:linear-gradient(135deg,rgba(255,47,200,.18),rgba(155,61,255,.2));isolation:isolate}
 .uvd-thumb-image,.uvd-thumb-video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
@@ -2009,7 +2012,7 @@ function buildUI() {
   var streamList = document.createElement('div');
   streamList.id = '__uvd_stream_list__';
   streamList.className = 'uvd-scroll';
-  streamList.style.cssText = 'overflow-y:auto;height:100%;padding-right:4px;';
+  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;height:100%;padding:0;min-width:0;';
   contentWrapper.appendChild(streamList);
   
   content.appendChild(contentWrapper);

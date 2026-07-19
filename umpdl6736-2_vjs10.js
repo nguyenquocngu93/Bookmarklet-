@@ -893,6 +893,7 @@ var playerState = {
   type: '',
   resolution: '',
   bandwidth: 0,
+  playbackError: '',
   _displayedResolution: '',
   onFullscreenChange: null,
   __uvdLayoutFn: null,
@@ -1231,6 +1232,7 @@ function showVideoPlayer(url, type) {
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
+  playerState.playbackError = '';
   playerState._displayedResolution = '';
   playerState.timeMode = 0;
   pauseAllPlayingVideos();
@@ -1472,6 +1474,10 @@ function showVideoPlayer(url, type) {
   function updateInfoDisplay() {
     var info = document.getElementById('__uvd_player_info__');
     if (!info) return;
+    if (playerState.playbackError) {
+      info.textContent = '⚠ ' + playerState.playbackError;
+      return;
+    }
     var parts = [playerState.type];
     var res = '';
     if (video && video.videoWidth && video.videoHeight) {
@@ -1519,6 +1525,12 @@ function showVideoPlayer(url, type) {
     }
     if (sizeText) parts.push(sizeText);
     info.textContent = parts.join(' · ');
+  }
+
+  function setPlaybackError(message) {
+    playerState.playbackError = message;
+    updateInfoDisplay();
+    toast('⚠ ' + message, '#ff5d72');
   }
 
   function formatBytes(bytes) {
@@ -1576,6 +1588,12 @@ function showVideoPlayer(url, type) {
 
   video.addEventListener('loadedmetadata', onMetadataLoaded);
   video.addEventListener('durationchange', updateInfoDisplay);
+  video.addEventListener('error', function() {
+    var code = video.error && video.error.code;
+    if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc nguồn trả dữ liệu sai).');
+    else if (code === 4) setPlaybackError('Nguồn video không được browser hỗ trợ hoặc đã bị chặn.');
+    else setPlaybackError('Không thể tải nguồn video. Có thể link hết hạn hoặc server đang chặn phát ngoài.');
+  });
   var __lastPosSave = 0;
   video.addEventListener('timeupdate', function() {
     if (data.settings.resumePlayback && Date.now() - __lastPosSave > 10000) {
@@ -1616,6 +1634,12 @@ function showVideoPlayer(url, type) {
           }
         });
         applyDefaultQualityPreference();
+      });
+      activeHls.on(Hls.Events.ERROR, function(event, data) {
+        if (!data || !data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setPlaybackError('HLS bị chặn hoặc segment đã hết hạn (network error).');
+        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) setPlaybackError('HLS không giải mã được codec/container của video.');
+        else setPlaybackError('HLS không đọc được playlist hoặc segment.');
       });
       activeHls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
         var lvl = activeHls.levels[data.level];

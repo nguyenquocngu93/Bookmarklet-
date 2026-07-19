@@ -1274,7 +1274,7 @@ function showVideoPlayer(url, type) {
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
   var videoArea = document.createElement('div');
-  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; background:transparent;';
+  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 18% 18%,rgba(255,47,200,0.14),transparent 38%),radial-gradient(circle at 84% 78%,rgba(155,61,255,0.12),transparent 42%),linear-gradient(135deg,rgba(255,238,249,0.96),rgba(245,232,255,0.96));';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
   videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:transparent;';

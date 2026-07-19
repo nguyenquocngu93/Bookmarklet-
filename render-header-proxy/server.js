@@ -94,19 +94,30 @@ function looksLikePlaylist(url) {
 }
 
 function rewritePlaylist(text, playlistUrl, req, referer) {
+  let expectingVariantPlaylist = false;
   return text.split(/\r?\n/).map((line) => {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
+    if (!trimmed) return line;
+
+    if (trimmed.startsWith('#')) {
+      const isVariantTag = trimmed.startsWith('#EXT-X-STREAM-INF') ||
+        trimmed.startsWith('#EXT-X-I-FRAME-STREAM-INF') ||
+        (trimmed.startsWith('#EXT-X-MEDIA') && /TYPE=AUDIO/i.test(trimmed));
+      if (isVariantTag) expectingVariantPlaylist = true;
       return line.replace(/URI="([^"]+)"/g, (_, uri) => {
         try {
           const target = new URL(uri, playlistUrl);
-          return `URI="${proxyUrl(target, req, referer, looksLikePlaylist(target.toString()))}"`;
+          const isPlaylist = expectingVariantPlaylist || looksLikePlaylist(target.toString());
+          return `URI="${proxyUrl(target, req, referer, isPlaylist)}"`;
         } catch (_) { return `URI="${uri}"`; }
       });
     }
+
     try {
       const target = new URL(trimmed, playlistUrl);
-      return proxyUrl(target, req, referer, looksLikePlaylist(target.toString()));
+      const isPlaylist = expectingVariantPlaylist || looksLikePlaylist(target.toString());
+      expectingVariantPlaylist = false;
+      return proxyUrl(target, req, referer, isPlaylist);
     } catch (_) { return line; }
   }).join('\n');
 }

@@ -48,10 +48,15 @@ function requestHeaders(req, target, refererOverride) {
   const headers = {
     'user-agent': req.query.ua || process.env.DEFAULT_USER_AGENT ||
       'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36',
-    'accept': req.get('accept') || '*/*'
+    'accept': req.get('accept') || '*/*',
+    'accept-encoding': 'identity'
   };
   const range = req.get('range');
   if (range) headers.range = range;
+  for (const name of ['if-range', 'if-none-match', 'if-modified-since']) {
+    const value = req.get(name);
+    if (value) headers[name] = value;
+  }
   const referer = refererOverride || req.query.referer || process.env.DEFAULT_REFERER;
   if (referer) headers.referer = referer;
   const origin = req.query.origin || process.env.DEFAULT_ORIGIN;
@@ -75,12 +80,17 @@ function forwardMediaHeaders(source, res) {
   }
 }
 
-function proxyUrl(target, req, referer) {
+function proxyUrl(target, req, referer, isPlaylist) {
   const params = new URLSearchParams({ url: target.toString() });
   if (referer) params.set('referer', referer);
   if (req.query.origin) params.set('origin', req.query.origin);
   if (PROXY_KEY) params.set('key', PROXY_KEY);
-  return `${req.protocol}://${req.get('host')}/proxy?${params.toString()}`;
+  const endpoint = isPlaylist ? '/hls' : '/proxy';
+  return `${req.protocol}://${req.get('host')}${endpoint}?${params.toString()}`;
+}
+
+function looksLikePlaylist(url) {
+  return /(?:\.m3u8|m3u8)(?:$|[?#])/i.test(url);
 }
 
 function rewritePlaylist(text, playlistUrl, req, referer) {
@@ -88,12 +98,16 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) {
       return line.replace(/URI="([^"]+)"/g, (_, uri) => {
-        try { return `URI="${proxyUrl(new URL(uri, playlistUrl), req, referer)}"`; }
-        catch (_) { return `URI="${uri}"`; }
+        try {
+          const target = new URL(uri, playlistUrl);
+          return `URI="${proxyUrl(target, req, referer, looksLikePlaylist(target.toString()))}"`;
+        } catch (_) { return `URI="${uri}"`; }
       });
     }
-    try { return proxyUrl(new URL(trimmed, playlistUrl), req, referer); }
-    catch (_) { return line; }
+    try {
+      const target = new URL(trimmed, playlistUrl);
+      return proxyUrl(target, req, referer, looksLikePlaylist(target.toString()));
+    } catch (_) { return line; }
   }).join('\n');
 }
 

@@ -1274,10 +1274,10 @@ function showVideoPlayer(url, type) {
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
   var videoArea = document.createElement('div');
-  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:flex-start; justify-content:center; padding:12px 0; background:radial-gradient(circle at 18% 18%,rgba(255,47,200,0.14),transparent 38%),radial-gradient(circle at 84% 78%,rgba(155,61,255,0.12),transparent 42%),linear-gradient(135deg,rgba(255,238,249,0.96),rgba(245,232,255,0.96));';
+  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0; background:radial-gradient(circle at 18% 18%,rgba(255,47,200,0.14),transparent 38%),radial-gradient(circle at 84% 78%,rgba(155,61,255,0.12),transparent 42%),linear-gradient(135deg,rgba(255,238,249,0.96),rgba(245,232,255,0.96));';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'display:flex; align-items:flex-start; justify-content:center; width:100%; height:auto; flex:0 0 auto; background:transparent;';
+  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:transparent;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:transparent;';
@@ -1361,13 +1361,13 @@ function showVideoPlayer(url, type) {
       // Video ngang: giữ nguyên (đã đẹp) — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
-      playerEl.style.margin = '0 auto';
-      playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.width = '95%';
-      playerEl.style.height = '';
+      playerEl.style.margin = '0';
+      playerEl.style.aspectRatio = 'auto';
+      playerEl.style.width = '100%';
+      playerEl.style.height = '100%';
       playerEl.style.borderRadius = '16px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
-      video.style.objectFit = 'contain';
+      video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
     }
   }

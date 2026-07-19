@@ -903,6 +903,7 @@ var playerState = {
   wasReduceMotion: false,
   hideTimeout: null,
   controlsVisible: true,
+  launchFromThumbnail: false,
   timeMode: 0
 };
 
@@ -1248,7 +1249,8 @@ function showVideoPlayer(url, type) {
   applyEffectsPref(overlay);
 
   var sheet = document.createElement('div');
-  sheet.className = 'uvd-settings-sheet uvd-player-sheet';
+  sheet.className = 'uvd-settings-sheet uvd-player-sheet' + (playerState.launchFromThumbnail ? ' uvd-player-from-thumbnail' : '');
+  playerState.launchFromThumbnail = false;
   sheet.style.cssText = 'display:flex; flex-direction:column; height:92dvh; max-height:92dvh; overflow:hidden; box-sizing:border-box;';
   overlay.appendChild(sheet);
 
@@ -1757,6 +1759,8 @@ style.textContent = `
 .uvd-settings-sheet{width:100%;max-width:1000px;max-height:92dvh;display:flex;flex-direction:column;transform:translate3d(0,100%,0);will-change:transform;backface-visibility:hidden;transition:transform .3s cubic-bezier(.22,1,.36,1);border-radius:32px 32px 0 0;overflow:hidden;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);box-shadow:0 -20px 50px rgba(0,0,0,0.8)}
 .uvd-settings-overlay.uvd-open .uvd-settings-sheet{transform:translate3d(0,0,0)}
 .uvd-player-sheet{transition:none!important;will-change:auto!important}
+@keyframes uvdPlayerFromThumb{from{opacity:0;transform:translate3d(0,28px,0) scale(.965);filter:blur(2px)}to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
+.uvd-player-sheet.uvd-player-from-thumbnail{animation:uvdPlayerFromThumb .34s cubic-bezier(.22,1,.36,1) both}
 .uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .uvd-settings-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}.uvd-settings-title{font-weight:800;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}.uvd-settings-subtitle{font-size:10px;color:var(--text3);font-weight:600}
@@ -1838,9 +1842,9 @@ style.textContent = `
 .uvd-thumb-type{position:absolute;z-index:2;top:10px;left:11px;padding:5px 9px;border:1px solid rgba(255,255,255,.34);border-radius:999px;background:rgba(43,24,54,.3);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em}
 .uvd-thumb-play{position:absolute;z-index:3;left:50%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(255,255,255,.88);color:var(--accent);font-size:20px;cursor:pointer;box-shadow:0 8px 20px rgba(43,24,54,.22);transition:transform .18s ease,background .18s ease}
 .uvd-thumb-play:hover{transform:translate(-50%,-50%) scale(1.08);background:#fff}
-@keyframes uvdThumbLaunch{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.035);filter:brightness(1.08)}100%{transform:scale(.98);filter:brightness(1)}}
+@keyframes uvdThumbLaunch{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.012);filter:brightness(1.08)}100%{transform:scale(1);filter:brightness(1)}}
 .uvd-card.uvd-thumb-launch{animation:uvdThumbLaunch .28s ease both;z-index:3}
-.uvd-card.uvd-thumb-launch .uvd-card-preview{transform:scale(1.045);box-shadow:0 0 0 3px rgba(255,47,200,.22),0 12px 28px rgba(155,61,255,.18);transition:transform .26s cubic-bezier(.22,1,.36,1),box-shadow .26s ease}
+.uvd-card.uvd-thumb-launch .uvd-card-preview{transform:scale(1.012);border-radius:var(--radius-md) var(--radius-md) 14px 14px;box-shadow:0 0 0 2px rgba(255,47,200,.22),0 8px 20px rgba(155,61,255,.16);transition:transform .26s cubic-bezier(.22,1,.36,1),box-shadow .26s ease}
 .uvd-card.uvd-thumb-launch .uvd-thumb-play{transform:translate(-50%,-50%) scale(1.18);background:#fff}
 .uvd-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
 .uvd-block-btn{width:30px;height:30px;padding:0;border:1px solid rgba(255,93,114,.22);border-radius:10px;background:rgba(255,93,114,.08);color:var(--danger);opacity:.8;cursor:pointer}
@@ -2324,10 +2328,9 @@ function renderStreams(container, arr) {
       else if (action === 'play') {
         var launchCard = actionBtn.closest('.uvd-card');
         if (launchCard) launchCard.classList.add('uvd-thumb-launch');
-        var playerTab = document.querySelector('#__uvd__ [data-tab="player"]');
-        if (playerTab) playerTab.click();
         setTimeout(function() {
           if (launchCard) launchCard.classList.remove('uvd-thumb-launch');
+          playerState.launchFromThumbnail = true;
           window.__uvd_showPlayer(u2, t || 'MP4');
         }, 260);
       }

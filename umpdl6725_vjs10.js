@@ -1,36 +1,14 @@
 /**
- * Universal Media Player & Downloader - V6.7.19 PRO
- * - REDESIGN LỚN player: bỏ hẳn hướng "lấp khoảng trống" (header nổi ở 6.7.16,
- *   ambient blur ở 6.7.18) — thay bằng "card" bo góc 2 góc trên, nền theo màu
- *   theme của script (không còn đen trơn), CAO THEO NỘI DUNG (header + video
- *   co theo tỉ lệ thật) thay vì ép flex:1 chiếm hết màn hình — tự loại bỏ
- *   khoảng trống thừa từ gốc, không cần bù bằng hiệu ứng nữa.
- * - Toolbar 11 nút rời rạc → gọn còn: tiêu đề + nút ⋮ (chỉ Chất lượng + Phụ đề)
- *   + nút đóng. Cắt: tốc độ phát, toàn màn hình, PiP, hẹn giờ, mute riêng
- *   (trùng với control gốc của Video.js v10 vốn đã có sẵn 🔊/⚙/⧉/⤢), ghim
- *   controls, screenshot. Boost & Tự động phát tiếp KHÔNG mất chức năng — vẫn
- *   bật/tắt được ở Cài đặt (⚙) như trước, chỉ bỏ nút tắt/mở nhanh trong player.
- *   LƯU Ý: Hẹn giờ tắt & Screenshot giờ KHÔNG còn cách truy cập nào (không có
- *   trong Cài đặt) — nếu vẫn cần, báo lại để thêm vào menu ⋮.
- * - Xoá hẳn footer — dung lượng file dời lên dòng 2 của header (cùng loại +
- *   độ phân giải). Bỏ luôn kiểu hiển thị giờ bấm-đổi-chế-độ (trùng thanh tiến
- *   độ gốc của Video.js).
- * - Xoá hẳn "thu nhỏ video" (mini-thumbnail nổi góc màn hình) — dùng PiP gốc
- *   của Video.js thay thế.
- * - Xoá hẳn "thu nhỏ Script" (nút ▼, toggle trong Cài đặt, toàn bộ CSS/hàm
- *   liên quan) — tiết kiệm tài nguyên như yêu cầu, không còn cách thu nhỏ
- *   panel chính nữa, chỉ đóng bằng ×.
- * - (6.7.17) <video-player> dùng aspect-ratio thật thay vì ép height:100%
- *   (vẫn giữ, đây là phần cốt lõi giúp card co khít đúng).
- * - (6.7.15) Fix nghiêm trọng z-index vượt giới hạn 32-bit; rescan nền dừng
- *   khi đang xem; panel tự ẩn khi player mở.
+ * Universal Media Player & Downloader - V6.7.20 PRO (tối ưu hiệu năng)
+ * - Loại bỏ: Screenshot, Volume Boost, Sleep Timer, Speed controls, PiP riêng
+ * - Tối ưu observer, scan, debounce buildUI, giảm blur/glow
+ * - Giữ nguyên: tìm stream, lọc quảng cáo, player card trượt, phụ đề, resume
  * Author: nguyenquocngu91
  */
 (function() {
 'use strict';
 
-// ========== VERSION ==========
-var VERSION = '6.7.19';
+var VERSION = '6.7.20';
 
 // ========== CLEANUP ==========
 var old = document.getElementById('__uvd__');
@@ -57,29 +35,27 @@ data.siteProfiles = data.siteProfiles || {};
 data.history = data.history || [];
 data.filterlist = data.filterlist || [];
 data.playbackPositions = data.playbackPositions || {};
-data.clickedButtons = data.clickedButtons || {}; // { [host]: { [selector]: {selector,label,count,blocked,lastClicked} } }
+data.clickedButtons = data.clickedButtons || {};
 data.settings = Object.assign({
   defaultSpeed: 1,
   defaultQuality: 'auto',
   dataSaver: false,
   autoFullscreen: false,
   resumePlayback: true,
-  volumeBoost: false,
-  volumeBoostMax: 200,
   autoNext: false,
   reduceMotion: false,
-  blurIntensity: 14,
+  blurIntensity: 8,           // giảm blur
   transitionSpeed: 0.3,
   transitionEasing: 'ease',
   doubleTapSeconds: 10,
   autoHideControls: true,
   showRemainingTime: true,
-  hideDelay: 5,           // giây
+  hideDelay: 5,
   maxStoredUrls: 200,
-  blockAutoplay: true,    // chặn mạnh web tự phát video sau khi chạy script
-  glowEffects: true,      // hiệu ứng phát sáng nút/panel
-  effectsIntensity: 30,   // 0-100, cường độ hiệu ứng (đã hạ mặc định để đỡ giật)
-  subdlApiKey: ''         // API key cá nhân subdl.com (thử nghiệm)
+  blockAutoplay: true,
+  glowEffects: true,
+  effectsIntensity: 20,       // giảm glow
+  subdlApiKey: ''
 }, data.settings || {});
 
 // ========== PROFILES ==========
@@ -108,20 +84,7 @@ var pageInfo = {
 };
 
 // ========== APPEND ROOT ==========
-// Gắn các panel/overlay position:fixed vào <html> thay vì <body>.
-// Lý do: nếu trang đích có ancestor nào của <body> dùng transform/filter/
-// will-change (rất hay gặp ở site dùng smooth-scroll kiểu Lenis/GSAP),
-// theo spec CSS thì position:fixed sẽ bám theo ancestor đó thay vì viewport
-// => panel bị "trôi/cuộn theo" trang, icon/header tràn lệch ra ngoài.
-// <html> gần như không bao giờ bị site gán transform nên tránh được lỗi này.
 function __uvdAppendRoot(el) {
-  // uvd-scope: định danh chung để CSS biến màu (--text, --border, --accent...)
-  // định nghĩa trên class này thay vì :root — vì :root chính là thẻ <html>,
-  // DÙNG CHUNG với trang web đích. Nếu site đích cũng khai --text/--border/--bg
-  // trên :root hoặc html (rất phổ biến, đây là tên biến CSS generic hay dùng),
-  // giá trị của site sẽ đè lên giá trị của script → toàn bộ panel bị nhuộm
-  // theo màu trang web. Đây là nguyên nhân thật của lỗi "giao diện bị ép đổi
-  // theo màu web".
   el.classList.add('uvd-scope');
   (document.documentElement || document.body).appendChild(el);
 }
@@ -134,13 +97,12 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// ========== HIỆU ỨNG (GLOW) ==========
-// Cường độ + bật/tắt hiệu ứng phát sáng, chỉnh được trong Cài đặt.
+// ========== HIỆU ỨNG ==========
 function applyEffectsPref(el) {
   if (!el) return;
   var on = !!data.settings.glowEffects && !data.settings.reduceMotion;
   el.classList.toggle('uvd-fx-on', on);
-  var intensity = Math.max(0, Math.min(100, data.settings.effectsIntensity == null ? 55 : data.settings.effectsIntensity));
+  var intensity = Math.max(0, Math.min(100, data.settings.effectsIntensity == null ? 20 : data.settings.effectsIntensity));
   el.style.setProperty('--glow-px', on ? Math.round(4 + intensity * 0.18) + 'px' : '0px');
   el.style.setProperty('--glow-op', on ? (0.15 + intensity * 0.0035).toFixed(3) : '0');
 }
@@ -196,8 +158,12 @@ var patterns = [
   { re: /blob:https?:\/\/[^\s"'<>()\\]+/gi, type: 'BLOB', priority: 8 }
 ];
 
+var __uvdFindUrlsCache = {};
 function findUrls(text, source) {
-  if (!text || typeof text !== 'string') return;
+  if (!text || typeof text !== 'string' || text.length > 30000) return;
+  var hash = text.length + source;
+  if (__uvdFindUrlsCache[hash]) return;
+  __uvdFindUrlsCache[hash] = true;
   patterns.forEach(function(p) {
     var matches = text.match(p.re);
     if (matches) {
@@ -213,7 +179,6 @@ function findUrls(text, source) {
       });
     }
   });
-  // Giới hạn số URL
   if (urls.size > data.settings.maxStoredUrls) {
     var toRemove = urls.size - data.settings.maxStoredUrls;
     var keys = [...urls.keys()].sort(function(a, b) { return urls.get(a).timestamp - urls.get(b).timestamp; });
@@ -248,7 +213,7 @@ function scan(doc, src) {
   } catch(e) {}
 }
 
-// ========== POPUP / NEW-TAB BLOCKER ==========
+// ========== POPUP BLOCKER ==========
 var __uvdPopupBlockActive = false;
 var __uvdOriginalWindowOpen = null;
 var __uvdBlockedCount = 0;
@@ -333,11 +298,7 @@ function simulateClick(el) {
   } catch(e) { return false; }
 }
 
-// ========== NÚT ĐÃ CLICK (theo dõi + chặn từng nút cụ thể) ==========
-// Sinh 1 selector "ổn định" để nhận diện lại đúng phần tử này ở lần sau (ưu
-// tiên id vì các site thường đặt id cố định cho từng server/host, ví dụ
-// button#video-host-vinovo). Không dùng để query lại nhiều phần tử — chỉ để
-// định danh phần tử ĐÃ BẤM cho tab "Nút đã click".
+// ========== NÚT ĐÃ CLICK ==========
 function __uvdElementSelector(el) {
   if (!el || !el.tagName) return '';
   var tag = el.tagName.toLowerCase();
@@ -356,14 +317,10 @@ function __uvdElementSelector(el) {
   return tag + ':nth-child(' + (idx + 1) + ')';
 }
 
-function __uvdClickedRecord(sel) {
-  var host = pageInfo.host;
-  return (data.clickedButtons[host] && data.clickedButtons[host][sel]) || null;
-}
-
 function isButtonBlocked(el) {
-  var rec = __uvdClickedRecord(__uvdElementSelector(el));
-  return !!(rec && rec.blocked);
+  var host = pageInfo.host;
+  var sel = __uvdElementSelector(el);
+  return !!(data.clickedButtons[host] && data.clickedButtons[host][sel] && data.clickedButtons[host][sel].blocked);
 }
 
 function recordClickedButton(el, sel, isFallback) {
@@ -382,13 +339,7 @@ function recordClickedButton(el, sel, isFallback) {
   storage.set(data);
 }
 
-// ========== FALLBACK: DÒ NÚT SERVER KHI KHÔNG KHỚP SELECTOR NÀO ==========
-// Khi cả AUTO_PLAY_SELECTORS lẫn Play selector riêng đều không tìm thấy phần
-// tử nào, đoán theo TEXT của nút: chữ "server"/"stream"/"host", tên viết tắt
-// các host phổ biến, hoặc nhãn ngắn viết hoa kiểu VI/MD/DS/ST (hay gặp ở tab
-// chọn server). Popup/redirect đã bị chặn toàn cục từ lúc INIT nên bấm nhầm
-// cũng không văng tab mới — mỗi nút bấm fallback đều được ghi vào tab "Nút đã
-// click" (đánh dấu 🔍 đoán) để bạn rà lại và chặn bớt nút sai.
+// ========== FALLBACK ==========
 var FALLBACK_SERVER_KEYWORDS = [
   'server', 'stream', 'host', 'nguồn', 'máy chủ', 'may chu',
   'vinovo', 'mixdrop', 'doodstream', 'streamtape', 'vidplay', 'fembed',
@@ -396,11 +347,6 @@ var FALLBACK_SERVER_KEYWORDS = [
   'mp4upload', 'vidcloud', 'abyss', 'playerx', 'hydrax', 'streamwish'
 ];
 
-// Loại trừ TOÀN BỘ phần tử thuộc chính panel của script (bao gồm cả overlay
-// player, toast...) khỏi mọi vùng quét auto-click. Đây là nguyên nhân thật của
-// lỗi "click lung tung tải luôn file txt" — nút xuất "TXT"/"M3U"/"CSV"/"JSON"
-// của chính script khớp đúng quy tắc "nhãn viết tắt in hoa ngắn" của tầng dò
-// dự phòng, nên vô tình tự bấm vào chính mình.
 function __uvdIsOwnUI(el) {
   return !!(el && el.closest && el.closest('.uvd-scope'));
 }
@@ -409,7 +355,6 @@ function looksLikeServerButton(el) {
   var text = (el.textContent || '').trim();
   if (!text || text.length > 24) return false;
   var lower = text.toLowerCase();
-  // nhãn viết tắt ngắn kiểu "VI" "MD" "DS" "ST" hay gặp ở tab chọn server
   if (/^[A-Za-z0-9]{1,5}$/.test(text) && text === text.toUpperCase() && text !== text.toLowerCase()) return true;
   return FALLBACK_SERVER_KEYWORDS.some(function(k) { return lower.indexOf(k) !== -1; });
 }
@@ -441,7 +386,7 @@ function autoClickPlayButtons(root, depth, allowVideoPlayFallback, allowTextGues
     try {
       root.querySelectorAll(sel).forEach(function(el) {
         if (__uvdIsOwnUI(el)) return;
-        if (isButtonBlocked(el)) return; // người dùng đã chặn nút này ở tab "Nút đã click"
+        if (isButtonBlocked(el)) return;
         if (simulateClick(el)) {
           clicked++;
           recordClickedButton(el, __uvdElementSelector(el));
@@ -450,11 +395,6 @@ function autoClickPlayButtons(root, depth, allowVideoPlayFallback, allowTextGues
     } catch(e) {}
   });
   if (clicked === 0 && allowTextGuess) {
-    // Không nút nào khớp selector chuẩn/tuỳ chỉnh — đoán theo text nút.
-    // CHỈ chạy khi người dùng CHỦ ĐỘNG bấm nút quét (▶/⏭), KHÔNG BAO GIỜ chạy
-    // trong lần quét ngầm tự động lúc mới mở script — vì tầng đoán rộng này dễ
-    // bấm trúng nút bất kỳ trên trang (kể cả khi người dùng chỉ đang lướt web
-    // bình thường, chưa hề muốn auto-play).
     try {
       collectFallbackButtons(root).forEach(function(el) {
         if (simulateClick(el)) {
@@ -470,7 +410,7 @@ function autoClickPlayButtons(root, depth, allowVideoPlayFallback, allowTextGues
         if (v.paused) {
           var wasMuted = v.muted;
           v.muted = true;
-          v.__uvdAllow = true; // cho phép tạm thời để dò link ẩn, không phải web tự phát
+          v.__uvdAllow = true;
           var p = v.play();
           if (p && p.then) {
             p.then(function() {
@@ -495,10 +435,7 @@ function autoClickPlayButtons(root, depth, allowVideoPlayFallback, allowTextGues
   return clicked;
 }
 
-// ========== AUTO-CLICK LẦN LƯỢT TỪNG SERVER ==========
-// Khác với autoClickPlayButtons (bấm HẾT các nút khớp cùng lúc — dễ dính
-// nút sai như "thêm vào playlist"), hàm này bấm TỪNG nút MỘT, chờ xem có ra
-// link mới không rồi mới bấm nút kế tiếp. Dừng ngay khi tìm được link.
+// ========== AUTO-CLICK LẦN LƯỢT ==========
 function collectServerButtons(root) {
   root = root || document;
   var customSel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
@@ -517,7 +454,7 @@ function collectServerButtons(root) {
   });
   var usedFallback = false;
   if (!list.length) {
-    list = collectFallbackButtons(root); // không khớp selector chuẩn nào — đoán theo text nút
+    list = collectFallbackButtons(root);
     usedFallback = true;
   }
   list.__uvdFallback = usedFallback;
@@ -545,7 +482,7 @@ function autoClickSequential() {
     } else {
       toast('❌ Đã thử hết ' + candidates.length + ' server, chưa thấy link mới. Site có thể chặn click giả lập (isTrusted) — thử bấm tay.');
     }
-    if (document.getElementById('__uvd__')) buildUI();
+    if (document.getElementById('__uvd__')) debouncedBuildUI();
   }
 
   function tryNext() {
@@ -557,7 +494,7 @@ function autoClickSequential() {
     recordClickedButton(el, sel, isFallback);
     setTimeout(function() {
       scan(document, 'seq-autoclick');
-      pauseAllPlayingVideos(); // nếu server này thật sự play video gốc, dừng lại ngay để tránh vướng
+      pauseAllPlayingVideos();
       if (urls.size > beforeThis) {
         finish(true, sel);
       } else {
@@ -569,7 +506,7 @@ function autoClickSequential() {
 }
 window.__uvd_autoClickSequential = function() { autoClickSequential(); };
 
-// ========== SETTINGS OVERLAY (chồng lớp kiểu app, thay vì 1 tab chật chội) ==========
+// ========== SETTINGS OVERLAY ==========
 function closeSettingsOverlay() {
   var ov = document.getElementById('__uvd_settings_overlay__');
   if (!ov) return;
@@ -651,7 +588,7 @@ function stopMonitor() {
   monitorActive = false;
 }
 
-// ========== CLEANUP FUNCTION ==========
+// ========== CLEANUP ==========
 var cleanupFunctions = [];
 function addCleanup(fn) {
   cleanupFunctions.push(fn);
@@ -661,9 +598,7 @@ function runCleanup() {
   cleanupFunctions = [];
 }
 
-// ========== CHẶN MẠNH VIDEO/AUDIO TỰ PHÁT CỦA TRANG GỐC ==========
-// Sau khi script chạy, trang web không được tự ý play() video/audio nữa
-// (trừ video của chính player UVD, hoặc lượt auto-click Play do người dùng yêu cầu).
+// ========== CHẶN AUTOPLAY ==========
 var __uvdNativeMediaPlay = HTMLMediaElement.prototype.play;
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
@@ -696,16 +631,13 @@ function __uvdBlockPlayEvent(e) {
 document.addEventListener('play', __uvdBlockPlayEvent, true);
 addCleanup(function() { document.removeEventListener('play', __uvdBlockPlayEvent, true); });
 
-// Trên site quảng cáo đổi DOM liên tục, observer từng xử lý NGAY mỗi mutation
-// record (có thể hàng trăm lần/giây) là nguồn giật/lag chính. Giờ chỉ gom node
-// vào 1 hàng đợi, xử lý gộp tối đa 1 lần mỗi khung hình (rAF).
-var __uvdPendingMediaNodes = [];
-var __uvdMediaFlushScheduled = false;
-function __uvdFlushMediaQueue() {
-  __uvdMediaFlushScheduled = false;
-  if (!data.settings.blockAutoplay) { __uvdPendingMediaNodes.length = 0; return; }
-  var nodes = __uvdPendingMediaNodes;
-  __uvdPendingMediaNodes = [];
+// ========== OBSERVER TỐI ƯU ==========
+var __uvdObserverDebounce = null;
+var __uvdObserverQueue = [];
+function __uvdFlushObserver() {
+  if (!__uvdObserverQueue.length) return;
+  var nodes = __uvdObserverQueue;
+  __uvdObserverQueue = [];
   for (var i = 0; i < nodes.length; i++) {
     var node = nodes[i];
     if (node.tagName === 'VIDEO' || node.tagName === 'AUDIO') __uvdNeutralizeMedia(node);
@@ -720,22 +652,20 @@ var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
     var added = mutations[i].addedNodes;
     if (!added || !added.length) continue;
     for (var j = 0; j < added.length; j++) {
-      if (added[j] instanceof Element) __uvdPendingMediaNodes.push(added[j]);
+      if (added[j] instanceof Element) __uvdObserverQueue.push(added[j]);
     }
   }
-  if (__uvdPendingMediaNodes.length && !__uvdMediaFlushScheduled) {
-    __uvdMediaFlushScheduled = true;
-    (window.requestAnimationFrame || setTimeout)(__uvdFlushMediaQueue, 16);
+  if (__uvdObserverQueue.length) {
+    clearTimeout(__uvdObserverDebounce);
+    __uvdObserverDebounce = setTimeout(__uvdFlushObserver, 200);
   }
 });
-__uvdAutoplayObserver.observe(document.documentElement, { childList: true, subtree: true });
+__uvdAutoplayObserver.observe(document.body, { childList: true, subtree: false });
 addCleanup(function() { __uvdAutoplayObserver.disconnect(); });
 
-// Dọn ngay các video/audio đang tự phát sẵn tại thời điểm chèn script
 try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {}
 
-// Tạm dừng animation nền "liquid" (blur 50px, chạy vô hạn) khi người dùng
-// chuyển sang tab trình duyệt khác, đỡ tốn CPU/GPU khi panel không hiển thị.
+// ========== VISIBILITY ==========
 function __uvdVisibilityHandler() {
   document.documentElement.classList.toggle('uvd-tab-hidden', document.hidden);
 }
@@ -751,10 +681,6 @@ try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUr
 installMonitor();
 installPopupBlock();
 
-// MutationObserver thay cho setInterval — panel được gắn trực tiếp vào <html>
-// (xem __uvdAppendRoot), nên chỉ cần theo dõi childList của <html>, KHÔNG cần
-// subtree:true trên toàn <body>. subtree:true trên body cực tốn CPU ở site
-// nhiều quảng cáo tự đổi DOM liên tục (đây là nguồn lag chính trước đây).
 var panelObserver = new MutationObserver(function() {
   if (!document.getElementById('__uvd__')) {
     stopMonitor();
@@ -765,41 +691,45 @@ var panelObserver = new MutationObserver(function() {
 panelObserver.observe(document.documentElement, { childList: true, subtree: false });
 addCleanup(function() { panelObserver.disconnect(); });
 
+// ========== DEBOUNCE BUILDUI ==========
+var __uvdBuildUIDebounce = null;
+function debouncedBuildUI() {
+  clearTimeout(__uvdBuildUIDebounce);
+  __uvdBuildUIDebounce = setTimeout(buildUI, 300);
+}
+
 function runAutoClickAndRescan(silent) {
   var beforeCount = urls.size;
-  var lastCount = beforeCount; // mốc so sánh của LẦN QUÉT TRƯỚC, không phải mốc gốc
+  var lastCount = beforeCount;
   var clicked = 0;
   installPopupBlock();
   clicked = autoClickPlayButtons(document, 0, !silent, !silent);
-  // Nhiều site (đặc biệt site JS nặng/nhiều lớp iframe) chỉ gắn link video vào
-  // DOM/network sau vài giây, không phải ngay sau click — quét lại nhiều lần
-  // trong ~4s thay vì chỉ 1 lần ở mốc 1.2s như trước.
-  var delays = [1200, 2200, 3400];
+  var delays = [1200, 2400]; // giảm số lần rescan
   var reportedAt = -1;
   delays.forEach(function(delay, idx) {
     setTimeout(function() {
-      if (playerState.overlay) return; // đang xem video trong player — không quét/vẽ lại panel nền, tránh xen ngang + tránh panel bị vẽ lại đè lên player
+      if (playerState.overlay) return;
       scan(document, 'autoclick-rescan');
       var afterCount = urls.size;
-      var newSinceLast = afterCount - lastCount; // chỉ tính phần MỚI kể từ lần quét trước
+      var newSinceLast = afterCount - lastCount;
       lastCount = afterCount;
       if (newSinceLast <= 0) {
         if (idx === delays.length - 1 && !silent && reportedAt === -1) {
           toast(clicked > 0 ? 'Đã bấm Play nhưng chưa thấy link mới — site này có thể chặn click giả lập, thử bấm tay' : 'Không tìm thấy nút Play trên trang này');
         }
-        return; // không có gì mới ở mốc này — KHÔNG gọi buildUI() để tránh vẽ lại/nháy panel vô ích
+        return;
       }
       var totalFound = afterCount - beforeCount;
       if (reportedAt === -1) {
         reportedAt = idx;
         toast('▶ Tự động Play: tìm thêm ' + totalFound + ' luồng mới');
-        if (document.getElementById('__uvd__')) buildUI();
+        if (document.getElementById('__uvd__')) debouncedBuildUI();
         setTimeout(function() {
           var n = pauseAllPlayingVideos();
           if (n > 0) toast('⏸ Đã tạm dừng video gốc, xem qua player script cho ổn định');
         }, 800);
       } else if (document.getElementById('__uvd__')) {
-        buildUI(); // có thêm luồng MỚI THẬT ở lần quét sau, cập nhật UI im lặng
+        debouncedBuildUI();
       }
     }, delay);
   });
@@ -808,7 +738,7 @@ function runAutoClickAndRescan(silent) {
 window.__uvd_autoClickPlay = function() { runAutoClickAndRescan(false); };
 setTimeout(function() { runAutoClickAndRescan(true); }, 400);
 
-// ========== M3U8 MASTER PARSER ==========
+// ========== M3U8 PARSER ==========
 function parseM3U8Master(url, callback) {
   var controller = new AbortController();
   var timeout = setTimeout(function() { controller.abort(); }, 15000);
@@ -825,15 +755,13 @@ function parseM3U8Master(url, callback) {
         if (nextLine && !nextLine.startsWith('#')) {
           var resolution = (info.match(/RESOLUTION=(\d+x\d+)/) || [])[1] || 'unknown';
           var bandwidth = parseInt((info.match(/BANDWIDTH=(\d+)/) || [])[1] || 0);
-          var codecs = (info.match(/CODECS="([^"]+)"/) || [])[1] || '';
-          var quality = resolution.split('x')[1] || bandwidth;
-          var qualityLabel = resolution === 'unknown' ? Math.round(bandwidth/1000) + 'kbps' : quality + 'p';
+          var qualityLabel = resolution === 'unknown' ? Math.round(bandwidth/1000) + 'kbps' : resolution.split('x')[1] + 'p';
           var streamUrl = nextLine;
           if (!streamUrl.startsWith('http')) {
             var baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
             streamUrl = baseUrl + streamUrl;
           }
-          qualities.push({ label: qualityLabel, resolution: resolution, bandwidth: bandwidth, codecs: codecs, url: streamUrl });
+          qualities.push({ label: qualityLabel, resolution: resolution, bandwidth: bandwidth, url: streamUrl });
         }
       }
     }
@@ -894,7 +822,7 @@ function addToFilterlist(pattern) {
     storage.set(data);
     compileAdFilters();
     toast('Đã thêm "' + pattern + '" vào filter');
-    buildUI();
+    debouncedBuildUI();
   } else {
     toast('Rule đã tồn tại');
   }
@@ -922,7 +850,7 @@ function exportData(format) {
   toast('Đã xuất ' + format.toUpperCase());
 }
 
-// ========== RIPPLE EFFECT ==========
+// ========== RIPPLE ==========
 function addRipple(e) {
   var btn = e.currentTarget;
   var ripple = document.createElement('span');
@@ -966,20 +894,17 @@ var playerState = {
   bandwidth: 0,
   _displayedResolution: '',
   onFullscreenChange: null,
-  audioCtx: null,
+  audioCtx: null,    // vẫn giữ nhưng không dùng boost
   gainNode: null,
   sourceNode: null,
-  sleepTimerId: null,
-  sleepEndAt: 0,
   savePosTimer: null,
   wasReduceMotion: false,
   hideTimeout: null,
   controlsVisible: true,
-  timeMode: 0,
-  animationFrame: null
+  timeMode: 0
 };
 
-// ========== RESUME PLAYBACK POSITION ==========
+// ========== RESUME ==========
 function savePlaybackPosition(url, video) {
   if (!url || !video || !video.duration || isNaN(video.duration)) return;
   var pct = video.currentTime / video.duration;
@@ -999,47 +924,7 @@ function getPlaybackPosition(url) {
   return data.playbackPositions[url] || null;
 }
 
-// ========== SLEEP TIMER ==========
-function clearSleepTimer() {
-  if (playerState.sleepTimerId) { clearTimeout(playerState.sleepTimerId); playerState.sleepTimerId = null; }
-  playerState.sleepEndAt = 0;
-  var el = document.getElementById('__uvd_sleep_label__');
-  if (el) el.textContent = '';
-}
-
-function setSleepTimer(minutes) {
-  clearSleepTimer();
-  if (!minutes) return;
-  playerState.sleepEndAt = Date.now() + minutes * 60000;
-  playerState.sleepTimerId = setTimeout(function() {
-    if (playerState.video) playerState.video.pause();
-    toast('⏰ Hẹn giờ ngủ: đã dừng phát');
-    clearSleepTimer();
-  }, minutes * 60000);
-  toast('⏰ Sẽ dừng sau ' + minutes + ' phút');
-}
-
-function showSleepMenu() {
-  var overlay2 = document.createElement('div');
-  overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
-  var panel = document.createElement('div');
-  panel.style.cssText = 'background:rgba(20,22,30,0.95);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid rgba(255,255,255,0.15);';
-  panel.innerHTML = '<div style="color:#fff;font-weight:600;margin-bottom:12px;">⏰ Hẹn giờ ngủ</div>';
-  [0, 15, 30, 45, 60].forEach(function(m) {
-    var b = document.createElement('button');
-    b.className = 'uvd-btn uvd-btn-sm';
-    b.style.cssText = 'width:100%;margin-bottom:6px;text-align:center;';
-    b.textContent = m === 0 ? 'Tắt hẹn giờ' : m + ' phút';
-    b.onclick = function() { setSleepTimer(m); overlay2.remove(); };
-    panel.appendChild(b);
-  });
-  overlay2.appendChild(panel);
-  overlay2.onclick = function(e) { if (e.target === overlay2) overlay2.remove(); };
-  __uvdAppendRoot(overlay2);
-}
-
-// ========== PHỤ ĐỀ (THỬ NGHIỆM) ==========
-// Tải file .srt/.vtt cục bộ hoặc tìm/tải từ SubDL (subdl.com). Tính năng đang thử nghiệm.
+// ========== PHỤ ĐỀ ==========
 function srtToVtt(text) {
   var body = text.replace(/\r/g, '').replace(/^\uFEFF/, '');
   if (/^WEBVTT/.test(body.trim())) return body;
@@ -1071,17 +956,11 @@ function attachSubtitleTrack(video, vttUrl, label) {
 function searchSubDL(query, cb) {
   var apiKey = (data.settings.subdlApiKey || '').trim();
   if (!apiKey) { toast('Chưa có SubDL API Key, xem hướng dẫn trong bảng Phụ đề'); cb([]); return; }
-  console.log('[UMP DL] SubDL: bắt đầu tìm "' + query + '"');
-  // QUAN TRỌNG: không chỉ dựa vào AbortController để tự huỷ — nếu trang có
-  // Service Worker chặn ngầm hoặc mạng "im lặng" chặn kết nối, request có thể
-  // treo mãi mà signal của AbortController cũng không tới nơi. Dùng cờ
-  // 'settled' độc lập để ĐẢM BẢO cb() luôn được gọi trong vòng 15s, dù fetch
-  // có thật sự huỷ được hay không (nếu nó về trễ sau đó thì bị bỏ qua).
   var settled = false;
   function finish(fn) { if (settled) return; settled = true; clearTimeout(hardTimeoutId); fn(); }
   var hardTimeoutId = setTimeout(function() {
     finish(function() {
-      console.error('[UMP DL] SubDL: hết 15s vẫn không có phản hồi (có thể do CORS bị chặn, hoặc trang có Service Worker chặn ngầm fetch)');
+      console.error('[UMP DL] SubDL: hết 15s không phản hồi');
       toast('SubDL không phản hồi sau 15s — có thể do CORS hoặc trang chặn kết nối');
       cb([]);
     });
@@ -1100,14 +979,10 @@ function searchSubDL(query, cb) {
   .then(function(json) {
     finish(function() {
       if (json && json.status === false) {
-        console.warn('[UMP DL] SubDL trả lỗi:', json.message || json);
+        console.warn('[UMP DL] SubDL lỗi:', json.message || json);
         toast('SubDL: ' + (json.message || 'yêu cầu bị từ chối (kiểm tra API key)'));
         cb([]); return;
       }
-      // QUAN TRỌNG: 'results' chỉ là danh sách phim/show khớp tên (imdb_id, tmdb_id...),
-      // KHÔNG phải phụ đề — dùng nhầm field này là lý do search xong không tải được gì.
-      // Phụ đề thật nằm ở 'subtitles'; mỗi mục có thể là file lẻ hoặc gói season kèm
-      // 'unpack_files' (do có &unpack=1) chứa từng file .srt riêng — cần bung ra.
       var subs = (json && json.subtitles) || [];
       var flat = [];
       subs.forEach(function(s) {
@@ -1122,7 +997,6 @@ function searchSubDL(query, cb) {
           flat.push(s);
         }
       });
-      console.log('[UMP DL] SubDL: nhận được ' + flat.length + ' phụ đề');
       cb(flat);
     });
   })
@@ -1137,9 +1011,6 @@ function searchSubDL(query, cb) {
 
 function downloadSubDLFile(item, cb) {
   var apiKey = (data.settings.subdlApiKey || '').trim();
-  // Nếu search có unpack=1 sẵn link file trực tiếp (field 'url') thì dùng luôn,
-  // đỡ phải gọi thêm download endpoint. file_url/download_url giữ lại làm fallback
-  // phòng trường hợp API trả về field khác trong tương lai.
   var directUrl = item.url || item.file_url || item.download_url || (item.files && item.files[0] && item.files[0].url);
   var nId = item.file_n_id || item.nId || item.n_id || item.id;
   var reqPromise;
@@ -1256,27 +1127,7 @@ function showSubtitlePanel(video) {
   panel.querySelector('#__uvd_sub_close__').onclick = function() { overlay2.remove(); };
 }
 
-// ========== VOLUME BOOST ==========
-function enableVolumeBoost(video, percent) {
-  try {
-    if (!playerState.audioCtx) {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      playerState.audioCtx = new Ctx();
-      playerState.sourceNode = playerState.audioCtx.createMediaElementSource(video);
-      playerState.gainNode = playerState.audioCtx.createGain();
-      playerState.sourceNode.connect(playerState.gainNode);
-      playerState.gainNode.connect(playerState.audioCtx.destination);
-    }
-    if (playerState.audioCtx.state === 'suspended') playerState.audioCtx.resume();
-    playerState.gainNode.gain.value = (percent || 100) / 100;
-  } catch(e) { toast('Thiết bị không hỗ trợ tăng âm lượng'); }
-}
-
-function disableVolumeBoost() {
-  try { if (playerState.gainNode) playerState.gainNode.gain.value = 1; } catch(e) {}
-}
-
-// ========== GESTURE: TUA ĐÚP ==========
+// ========== GESTURE ==========
 function attachPlayerGestures(wrapper, video) {
   var lastTap = { time: 0, side: null };
   var tapSeconds = data.settings.doubleTapSeconds || 10;
@@ -1319,13 +1170,7 @@ function hideGestureHintSoon() {
   }, 500);
 }
 
-// ========== OVERLAY PLAYER ==========
-// ========== VIDEO.JS V10 SKIN (có fallback an toàn) ==========
-// v10 (videojs.org) đang beta, dùng Web Components qua <script type="module">.
-// Nếu site đích chặn CDN/module (CSP) hoặc thư viện lỗi, TỰ ĐỘNG rơi về
-// <video controls> gốc — không bao giờ để trình phát vỡ hoàn toàn.
-// hls.js vẫn gắn thẳng vào thẻ <video> như cũ (video chỉ bị "chuyển nhà"
-// vào trong <video-skin>, không ảnh hưởng currentTime/trạng thái phát).
+// ========== VIDEO.JS V10 MOUNT ==========
 function __uvdMountVjs10(wrapper, video) {
   var FALLBACK_MS = 4000;
   var done = false;
@@ -1340,12 +1185,6 @@ function __uvdMountVjs10(wrapper, video) {
     done = true;
     try {
       var player = document.createElement('video-player');
-      // THỬ NGHIỆM: không ép height:100% (khiến component to hết cỡ khung
-      // chứa rồi tự letterbox NỘI BỘ, controls overlay nếu có sẽ bám mép khối
-      // to đó chứ không bám sát mép video thật) — thay bằng aspect-ratio (mặc
-      // định 16:9, JS sẽ cập nhật lại đúng tỉ lệ thật khi biết videoWidth/
-      // videoHeight) + max-height để co theo khung hình thật, giống chế độ
-      // "fluid" mà tài liệu Video.js mô tả.
       player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;';
       player.id = '__uvd_player_el__';
       var skin = document.createElement('video-skin');
@@ -1382,6 +1221,7 @@ function __uvdMountVjs10(wrapper, video) {
   }, 100);
 }
 
+// ========== SHOW VIDEO PLAYER ==========
 function showVideoPlayer(url, type) {
   if (playerState.overlay && playerState.url === url) return;
   if (playerState.overlay) closePlayer();
@@ -1397,22 +1237,18 @@ function showVideoPlayer(url, type) {
     applyMotionPref(document.getElementById('__uvd__'));
   }
 
-  // Overlay
   var overlay = document.createElement('div');
   overlay.id = '__uvd_player_overlay__';
   overlay.className = 'uvd-settings-overlay';
   __uvdAppendRoot(overlay);
   __uvdIsolateLayer(overlay);
   applyEffectsPref(overlay);
-  // KHÔNG gọi applyMotionPref(overlay) để giữ transition
 
-  // Sheet – gán inline transition và transform
   var sheet = document.createElement('div');
   sheet.className = 'uvd-settings-sheet';
   sheet.style.cssText = 'display:flex; flex-direction:column; height:92dvh; max-height:92dvh; overflow:hidden; box-sizing:border-box; transition: transform .32s cubic-bezier(.4,0,.2,1); transform: translateY(100%);';
   overlay.appendChild(sheet);
 
-  // Header – không auto-hide
   var sheetHeader = document.createElement('div');
   sheetHeader.className = 'uvd-settings-header';
   sheetHeader.id = '__uvd_player_header__';
@@ -1438,7 +1274,6 @@ function showVideoPlayer(url, type) {
   headerRow.appendChild(menuBtn);
   sheetHeader.appendChild(headerRow);
 
-  // Dòng thông tin phụ
   var infoRow = document.createElement('div');
   infoRow.id = '__uvd_player_info__';
   infoRow.style.cssText = 'font-size:12px; color:var(--text2); padding:0 6px 4px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
@@ -1446,7 +1281,6 @@ function showVideoPlayer(url, type) {
   sheetHeader.appendChild(infoRow);
   sheet.appendChild(sheetHeader);
 
-  // Body
   var sheetBody = document.createElement('div');
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow:hidden !important; display:flex; align-items:center; justify-content:center; background:transparent;';
@@ -1467,7 +1301,6 @@ function showVideoPlayer(url, type) {
   playerState.video = video;
   __uvdMountVjs10(videoWrapper, video);
 
-  // Cập nhật tỉ lệ
   function __uvdUpdatePlayerAspect() {
     if (!video.videoWidth || !video.videoHeight) return;
     var playerEl = document.getElementById('__uvd_player_el__');
@@ -1483,13 +1316,12 @@ function showVideoPlayer(url, type) {
     if (e.target === overlay) closePlayer();
   });
 
-  // Kích hoạt hiệu ứng trượt – thêm class uvd-open và set transform
   requestAnimationFrame(function() {
     overlay.classList.add('uvd-open');
     sheet.style.transform = 'translateY(0)';
   });
 
-  // ========== MENU ⋮ ==========
+  // Menu ⋮
   function createMenuPanel(title, options, callback) {
     var overlay2 = document.createElement('div');
     overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
@@ -1564,7 +1396,7 @@ function showVideoPlayer(url, type) {
     }, 0);
   };
 
-  // ========== Cập nhật thông tin hiển thị ==========
+  // Update info
   function updateInfoDisplay() {
     var info = document.getElementById('__uvd_player_info__');
     if (!info) return;
@@ -1625,7 +1457,7 @@ function showVideoPlayer(url, type) {
     return (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
   }
 
-  // ========== Khởi tạo phát video ==========
+  // Khởi tạo phát video
   var isHls = url.includes('.m3u8') || url.includes('m3u8');
   var activeHls = null;
 
@@ -1651,7 +1483,6 @@ function showVideoPlayer(url, type) {
       var fsReq = vw && (vw.requestFullscreen || vw.webkitRequestFullscreen);
       if (fsReq) fsReq.call(vw).catch(function(){});
     }
-    if (data.settings.volumeBoost) enableVolumeBoost(video, data.settings.volumeBoostMax);
     if (data.settings.resumePlayback) {
       var pos = getPlaybackPosition(url);
       if (pos && pos.time > 3) {
@@ -1665,7 +1496,7 @@ function showVideoPlayer(url, type) {
   video.addEventListener('durationchange', updateInfoDisplay);
   var __lastPosSave = 0;
   video.addEventListener('timeupdate', function() {
-    if (data.settings.resumePlayback && Date.now() - __lastPosSave > 5000) {
+    if (data.settings.resumePlayback && Date.now() - __lastPosSave > 10000) {
       __lastPosSave = Date.now();
       savePlaybackPosition(url, video);
     }
@@ -1759,14 +1590,12 @@ function showVideoPlayer(url, type) {
   });
 }
 
-// ===== CÁC HÀM MINIMIZE / RESTORE / CLOSE =====
+// ========== CLOSE PLAYER ==========
 function closePlayer() {
   if (playerState.overlay) {
-    // Lưu vị trí xem dở
     if (data.settings.resumePlayback && playerState.url && playerState.video) {
       savePlaybackPosition(playerState.url, playerState.video);
     }
-    clearSleepTimer();
     clearTimeout(playerState.hideTimeout);
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}
@@ -1787,20 +1616,16 @@ function closePlayer() {
     }
     unlockOrientation();
 
-    // Lấy overlay và sheet
     var overlay = playerState.overlay;
     var sheet = overlay.querySelector('.uvd-settings-sheet');
-    // Xóa class uvd-open và đặt transform để trượt xuống
     overlay.classList.remove('uvd-open');
     if (sheet) {
       sheet.style.transform = 'translateY(100%)';
     }
-
-    // Reset state (xóa overlay sau khi transition kết thúc)
     var overlayRef = overlay;
     setTimeout(function() {
       if (overlayRef.parentNode) overlayRef.remove();
-    }, 350); // khớp với transition .32s + chút đệm
+    }, 350);
 
     playerState.overlay = null;
     playerState.video = null;
@@ -1816,15 +1641,12 @@ function closePlayer() {
   }
 }
 
-// ========== CSS (giữ nguyên UI) ==========
+// ========== CSS ==========
 if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__').remove();
 var style = document.createElement('style');
 style.id = '__uvd_css__';
 style.textContent = `
-:root {
-  --uvd-blur: 24px;
-  --uvd-transition: 0.3s ease;
-}
+:root{--uvd-blur:8px;--uvd-transition:0.3s ease}
 @keyframes uvdSlideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @keyframes uvdPulse{0%,100%{opacity:1;box-shadow:0 0 5px var(--accent)}50%{opacity:0.4;box-shadow:0 0 20px var(--accent)}}
 @keyframes uvdScaleIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
@@ -1833,85 +1655,66 @@ style.textContent = `
 @keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
 @keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
-.uvd-glass-panel{background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 20px 50px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.08) inset;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto;transition: backdrop-filter var(--uvd-transition), background var(--uvd-transition);}
+.uvd-glass-panel{background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 20px 50px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.08) inset;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition)}
 .uvd-glass-panel::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(255,79,160,0.6),rgba(255,143,214,0.6),transparent);opacity:0.7}
-.uvd-settings-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);transition:background .28s ease;}
-.uvd-icon-btn{background:var(--btn-bg);border:none;color:#fff;width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;transition:all var(--uvd-transition);}
-.uvd-icon-btn:active{transform:scale(0.9);}
-.uvd-player-card{width:100%;max-width:1000px;margin:auto;display:flex;flex-direction:column;border-radius:22px 22px 0 0;overflow:hidden;background:var(--glass);box-shadow:0 -10px 40px rgba(0,0,0,0.6);max-height:94dvh;}
-.uvd-player-menu{position:absolute;top:48px;right:12px;z-index:20;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;min-width:170px;box-shadow:0 10px 30px rgba(0,0,0,0.6);animation:uvdFadeIn 0.15s ease;}
-.uvd-player-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer;}
-.uvd-player-menu button:active{background:var(--btn-accent-bg);}
-.uvd-player-menu button+button{border-top:1px solid var(--border);}
-.uvd-icon-btn-wide{width:auto;padding:0 10px;font-size:13px;font-weight:600;gap:4px;}
+.uvd-settings-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);transition:background .28s ease}
+.uvd-icon-btn{background:var(--btn-bg);border:none;color:#fff;width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;transition:all var(--uvd-transition)}
+.uvd-icon-btn:active{transform:scale(.9)}
+.uvd-player-card{width:100%;max-width:1000px;margin:auto;display:flex;flex-direction:column;border-radius:22px 22px 0 0;overflow:hidden;background:var(--glass);box-shadow:0 -10px 40px rgba(0,0,0,0.6);max-height:94dvh}
+.uvd-player-menu{position:absolute;top:48px;right:12px;z-index:20;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;min-width:170px;box-shadow:0 10px 30px rgba(0,0,0,0.6);animation:uvdFadeIn .15s ease}
+.uvd-player-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer}
+.uvd-player-menu button:active{background:var(--btn-accent-bg)}
+.uvd-player-menu button+button{border-top:1px solid var(--border)}
+.uvd-icon-btn-wide{width:auto;padding:0 10px;font-size:13px;font-weight:600;gap:4px}
 .uvd-liquid-bg{position:absolute;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(closest-side,rgba(255,79,160,0.14),transparent 70%) 20% 25%/60% 60% no-repeat;filter:blur(28px);animation:uvdLiquidDrift 16s ease-in-out infinite}
 .uvd-reduce-motion .uvd-liquid-bg{display:none}
-.uvd-settings-overlay.uvd-open{background:rgba(0,0,0,0.55);}
-.uvd-settings-sheet{width:100%;max-width:1000px;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);border-radius:32px 32px 0 0;overflow:hidden;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);box-shadow:0 -20px 50px rgba(0,0,0,0.8);}
-.uvd-settings-overlay.uvd-open .uvd-settings-sheet{transform:translateY(0);}
-.uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
-.uvd-settings-title{font-weight:700;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,79,160,0.5);}
-.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;}
-@media (prefers-reduced-motion:reduce){.uvd-liquid-bg{animation:none}}
+.uvd-settings-overlay.uvd-open{background:rgba(0,0,0,0.55)}
+.uvd-settings-sheet{width:100%;max-width:1000px;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);border-radius:32px 32px 0 0;overflow:hidden;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);box-shadow:0 -20px 50px rgba(0,0,0,0.8)}
+.uvd-settings-overlay.uvd-open .uvd-settings-sheet{transform:translateY(0)}
+.uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.uvd-settings-title{font-weight:700;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,79,160,0.5)}
+.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
 .uvd-reduce-motion *{animation:none!important;transition:none!important}
-/* Chế độ hiệu suất: nền đặc, chữ sáng rõ */
-.uvd-reduce-motion .uvd-glass-panel {
-  backdrop-filter: blur(0px)!important;
-  -webkit-backdrop-filter: blur(0px)!important;
-  background: rgba(10,11,16, 0.98) !important;
-  border-color: rgba(255,255,255,0.12);
-}
-.uvd-reduce-motion .uvd-glass-panel .uvd-panel-content {
-  color: var(--text);
-}
-.uvd-reduce-motion .uvd-glass-panel .uvd-tab {
-  color: var(--text2);
-}
-.uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active {
-  color: #fff;
-}
-.uvd-reduce-motion .uvd-glass-panel .uvd-card {
-  background: rgba(255,255,255,0.06);
-}
-.uvd-reduce-motion .uvd-glass-panel .uvd-btn {
-  background: rgba(255,255,255,0.08);
-}
-
-.uvd-tabbar{display:flex;gap:2px;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:999px;margin-bottom:10px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;}
+.uvd-reduce-motion .uvd-glass-panel{backdrop-filter:blur(0)!important;-webkit-backdrop-filter:blur(0)!important;background:rgba(10,11,16,.98)!important;border-color:rgba(255,255,255,.12)}
+.uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
+.uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
+.uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
+.uvd-reduce-motion .uvd-glass-panel .uvd-card{background:rgba(255,255,255,.06)}
+.uvd-reduce-motion .uvd-glass-panel .uvd-btn{background:rgba(255,255,255,.08)}
+.uvd-tabbar{display:flex;gap:2px;padding:6px 8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;margin-bottom:10px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
 .uvd-tabbar::-webkit-scrollbar{display:none}
-.uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(255,79,160,0.45);transition:transform 0.4s cubic-bezier(.4,0,.2,1),width 0.4s cubic-bezier(.4,0,.2,1)}
-.uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;}
-.uvd-tab.uvd-tab-active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.3)}
-
+.uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(255,79,160,.45);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
+.uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center}
+.uvd-tab.uvd-tab-active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 .uvd-scope{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;--bg:rgba(6,3,8,0.97);--glass:rgba(20,10,22,0.86);--glass-hi:rgba(255,143,214,0.05);--border:rgba(255,143,214,0.12);--text:#f3f5ff;--text2:#9ca3bd;--text3:#5d6377;--accent:#ff4fa0;--accent2:#ff8fd6;--danger:#ff5d72;--gold:#ffb84d;--success:#34d399;--card-bg:rgba(255,255,255,0.03);--fs-xs:11px;--fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--radius-sm:14px;--radius-md:20px;--radius-lg:32px;--grad-liquid:linear-gradient(135deg,var(--accent),var(--accent2));--glow-px:0px;--glow-op:0;--btn-bg:rgba(255,255,255,0.1);--btn-danger-bg:rgba(255,93,114,0.22);--btn-danger-border:rgba(255,93,114,0.4);--btn-success-bg:rgba(52,211,153,0.2);--btn-success-border:rgba(52,211,153,0.4);--btn-accent-bg:rgba(255,79,160,0.28);--btn-purple-bg:rgba(214,74,199,0.26);--btn-gold-bg:rgba(255,184,77,0.26)}
 .uvd-fx-on .uvd-btn{transition:box-shadow .25s ease,transform .15s ease}
-.uvd-fx-on .uvd-btn:active{transform:scale(0.95)}
+.uvd-fx-on .uvd-btn:active{transform:scale(.95)}
 .uvd-fx-on.uvd-glass-panel,.uvd-fx-on #__uvd_player_header__{box-shadow:0 0 var(--glow-px) rgba(255,79,160,var(--glow-op)),0 8px 30px rgba(0,0,0,0.5)}
-.uvd-fx-on #__uvd_player_close__{box-shadow:0 0 calc(var(--glow-px) * 0.6) rgba(255,93,114,var(--glow-op))}
-.uvd-overlay{position:fixed;inset:0;background:rgba(2,3,6,0.92);backdrop-filter:blur(10px) saturate(120%);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
-.uvd-toggle-switch{width:44px;height:26px;border-radius:14px;background:rgba(255,255,255,0.15);border:none;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s ease;padding:0;}
-.uvd-toggle-switch .uvd-toggle-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s ease;box-shadow:0 1px 3px rgba(0,0,0,0.4);}
-.uvd-toggle-switch.uvd-toggle-on{background:var(--grad-liquid);}
-.uvd-toggle-switch.uvd-toggle-on .uvd-toggle-knob{transform:translateX(18px);}
+.uvd-fx-on #__uvd_player_close__{box-shadow:0 0 calc(var(--glow-px)*.6) rgba(255,93,114,var(--glow-op))}
+.uvd-overlay{position:fixed;inset:0;background:rgba(2,3,6,.92);backdrop-filter:blur(10px) saturate(120%);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.uvd-toggle-switch{width:44px;height:26px;border-radius:14px;background:rgba(255,255,255,.15);border:none;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s ease;padding:0}
+.uvd-toggle-switch .uvd-toggle-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s ease;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.uvd-toggle-switch.uvd-toggle-on{background:var(--grad-liquid)}
+.uvd-toggle-switch.uvd-toggle-on .uvd-toggle-knob{transform:translateX(18px)}
 .uvd-scroll::-webkit-scrollbar{width:4px}
 .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
 .uvd-scroll::-webkit-scrollbar-track{background:transparent}
-.uvd-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:var(--radius-md);font-weight:600;font-size:var(--fs-base);cursor:pointer;text-align:center;position:relative;overflow:hidden;display:inline-block;box-shadow:0 3px 10px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.08) inset;line-height:1.3;transition:all var(--uvd-transition);}
-.uvd-btn:active{transform:scale(0.96)}
+.uvd-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:var(--radius-md);font-weight:600;font-size:var(--fs-base);cursor:pointer;text-align:center;position:relative;overflow:hidden;display:inline-block;box-shadow:0 3px 10px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.08) inset;line-height:1.3;transition:all var(--uvd-transition)}
+.uvd-btn:active{transform:scale(.96)}
 .uvd-btn-sm{padding:7px 12px;font-size:var(--fs-sm);border-radius:var(--radius-sm)}
-.uvd-btn-icon{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.08) inset;transition:all var(--uvd-transition);}
-.uvd-btn-icon:active{transform:scale(0.92)}
-.uvd-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:10px;font-size:var(--fs-base);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset;animation:uvdCardEnter 0.4s ease both;color:var(--text);transition:all var(--uvd-transition);}
-.uvd-card:hover{transform:translateY(-5px) scale(1.01);box-shadow:0 18px 40px rgba(0,0,0,0.8),0 0 0 1px rgba(255,79,160,0.4) inset;}
-.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,79,160,0.22),rgba(255,143,214,0.18));color:var(--accent);border:1px solid rgba(255,79,160,0.28);letter-spacing:0.03em}
+.uvd-btn-icon{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.08) inset;transition:all var(--uvd-transition)}
+.uvd-btn-icon:active{transform:scale(.92)}
+.uvd-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:10px;font-size:var(--fs-base);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset;animation:uvdCardEnter .4s ease both;color:var(--text);transition:all var(--uvd-transition)}
+.uvd-card:hover{transform:translateY(-5px) scale(1.01);box-shadow:0 18px 40px rgba(0,0,0,0.8),0 0 0 1px rgba(255,79,160,0.4) inset}
+.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,79,160,0.22),rgba(255,143,214,0.18));color:var(--accent);border:1px solid rgba(255,79,160,0.28);letter-spacing:.03em}
 .uvd-url-box{background:rgba(0,0,0,0.5);border-radius:var(--radius-sm);padding:12px;font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);word-break:break-all;color:var(--text2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid rgba(255,255,255,0.04)}
 .uvd-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .uvd-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.uvd-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);animation:uvdRipple 0.6s ease-out}
-.uvd-profile-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(255,79,160,0.14),rgba(255,143,214,0.08));border:1px solid rgba(255,79,160,0.25);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px;animation:uvdCardEnter 0.4s ease both}
+.uvd-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);animation:uvdRipple .6s ease-out}
+.uvd-profile-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(255,79,160,0.14),rgba(255,143,214,0.08));border:1px solid rgba(255,79,160,0.25);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px;animation:uvdCardEnter .4s ease both}
 .uvd-profile-avatar{flex-shrink:0;width:56px;height:56px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(255,79,160,0.4),0 0 0 3px rgba(255,255,255,0.08)}
 .uvd-profile-info{min-width:0}
 .uvd-profile-name{font-weight:700;font-size:15px;color:var(--text)}
@@ -1935,31 +1738,15 @@ style.textContent = `
 .uvd-callout{display:flex;gap:10px;align-items:flex-start;background:rgba(255,79,160,0.1);border:1px solid rgba(255,79,160,0.25);border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:12px;color:var(--text2);line-height:1.6}
 .uvd-callout-icon{flex-shrink:0;font-size:15px}
 .uvd-callout.uvd-callout-warn{background:rgba(255,184,77,0.1);border-color:rgba(255,184,77,0.3);border-left-color:var(--gold)}
-.uvd-code-block{position:relative;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;margin:8px 0;}
-.uvd-code-block textarea{width:100%;background:transparent;border:none;color:var(--accent2);padding:10px 40px 10px 12px;font-size:10px;font-family:'SFMono-Regular',Consolas,monospace;resize:none;}
-.uvd-code-copy{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.uvd-code-copy:active{background:rgba(255,255,255,0.18);}
-
-/* Đã xóa thanh tìm kiếm .uvd-search-box */
+.uvd-code-block{position:relative;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:10px;margin:8px 0}
+.uvd-code-block textarea{width:100%;background:transparent;border:none;color:var(--accent2);padding:10px 40px 10px 12px;font-size:10px;font-family:'SFMono-Regular',Consolas,monospace;resize:none}
+.uvd-code-copy{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.uvd-code-copy:active{background:rgba(255,255,255,0.18)}
 `;
 document.head.appendChild(style);
 
-// ========== FIX HEADER MINIMIZE ==========
-// ĐÃ GỠ hoàn toàn hack bù vị trí theo visualViewport — đó chính là nguyên nhân
-// panel bị "trôi/cuộn theo" mỗi khi Chrome co giãn thanh địa chỉ lúc cuộn trang.
-// position:fixed tự bám viewport, không cần JS can thiệp thêm.
-// Giữ hàm rỗng để không phá các chỗ gọi __uvdSyncViewport() còn lại trong code.
+// ========== FIX LAYER ==========
 function __uvdSyncViewport() {}
-
-// ========== FIX GLITCH KÍNH KHI CHROME ẨN/HIỆN THANH ĐỊA CHỈ ==========
-// NGUYÊN NHÂN THẬT: bản trước ép "nudge" transform (translateZ) MỖI LẦN
-// scroll/resize bắn ra — chính việc liên tục bật/tắt transform trên phần tử
-// position:fixed đó mới là thứ khiến header nhìn như "giật/trôi theo" nội
-// dung trang (mỗi lần nudge là 2 khung hình panel bị dịch layer). Cách sửa
-// đúng: ép panel có RIÊNG một GPU compositing layer NGAY TỪ KHI TẠO (isolation
-// + contain + will-change tĩnh, không đổi theo sự kiện), để trình duyệt không
-// bao giờ phải gộp layer backdrop-filter chung với layer nội dung trang nữa —
-// do đó không cần ép vẽ lại theo scroll/resize như trước (đã bỏ hẳn).
 function __uvdIsolateLayer(el) {
   if (!el) return;
   el.style.willChange = 'transform';
@@ -1967,7 +1754,6 @@ function __uvdIsolateLayer(el) {
   el.style.isolation = 'isolate';
   el.style.contain = 'layout paint style';
 }
-
 
 // ========== BUILD UI ==========
 function buildUI() {
@@ -2056,8 +1842,6 @@ function buildUI() {
   contentWrapper.className = 'uvd-scroll';
   contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;';
   
-  // Đã xóa thanh tìm kiếm (uvd-search-box)
-  
   var streamList = document.createElement('div');
   streamList.id = '__uvd_stream_list__';
   streamList.className = 'uvd-scroll';
@@ -2088,9 +1872,6 @@ function buildUI() {
   applyEffectsPref(panel);
   applyMotionPref(panel);
   
-  // Trước đây query toàn bộ document mỗi lần buildUI() được gọi (rất tốn nếu
-  // trang có nhiều phần tử trùng class, và buildUI() bị gọi lại nhiều lần khi
-  // rescan) — giờ chỉ query trong phạm vi panel vừa tạo.
   panel.querySelectorAll('.uvd-btn, .uvd-btn-icon, .uvd-tab').forEach(function(btn) {
     btn.addEventListener('click', addRipple);
   });
@@ -2126,18 +1907,18 @@ function buildUI() {
   });
   
   document.getElementById('__uvd_close__').onclick = function() {
-    if (playerState.overlay) closePlayer(); // đóng player trước nếu đang mở — giải phóng hls.js, audio context, video.src
+    if (playerState.overlay) closePlayer();
     stopMonitor();
     panel.remove();
     runCleanup();
-    urls.clear(); // giải phóng danh sách link đã quét được (có thể vài chục/trăm mục)
-    if (typeof style !== 'undefined' && style.parentNode) style.remove(); // gỡ luôn CSS đã tiêm vào <head>
+    urls.clear();
+    if (typeof style !== 'undefined' && style.parentNode) style.remove();
   };
-  document.getElementById('__uvd_refresh__').onclick = function() { buildUI(); toast('Đã làm mới'); };
+  document.getElementById('__uvd_refresh__').onclick = function() { debouncedBuildUI(); toast('Đã làm mới'); };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false, true);
     toast(n > 0 ? 'Đã thử bấm Play (' + n + ' nút)' : 'Không tìm thấy nút Play, thử đặt selector riêng ở Cài đặt');
-    setTimeout(function() { buildUI(); }, 1200);
+    setTimeout(function() { debouncedBuildUI(); }, 1200);
   };
   document.getElementById('__uvd_seq_autoplay__').onclick = function() { autoClickSequential(false); };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
@@ -2173,7 +1954,7 @@ function buildUI() {
       if (newSel) {
         toast('Đã lưu selector cho ' + pageInfo.host);
         autoClickPlayButtons(document, 0, false);
-        setTimeout(function() { buildUI(); }, 1000);
+        setTimeout(function() { debouncedBuildUI(); }, 1000);
       } else {
         toast('Đã xóa selector riêng');
       }
@@ -2185,15 +1966,12 @@ function buildUI() {
   };
 }
 
-// ========== RENDER FUNCTIONS ==========
+// ========== RENDER STREAMS ==========
 var UVD_LAZY_BATCH = 40;
 
 function buildStreamCardHTML(item, i) {
   var actionsHtml;
   if (item.type === 'BLOB') {
-    // blob: URL chỉ tồn tại trong phiên trang hiện tại — Chia sẻ/Sao chép/Lệnh
-    // tải (wget/ffmpeg...) đều KHÔNG hoạt động với nó. Thay bằng nút tải trực
-    // tiếp ngay trong trang (fetch blob rồi lưu file thật qua thẻ <a download>).
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,79,160,0.25);">Xem</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="blobdl" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(52,211,153,0.22);">⬇ Tải Blob</button>' +
@@ -2293,14 +2071,7 @@ function renderStreams(container, arr) {
   };
 }
 
-// ========== TẢI BLOB (get blob link) ==========
-// blob: URL chỉ hợp lệ trong đúng document đã tạo ra nó. Vì bookmarklet chạy
-// ngay trong ngữ cảnh trang (không phải extension/webview riêng) nên có thể
-// fetch() được blob: đó để lấy dữ liệu thật rồi lưu ra file .mp4/.webm...
-// LƯU Ý: nếu blob: được tạo từ MediaSource (rất phổ biến với player HLS/DASH
-// dùng hls.js, dash.js, Shaka...) thì fetch() sẽ KHÔNG lấy được trọn file gốc
-// vì MediaSource là stream ảo, không phải dữ liệu tĩnh — trường hợp đó nên
-// dùng link M3U8/MPD gốc (nếu script phát hiện được) thay vì blob.
+// ========== DOWNLOAD BLOB ==========
 function downloadBlobUrl(url) {
   toast('Đang lấy dữ liệu blob...');
   fetch(url)
@@ -2336,6 +2107,7 @@ function downloadBlobUrl(url) {
     });
 }
 
+// ========== COMMAND PICKER ==========
 function showCommandPicker(url, type) {
   var cmds = makeCommands(url, type, pageInfo.title);
   var opts = Object.keys(cmds).map(function(k) {
@@ -2467,6 +2239,7 @@ function showQualityPicker(url) {
   });
 }
 
+// ========== TOGGLE ROW ==========
 function buildToggleRow(id, label, checked) {
   return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
     '<span style="font-size:13px;color:var(--text2);">' + escapeHtml(label) + '</span>' +
@@ -2474,6 +2247,7 @@ function buildToggleRow(id, label, checked) {
   '</div>';
 }
 
+// ========== RENDER PLAYER SETTINGS ==========
 function renderPlayerSettings(container) {
   var s = data.settings;
   container.innerHTML =
@@ -2502,13 +2276,6 @@ function renderPlayerSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
-      '<div style="font-weight:600;margin-bottom:10px;">🔊 Tăng âm lượng</div>' +
-      buildToggleRow('__uvd_toggle_boost__', 'Bật tăng âm lượng mặc định', s.volumeBoost) +
-      '<div style="font-size:12px;color:var(--text2);margin:8px 0 4px;">Mức tăng tối đa: <span id="__uvd_boost_val__">' + s.volumeBoostMax + '%</span></div>' +
-      '<input type="range" id="__uvd_boost_range__" min="100" max="300" step="10" value="' + s.volumeBoostMax + '" style="width:100%;">' +
-    '</div>' +
-
-    '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:10px;">🔄 Tua nhanh</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Số giây tua khi chạm đúp trái/phải</div>' +
       '<input type="number" id="__uvd_doubletap_seconds__" min="1" max="60" step="1" value="' + s.doubleTapSeconds + '" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
@@ -2530,7 +2297,6 @@ function renderPlayerSettings(container) {
         case '__uvd_toggle_autofs__': s.autoFullscreen = isOn; break;
         case '__uvd_toggle_autonext__': s.autoNext = isOn; break;
         case '__uvd_toggle_datasaver__': s.dataSaver = isOn; break;
-        case '__uvd_toggle_boost__': s.volumeBoost = isOn; break;
         case '__uvd_toggle_autohide__': s.autoHideControls = isOn; break;
         case '__uvd_toggle_showremaining__': s.showRemainingTime = isOn; break;
       }
@@ -2544,11 +2310,6 @@ function renderPlayerSettings(container) {
   };
   document.getElementById('__uvd_set_quality__').onchange = function() {
     s.defaultQuality = this.value;
-    storage.set(data);
-  };
-  document.getElementById('__uvd_boost_range__').oninput = function() {
-    s.volumeBoostMax = parseInt(this.value);
-    document.getElementById('__uvd_boost_val__').textContent = s.volumeBoostMax + '%';
     storage.set(data);
   };
   document.getElementById('__uvd_doubletap_seconds__').onchange = function() {
@@ -2569,6 +2330,7 @@ function renderPlayerSettings(container) {
   };
 }
 
+// ========== RENDER CLICKED BUTTONS ==========
 function renderClickedButtons(container) {
   var host = pageInfo.host;
   var map = data.clickedButtons[host] || {};
@@ -2622,6 +2384,7 @@ function renderClickedButtons(container) {
   }
 }
 
+// ========== RENDER SETTINGS ==========
 function renderSettings(container) {
   var totalStreams = urls.size;
   var bookmarkletCode = "javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/bookmarklet-@main/umpdl.js?force='+Date.now();document.head.appendChild(s);})();";
@@ -2653,7 +2416,7 @@ function renderSettings(container) {
       '<div style="font-weight:600;margin-bottom:8px;">⚡ Hiệu năng</div>' +
       buildToggleRow('__uvd_toggle_reducemotion__', 'Bật chế độ hiệu suất (giảm hiệu ứng)', data.settings.reduceMotion) +
       '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Cường độ làm mờ (blur): <span id="__uvd_blur_val__">' + data.settings.blurIntensity + 'px</span></div>' +
-      '<input type="range" id="__uvd_blur_range__" min="0" max="30" step="1" value="' + data.settings.blurIntensity + '" style="width:100%;">' +
+      '<input type="range" id="__uvd_blur_range__" min="0" max="20" step="1" value="' + data.settings.blurIntensity + '" style="width:100%;">' +
       '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Tốc độ chuyển tiếp: <span id="__uvd_transition_val__">' + data.settings.transitionSpeed + 's</span></div>' +
       '<input type="range" id="__uvd_transition_range__" min="0" max="0.8" step="0.05" value="' + data.settings.transitionSpeed + '" style="width:100%;">' +
       '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Giảm blur và tốc độ transition để máy chạy mượt hơn.</div>' +
@@ -2797,7 +2560,7 @@ function renderSettings(container) {
     inp.onchange = function(e) {
       var reader = new FileReader();
       reader.onload = function(ev) {
-        try { data = Object.assign(data, JSON.parse(ev.target.result)); storage.set(data); toast('Đã nhập!'); buildUI(); }
+        try { data = Object.assign(data, JSON.parse(ev.target.result)); storage.set(data); toast('Đã nhập!'); debouncedBuildUI(); }
         catch(ex) { toast('File không hợp lệ','var(--danger)'); }
       };
       reader.readAsText(e.target.files[0]);
@@ -2810,7 +2573,7 @@ function renderSettings(container) {
       localStorage.removeItem(STORAGE_KEY);
       data = { favorites: [], siteProfiles: {}, history: [], filterlist: [], playbackPositions: {}, clickedButtons: {}, settings: Object.assign({}, data.settings) };
       compileAdFilters();
-      buildUI();
+      debouncedBuildUI();
     }
   };
 
@@ -2820,7 +2583,7 @@ function renderSettings(container) {
     storage.set(data);
     compileAdFilters();
     toast('Đã lưu filterlist (' + data.filterlist.length + ' mục) · áp dụng ngay');
-    buildUI();
+    debouncedBuildUI();
   };
 
   document.getElementById('__uvd_import_filter__').onclick = function() {
@@ -2843,9 +2606,7 @@ function renderSettings(container) {
 
 // ========== START ==========
 buildUI();
-
-console.log('V' + VERSION + ' UMP DL PRO - Tối ưu hiệu năng, bảo mật, thêm tìm kiếm, ghim, speed +/-');
+console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
 toast('V' + VERSION + ' PRO sẵn sàng!');
 
 })();
-

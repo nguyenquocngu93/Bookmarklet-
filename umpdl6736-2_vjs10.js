@@ -1739,7 +1739,7 @@ style.textContent = `
 @keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
 @keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
-.uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(14px) saturate(135%);-webkit-backdrop-filter:blur(14px) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(112,45,126,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
+.uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(112,45,126,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
 .uvd-settings-sheet:not(.uvd-player-sheet){border-radius:32px 32px 0 0;transition:transform .3s cubic-bezier(.22,1,.36,1)!important}
 .uvd-glass-card::before,.uvd-glass-panel::before,.uvd-settings-sheet:not(.uvd-player-sheet)::before,.uvd-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(255,47,200,.55),rgba(155,61,255,.5),transparent);opacity:.8;pointer-events:none}
@@ -1815,6 +1815,7 @@ style.textContent = `
 .uvd-fx-on .uvd-btn{transition:box-shadow .25s ease,transform .15s ease}
 .uvd-fx-on .uvd-btn:active{transform:scale(.95)}
 .uvd-fx-on.uvd-glass-panel,.uvd-fx-on #__uvd_player_header__{box-shadow:0 0 var(--glow-px) rgba(255,47,200,var(--glow-op)),0 8px 30px rgba(0,0,0,0.5)}
+.uvd-fx-on .uvd-card,.uvd-fx-on .uvd-settings-sheet:not(.uvd-player-sheet){box-shadow:0 0 var(--glow-px) rgba(255,47,200,var(--glow-op)),0 12px 32px rgba(112,45,126,.12),0 0 0 1px rgba(255,255,255,.12) inset}
 .uvd-fx-on #__uvd_player_close__{box-shadow:0 0 calc(var(--glow-px)*.6) rgba(255,93,114,var(--glow-op))}
 .uvd-overlay{position:fixed;inset:0;background:rgba(2,3,6,.92);backdrop-filter:blur(10px) saturate(120%);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
 .uvd-toggle-switch{width:44px;height:26px;border-radius:14px;background:rgba(43,24,54,.14);border:none;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s ease;padding:0}
@@ -2889,6 +2890,9 @@ function renderSettings(container) {
     document.getElementById('__uvd_blur_val__').textContent = val + 'px';
     storage.set(data);
     applyMotionPref(document.getElementById('__uvd__'));
+    if (playerState.overlay) applyMotionPref(playerState.overlay);
+    var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
+    if (settingsOverlay) applyMotionPref(settingsOverlay);
   };
 
   document.getElementById('__uvd_transition_range__').oninput = function() {
@@ -2897,6 +2901,9 @@ function renderSettings(container) {
     document.getElementById('__uvd_transition_val__').textContent = val + 's';
     storage.set(data);
     applyMotionPref(document.getElementById('__uvd__'));
+    if (playerState.overlay) applyMotionPref(playerState.overlay);
+    var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
+    if (settingsOverlay) applyMotionPref(settingsOverlay);
   };
 
   document.getElementById('__uvd_toggle_glow__').onclick = function() {

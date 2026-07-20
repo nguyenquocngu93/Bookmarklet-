@@ -66,7 +66,8 @@ var defaultProfiles = {
   'streamtape.com': { referer: 'https://streamtape.com/', userAgent: '' },
   'ok.ru': { referer: 'https://ok.ru/', userAgent: '' },
   'fembed.com': { referer: 'https://fembed.com/', userAgent: '' },
-  'mp4upload.com': { referer: 'https://mp4upload.com/', userAgent: '' }
+  'mp4upload.com': { referer: 'https://mp4upload.com/', userAgent: '' },
+  'abyssplayer.com': { referer: 'https://abyssplayer.com/', userAgent: '', playSelector: '#overlay' }
 };
 
 var host = location.hostname.replace('www.', '');
@@ -166,7 +167,8 @@ function __uvdIsEmbedMediaUrl(url) {
     var parsed = new URL(url, location.href);
     var path = (parsed.pathname || '').toLowerCase();
     var host = (parsed.hostname || '').replace(/^www\./, '');
-    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0);
+    var abyssEmbed = host === 'abyssplayer.com' && /^\/[^\/]+\/?$/.test(path);
+    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed;
   } catch(e) { return false; }
 }
 function findPlaylistBodyUrls(text, source) {
@@ -217,6 +219,9 @@ function findUrls(text, source) {
 
 function scan(doc, src) {
   try {
+    if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
+      urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
+    }
     doc.querySelectorAll('video, source, audio').forEach(function(v) {
       if (v.src) findUrls(v.src, src + ':element');
       if (v.currentSrc) findUrls(v.currentSrc, src + ':current');
@@ -449,6 +454,32 @@ function __uvdElementSelector(el) {
   var parent = el.parentElement;
   var idx = parent ? Array.prototype.indexOf.call(parent.children, el) : 0;
   return tag + ':nth-child(' + (idx + 1) + ')';
+}
+
+function __uvdLooksLikePlayElement(el) {
+  if (!el || __uvdIsOwnUI(el)) return false;
+  var text = (el.textContent || '').trim().toLowerCase();
+  var id = (el.id || '').toLowerCase();
+  var cls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
+  var aria = (el.getAttribute && (el.getAttribute('aria-label') || '') || '').toLowerCase();
+  return /play|start|watch|overlay|playback|xem|phát/.test(text + ' ' + id + ' ' + cls + ' ' + aria);
+}
+function __uvdLearnPlaySelector(e) {
+  var target = e && e.target;
+  if (!target || __uvdIsOwnUI(target)) return;
+  var el = target.closest && target.closest('button,a,[role="button"],[id],[class]');
+  if (!el || !__uvdLooksLikePlayElement(el)) return;
+  var selector = __uvdElementSelector(el);
+  if (!selector) return;
+  data.siteProfiles[pageInfo.host] = data.siteProfiles[pageInfo.host] || {};
+  if (data.siteProfiles[pageInfo.host].playSelector === selector) return;
+  data.siteProfiles[pageInfo.host].playSelector = selector;
+  storage.set(data);
+  console.info('[UMP DL] Đã học Play selector cho ' + pageInfo.host + ': ' + selector);
+}
+function installPlaySelectorLearning() {
+  document.addEventListener('click', __uvdLearnPlaySelector, true);
+  addCleanup(function() { document.removeEventListener('click', __uvdLearnPlaySelector, true); });
 }
 
 function isButtonBlocked(el) {
@@ -874,6 +905,7 @@ installMonitor();
 installPopupBlock();
 installUniversalOverlayBlocker();
 addCleanup(uninstallUniversalOverlayBlocker);
+installPlaySelectorLearning();
 
 var panelObserver = new MutationObserver(function() {
   if (!document.getElementById('__uvd__')) {

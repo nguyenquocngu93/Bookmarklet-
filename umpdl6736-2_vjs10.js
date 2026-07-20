@@ -2692,7 +2692,10 @@ function hydrateVideoThumbnails(root) {
     media.preload = 'metadata';
     media.setAttribute('aria-hidden', 'true');
     var thumbUrl = preview.getAttribute('data-thumb-url');
-    var thumbSourceUrl = type === 'M3U8' ? (buildHeaderProxyUrl(thumbUrl, 'M3U8') || thumbUrl) : thumbUrl;
+    var thumbProxyUrl = type === 'M3U8' ? (buildHeaderProxyUrl(thumbUrl, 'M3U8') || '') : '';
+    // Prefer the same direct URL that the player can use. If the source has
+    // CORS/PNG-wrapper problems, retry this thumbnail through Render.
+    var thumbSources = type === 'M3U8' ? [thumbUrl].concat(thumbProxyUrl && thumbProxyUrl !== thumbUrl ? [thumbProxyUrl] : []) : [thumbUrl];
     var thumbHls = null;
     preview.__thumbVideo = media;
     function showFrame() {
@@ -2720,12 +2723,14 @@ function hydrateVideoThumbnails(root) {
     media.addEventListener('loadeddata', showFrame, { once: true });
     media.addEventListener('seeked', showFrame, { once: true });
     media.addEventListener('error', function() {
+      // hls.js may emit a media error while the thumbnail is being retried
+      // with the alternate direct/proxy source. Do not remove the element yet.
+      if (preview.__uvdThumbRetrying) return;
       preview.dataset.thumbState = 'unavailable';
       var errorStatus = card && card.querySelector('.uvd-card-status');
       if (errorStatus) { errorStatus.textContent = 'NO PREVIEW'; errorStatus.className = 'uvd-card-status uvd-status-muted'; }
       if (image) image.classList.add('uvd-thumb-fallback');
-      try { media.remove(); } catch(e) {}
-    }, { once: true });
+    });
     if (image) image.appendChild(media);
     var pressTimer = null;
     preview.addEventListener('touchstart', function() {
@@ -2743,32 +2748,58 @@ function hydrateVideoThumbnails(root) {
       if (image) image.classList.add('uvd-thumb-fallback');
     }
     var thumbStarted = false;
+    var thumbAttempt = 0;
+    function startThumbHls(HlsCtor) {
+      if (!preview.isConnected || preview.dataset.thumbState !== 'loading') return;
+      var sourceUrl = thumbSources[thumbAttempt];
+      if (!sourceUrl) { markThumbUnavailable(); return; }
+      try {
+        if (thumbHls) thumbHls.destroy();
+        thumbHls = new HlsCtor({ maxBufferLength: 2, maxMaxBufferLength: 4 });
+        thumbHls.loadSource(sourceUrl);
+        thumbHls.attachMedia(media);
+        thumbHls.on(HlsCtor.Events.MANIFEST_PARSED, function() {
+          __uvdDescribeHlsLevels(card, thumbHls.levels, media);
+        });
+        thumbHls.on(HlsCtor.Events.LEVEL_SWITCHED, function() {
+          __uvdDescribeHlsLevels(card, thumbHls.levels, media);
+        });
+        thumbHls.on(HlsCtor.Events.ERROR, function(_, data) {
+          if (!data || !data.fatal) return;
+          if (thumbAttempt + 1 < thumbSources.length) {
+            // Direct HLS may work in the player while the Render relay is
+            // required only for PNG-wrapped/CORS-restricted thumbnails.
+            thumbAttempt++;
+            preview.__uvdThumbRetrying = true;
+            try { thumbHls.destroy(); } catch(e) {}
+            try { media.pause(); media.removeAttribute('src'); media.load(); } catch(e) {}
+            setTimeout(function() {
+              preview.__uvdThumbRetrying = false;
+              startThumbHls(HlsCtor);
+            }, 120);
+          } else {
+            markThumbUnavailable();
+          }
+        });
+      } catch(e) {
+        if (thumbAttempt + 1 < thumbSources.length) {
+          thumbAttempt++;
+          setTimeout(function() { startThumbHls(HlsCtor); }, 120);
+        } else {
+          markThumbUnavailable();
+        }
+      }
+    }
     function startThumbSource() {
       if (thumbStarted || !preview.isConnected) return;
       thumbStarted = true;
       if (type === 'M3U8') {
         __uvdEnsureHls(function(HlsCtor) {
-          if (!preview.isConnected || preview.dataset.thumbState !== 'loading') return;
           if (!HlsCtor.isSupported()) { markThumbUnavailable(); return; }
-          try {
-            thumbHls = new HlsCtor({ maxBufferLength: 2, maxMaxBufferLength: 4 });
-            // Use the header proxy here too: the direct playlist's PNG-wrapped
-            // segments must be normalized before hls.js sees them.
-            thumbHls.loadSource(thumbSourceUrl);
-            thumbHls.attachMedia(media);
-            thumbHls.on(HlsCtor.Events.MANIFEST_PARSED, function() {
-              __uvdDescribeHlsLevels(card, thumbHls.levels, media);
-            });
-            thumbHls.on(HlsCtor.Events.LEVEL_SWITCHED, function() {
-              __uvdDescribeHlsLevels(card, thumbHls.levels, media);
-            });
-            thumbHls.on(HlsCtor.Events.ERROR, function(_, data) {
-              if (data && data.fatal) markThumbUnavailable();
-            });
-          } catch(e) { markThumbUnavailable(); }
+          startThumbHls(HlsCtor);
         }, markThumbUnavailable);
       } else {
-        media.src = thumbSourceUrl;
+        media.src = thumbUrl;
       }
       setTimeout(function() {
         if (preview.dataset.thumbState === 'loading') {

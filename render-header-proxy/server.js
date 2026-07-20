@@ -6,6 +6,7 @@ const { Readable } = require('node:stream');
 const insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 const PROXY_KEY = process.env.PROXY_KEY || '';
 const ALLOWED_HOSTS = new Set(
@@ -117,7 +118,9 @@ function proxyUrl(target, req, referer, isPlaylist) {
   if (req.query.origin) params.set('origin', req.query.origin);
   if (PROXY_KEY) params.set('key', PROXY_KEY);
   const endpoint = isPlaylist ? '/hls' : '/proxy';
-  return `${req.protocol}://${req.get('host')}${endpoint}?${params.toString()}`;
+  const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol || 'https';
+  return `${protocol}://${req.get('host')}${endpoint}?${params.toString()}`;
 }
 
 function looksLikePlaylist(url) {

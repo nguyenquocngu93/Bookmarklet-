@@ -1246,6 +1246,37 @@ function __uvdMountVjs10(wrapper, video, onMount) {
   }, 100);
 }
 
+// ========== HLS LOADER ==========
+// Share one lazy hls.js load between the player and HLS thumbnails. Without
+// this, thumbnail video elements fall back to a raw .m3u8 URL on Android
+// Chromium, which has no native HLS support.
+function __uvdEnsureHls(onReady, onError) {
+  if (window.Hls) {
+    onReady(window.Hls);
+    return;
+  }
+  window.__uvdHlsWaiters = window.__uvdHlsWaiters || [];
+  window.__uvdHlsWaiters.push({ ready: onReady, error: onError });
+  if (window.__uvdHlsLoading) return;
+  window.__uvdHlsLoading = true;
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+  script.onload = function() {
+    window.__uvdHlsLoading = false;
+    var waiters = window.__uvdHlsWaiters || [];
+    window.__uvdHlsWaiters = [];
+    if (window.Hls) waiters.forEach(function(waiter) { try { waiter.ready(window.Hls); } catch(e) {} });
+    else waiters.forEach(function(waiter) { try { if (waiter.error) waiter.error(new Error('hls.js không đăng ký được')); } catch(e) {} });
+  };
+  script.onerror = function() {
+    window.__uvdHlsLoading = false;
+    var waiters = window.__uvdHlsWaiters || [];
+    window.__uvdHlsWaiters = [];
+    waiters.forEach(function(waiter) { try { if (waiter.error) waiter.error(new Error('Không tải được hls.js')); } catch(e) {} });
+  };
+  document.head.appendChild(script);
+}
+
 // ========== HEADER PROXY ==========
 function buildHeaderProxyUrl(sourceUrl, type) {
   if (!HEADER_PROXY_BASE || !sourceUrl || sourceUrl.indexOf(HEADER_PROXY_BASE) === 0) return '';
@@ -1725,19 +1756,15 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
       // nhưng không tải segment ổn định, nên buộc dùng hls.js để đi qua proxy từng segment.
       video.src = url;
     } else {
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
-      s.onload = function() {
+      __uvdEnsureHls(function() {
         if (playerState.closing || playerState.video !== video) return;
         // Preserve fromProxy. Without this, a lazy hls.js load could restart
         // the proxy fallback as if the source were direct.
         showVideoPlayer(url, type, fromProxy, true);
-      };
-      s.onerror = function() {
+      }, function() {
         if (playerState.closing || playerState.video !== video) return;
         setPlaybackError('Không tải được hls.js — thử tải lại bookmarklet hoặc kiểm tra CSP/CDN.');
-      };
-      document.head.appendChild(s);
+      });
       return;
     }
   } else {
@@ -2431,6 +2458,7 @@ function hydrateVideoThumbnails(root) {
     media.preload = 'metadata';
     media.setAttribute('aria-hidden', 'true');
     var thumbUrl = preview.getAttribute('data-thumb-url');
+    var thumbSourceUrl = type === 'M3U8' ? (buildHeaderProxyUrl(thumbUrl, 'M3U8') || thumbUrl) : thumbUrl;
     var thumbHls = null;
     preview.__thumbVideo = media;
     function showFrame() {
@@ -2469,22 +2497,29 @@ function hydrateVideoThumbnails(root) {
     }, { passive: true });
     preview.addEventListener('touchend', function() { if (pressTimer) clearTimeout(pressTimer); }, { passive: true });
     preview.addEventListener('touchcancel', function() { if (pressTimer) clearTimeout(pressTimer); }, { passive: true });
-    if (type === 'M3U8' && window.Hls && Hls.isSupported()) {
-      try {
-        thumbHls = new Hls({ maxBufferLength: 2, maxMaxBufferLength: 4 });
-        thumbHls.loadSource(thumbUrl);
-        thumbHls.attachMedia(media);
-        thumbHls.on(Hls.Events.ERROR, function(_, data) {
-          if (data && data.fatal) {
-            preview.dataset.thumbState = 'unavailable';
-            var hlsStatus = card && card.querySelector('.uvd-card-status');
-            if (hlsStatus) { hlsStatus.textContent = 'NO PREVIEW'; hlsStatus.className = 'uvd-card-status uvd-status-muted'; }
-            if (image) image.classList.add('uvd-thumb-fallback');
-          }
-        });
-      } catch(e) { media.src = thumbUrl; }
+    function markThumbUnavailable() {
+      preview.dataset.thumbState = 'unavailable';
+      var hlsStatus = card && card.querySelector('.uvd-card-status');
+      if (hlsStatus) { hlsStatus.textContent = 'NO PREVIEW'; hlsStatus.className = 'uvd-card-status uvd-status-muted'; }
+      if (image) image.classList.add('uvd-thumb-fallback');
+    }
+    if (type === 'M3U8') {
+      __uvdEnsureHls(function(HlsCtor) {
+        if (!preview.isConnected || preview.dataset.thumbState !== 'loading') return;
+        if (!HlsCtor.isSupported()) { markThumbUnavailable(); return; }
+        try {
+          thumbHls = new HlsCtor({ maxBufferLength: 2, maxMaxBufferLength: 4 });
+          // Use the header proxy here too: the direct playlist's PNG-wrapped
+          // segments must be normalized before hls.js sees them.
+          thumbHls.loadSource(thumbSourceUrl);
+          thumbHls.attachMedia(media);
+          thumbHls.on(HlsCtor.Events.ERROR, function(_, data) {
+            if (data && data.fatal) markThumbUnavailable();
+          });
+        } catch(e) { markThumbUnavailable(); }
+      }, markThumbUnavailable);
     } else {
-      media.src = thumbUrl;
+      media.src = thumbSourceUrl;
     }
     setTimeout(function() {
       if (preview.dataset.thumbState === 'loading') {

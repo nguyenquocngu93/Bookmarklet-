@@ -172,17 +172,23 @@ function __uvdIsEmbedMediaUrl(url) {
   } catch(e) { return false; }
 }
 function findPlaylistBodyUrls(text, source) {
-  if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return;
+  if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
+  var changed = false;
   var matches = text.match(/https?:\/\/[^\s"'<>()\\]+/gi) || [];
   matches.forEach(function(u) {
     u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
-    if (!urls.has(u)) urls.set(u, { type: 'M3U8', source: source + ':playlist', priority: 1, timestamp: Date.now() });
+    var existing = urls.get(u);
+    if (!existing || existing.type !== 'M3U8' || existing.priority > 1) {
+      urls.set(u, { type: 'M3U8', source: source + ':playlist', priority: 1, timestamp: Date.now() });
+      changed = true;
+    }
   });
+  return changed;
 }
 function findUrls(text, source) {
   if (!text || typeof text !== 'string' || text.length > 300000) return;
   if (text.length > 30000 && String(source || '').indexOf(':body') === -1 && String(source || '').indexOf(':playlist') === -1) return;
-  findPlaylistBodyUrls(text, source);
+  var changed = findPlaylistBodyUrls(text, source);
   var hash = text.length + source;
   if (__uvdFindUrlsCache[hash]) return;
   __uvdFindUrlsCache[hash] = true;
@@ -199,11 +205,14 @@ function findUrls(text, source) {
         // but they are HTML embed pages, not playable MP4 files. Keep them
         // as iframe candidates so the iframe and direct-media paths coexist.
         if (__uvdIsEmbedMediaUrl(u)) {
+          var oldEmbed = urls.get(u);
+          if (!oldEmbed || oldEmbed.type !== 'IFRAME' || oldEmbed.priority !== 99) changed = true;
           urls.set(u, { type: 'IFRAME', source: source, priority: 99, timestamp: Date.now() });
           return;
         }
         if (!urls.has(u) || urls.get(u).priority > p.priority) {
           urls.set(u, { type: p.type, source: source, priority: p.priority, timestamp: Date.now() });
+          changed = true;
         }
       });
     }
@@ -214,6 +223,9 @@ function findUrls(text, source) {
     for (var i = 0; i < toRemove; i++) {
       urls.delete(keys[i]);
     }
+  }
+  if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) {
+    debouncedBuildUI();
   }
 }
 
@@ -960,6 +972,25 @@ function runAutoClickAndRescan(silent) {
     }, delay);
   });
 }
+
+function runPreloadCapture() {
+  installMonitor();
+  installPopupBlock();
+  toast('⏺ Đã bật bắt link realtime — giờ hãy bấm Play thật trên trang');
+  var delays = [0, 400, 1000, 2000, 4000, 8000];
+  delays.forEach(function(delay) {
+    setTimeout(function() {
+      try {
+        scan(document, 'preload');
+        performance.getEntriesByType('resource').forEach(function(entry) {
+          if (!isAdUrl(entry.name)) findUrls(entry.name, 'preload:performance');
+        });
+      } catch(e) {}
+      if (document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) debouncedBuildUI();
+    }, delay);
+  });
+}
+window.__uvd_preload = function() { runPreloadCapture(); };
 
 window.__uvd_autoClickPlay = function() { runAutoClickAndRescan(false); };
 setTimeout(function() { runAutoClickAndRescan(true); }, 400);
@@ -2396,6 +2427,7 @@ function buildUI() {
     '</div>' +
     '<div class="uvd-header-actions">' +
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">⏺</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Thử lần lượt từng server">⏭</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_refresh__" title="Làm mới">↻</button>' +
@@ -2557,6 +2589,7 @@ function buildUI() {
     toast(n > 0 ? 'Đã thử bấm Play (' + n + ' nút)' : 'Không tìm thấy nút Play, thử đặt selector riêng ở Cài đặt');
     setTimeout(function() { debouncedBuildUI(); }, 1200);
   };
+  document.getElementById('__uvd_preload__').onclick = function() { runPreloadCapture(); };
   document.getElementById('__uvd_seq_autoplay__').onclick = function() { autoClickSequential(false); };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
   

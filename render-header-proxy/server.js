@@ -46,7 +46,11 @@ function parseTarget(raw) {
   const target = new URL(raw);
   if (!['http:', 'https:'].includes(target.protocol)) throw new Error('Chỉ hỗ trợ HTTP/HTTPS');
   if (isPrivateHost(target.hostname)) throw new Error('Không cho phép host nội bộ');
-  if (ALLOWED_HOSTS.size && !ALLOWED_HOSTS.has(target.hostname.toLowerCase())) {
+  const hostname = target.hostname.toLowerCase();
+  const hostAllowed = [...ALLOWED_HOSTS].some((allowed) =>
+    hostname === allowed || hostname.endsWith(`.${allowed}`)
+  );
+  if (ALLOWED_HOSTS.size && !hostAllowed) {
     throw new Error('Host chưa nằm trong ALLOWED_HOSTS');
   }
   return target;

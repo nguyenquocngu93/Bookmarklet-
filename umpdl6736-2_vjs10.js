@@ -1620,6 +1620,7 @@ function showVideoPlayer(url, type, fromProxy) {
   var activeHls = null;
 
   function onMetadataLoaded() {
+    if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     lockOrientation(video);
     if (video.videoWidth && video.videoHeight && !playerState.resolution) {
       playerState.resolution = video.videoWidth + 'x' + video.videoHeight;
@@ -1651,9 +1652,6 @@ function showVideoPlayer(url, type, fromProxy) {
   }
 
   video.addEventListener('loadedmetadata', onMetadataLoaded);
-  video.addEventListener('playing', function() {
-    if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
-  });
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
@@ -1737,7 +1735,7 @@ function showVideoPlayer(url, type, fromProxy) {
 
   if (!fromProxy) {
     playerState.proxyFallbackTimer = setTimeout(function() {
-      if (!playerState.closing && playerState.video === video && !video.paused && video.readyState < 3 && !playerState.playbackError) {
+      if (!playerState.closing && playerState.video === video && !video.videoWidth && !playerState.playbackError) {
         if (retryThroughHeaderProxy(url, type)) toast('⏳ Nguồn gốc đang treo, chuyển sang proxy…');
       }
     }, 12000);

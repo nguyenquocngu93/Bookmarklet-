@@ -1263,8 +1263,13 @@ function retryThroughHeaderProxy(sourceUrl, type) {
   var proxyUrl = buildHeaderProxyUrl(sourceUrl, type);
   if (!proxyUrl) return false;
   playerState.proxyRetried = true;
-  toast('🔁 Nguồn lỗi, đang thử proxy header…');
-  setTimeout(function() { showVideoPlayer(proxyUrl, type, true); }, 180);
+  toast('🔁 Đang đánh thức Render proxy…');
+  var healthUrl = HEADER_PROXY_BASE.replace(/\/$/, '') + '/health';
+  var wake = fetch(healthUrl, { cache: 'no-store', signal: AbortSignal.timeout(25000) }).catch(function() {});
+  wake.then(function() {
+    toast('🔁 Đang thử phát qua proxy header…');
+    showVideoPlayer(proxyUrl, type, true);
+  });
   return true;
 }
 

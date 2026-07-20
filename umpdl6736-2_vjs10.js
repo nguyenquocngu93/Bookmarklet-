@@ -218,6 +218,7 @@ function scan(doc, src) {
 // ========== POPUP BLOCKER ==========
 var __uvdPopupBlockActive = false;
 var __uvdOriginalWindowOpen = null;
+var __uvdPopupGuardTimer = null;
 var __uvdBlockedCount = 0;
 
 window.__uvdSafeOpen = function(url) {
@@ -248,7 +249,11 @@ function installPopupBlock() {
   if (__uvdPopupBlockActive) return;
   __uvdPopupBlockActive = true;
   __uvdOriginalWindowOpen = window.open;
-  window.open = function() { __uvdBlockedCount++; return null; };
+  var blockWindowOpen = function() { __uvdBlockedCount++; return null; };
+  window.open = blockWindowOpen;
+  __uvdPopupGuardTimer = setInterval(function() {
+    if (__uvdPopupBlockActive && window.open !== blockWindowOpen) window.open = blockWindowOpen;
+  }, 1000);
   ['click', 'mousedown', 'pointerdown', 'auxclick'].forEach(function(type) {
     document.addEventListener(type, killBlankLinks, true);
   });
@@ -257,6 +262,7 @@ function installPopupBlock() {
 function uninstallPopupBlock() {
   if (!__uvdPopupBlockActive) return;
   __uvdPopupBlockActive = false;
+  if (__uvdPopupGuardTimer) { clearInterval(__uvdPopupGuardTimer); __uvdPopupGuardTimer = null; }
   if (__uvdOriginalWindowOpen) window.open = __uvdOriginalWindowOpen;
   ['click', 'mousedown', 'pointerdown', 'auxclick'].forEach(function(type) {
     document.removeEventListener(type, killBlankLinks, true);
@@ -532,7 +538,15 @@ function openSettingsOverlay() {
   __uvdAppendRoot(ov);
   applyEffectsPref(ov);
   applyMotionPref(ov);
-  renderSettings(document.getElementById('__uvd_settings_body__'));
+  var settingsBody = document.getElementById('__uvd_settings_body__');
+  var settingsSheet = ov.querySelector('.uvd-settings-sheet');
+  renderSettings(settingsBody);
+  var scrollTimer;
+  settingsBody.addEventListener('scroll', function() {
+    settingsSheet.classList.add('uvd-scroll-performance');
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function() { settingsSheet.classList.remove('uvd-scroll-performance'); }, 160);
+  }, { passive: true });
   document.getElementById('__uvd_settings_back__').onclick = closeSettingsOverlay;
   ov.addEventListener('click', function(e) { if (e.target === ov) closeSettingsOverlay(); });
   requestAnimationFrame(function() { ov.classList.add('uvd-open'); });
@@ -1832,7 +1846,7 @@ style.textContent = `
 .uvd-player-sheet.uvd-player-from-thumbnail{animation:uvdPlayerFromThumb .34s cubic-bezier(.22,1,.36,1) both}
 .uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
-.uvd-settings-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}.uvd-settings-title{font-weight:800;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}.uvd-settings-subtitle{font-size:10px;color:var(--text3);font-weight:600}.uvd-player-header-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1;justify-content:center;color:var(--text)}.uvd-player-header-title strong{display:block;font-size:13px;white-space:nowrap}.uvd-player-header-title small{display:block;margin-top:2px;color:var(--text3);font-size:9px;text-align:center}.uvd-player-live-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,47,200,.12),0 0 12px rgba(255,47,200,.7);animation:uvdPulse 2s infinite}
+.uvd-settings-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}.uvd-settings-title{font-weight:800;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}.uvd-settings-subtitle{font-size:10px;color:var(--text3);font-weight:600}.uvd-player-header-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1;justify-content:flex-start;margin-left:10px;color:var(--text)}.uvd-player-header-title strong{display:block;font-size:14px;font-weight:800;white-space:nowrap}.uvd-settings-sheet.uvd-scroll-performance,.uvd-settings-sheet.uvd-scroll-performance .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.uvd-settings-sheet.uvd-scroll-performance .uvd-card{box-shadow:0 2px 10px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.12) inset}.uvd-settings-sheet.uvd-scroll-performance::before{display:none}.uvd-player-header-title small{display:block;margin-top:2px;color:var(--text3);font-size:9px;text-align:center}.uvd-player-live-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,47,200,.12),0 0 12px rgba(255,47,200,.7);animation:uvdPulse 2s infinite}
 .uvd-player-video-area{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(255,47,200,.16),transparent 34%),radial-gradient(circle at 84% 76%,rgba(155,61,255,.14),transparent 40%),linear-gradient(135deg,rgba(255,238,249,.92),rgba(245,232,255,.94));}
 .uvd-player-video-area::before{content:'';position:absolute;inset:-25%;pointer-events:none;background:conic-gradient(from 120deg at 50% 50%,transparent,rgba(255,47,200,.08),transparent 28%,rgba(155,61,255,.08),transparent 55%);filter:blur(22px);animation:uvdLiquidDrift 18s ease-in-out infinite}
 .uvd-player-video-area::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,transparent,black 25%,black 75%,transparent)}

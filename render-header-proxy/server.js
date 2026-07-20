@@ -72,10 +72,11 @@ function requestHeaders(req, target, refererOverride) {
   };
   const range = req.get('range');
   if (range) headers.range = range;
-  for (const name of ['if-range', 'if-none-match', 'if-modified-since']) {
-    const value = req.get(name);
-    if (value) headers[name] = value;
-  }
+  // Do not forward cache validators. A source 304 has no body, which is unsafe
+  // for a relay: the browser cache belongs to the proxy URL, not the source URL.
+  // If-Range is still useful together with Range for byte-range media requests.
+  const ifRange = req.get('if-range');
+  if (ifRange) headers['if-range'] = ifRange;
   const referer = refererOverride || req.query.referer || process.env.DEFAULT_REFERER;
   if (referer) headers.referer = referer;
   const origin = req.query.origin || process.env.DEFAULT_ORIGIN;
@@ -107,7 +108,7 @@ async function fetchSource(target, req, referer) {
 }
 
 function forwardMediaHeaders(source, res) {
-  for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'etag', 'last-modified', 'cache-control']) {
+  for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {
     const value = source.headers.get(name);
     if (value) res.setHeader(name, value);
   }
@@ -117,6 +118,7 @@ function proxyUrl(target, req, referer, isPlaylist) {
   const params = new URLSearchParams({ url: target.toString() });
   if (referer) params.set('referer', referer);
   if (req.query.origin) params.set('origin', req.query.origin);
+  if (req.query.ua) params.set('ua', req.query.ua);
   if (PROXY_KEY) params.set('key', PROXY_KEY);
   const endpoint = isPlaylist ? '/hls' : '/proxy';
   const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
@@ -178,6 +180,9 @@ app.get('/proxy', async (req, res) => {
     const source = await fetchSource(target, req, req.query.referer);
     res.status(source.status);
     forwardMediaHeaders(source, res);
+    // Prevent a conditional request to the source from turning into a body-less
+    // 304 response for hls.js/native media loaders.
+    res.setHeader('Cache-Control', 'no-store');
     if (!source.body) return res.end();
     Readable.fromWeb(source.body).on('error', () => res.destroy()).pipe(res);
   } catch (error) {

@@ -1276,8 +1276,10 @@ function retryThroughHeaderProxy(sourceUrl, type) {
 }
 
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type, fromProxy) {
-  if (playerState.overlay && playerState.url === url) return;
+function showVideoPlayer(url, type, fromProxy, forceReinit) {
+  // When hls.js is loaded lazily, the player shell already exists. Allow the
+  // same URL to be re-initialized after the library finishes loading.
+  if (playerState.overlay && playerState.url === url && !forceReinit) return;
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
@@ -1725,7 +1727,16 @@ function showVideoPlayer(url, type, fromProxy) {
     } else {
       var s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
-      s.onload = function() { showVideoPlayer(url, type); };
+      s.onload = function() {
+        if (playerState.closing || playerState.video !== video) return;
+        // Preserve fromProxy. Without this, a lazy hls.js load could restart
+        // the proxy fallback as if the source were direct.
+        showVideoPlayer(url, type, fromProxy, true);
+      };
+      s.onerror = function() {
+        if (playerState.closing || playerState.video !== video) return;
+        setPlaybackError('Không tải được hls.js — thử tải lại bookmarklet hoặc kiểm tra CSP/CDN.');
+      };
       document.head.appendChild(s);
       return;
     }

@@ -18,6 +18,15 @@ const MAX_REDIRECTS = Number(process.env.MAX_REDIRECTS || 5);
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => {
+    let sourceHost = '';
+    try { if (req.query.url) sourceHost = new URL(req.query.url).host; } catch (_) {}
+    console.log(`[${req.method}] ${req.path} source=${sourceHost || '-'} status=${res.statusCode} ${Date.now() - started}ms`);
+  });
+  next();
+});
+app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, X-Proxy-Key');
   res.setHeader('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Length, Content-Range, Content-Type');
@@ -163,6 +172,7 @@ app.get('/proxy', async (req, res) => {
     if (!source.body) return res.end();
     Readable.fromWeb(source.body).on('error', () => res.destroy()).pipe(res);
   } catch (error) {
+    console.error('[proxy error]', error.message);
     res.status(502).json({ error: 'Không lấy được nguồn', detail: error.message });
   }
 });
@@ -185,6 +195,7 @@ app.get('/hls', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.send(rewritePlaylist(text, target, req, req.query.referer));
   } catch (error) {
+    console.error('[hls error]', error.message);
     res.status(502).json({ error: 'Không đọc được HLS playlist', detail: error.message });
   }
 });

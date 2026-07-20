@@ -202,7 +202,9 @@ app.get('/hls', async (req, res) => {
     }
     const rewritten = rewritePlaylist(text, target, req, req.query.referer);
     const rewrittenLinks = (rewritten.match(/https?:\/\/[^\s"']+/g) || []).length;
-    console.log(`[hls playlist] type=${contentType || '-'} bytes=${text.length} extm3u=${text.includes('#EXTM3U')} links=${rewrittenLinks}`);
+    const proxyRouteCount = (rewritten.match(/\/proxy\?/g) || []).length;
+    const hlsRouteCount = (rewritten.match(/\/hls\?/g) || []).length;
+    console.log(`[hls playlist] type=${contentType || '-'} bytes=${text.length} extm3u=${text.includes('#EXTM3U')} links=${rewrittenLinks} proxyRoutes=${proxyRouteCount} hlsRoutes=${hlsRouteCount}`);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.setHeader('Cache-Control', 'no-store');
     res.send(rewritten);

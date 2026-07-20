@@ -195,9 +195,12 @@ app.get('/hls', async (req, res) => {
     if (!text.includes('#EXTM3U') && !contentType.includes('mpegurl')) {
       return res.status(415).json({ error: 'Nguồn không phải HLS playlist' });
     }
+    const rewritten = rewritePlaylist(text, target, req, req.query.referer);
+    const rewrittenLinks = (rewritten.match(/https?:\/\/[^\s"']+/g) || []).length;
+    console.log(`[hls playlist] type=${contentType || '-'} bytes=${text.length} extm3u=${text.includes('#EXTM3U')} links=${rewrittenLinks}`);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.setHeader('Cache-Control', 'no-store');
-    res.send(rewritePlaylist(text, target, req, req.query.referer));
+    res.send(rewritten);
   } catch (error) {
     console.error('[hls error]', error.message);
     res.status(502).json({ error: 'Không đọc được HLS playlist', detail: error.message });

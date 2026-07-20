@@ -114,6 +114,31 @@ function forwardMediaHeaders(source, res) {
   }
 }
 
+// Some hosts disguise MPEG-TS segments as PNG files for CDN delivery. The
+// PNG header/padding is not part of the HLS segment; hls.js must receive the
+// transport stream starting at the first 0x47 sync byte.
+function findMpegTsOffset(buffer) {
+  const packetSize = 188;
+  const packetCount = 5;
+  const lastStart = Math.min(buffer.length - packetSize * packetCount, 64 * 1024);
+  if (lastStart < 0) return -1;
+  for (let offset = 0; offset <= lastStart; offset++) {
+    let aligned = true;
+    for (let packet = 0; packet < packetCount; packet++) {
+      if (buffer[offset + packet * packetSize] !== 0x47) {
+        aligned = false;
+        break;
+      }
+    }
+    if (aligned) return offset;
+  }
+  return -1;
+}
+
+function isPng(contentType) {
+  return /^image\/png(?:;|$)/i.test(contentType || '');
+}
+
 function proxyUrl(target, req, referer, isPlaylist) {
   const params = new URLSearchParams({ url: target.toString() });
   if (referer) params.set('referer', referer);
@@ -178,6 +203,31 @@ app.get('/proxy', async (req, res) => {
 
   try {
     const source = await fetchSource(target, req, req.query.referer);
+    const sourceType = source.headers.get('content-type') || '';
+
+    // This host returns each MPEG-TS segment as a PNG-looking wrapper with
+    // the real transport stream appended after the PNG IEND/padding. Buffer
+    // only PNG responses so normal MP4/TS proxying remains streaming.
+    if (isPng(sourceType) && source.body) {
+      const wrapped = Buffer.from(await source.arrayBuffer());
+      const offset = findMpegTsOffset(wrapped);
+      res.status(source.status);
+      forwardMediaHeaders(source, res);
+      res.setHeader('Cache-Control', 'no-store');
+      if (offset >= 0) {
+        const segment = wrapped.subarray(offset);
+        res.setHeader('Content-Type', 'video/mp2t');
+        res.setHeader('Content-Length', String(segment.length));
+        res.removeHeader('Content-Range');
+        res.removeHeader('Accept-Ranges');
+        console.log(`[proxy normalize] source=${target.host} type=${sourceType} offset=${offset} bytes=${wrapped.length}->${segment.length}`);
+        return res.end(segment);
+      }
+      // Preserve a genuine PNG response if it does not contain an aligned
+      // MPEG-TS payload; this keeps /proxy useful for non-HLS callers.
+      return res.end(wrapped);
+    }
+
     res.status(source.status);
     forwardMediaHeaders(source, res);
     // Prevent a conditional request to the source from turning into a body-less

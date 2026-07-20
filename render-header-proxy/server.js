@@ -1,5 +1,8 @@
 const express = require('express');
+const { Agent } = require('undici');
 const { Readable } = require('node:stream');
+
+const insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -76,6 +79,7 @@ async function fetchSource(target, req, referer) {
     const response = await fetch(current, {
       headers: requestHeaders(req, current, referer),
       redirect: 'manual',
+      dispatcher: process.env.ALLOW_INSECURE_TLS === 'true' ? insecureDispatcher : undefined,
       signal: AbortSignal.timeout(30000)
     });
     if (![301, 302, 303, 307, 308].includes(response.status)) return response;

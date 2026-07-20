@@ -16,6 +16,7 @@ const ALLOWED_HOSTS = new Set(
     .filter(Boolean)
 );
 const MAX_REDIRECTS = Number(process.env.MAX_REDIRECTS || 5);
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
@@ -120,7 +121,8 @@ function proxyUrl(target, req, referer, isPlaylist) {
   const endpoint = isPlaylist ? '/hls' : '/proxy';
   const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
   const protocol = forwardedProto || req.protocol || 'https';
-  return `${protocol}://${req.get('host')}${endpoint}?${params.toString()}`;
+  const base = PUBLIC_BASE_URL || `${protocol}://${req.get('host')}`;
+  return `${base}${endpoint}?${params.toString()}`;
 }
 
 function looksLikePlaylist(url) {

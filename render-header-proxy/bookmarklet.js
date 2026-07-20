@@ -161,6 +161,14 @@ var patterns = [
 ];
 
 var __uvdFindUrlsCache = {};
+function __uvdIsEmbedMediaUrl(url) {
+  try {
+    var parsed = new URL(url, location.href);
+    var path = (parsed.pathname || '').toLowerCase();
+    var host = (parsed.hostname || '').replace(/^www\./, '');
+    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0);
+  } catch(e) { return false; }
+}
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return;
   var matches = text.match(/https?:\/\/[^\s"'<>()\\]+/gi) || [];
@@ -183,6 +191,13 @@ function findUrls(text, source) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
         if (isAdUrl(u)) {
           __uvdAdBlockedCount++;
+          return;
+        }
+        // Streamtape-style /e/ URLs often contain .mp4 in the slug/query,
+        // but they are HTML embed pages, not playable MP4 files. Keep them
+        // as iframe candidates so the iframe and direct-media paths coexist.
+        if (__uvdIsEmbedMediaUrl(u)) {
+          urls.set(u, { type: 'IFRAME', source: source, priority: 99, timestamp: Date.now() });
           return;
         }
         if (!urls.has(u) || urls.get(u).priority > p.priority) {

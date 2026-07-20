@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('node:path');
 const { Agent } = require('undici');
 const { Readable } = require('node:stream');
 
@@ -140,6 +141,14 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
 }
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'umpdl-header-proxy' }));
+
+app.get('/bookmarklet.js', (_req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'bookmarklet.js'));
+});
 
 app.get('/proxy', async (req, res) => {
   if (!authorized(req)) return res.status(401).json({ error: 'Thiếu hoặc sai PROXY_KEY' });

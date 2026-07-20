@@ -46,3 +46,13 @@ The `/hls` route rewrites relative playlist, segment and `EXT-X-KEY` URLs back t
 - Do not accept arbitrary cookies from untrusted users.
 - This does not bypass DRM, expired signatures, geo restrictions or access controls.
 - Render free services may sleep and are not ideal for long-running media relays.
+
+## Bookmarklet endpoint
+
+The deployed service also serves the current bookmarklet without browser/proxy caching:
+
+```text
+https://YOUR-APP.onrender.com/bookmarklet.js
+```
+
+After changing the source bookmarklet, copy the new `umpdl6736-2_vjs10.js` to `render-header-proxy/bookmarklet.js` before deploying.

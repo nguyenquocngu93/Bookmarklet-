@@ -912,6 +912,7 @@ var playerState = {
   playbackError: '',
   proxyRetried: false,
   sizeRequested: false,
+  proxyFallbackTimer: null,
   closing: false,
   _displayedResolution: '',
   onFullscreenChange: null,
@@ -1281,6 +1282,8 @@ function showVideoPlayer(url, type, fromProxy) {
   playerState.url = url;
   playerState.type = type;
   if (!fromProxy) playerState.proxyRetried = false;
+  if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
+  playerState.proxyFallbackTimer = null;
   playerState.sizeRequested = false;
   playerState.playbackError = '';
   playerState.closing = false;
@@ -1617,6 +1620,7 @@ function showVideoPlayer(url, type, fromProxy) {
   var activeHls = null;
 
   function onMetadataLoaded() {
+    if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     lockOrientation(video);
     if (video.videoWidth && video.videoHeight && !playerState.resolution) {
       playerState.resolution = video.videoWidth + 'x' + video.videoHeight;
@@ -1729,6 +1733,14 @@ function showVideoPlayer(url, type, fromProxy) {
     video.src = url;
   }
 
+  if (!fromProxy) {
+    playerState.proxyFallbackTimer = setTimeout(function() {
+      if (!playerState.closing && playerState.video === video && !video.videoWidth && !playerState.playbackError) {
+        if (retryThroughHeaderProxy(url, type)) toast('⏳ Nguồn gốc đang treo, chuyển sang proxy…');
+      }
+    }, 12000);
+  }
+
   function applyDefaultQualityPreference() {
     if (!activeHls || !activeHls.levels || !activeHls.levels.length) return;
     var pref = data.settings.dataSaver ? 'lowest' : data.settings.defaultQuality;
@@ -1771,6 +1783,7 @@ function closePlayer() {
       savePlaybackPosition(playerState.url, playerState.video);
     }
     clearTimeout(playerState.hideTimeout);
+    if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}
       playerState.audioCtx = null;

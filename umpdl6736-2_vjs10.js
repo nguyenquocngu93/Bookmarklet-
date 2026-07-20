@@ -161,8 +161,18 @@ var patterns = [
 ];
 
 var __uvdFindUrlsCache = {};
+function findPlaylistBodyUrls(text, source) {
+  if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return;
+  var matches = text.match(/https?:\/\/[^\s"'<>()\\]+/gi) || [];
+  matches.forEach(function(u) {
+    u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
+    if (!urls.has(u)) urls.set(u, { type: 'M3U8', source: source + ':playlist', priority: 1, timestamp: Date.now() });
+  });
+}
 function findUrls(text, source) {
-  if (!text || typeof text !== 'string' || text.length > 30000) return;
+  if (!text || typeof text !== 'string' || text.length > 300000) return;
+  if (text.length > 30000 && String(source || '').indexOf(':body') === -1 && String(source || '').indexOf(':playlist') === -1) return;
+  findPlaylistBodyUrls(text, source);
   var hash = text.length + source;
   if (__uvdFindUrlsCache[hash]) return;
   __uvdFindUrlsCache[hash] = true;
@@ -387,6 +397,7 @@ var AUTO_PLAY_SELECTORS = [
 
 function simulateClick(el) {
   try {
+    __uvdGrantPagePlayback(8000);
     var rect = el.getBoundingClientRect();
     if (!rect.width || !rect.height) return false;
     var x = rect.left + rect.width / 2;
@@ -677,6 +688,7 @@ function pauseAllPlayingVideos(root, depth) {
 // ========== LIVE MONITORING ==========
 var originalFetch = window.fetch;
 var originalXHROpen = XMLHttpRequest.prototype.open;
+var __uvdPerformanceObserver = null;
 var monitorActive = false;
 
 function installMonitor() {
@@ -689,17 +701,59 @@ function installMonitor() {
     } else if (url && url.url) {
       if (!isAdUrl(url.url)) findUrls(url.url, 'fetch:live');
     }
-    return originalFetch.apply(this, arguments);
+    var requestPromise = originalFetch.apply(this, arguments);
+    Promise.resolve(requestPromise).then(function(response) {
+      try {
+        var responseUrl = response && response.url;
+        var contentType = response && response.headers && (response.headers.get('content-type') || '');
+        if (responseUrl && !isAdUrl(responseUrl)) findUrls(responseUrl, 'fetch:response');
+        if (response && response.clone && (/mpegurl|json|javascript|text\//i.test(contentType) || /m3u8|manifest|playlist/i.test(responseUrl || ''))) {
+          response.clone().text().then(function(body) {
+            findUrls(body, 'fetch:body');
+          }).catch(function() {});
+        }
+      } catch(e) {}
+    }).catch(function() {});
+    return requestPromise;
   };
   XMLHttpRequest.prototype.open = function(method, url) {
     if (url && !isAdUrl(url)) findUrls(url, 'xhr:live');
+    if (!this.__uvdBodyHooked) {
+      this.__uvdBodyHooked = true;
+      this.addEventListener('load', function() {
+        try {
+          if (this.responseURL && !isAdUrl(this.responseURL)) findUrls(this.responseURL, 'xhr:response');
+          if (typeof this.responseText === 'string') findUrls(this.responseText, 'xhr:body');
+        } catch(e) {}
+      });
+    }
     return originalXHROpen.apply(this, arguments);
   };
+  if (typeof PerformanceObserver !== 'undefined') {
+    try {
+      __uvdPerformanceObserver = new PerformanceObserver(function(list) {
+        list.getEntries().forEach(function(entry) {
+          if (entry && entry.name && !isAdUrl(entry.name)) findUrls(entry.name, 'network:observer');
+        });
+      });
+      __uvdPerformanceObserver.observe({ type: 'resource', buffered: true });
+      addCleanup(function() {
+        if (__uvdPerformanceObserver) {
+          __uvdPerformanceObserver.disconnect();
+          __uvdPerformanceObserver = null;
+        }
+      });
+    } catch(e) {}
+  }
 }
 
 function stopMonitor() {
   window.fetch = originalFetch;
   XMLHttpRequest.prototype.open = originalXHROpen;
+  if (__uvdPerformanceObserver) {
+    try { __uvdPerformanceObserver.disconnect(); } catch(e) {}
+    __uvdPerformanceObserver = null;
+  }
   uninstallPopupBlock();
   monitorActive = false;
 }
@@ -716,11 +770,18 @@ function runCleanup() {
 
 // ========== CHẶN AUTOPLAY ==========
 var __uvdNativeMediaPlay = HTMLMediaElement.prototype.play;
+var __uvdPagePlaybackGraceUntil = 0;
+function __uvdGrantPagePlayback(ms) {
+  __uvdPagePlaybackGraceUntil = Math.max(__uvdPagePlaybackGraceUntil, Date.now() + (ms || 8000));
+}
+function __uvdPagePlaybackAllowed() {
+  return Date.now() < __uvdPagePlaybackGraceUntil;
+}
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
 }
 HTMLMediaElement.prototype.play = function() {
-  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this)) {
+  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this) && !__uvdPagePlaybackAllowed()) {
     var self = this;
     setTimeout(function() { try { self.pause(); } catch(e) {} }, 0);
     return Promise.reject(new DOMException('UVD: đã chặn tự phát', 'NotAllowedError'));
@@ -730,7 +791,7 @@ HTMLMediaElement.prototype.play = function() {
 addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
 
 function __uvdNeutralizeMedia(el) {
-  if (!el || __uvdIsAllowedMedia(el)) return;
+  if (!el || __uvdIsAllowedMedia(el) || __uvdPagePlaybackAllowed()) return;
   try {
     el.removeAttribute('autoplay');
     el.autoplay = false;
@@ -738,7 +799,7 @@ function __uvdNeutralizeMedia(el) {
   } catch(e) {}
 }
 function __uvdBlockPlayEvent(e) {
-  if (!data.settings.blockAutoplay) return;
+  if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
   var el = e.target;
   if (el && (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') && !__uvdIsAllowedMedia(el)) {
     try { el.pause(); } catch(err) {}
@@ -763,7 +824,7 @@ function __uvdFlushObserver() {
   }
 }
 var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
-  if (!data.settings.blockAutoplay) return;
+  if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
   for (var i = 0; i < mutations.length; i++) {
     var added = mutations[i].addedNodes;
     if (!added || !added.length) continue;

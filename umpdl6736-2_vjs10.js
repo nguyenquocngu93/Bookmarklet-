@@ -1714,7 +1714,9 @@ function showVideoPlayer(url, type, fromProxy) {
         updateInfoDisplay();
       });
       playerState.hls = activeHls;
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video.canPlayType('application/vnd.apple.mpegurl') && /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|Android|Vivaldi/i.test(navigator.userAgent)) {
+      // Chỉ dùng HLS native trên Safari thật. Android Chromium/Vivaldi đôi khi trả "maybe"
+      // nhưng không tải segment ổn định, nên buộc dùng hls.js để đi qua proxy từng segment.
       video.src = url;
     } else {
       var s = document.createElement('script');

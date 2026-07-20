@@ -925,6 +925,55 @@ function shareUrl(url) {
   }
 }
 
+// ========== SAFE IFRAME MODE ==========
+// Cross-origin iframe code is outside the parent page's DOM, so the parent
+// blocker cannot reliably remove its ad overlays or override its window.open.
+// A sandbox without allow-popups/top-navigation blocks those escape paths at
+// the browser level while preserving the permissions needed by video players.
+function showIframeSandbox(url) {
+  var oldOverlay = document.getElementById('__uvd_iframe_overlay__');
+  if (oldOverlay) oldOverlay.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_iframe_overlay__';
+  overlay.className = 'uvd-overlay uvd-iframe-overlay';
+  var shell = document.createElement('div');
+  shell.className = 'uvd-iframe-shell';
+  var header = document.createElement('div');
+  header.className = 'uvd-iframe-header';
+  var title = document.createElement('div');
+  title.className = 'uvd-iframe-title';
+  title.innerHTML = '<span class="uvd-player-live-dot"></span><div><strong>Iframe Safe Mode</strong><small>Popup và chuyển tab đã bị chặn</small></div>';
+  var actions = document.createElement('div');
+  actions.className = 'uvd-iframe-actions';
+  var openBtn = document.createElement('button');
+  openBtn.className = 'uvd-btn uvd-btn-sm';
+  openBtn.textContent = 'Tab gốc';
+  openBtn.title = 'Mở iframe không sandbox (có thể có quảng cáo)';
+  openBtn.onclick = function() { window.__uvdSafeOpen(url); };
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'uvd-btn uvd-btn-sm uvd-close-action';
+  closeBtn.textContent = 'Đóng';
+  closeBtn.onclick = function() { overlay.remove(); };
+  actions.appendChild(openBtn);
+  actions.appendChild(closeBtn);
+  header.appendChild(title);
+  header.appendChild(actions);
+  var frame = document.createElement('iframe');
+  frame.className = 'uvd-iframe-frame';
+  frame.src = url;
+  frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock');
+  frame.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-read; clipboard-write');
+  frame.setAttribute('allowfullscreen', '');
+  frame.setAttribute('playsinline', '');
+  frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  frame.title = 'Video iframe';
+  shell.appendChild(header);
+  shell.appendChild(frame);
+  overlay.appendChild(shell);
+  __uvdAppendRoot(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+
 function addToHistory(url, type) {
   data.history = data.history || [];
   data.history.unshift({ url, type, title: pageInfo.title, host: pageInfo.host, timestamp: Date.now() });
@@ -2073,6 +2122,12 @@ style.textContent = `
 .uvd-fx-on .uvd-card,.uvd-fx-on .uvd-settings-sheet:not(.uvd-player-sheet){box-shadow:0 0 var(--glow-px) rgba(255,47,200,var(--glow-op)),0 12px 32px rgba(112,45,126,.12),0 0 0 1px rgba(255,255,255,.12) inset}
 .uvd-fx-on #__uvd_player_close__{box-shadow:0 0 calc(var(--glow-px)*.6) rgba(255,93,114,var(--glow-op))}
 .uvd-overlay{position:fixed;inset:0;background:rgba(2,3,6,.92);backdrop-filter:blur(10px) saturate(120%);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.uvd-iframe-overlay{padding:10px;background:#000;backdrop-filter:none;-webkit-backdrop-filter:none}
+.uvd-iframe-shell{display:flex;flex-direction:column;width:100%;height:calc(100dvh - 20px);max-width:1100px;overflow:hidden;background:#000;border:1px solid var(--border);border-radius:20px;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 16px 45px rgba(0,0,0,.65)}
+.uvd-iframe-header{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:58px;padding:10px 12px;background:var(--glass);border-bottom:1px solid var(--border);flex-shrink:0}
+.uvd-iframe-title{display:flex;align-items:center;gap:8px;min-width:0;color:var(--text)}
+.uvd-iframe-title strong{display:block;font-size:13px;font-weight:800}.uvd-iframe-title small{display:block;margin-top:2px;color:var(--text3);font-size:9px}
+.uvd-iframe-actions{display:flex;gap:6px;flex-shrink:0}.uvd-iframe-frame{display:block;width:100%;height:100%;border:0;background:#000;flex:1;min-height:0}
 .uvd-toggle-switch{width:44px;height:26px;border-radius:14px;background:rgba(43,24,54,.14);border:none;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s ease;padding:0}
 .uvd-toggle-switch .uvd-toggle-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s ease;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .uvd-toggle-switch.uvd-toggle-on{background:var(--grad-liquid)}
@@ -2454,7 +2509,7 @@ function buildStreamCardHTML(item, i) {
       '<button class="uvd-btn uvd-btn-sm" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(155,61,255,0.22);">Chia sẻ</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
       (item.type === 'IFRAME' ?
-        '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '" style="text-align:center;grid-column:1/3;">Mở iframe</button>' :
+        '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '" style="text-align:center;grid-column:1/3;">Iframe sạch</button>' :
         (item.type === 'M3U8' ?
           '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
           '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
@@ -2739,7 +2794,7 @@ function renderStreams(container, arr) {
         }, 260);
       }
       else if (action === 'cmd') showCommandPicker(u2, t);
-      else if (action === 'iframe') window.__uvdSafeOpen(u2);
+      else if (action === 'iframe') showIframeSandbox(u2);
       else if (action === 'blobdl') downloadBlobUrl(u2);
       return;
     }

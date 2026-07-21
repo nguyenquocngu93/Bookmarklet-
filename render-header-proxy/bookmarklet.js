@@ -2499,6 +2499,13 @@ function __uvdHasOnlyIframeOrDemo() {
   // has loaded. An unready video or a short demo must not suppress the iframe
   // workflow prompt.
   if (!videos.length) return true;
+  // __uvdIframeWorkflowVideoPending__ Chờ video đang khởi tạo metadata trước khi hỏi mở iframe.
+  if (videos.some(function(video) {
+    return !!(video.currentSrc || video.src || video.querySelector('source[src]')) &&
+      video.readyState < 1 &&
+      !isFinite(video.duration);
+  })) return false;
+
   var verifiedLongVideo = videos.some(function(video) {
     return video.readyState >= 2 && !__uvdIsDemoVideoElement(video);
   });

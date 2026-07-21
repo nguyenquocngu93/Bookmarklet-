@@ -25,10 +25,17 @@ function __uvdReportBootError(reason) {
   } catch(e) { console.error('[UMP DL] Boot error reporter failed', e); }
 }
 window.addEventListener('error', function(event) {
-  if (__uvdBooting) __uvdReportBootError(event.error || event.message);
+  // Ignore generic cross-origin page errors (Chrome reports these as the
+  // unhelpful "Script error."). Only surface an Error with a real stack
+  // while UMP itself is booting.
+  if (__uvdBooting && event && event.error && event.error.stack && event.message !== 'Script error.') {
+    __uvdReportBootError(event.error);
+  }
 });
 window.addEventListener('unhandledrejection', function(event) {
-  if (__uvdBooting) __uvdReportBootError(event.reason);
+  if (__uvdBooting && event && event.reason && (event.reason.stack || event.reason.name)) {
+    __uvdReportBootError(event.reason);
+  }
 });
 
 var VERSION = '6.7.26';
@@ -1000,16 +1007,20 @@ addCleanup(function() {
 });
 
 // ========== INIT ==========
-window.__uvdBootPhase = 'scan';
-scan(document, 'main');
-try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
-window.__uvdBootPhase = 'monitor';
-installMonitor();
-installPopupBlock();
-installUniversalOverlayBlocker();
-addCleanup(uninstallUniversalOverlayBlocker);
-installPlaySelectorLearning();
-installIframeWorkflowVideoWatcher();
+try {
+  window.__uvdBootPhase = 'scan';
+  scan(document, 'main');
+  try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
+  window.__uvdBootPhase = 'monitor';
+  installMonitor();
+  installPopupBlock();
+  installUniversalOverlayBlocker();
+  addCleanup(uninstallUniversalOverlayBlocker);
+  installPlaySelectorLearning();
+  installIframeWorkflowVideoWatcher();
+} catch (initError) {
+  __uvdReportBootError(initError);
+}
 
 var panelObserver = new MutationObserver(function() {
   if (!document.getElementById('__uvd__')) {

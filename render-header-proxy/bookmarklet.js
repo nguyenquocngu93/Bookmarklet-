@@ -8,6 +8,29 @@
 (function() {
 'use strict';
 
+var __uvdBooting = true;
+window.__uvdBootPhase = 'start';
+function __uvdReportBootError(reason) {
+  try {
+    var message = reason && (reason.message || reason.reason || reason) || 'unknown error';
+    var phase = window.__uvdBootPhase || 'unknown';
+    console.error('[UMP DL] Boot error at ' + phase + ':', reason);
+    if (document.getElementById('__uvd_boot_error__')) return;
+    var box = document.createElement('div');
+    box.id = '__uvd_boot_error__';
+    box.textContent = 'UMP DL không khởi động được ở bước ' + phase + ': ' + String(message);
+    box.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;z-index:2147483647;padding:14px 16px;border-radius:14px;background:#5b173f;color:#fff;font:600 13px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45);';
+    (document.body || document.documentElement).appendChild(box);
+    setTimeout(function() { if (box.parentNode) box.remove(); }, 12000);
+  } catch(e) { console.error('[UMP DL] Boot error reporter failed', e); }
+}
+window.addEventListener('error', function(event) {
+  if (__uvdBooting) __uvdReportBootError(event.error || event.message);
+});
+window.addEventListener('unhandledrejection', function(event) {
+  if (__uvdBooting) __uvdReportBootError(event.reason);
+});
+
 var VERSION = '6.7.26';
 var BOOKMARKLET_NAME = 'universal media full';
 var HEADER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
@@ -977,8 +1000,10 @@ addCleanup(function() {
 });
 
 // ========== INIT ==========
+window.__uvdBootPhase = 'scan';
 scan(document, 'main');
 try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
+window.__uvdBootPhase = 'monitor';
 installMonitor();
 installPopupBlock();
 installUniversalOverlayBlocker();
@@ -3902,6 +3927,8 @@ function renderSettings(container) {
 }
 
 // ========== START ==========
+try {
+window.__uvdBootPhase = 'build-ui';
 buildUI();
 setTimeout(__uvdMaybeOfferIframeWorkflow, 1800);
 setTimeout(__uvdMaybeOfferIframeWorkflow, 5000);
@@ -3911,5 +3938,9 @@ var __uvdIframeWorkflowWatch = setInterval(function() {
 }, 1000);
 setTimeout(function() { clearInterval(__uvdIframeWorkflowWatch); }, 15000);
 console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
+} catch (bootError) {
+  __uvdReportBootError(bootError);
+}
+__uvdBooting = false;
 
 })();

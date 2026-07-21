@@ -217,6 +217,7 @@ function findUrls(text, source) {
   // Those URLs are segments, not independent streams; adding them caused
   // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
   if (isPlaylistBody) {
+    if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
     return;
   }
   patterns.forEach(function(p) {
@@ -254,6 +255,7 @@ function findUrls(text, source) {
   // Keep capture silent. Rebuilding the entire card list for every newly
   // seen URL was the source of the visible UI flash. Preload/Auto Play do a
   // single deliberate refresh after their capture window.
+  if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
 }
 
 function scan(doc, src) {
@@ -1073,6 +1075,7 @@ function runPreloadCapture() {
           scheduleLiveUiRefresh();
         }
       } else {
+        __uvdMaybeOfferIframeWorkflow();
         scheduleLiveUiRefresh();
       }
     }, delay);
@@ -2492,11 +2495,15 @@ function __uvdHasOnlyIframeOrDemo() {
   if (!direct.length) return true;
   var videos = [];
   try { videos = [...document.querySelectorAll('video')].filter(function(video) { return !__uvdIsOwnUI(video); }); } catch(e) {}
-  // If the direct candidates came from scripts/network but there is no real
-  // page video element, treat them as unverified and offer the iframe path.
+  // A URL found in JSON/network is only a candidate until a real page video
+  // has loaded. An unready video or a short demo must not suppress the iframe
+  // workflow prompt.
   if (!videos.length) return true;
-  if (videos.every(__uvdIsDemoVideoElement)) return true;
-  return direct.every(function(entry) { return /preview|trailer|sample|teaser|demo/i.test(entry.url); });
+  var verifiedLongVideo = videos.some(function(video) {
+    return video.readyState >= 2 && !__uvdIsDemoVideoElement(video);
+  });
+  if (verifiedLongVideo) return false;
+  return true;
 }
 function __uvdOpenIframeWorkflowPrompt(target) {
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
@@ -2989,6 +2996,7 @@ function hydrateVideoThumbnails(root) {
     var thumbHls = null;
     preview.__thumbVideo = media;
     function showFrame() {
+      if (preview.dataset.thumbState === 'demo') return;
       preview.dataset.thumbState = 'ready';
       __uvdUpdateCardFromMedia(card, media);
       var status = card && card.querySelector('.uvd-card-status');
@@ -3002,6 +3010,13 @@ function hydrateVideoThumbnails(root) {
     }
     media.addEventListener('loadedmetadata', function() {
       __uvdUpdateCardFromMedia(card, media);
+      if (isFinite(media.duration) && media.duration > 0 && media.duration <= __uvdDemoPreviewMaxSeconds) {
+        preview.dataset.thumbState = 'demo';
+        __uvdSetCardStatus(card, 'DEMO · NO PREVIEW', 'uvd-status-muted');
+        __uvdSetCardMetadata(card, { quality: 'Clip preview', duration: __uvdFormatDuration(media.duration) });
+        try { if (thumbHls) thumbHls.destroy(); media.pause(); } catch(e) {}
+        return;
+      }
       try {
         if (isFinite(media.duration) && media.duration > 1) {
           // Bỏ qua logo/intro ở đầu video; ưu tiên thumbnail khoảng giây 12.

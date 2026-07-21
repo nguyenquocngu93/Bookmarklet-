@@ -217,6 +217,7 @@ function findUrls(text, source) {
   // Those URLs are segments, not independent streams; adding them caused
   // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
   if (isPlaylistBody) {
+    __uvdDismissIframeWorkflowIfVideoFound();
     if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
     return;
   }
@@ -255,6 +256,7 @@ function findUrls(text, source) {
   // Keep capture silent. Rebuilding the entire card list for every newly
   // seen URL was the source of the visible UI flash. Preload/Auto Play do a
   // single deliberate refresh after their capture window.
+  __uvdDismissIframeWorkflowIfVideoFound();
   if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
 }
 
@@ -982,6 +984,7 @@ installPopupBlock();
 installUniversalOverlayBlocker();
 addCleanup(uninstallUniversalOverlayBlocker);
 installPlaySelectorLearning();
+installIframeWorkflowVideoWatcher();
 
 var panelObserver = new MutationObserver(function() {
   if (!document.getElementById('__uvd__')) {
@@ -1064,6 +1067,7 @@ function runPreloadCapture() {
     setTimeout(function() {
       try {
         scan(document, 'preload');
+        __uvdDismissIframeWorkflowIfVideoFound();
         performance.getEntriesByType('resource').forEach(function(entry) {
           if (!isAdUrl(entry.name)) findUrls(entry.name, 'preload:performance');
         });
@@ -2519,6 +2523,7 @@ function __uvdIsolateLayer(el) {
 
 // ========== IFRAME WORKFLOW ==========
 var __uvdIframeWorkflowAsked = false;
+var __uvdIframeWorkflowEarliest = Date.now() + 8000;
 var __uvdDemoPreviewMaxSeconds = 90;
 function __uvdIsLikelyVideoIframe(url) {
   if (__uvdIsEmbedMediaUrl(url)) return true;
@@ -2535,8 +2540,43 @@ function __uvdIsDemoVideoElement(video) {
   var hint = ((video.currentSrc || video.src || '') + ' ' + (video.getAttribute('poster') || '')).toLowerCase();
   return /preview|trailer|sample|teaser|demo/.test(hint);
 }
+function __uvdScoreIframeCandidate(url, element) {
+  var lower = String(url || '').toLowerCase();
+  if (/doubleclick|googlesyndication|adservice|popunder|popads|clickadu|exoclick|propeller|betting|casino/.test(lower)) return -100;
+  var score = 0;
+  if (__uvdIsEmbedMediaUrl(url)) score += 50;
+  if (/embed|player|video|stream|watch|\/e(?:\/|$)/i.test(lower)) score += 30;
+  if (/player|video|stream|play|hls|tape|cdn/i.test(lower)) score += 10;
+  if (element) {
+    try {
+      var rect = element.getBoundingClientRect();
+      if (rect.width >= 240 && rect.height >= 120) score += 25;
+      var hint = ((element.id || '') + ' ' + (typeof element.className === 'string' ? element.className : '')).toLowerCase();
+      if (/player|video|embed|stream|media/.test(hint)) score += 20;
+    } catch(e) {}
+  }
+  return score;
+}
+function __uvdCollectWorkflowFrames() {
+  var map = {};
+  function add(url, element) {
+    if (!url || isAdUrl(url)) return;
+    var score = __uvdScoreIframeCandidate(url, element);
+    if (score < -50) return;
+    if (!map[url] || score > map[url].score) map[url] = { url: url, score: score, element: element };
+  }
+  [...urls.entries()].forEach(function(entry) {
+    if (entry[1].type === 'IFRAME') add(entry[0], null);
+  });
+  try {
+    if (__uvdIsEmbedMediaUrl(location.href)) add(location.href, null);
+    document.querySelectorAll('iframe').forEach(function(frame) { if (frame.src) add(frame.src, frame); });
+  } catch(e) {}
+  return Object.keys(map).map(function(key) { return map[key]; }).sort(function(a, b) { return b.score - a.score; });
+}
+
 function __uvdHasOnlyIframeOrDemo() {
-  var frames = [...urls.entries()].filter(function(entry) { return entry[1].type === 'IFRAME' && __uvdIsLikelyVideoIframe(entry[0]); });
+  var frames = __uvdCollectWorkflowFrames();
   if (!frames.length) return false;
   var direct = [...urls.entries()].filter(function(entry) {
     return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
@@ -2548,20 +2588,18 @@ function __uvdHasOnlyIframeOrDemo() {
   // has loaded. An unready video or a short demo must not suppress the iframe
   // workflow prompt.
   if (!videos.length) return true;
-  // __uvdIframeWorkflowVideoPending__ Chờ video đang khởi tạo metadata trước khi hỏi mở iframe.
+  // A real video element may still be initializing. Do not show the iframe
+  // prompt while its duration/source is unresolved; wait for metadata first.
   if (videos.some(function(video) {
-    return !!(video.currentSrc || video.src || video.querySelector('source[src]')) &&
-      video.readyState < 1 &&
-      !isFinite(video.duration);
+    return !!(video.currentSrc || video.src || video.querySelector('source[src]')) && video.readyState < 1 && !isFinite(video.duration);
   })) return false;
-
   var verifiedLongVideo = videos.some(function(video) {
     return video.readyState >= 2 && !__uvdIsDemoVideoElement(video);
   });
   if (verifiedLongVideo) return false;
   return true;
 }
-function __uvdOpenIframeWorkflowPrompt(target) {
+function __uvdOpenIframeWorkflowPrompt(candidates) {
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
   if (old) old.remove();
   var overlay = document.createElement('div');
@@ -2569,36 +2607,50 @@ function __uvdOpenIframeWorkflowPrompt(target) {
   overlay.className = 'uvd-overlay';
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel';
-  panel.style.cssText = 'max-width:430px;margin:auto;text-align:center;';
+  panel.style.cssText = 'max-width:460px;margin:auto;text-align:center;';
   panel.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">↗</div>' +
     '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">Chỉ tìm thấy iframe</div>' +
-    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:14px;">Không có video trực tiếp hoặc chỉ có clip preview. Mở iframe ở tab mới, đồng thời copy tên bookmarklet để dán vào thanh địa chỉ.</div>' +
-    '<div class="uvd-url-box" style="margin-bottom:12px;text-align:left;">' + escapeHtml(BOOKMARKLET_NAME) + '</div>' +
-    '<div class="uvd-grid-2">' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_open__" style="background:var(--grad-liquid);color:#fff;">Mở iframe + Copy</button>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__">Để sau</button>' +
-    '</div>';
-  panel.querySelector('#__uvd_iframe_workflow_open__').onclick = function() {
-    copy(BOOKMARKLET_NAME);
-    window.__uvdSafeOpen(target);
-    overlay.remove();
-    toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
-  };
+    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:12px;">Chọn iframe muốn mở. Các iframe quảng cáo thường đã bị loại khỏi danh sách.</div>' +
+    '<div id="__uvd_iframe_workflow_list__" style="max-height:45vh;overflow-y:auto;margin-bottom:10px;"></div>' +
+    '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;">Để sau</button>';
+  var list = panel.querySelector('#__uvd_iframe_workflow_list__');
+  candidates.slice(0, 6).forEach(function(candidate, index) {
+    var row = document.createElement('div');
+    row.className = 'uvd-card';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:6px;text-align:left;';
+    var label = document.createElement('div');
+    label.style.cssText = 'flex:1;min-width:0;font-size:10px;color:var(--text2);word-break:break-all;';
+    label.textContent = '#' + (index + 1) + ' ' + candidate.url;
+    var open = document.createElement('button');
+    open.className = 'uvd-btn uvd-btn-sm';
+    open.textContent = 'Mở + Copy';
+    open.onclick = function() {
+      copy(BOOKMARKLET_NAME);
+      window.__uvdSafeOpen(candidate.url);
+      overlay.remove();
+      toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
+    };
+    row.appendChild(label);
+    row.appendChild(open);
+    list.appendChild(row);
+  });
   panel.querySelector('#__uvd_iframe_workflow_cancel__').onclick = function() { overlay.remove(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
+
 function __uvdMaybeOfferIframeWorkflow() {
+  __uvdDismissIframeWorkflowIfVideoFound();
+  if (Date.now() < __uvdIframeWorkflowEarliest) return;
   if (__uvdIframeWorkflowAsked || playerState.overlay) return;
   if (!__uvdHasOnlyIframeOrDemo()) return;
-  var allFrames = [...urls.entries()].filter(function(entry) { return entry[1].type === 'IFRAME'; });
-  var candidates = allFrames.filter(function(entry) { return __uvdIsLikelyVideoIframe(entry[0]); });
-  if (!candidates.length) candidates = allFrames;
+  var allFrames = __uvdCollectWorkflowFrames();
+  var candidates = allFrames.filter(function(candidate) { return candidate.score >= 20; });
+  if (!candidates.length) candidates = allFrames.slice(0, 4);
   if (!candidates.length) return;
   __uvdIframeWorkflowAsked = true;
-  var target = candidates[0][0];
-  __uvdOpenIframeWorkflowPrompt(target);
+  __uvdOpenIframeWorkflowPrompt(candidates);
 }
 
 // ========== BUILD UI ==========
@@ -2891,6 +2943,7 @@ function __uvdUpdateCardFromMedia(card, media, extra) {
   }
   if (media && isFinite(media.duration) && media.duration > 0) {
     meta.duration = __uvdFormatDuration(media.duration);
+    if (card.dataset.url && urls.has(card.dataset.url)) urls.get(card.dataset.url).demo = media.duration <= __uvdDemoPreviewMaxSeconds;
   } else if (extra.duration) {
     meta.duration = extra.duration;
   }
@@ -3025,6 +3078,16 @@ function loadExtraVideoThumbnails(preview) {
   next();
 }
 
+function __uvdShouldSkipThumbnail(url) {
+  if (/preview|trailer|sample|teaser|demo/i.test(url || '')) return true;
+  try {
+    return [...document.querySelectorAll('video')].some(function(video) {
+      if (__uvdIsOwnUI(video)) return false;
+      var same = video.currentSrc === url || video.src === url;
+      return same && __uvdIsDemoVideoElement(video);
+    });
+  } catch(e) { return false; }
+}
 function hydrateVideoThumbnails(root) {
   if (!root) return;
   root.querySelectorAll('.uvd-card-preview[data-thumb-url]').forEach(function(preview) {
@@ -3033,6 +3096,23 @@ function hydrateVideoThumbnails(root) {
     var type = card ? (card.dataset.type || '').toUpperCase() : '';
     if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO') {
       preview.dataset.thumbState = 'unsupported';
+      return;
+    }
+    if (type === 'M3U8') {
+      var existingHlsThumb = root.querySelector('.uvd-card-preview[data-uvd-hls-owner="1"]');
+      if (existingHlsThumb && existingHlsThumb !== preview) {
+        preview.dataset.thumbState = 'quality-only';
+        var qualityOnlyStatus = card && card.querySelector('.uvd-card-status');
+        if (qualityOnlyStatus) { qualityOnlyStatus.textContent = 'QUALITY ONLY'; qualityOnlyStatus.className = 'uvd-card-status uvd-status-muted'; }
+        return;
+      }
+      preview.dataset.uvdHlsOwner = '1';
+    }
+    var earlyThumbUrl = preview.getAttribute('data-thumb-url') || '';
+    if (__uvdShouldSkipThumbnail(earlyThumbUrl)) {
+      preview.dataset.thumbState = 'demo';
+      var demoCardStatus = card && card.querySelector('.uvd-card-status');
+      if (demoCardStatus) { demoCardStatus.textContent = 'DEMO · NO PREVIEW'; demoCardStatus.className = 'uvd-card-status uvd-status-muted'; }
       return;
     }
     preview.dataset.thumbState = 'loading';

@@ -174,13 +174,32 @@ function __uvdIsEmbedMediaUrl(url) {
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
   var changed = false;
-  var matches = text.match(/https?:\/\/[^\s"'<>()\\]+/gi) || [];
-  matches.forEach(function(u) {
-    u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
+  var expectingVariant = false;
+  function addPlaylistUrl(raw) {
+    var u = (raw || '').trim().replace(/^['"]|['"]$/g, '')
+      .replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
+    if (!/^https?:\/\//i.test(u)) return;
     var existing = urls.get(u);
     if (!existing || existing.type !== 'M3U8' || existing.priority > 1) {
       urls.set(u, { type: 'M3U8', source: source + ':playlist', priority: 1, timestamp: Date.now() });
       changed = true;
+    }
+  }
+  text.split(/\r?\n/).forEach(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) return;
+    if (/^#EXT-X-STREAM-INF/i.test(trimmed)) {
+      expectingVariant = true;
+      return;
+    }
+    if (/^#EXT-X-I-FRAME-STREAM-INF/i.test(trimmed) || (/^#EXT-X-MEDIA/i.test(trimmed) && /TYPE=AUDIO/i.test(trimmed))) {
+      var uri = (trimmed.match(/URI="([^"]+)"/i) || [])[1];
+      if (uri) addPlaylistUrl(uri);
+      return;
+    }
+    if (expectingVariant) {
+      if (trimmed.charAt(0) !== '#') addPlaylistUrl(trimmed);
+      expectingVariant = false;
     }
   });
   return changed;
@@ -188,10 +207,18 @@ function findPlaylistBodyUrls(text, source) {
 function findUrls(text, source) {
   if (!text || typeof text !== 'string' || text.length > 300000) return;
   if (text.length > 30000 && String(source || '').indexOf(':body') === -1 && String(source || '').indexOf(':playlist') === -1) return;
-  var changed = findPlaylistBodyUrls(text, source);
   var hash = text.length + source;
   if (__uvdFindUrlsCache[hash]) return;
   __uvdFindUrlsCache[hash] = true;
+  var isPlaylistBody = text.indexOf('#EXTM3U') !== -1;
+  var changed = findPlaylistBodyUrls(text, source);
+  // Do not run generic .mp4/.ts/image URL matching over an HLS playlist.
+  // Those URLs are segments, not independent streams; adding them caused
+  // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
+  if (isPlaylistBody) {
+    if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) debouncedBuildUI();
+    return;
+  }
   patterns.forEach(function(p) {
     var matches = text.match(p.re);
     if (matches) {

@@ -1601,6 +1601,53 @@ function __uvdMountVjs10(wrapper, video, onMount) {
 // Share one lazy hls.js load between the player and HLS thumbnails. Without
 // this, thumbnail video elements fall back to a raw .m3u8 URL on Android
 // Chromium, which has no native HLS support.
+function __uvdFindClientMpegTsOffset(data) {
+  if (!data || typeof data === 'string') return -1;
+  var bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  var packetSize = 188;
+  var packetCount = 5;
+  var limit = Math.min(bytes.length - packetSize * packetCount, 64 * 1024);
+  if (limit < 0) return -1;
+  for (var offset = 0; offset <= limit; offset++) {
+    var aligned = true;
+    for (var packet = 0; packet < packetCount; packet++) {
+      if (bytes[offset + packet * packetSize] !== 0x47) { aligned = false; break; }
+    }
+    if (aligned) return offset;
+  }
+  return -1;
+}
+function __uvdNormalizeClientHlsData(data) {
+  var offset = __uvdFindClientMpegTsOffset(data);
+  if (offset <= 0) return data;
+  var bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  return bytes.buffer.slice(bytes.byteOffset + offset, bytes.byteOffset + bytes.byteLength);
+}
+function __uvdMakeHlsConfig(HlsCtor, options) {
+  var config = Object.assign({}, options || {});
+  var BaseLoader = HlsCtor && HlsCtor.DefaultConfig && HlsCtor.DefaultConfig.loader;
+  if (!BaseLoader) return config;
+  if (!HlsCtor.__uvdPngStripLoader) {
+    HlsCtor.__uvdPngStripLoader = class UvdPngStripLoader extends BaseLoader {
+      load(context, config, callbacks) {
+        var originalSuccess = callbacks.onSuccess;
+        callbacks.onSuccess = function(response, stats, loadedContext, networkDetails) {
+          try {
+            if (response && response.data && typeof response.data !== 'string') {
+              response.data = __uvdNormalizeClientHlsData(response.data);
+            }
+          } catch(e) {}
+          originalSuccess(response, stats, loadedContext, networkDetails);
+        };
+        return super.load(context, config, callbacks);
+      }
+    };
+  }
+  config.loader = HlsCtor.__uvdPngStripLoader;
+  config.fLoader = HlsCtor.__uvdPngStripLoader;
+  return config;
+}
+
 function __uvdEnsureHls(onReady, onError) {
   if (window.Hls) {
     onReady(window.Hls);
@@ -2089,7 +2136,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
 
   if (isHls) {
     if (window.Hls && Hls.isSupported()) {
-      activeHls = new Hls();
+      activeHls = new Hls(__uvdMakeHlsConfig(Hls));
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
       activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -3069,7 +3116,7 @@ function hydrateVideoThumbnails(root) {
       if (!sourceUrl) { markThumbUnavailable(); return; }
       try {
         if (thumbHls) thumbHls.destroy();
-        thumbHls = new HlsCtor({ maxBufferLength: 2, maxMaxBufferLength: 4 });
+        thumbHls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 2, maxMaxBufferLength: 4 }));
         thumbHls.loadSource(sourceUrl);
         thumbHls.attachMedia(media);
         thumbHls.on(HlsCtor.Events.MANIFEST_PARSED, function() {

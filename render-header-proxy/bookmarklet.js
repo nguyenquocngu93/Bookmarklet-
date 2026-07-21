@@ -9,6 +9,7 @@
 'use strict';
 
 var VERSION = '6.7.26';
+var BOOKMARKLET_NAME = 'universal media full';
 var HEADER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
 
 // ========== CLEANUP ==========
@@ -253,6 +254,7 @@ function findUrls(text, source) {
   }
   if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) {
     debouncedBuildUI();
+    setTimeout(__uvdMaybeOfferIframeWorkflow, 500);
   }
 }
 
@@ -1072,6 +1074,12 @@ function makeCommands(url, type, title) {
 
 // ========== UTILS ==========
 function copy(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(function() {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    });
+    return;
+  }
   var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
 }
 
@@ -2425,6 +2433,49 @@ function __uvdIsolateLayer(el) {
   el.style.contain = 'layout paint style';
 }
 
+// ========== IFRAME WORKFLOW ==========
+var __uvdIframeWorkflowAsked = false;
+var __uvdDemoPreviewMaxSeconds = 90;
+function __uvdIsLikelyVideoIframe(url) {
+  if (__uvdIsEmbedMediaUrl(url)) return true;
+  try {
+    var parsed = new URL(url, location.href);
+    return /player|video|embed|stream|watch/i.test((parsed.hostname || '') + ' ' + (parsed.pathname || ''));
+  } catch(e) { return false; }
+}
+function __uvdIsDemoVideoElement(video) {
+  if (!video) return false;
+  var duration = video.duration;
+  if (isFinite(duration) && duration > 0 && duration <= __uvdDemoPreviewMaxSeconds) return true;
+  var hint = ((video.currentSrc || video.src || '') + ' ' + (video.getAttribute('poster') || '')).toLowerCase();
+  return /preview|trailer|sample|teaser|demo/.test(hint);
+}
+function __uvdHasOnlyIframeOrDemo() {
+  var frames = [...urls.entries()].filter(function(entry) { return entry[1].type === 'IFRAME' && __uvdIsLikelyVideoIframe(entry[0]); });
+  if (!frames.length) return false;
+  var direct = [...urls.entries()].filter(function(entry) {
+    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
+  });
+  if (!direct.length) return true;
+  var videos = [];
+  try { videos = [...document.querySelectorAll('video')].filter(function(video) { return !__uvdIsOwnUI(video); }); } catch(e) {}
+  if (videos.length && videos.every(__uvdIsDemoVideoElement)) return true;
+  return direct.every(function(entry) { return /preview|trailer|sample|teaser|demo/i.test(entry.url); });
+}
+function __uvdMaybeOfferIframeWorkflow() {
+  if (__uvdIframeWorkflowAsked || __uvdScriptHidden || playerState.overlay) return;
+  if (!__uvdHasOnlyIframeOrDemo()) return;
+  var candidates = [...urls.entries()].filter(function(entry) { return entry[1].type === 'IFRAME' && __uvdIsLikelyVideoIframe(entry[0]); });
+  if (!candidates.length) return;
+  __uvdIframeWorkflowAsked = true;
+  var target = candidates[0][0];
+  var ok = confirm('Chưa tìm thấy video trực tiếp; chỉ thấy iframe hoặc clip preview.\n\nMở iframe ở tab mới và sao chép tên bookmarklet "' + BOOKMARKLET_NAME + '" để bạn dán vào thanh địa chỉ?');
+  if (!ok) return;
+  copy(BOOKMARKLET_NAME);
+  window.__uvdSafeOpen(target);
+  toast('Đã mở iframe và sao chép: ' + BOOKMARKLET_NAME);
+}
+
 // ========== BUILD UI ==========
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
@@ -3487,7 +3538,7 @@ function renderSettings(container) {
     '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit).</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">UMP DL</code></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text"><strong>Xóa toàn bộ địa chỉ</strong> trong ô URL, dán đoạn code sau vào:</span></div>' +
       '<div class="uvd-code-block"><textarea readonly rows="3">' + escapeHtml(bookmarkletCode) + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save).</span></div>' +
@@ -3646,6 +3697,8 @@ function renderSettings(container) {
 
 // ========== START ==========
 buildUI();
+setTimeout(__uvdMaybeOfferIframeWorkflow, 1800);
+setTimeout(__uvdMaybeOfferIframeWorkflow, 5000);
 console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
 toast('V' + VERSION + ' PRO sẵn sàng!');
 

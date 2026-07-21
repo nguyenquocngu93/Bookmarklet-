@@ -1556,10 +1556,13 @@ function __uvdMountVjs10(wrapper, video, onMount) {
     if (iv) { clearInterval(iv); iv = null; }
     try {
       var player = document.createElement('video-player');
-      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:inherit;background:var(--glass);';
+      // Flat mount: video-player is the only visual frame. video-skin is
+      // retained because VJS10 needs it, but it has no independent radius or
+      // background, avoiding nested rounded boxes.
+      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:0;background:#000;--media-border-radius:0;';
       player.id = '__uvd_player_el__';
       var skin = document.createElement('video-skin');
-      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:inherit;background:var(--glass);';
+      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:0;background:transparent;';
       if (video.parentNode) video.parentNode.removeChild(video);
       skin.appendChild(video);
       player.appendChild(skin);
@@ -1769,15 +1772,21 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
     var fs = __uvdIsFullscreenNow();
     var hasDims = video.videoWidth && video.videoHeight;
     var isPortrait = hasDims && video.videoHeight > video.videoWidth;
-    var surface = fs ? '#000' : 'var(--glass)';
+    var surface = '#000';
 
-    // The fullscreen element's backdrop otherwise inherits the light glass
-    // theme, producing the white flash/background seen on mobile browsers.
+    // Keep one visual frame only: playerEl owns the black surface/radius;
+    // wrapper, video-skin and video stay transparent/flat.
     videoArea.style.background = fs ? '#000' : '';
-    videoWrapper.style.background = surface;
+    videoWrapper.style.background = 'transparent';
+    videoWrapper.style.overflow = 'visible';
     video.style.background = surface;
+    video.style.borderRadius = '0';
     playerEl.style.background = surface;
-    if (skinEl) skinEl.style.background = surface;
+    playerEl.style.setProperty('--media-border-radius', '0');
+    if (skinEl) {
+      skinEl.style.background = 'transparent';
+      skinEl.style.borderRadius = '0';
+    }
 
     if (fs) {
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
@@ -2251,6 +2260,7 @@ style.textContent = `
 .uvd-glass-panel::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(255,47,200,0.6),rgba(155,61,255,0.6),transparent);opacity:0.7}
 .uvd-settings-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);transition:background .28s ease}
 #__uvd_video_wrapper__:fullscreen,#__uvd_video_wrapper__:fullscreen::backdrop,#__uvd_video_wrapper__:fullscreen video,#__uvd_video_wrapper__:fullscreen video-player,#__uvd_video_wrapper__:fullscreen video-skin,#__uvd_player_video__:fullscreen,#__uvd_player_video__:fullscreen::backdrop{background:#000!important}
+#__uvd_player_el__ video-skin,#__uvd_player_el__ video{border-radius:0!important}#__uvd_player_el__{background:#000!important;overflow:hidden!important}#__uvd_player_el__ video-skin{background:transparent!important}
 .uvd-icon-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--accent2);width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;transition:all var(--uvd-transition)}
 .uvd-icon-btn:active{transform:scale(.9)}
 .uvd-player-card{width:100%;max-width:1000px;margin:auto;display:flex;flex-direction:column;border-radius:22px 22px 0 0;overflow:hidden;background:var(--glass);box-shadow:0 -10px 40px rgba(0,0,0,0.6);max-height:94dvh}

@@ -221,6 +221,9 @@ function __uvdLooksLikeHlsUrl(url) {
     return path.indexOf('/seg=') === -1 && /\/media=hls(?:\/|$)/i.test(path);
   } catch(e) { return /media=hls/i.test(String(url || '')) && !/\/seg=/i.test(String(url || '')); }
 }
+function __uvdIsLikelyHlsSegmentUrl(url) {
+  return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$))/i.test(String(url || ''));
+}
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
   var changed = false;
@@ -443,7 +446,7 @@ function __uvdGetPageVideo() {
 }
 function __uvdOverlayScan() {
   var state = __uvdOverlayBlockState;
-  if (!state) return;
+  if (!state || (typeof playerState !== 'undefined' && playerState && playerState.overlay)) return;
   var video = __uvdGetPageVideo();
   if (!video) return;
   var vr = video.getBoundingClientRect();
@@ -835,6 +838,17 @@ function openSettingsOverlay() {
   requestAnimationFrame(function() { ov.classList.add('uvd-open'); });
 }
 
+function __uvdStopThumbnailHls() {
+  try {
+    document.querySelectorAll('.uvd-thumb-video').forEach(function(video) {
+      var preview = video.closest('.uvd-card-preview');
+      var hls = preview && preview.__uvdThumbHls;
+      if (hls) { try { hls.destroy(); } catch(e) {} preview.__uvdThumbHls = null; }
+      try { video.pause(); } catch(e) {}
+    });
+  } catch(e) {}
+}
+
 function pauseAllPlayingVideos(root, depth) {
   root = root || document;
   depth = depth || 0;
@@ -869,9 +883,9 @@ function installMonitor() {
   window.fetch = function() {
     var url = arguments[0];
     if (typeof url === 'string') {
-      if (!isAdUrl(url)) findUrls(url, 'fetch:live');
+      if (!isAdUrl(url) && !__uvdIsLikelyHlsSegmentUrl(url)) findUrls(url, 'fetch:live');
     } else if (url && url.url) {
-      if (!isAdUrl(url.url)) findUrls(url.url, 'fetch:live');
+      if (!isAdUrl(url.url) && !__uvdIsLikelyHlsSegmentUrl(url.url)) findUrls(url.url, 'fetch:live');
     }
     var requestPromise = originalFetch.apply(this, arguments);
     Promise.resolve(requestPromise).then(function(response) {
@@ -892,7 +906,7 @@ function installMonitor() {
     return requestPromise;
   };
   XMLHttpRequest.prototype.open = function(method, url) {
-    if (url && !isAdUrl(url)) findUrls(url, 'xhr:live');
+    if (url && !isAdUrl(url) && !__uvdIsLikelyHlsSegmentUrl(url)) findUrls(url, 'xhr:live');
     if (!this.__uvdBodyHooked) {
       this.__uvdBodyHooked = true;
       this.addEventListener('load', function() {
@@ -908,7 +922,7 @@ function installMonitor() {
     try {
       __uvdPerformanceObserver = new PerformanceObserver(function(list) {
         list.getEntries().forEach(function(entry) {
-          if (entry && entry.name && !isAdUrl(entry.name)) findUrls(entry.name, 'network:observer');
+          if (entry && entry.name && !isAdUrl(entry.name) && !__uvdIsLikelyHlsSegmentUrl(entry.name)) findUrls(entry.name, 'network:observer');
         });
       });
       __uvdPerformanceObserver.observe({ type: 'resource', buffered: true });
@@ -1685,7 +1699,14 @@ function __uvdNormalizeClientHlsData(data) {
   return bytes.buffer.slice(bytes.byteOffset + offset, bytes.byteOffset + bytes.byteLength);
 }
 function __uvdMakeHlsConfig(HlsCtor, options) {
-  var config = Object.assign({}, options || {});
+  var config = Object.assign({
+    maxBufferLength: 12,
+    maxMaxBufferLength: 24,
+    backBufferLength: 20,
+    maxBufferSize: 30 * 1000 * 1000,
+    capLevelToPlayerSize: true,
+    enableWorker: true
+  }, options || {});
   var BaseLoader = HlsCtor && HlsCtor.DefaultConfig && HlsCtor.DefaultConfig.loader;
   if (!BaseLoader) return config;
   if (!HlsCtor.__uvdPngStripLoader) {
@@ -1773,6 +1794,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
+  __uvdStopThumbnailHls();
   if (!fromProxy) playerState.proxyRetried = false;
   if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
   playerState.proxyFallbackTimer = null;
@@ -3240,8 +3262,10 @@ function hydrateVideoThumbnails(root) {
       }
       try {
         if (isFinite(media.duration) && media.duration > 1) {
-          // Bỏ qua logo/intro ở đầu video; ưu tiên thumbnail khoảng giây 12.
-          var thumbTime = Math.min(Math.max(12, media.duration * .2), Math.max(0, media.duration - .5));
+          // Thumbnail nhanh: không seek tới 20% của phim dài vì HLS sẽ phải
+          // tải quá nhiều segment trước khi có frame. Một frame khoảng giây 12
+          // đủ bỏ qua intro mà vẫn giữ preview nhẹ.
+          var thumbTime = Math.min(12, Math.max(0, media.duration - .5));
           media.currentTime = thumbTime;
         }
       } catch(e) {}
@@ -3282,6 +3306,7 @@ function hydrateVideoThumbnails(root) {
       try {
         if (thumbHls) thumbHls.destroy();
         thumbHls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 2, maxMaxBufferLength: 4 }));
+        preview.__uvdThumbHls = thumbHls;
         thumbHls.loadSource(sourceUrl);
         thumbHls.attachMedia(media);
         thumbHls.on(HlsCtor.Events.MANIFEST_PARSED, function() {

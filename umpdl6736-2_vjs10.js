@@ -1865,7 +1865,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
     // wrapper, video-skin and video stay transparent/flat.
     videoArea.style.background = fs ? '#000' : '';
     videoWrapper.style.background = 'transparent';
-    videoWrapper.style.overflow = 'visible';
+    videoWrapper.style.overflow = 'hidden';
     video.style.background = surface;
     video.style.borderRadius = '0';
     playerEl.style.background = surface;
@@ -3740,7 +3740,7 @@ function renderSettings(container) {
           '<span class="uvd-tag">Vanilla JS</span>' +
           '<span class="uvd-tag">HLS · M3U8</span>' +
           '<span class="uvd-tag">Adblock</span>' +
-          '<span class="uvd-tag">Resume · Tua đúp · PiP</span>' +
+          '<span class="uvd-tag">HLS Normalize · Iframe workflow</span>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3817,12 +3817,12 @@ function renderSettings(container) {
     '<div class="uvd-section-title"><span class="uvd-section-num">2</span> Sử dụng</div>' +
     '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark (vd: <code class="uvd-inline-code">UMP DL</code>) vào thanh địa chỉ và chọn nó</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ và chọn nó</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để mở player overlay</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: thanh công cụ gồm <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Tốc độ (+/-)</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong>, <strong style="color:var(--accent);">PiP</strong>, <strong style="color:var(--accent);">Hẹn giờ</strong>, <strong style="color:var(--accent);">Boost</strong>, <strong style="color:var(--accent);">Mute</strong>, <strong style="color:var(--accent);">📷 Screenshot</strong>, <strong style="color:var(--accent);">📌 Ghim</strong></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: chọn <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong> và <strong style="color:var(--accent);">Phụ đề</strong> trong menu. Player hỗ trợ HLS qua hls.js và tự thử proxy header khi nguồn trực tiếp lỗi.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chạm đúp 2 lần vào nửa trái/phải video để tua lùi/tiến (số giây tùy chỉnh trong tab Trình phát)</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Click vào thời gian để chuyển đổi giữa <strong>còn lại</strong> / <strong>đã qua</strong> / <strong>tổng</strong>.</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">▶</span><span>Nút <strong style="color:var(--accent);">▶</strong> trên header: tự động bấm giúp các nút Play ẩn để link stream lộ ra. Nếu không ăn, đặt CSS selector riêng ở dòng "Play selector".</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Video ngắn dưới 90 giây được đánh dấu <strong>DEMO · NO PREVIEW</strong> để tránh tốn request thumbnail.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">⏺</span><span>Nút <strong style="color:var(--accent);">⏺</strong> bật bắt link realtime. Bấm nút này trước, sau đó bấm Play thật để UMP bắt fetch/XHR/playlist mà không rebuild UI liên tục.</span></div>' +
     '</div>' +
 
     '<div class="uvd-section-title"><span class="uvd-section-num">3</span> Tải video với yt-dlp và Termux</div>' +

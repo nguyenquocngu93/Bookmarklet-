@@ -144,6 +144,8 @@ function proxyUrl(target, req, referer, isPlaylist) {
   if (referer) params.set('referer', referer);
   if (req.query.origin) params.set('origin', req.query.origin);
   if (req.query.ua) params.set('ua', req.query.ua);
+  // Preserve a user/session-bound media token across rewritten HLS children.
+  if (req.query.access_token) params.set('access_token', req.query.access_token);
   if (PROXY_KEY) params.set('key', PROXY_KEY);
   const endpoint = isPlaylist ? '/hls' : '/proxy';
   const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
@@ -202,6 +204,11 @@ app.get('/proxy', async (req, res) => {
   catch (error) { return res.status(400).json({ error: error.message }); }
 
   try {
+    // Tokens captured from the original browser player are passed to the
+    // protected fMP4 init/segment host, not just the manifest URL.
+    if (req.query.access_token && /(?:^|\.)iw01\.xyz$/i.test(target.hostname) && !target.searchParams.has('access_token')) {
+      target.searchParams.set('access_token', req.query.access_token);
+    }
     const source = await fetchSource(target, req, req.query.referer);
     const sourceType = source.headers.get('content-type') || '';
 

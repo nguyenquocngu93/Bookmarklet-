@@ -191,6 +191,32 @@ function isAdUrl(url) {
 
 // ========== URL DETECTION ==========
 var urls = new Map();
+var __uvdMediaAccessTokens = [];
+function __uvdRememberAccessToken(url) {
+  try {
+    var parsed = new URL(url, location.href);
+    var token = parsed.searchParams.get('access_token');
+    if (!token) return;
+    var existing = __uvdMediaAccessTokens.find(function(item) { return item.host === parsed.hostname && item.token === token; });
+    if (existing) { existing.updatedAt = Date.now(); return; }
+    __uvdMediaAccessTokens.push({ host: parsed.hostname, path: parsed.pathname, token: token, updatedAt: Date.now() });
+    if (__uvdMediaAccessTokens.length > 8) __uvdMediaAccessTokens.shift();
+  } catch(e) {}
+}
+function __uvdGetLatestMediaAccessToken(url) {
+  var list = __uvdMediaAccessTokens.slice().sort(function(a, b) { return b.updatedAt - a.updatedAt; });
+  if (!list.length) return '';
+  return list[0].token;
+}
+function __uvdAppendAccessToken(url, token) {
+  if (!token || !url) return url;
+  try {
+    var parsed = new URL(url, location.href);
+    if (!/customers\.iw01\.xyz$/i.test(parsed.hostname) || parsed.searchParams.has('access_token')) return parsed.toString();
+    parsed.searchParams.set('access_token', token);
+    return parsed.toString();
+  } catch(e) { return url; }
+}
 var patterns = [
   { re: /https?:\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mpd[^\s"'<>()\\]*/gi, type: 'MPD', priority: 2 },
@@ -222,7 +248,7 @@ function __uvdLooksLikeHlsUrl(url) {
   } catch(e) { return /media=hls/i.test(String(url || '')) && !/\/seg=/i.test(String(url || '')); }
 }
 function __uvdIsLikelyHlsSegmentUrl(url) {
-  return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$))/i.test(String(url || ''));
+  return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$)|init-[^/?#]+\.mp4(?:[?#]|$))/i.test(String(url || ''));
 }
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
@@ -278,6 +304,8 @@ function findUrls(text, source) {
     if (matches) {
       matches.forEach(function(u) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
+        __uvdRememberAccessToken(u);
+        if (__uvdIsLikelyHlsSegmentUrl(u)) return;
         if (isAdUrl(u)) {
           __uvdAdBlockedCount++;
           return;
@@ -883,8 +911,10 @@ function installMonitor() {
   window.fetch = function() {
     var url = arguments[0];
     if (typeof url === 'string') {
+      __uvdRememberAccessToken(url);
       if (!isAdUrl(url) && !__uvdIsLikelyHlsSegmentUrl(url)) findUrls(url, 'fetch:live');
     } else if (url && url.url) {
+      __uvdRememberAccessToken(url.url);
       if (!isAdUrl(url.url) && !__uvdIsLikelyHlsSegmentUrl(url.url)) findUrls(url.url, 'fetch:live');
     }
     var requestPromise = originalFetch.apply(this, arguments);
@@ -906,6 +936,7 @@ function installMonitor() {
     return requestPromise;
   };
   XMLHttpRequest.prototype.open = function(method, url) {
+    __uvdRememberAccessToken(url);
     if (url && !isAdUrl(url) && !__uvdIsLikelyHlsSegmentUrl(url)) findUrls(url, 'xhr:live');
     if (!this.__uvdBodyHooked) {
       this.__uvdBodyHooked = true;
@@ -922,6 +953,7 @@ function installMonitor() {
     try {
       __uvdPerformanceObserver = new PerformanceObserver(function(list) {
         list.getEntries().forEach(function(entry) {
+          if (entry && entry.name) { __uvdRememberAccessToken(entry.name); }
           if (entry && entry.name && !isAdUrl(entry.name) && !__uvdIsLikelyHlsSegmentUrl(entry.name)) findUrls(entry.name, 'network:observer');
         });
       });
@@ -1712,6 +1744,8 @@ function __uvdMakeHlsConfig(HlsCtor, options) {
   if (!HlsCtor.__uvdPngStripLoader) {
     HlsCtor.__uvdPngStripLoader = class UvdPngStripLoader extends BaseLoader {
       load(context, config, callbacks) {
+        var token = __uvdGetLatestMediaAccessToken(context && context.url);
+        if (token && context && context.url) context.url = __uvdAppendAccessToken(context.url, token);
         var originalSuccess = callbacks.onSuccess;
         callbacks.onSuccess = function(response, stats, loadedContext, networkDetails) {
           try {
@@ -1767,6 +1801,8 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   params.set('referer', pageInfo.referer || location.href);
   params.set('origin', location.origin);
   params.set('ua', navigator.userAgent);
+  var accessToken = __uvdGetLatestMediaAccessToken(sourceUrl);
+  if (accessToken) params.set('access_token', accessToken);
   if (data.settings.headerProxyKey) params.set('key', data.settings.headerProxyKey);
   return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
 }

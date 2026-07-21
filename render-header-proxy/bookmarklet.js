@@ -212,6 +212,15 @@ function __uvdIsEmbedMediaUrl(url) {
     return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed;
   } catch(e) { return false; }
 }
+function __uvdLooksLikeHlsUrl(url) {
+  try {
+    var parsed = new URL(url, location.href);
+    var path = (parsed.pathname || '').toLowerCase();
+    // javynow-style URLs end in .mp4 but are actually HLS playlists. Their
+    // segment URLs contain /seg= and must remain ordinary proxy segments.
+    return path.indexOf('/seg=') === -1 && /\/media=hls(?:\/|$)/i.test(path);
+  } catch(e) { return /media=hls/i.test(String(url || '')) && !/\/seg=/i.test(String(url || '')); }
+}
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
   var changed = false;
@@ -279,8 +288,10 @@ function findUrls(text, source) {
           urls.set(u, { type: 'IFRAME', source: source, priority: 99, timestamp: Date.now() });
           return;
         }
-        if (!urls.has(u) || urls.get(u).priority > p.priority) {
-          urls.set(u, { type: p.type, source: source, priority: p.priority, timestamp: Date.now() });
+        var detectedType = __uvdLooksLikeHlsUrl(u) ? 'M3U8' : p.type;
+        var detectedPriority = detectedType === 'M3U8' ? 1 : p.priority;
+        if (!urls.has(u) || urls.get(u).priority > detectedPriority || urls.get(u).type !== detectedType) {
+          urls.set(u, { type: detectedType, source: source, priority: detectedPriority, timestamp: Date.now() });
           changed = true;
         }
       });
@@ -2113,7 +2124,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   }
 
   // Khởi tạo phát video
-  var isHls = url.includes('.m3u8') || url.includes('m3u8');
+  var isHls = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(url) || __uvdLooksLikeHlsUrl(url);
   var activeHls = null;
 
   function onMetadataLoaded() {

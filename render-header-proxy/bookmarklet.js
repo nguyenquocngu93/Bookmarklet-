@@ -3664,7 +3664,7 @@ function renderClickedButtons(container) {
 // ========== RENDER SETTINGS ==========
 function renderSettings(container) {
   var totalStreams = urls.size;
-  var bookmarkletCode = "javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/bookmarklet-@main/umpdl.js?force='+Date.now();document.head.appendChild(s);})();";
+  var bookmarkletCode = "javascript:(function(){var s=document.createElement('script');s.src='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();document.head.appendChild(s);})();";
 
   container.innerHTML =
     '<div class="uvd-profile-card">' +

@@ -217,7 +217,7 @@ function findUrls(text, source) {
   // Those URLs are segments, not independent streams; adding them caused
   // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
   if (isPlaylistBody) {
-    if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) debouncedBuildUI();
+    if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) scheduleLiveUiRefresh();
     return;
   }
   patterns.forEach(function(p) {
@@ -253,7 +253,7 @@ function findUrls(text, source) {
     }
   }
   if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) {
-    debouncedBuildUI();
+    scheduleLiveUiRefresh();
     setTimeout(__uvdMaybeOfferIframeWorkflow, 500);
   }
 }
@@ -964,6 +964,17 @@ function debouncedBuildUI() {
   clearTimeout(__uvdBuildUIDebounce);
   __uvdBuildUIDebounce = setTimeout(buildUI, 300);
 }
+var __uvdLiveUiRefreshTimer = null;
+var __uvdLastLiveUiRefresh = 0;
+function scheduleLiveUiRefresh() {
+  if (!document.getElementById('__uvd__') || (playerState && playerState.overlay)) return;
+  var wait = Math.max(0, 900 - (Date.now() - __uvdLastLiveUiRefresh));
+  clearTimeout(__uvdLiveUiRefreshTimer);
+  __uvdLiveUiRefreshTimer = setTimeout(function() {
+    __uvdLastLiveUiRefresh = Date.now();
+    debouncedBuildUI();
+  }, wait);
+}
 
 function runAutoClickAndRescan(silent) {
   var beforeCount = urls.size;
@@ -1015,7 +1026,7 @@ function runPreloadCapture() {
           if (!isAdUrl(entry.name)) findUrls(entry.name, 'preload:performance');
         });
       } catch(e) {}
-      if (document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) debouncedBuildUI();
+      scheduleLiveUiRefresh();
     }, delay);
   });
 }
@@ -2446,6 +2457,7 @@ function __uvdIsLikelyVideoIframe(url) {
 function __uvdIsDemoVideoElement(video) {
   if (!video) return false;
   var duration = video.duration;
+  if ((!duration || isNaN(duration)) && video.readyState < 1) return !video.currentSrc && !video.src;
   if (isFinite(duration) && duration > 0 && duration <= __uvdDemoPreviewMaxSeconds) return true;
   var hint = ((video.currentSrc || video.src || '') + ' ' + (video.getAttribute('poster') || '')).toLowerCase();
   return /preview|trailer|sample|teaser|demo/.test(hint);
@@ -2459,8 +2471,39 @@ function __uvdHasOnlyIframeOrDemo() {
   if (!direct.length) return true;
   var videos = [];
   try { videos = [...document.querySelectorAll('video')].filter(function(video) { return !__uvdIsOwnUI(video); }); } catch(e) {}
-  if (videos.length && videos.every(__uvdIsDemoVideoElement)) return true;
+  // If the direct candidates came from scripts/network but there is no real
+  // page video element, treat them as unverified and offer the iframe path.
+  if (!videos.length) return true;
+  if (videos.every(__uvdIsDemoVideoElement)) return true;
   return direct.every(function(entry) { return /preview|trailer|sample|teaser|demo/i.test(entry.url); });
+}
+function __uvdOpenIframeWorkflowPrompt(target) {
+  var old = document.getElementById('__uvd_iframe_workflow_prompt__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_iframe_workflow_prompt__';
+  overlay.className = 'uvd-overlay';
+  var panel = document.createElement('div');
+  panel.className = 'uvd-glass-panel';
+  panel.style.cssText = 'max-width:430px;margin:auto;text-align:center;';
+  panel.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">↗</div>' +
+    '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">Chỉ tìm thấy iframe</div>' +
+    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:14px;">Không có video trực tiếp hoặc chỉ có clip preview. Mở iframe ở tab mới, đồng thời copy tên bookmarklet để dán vào thanh địa chỉ.</div>' +
+    '<div class="uvd-url-box" style="margin-bottom:12px;text-align:left;">' + escapeHtml(BOOKMARKLET_NAME) + '</div>' +
+    '<div class="uvd-grid-2">' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_open__" style="background:var(--grad-liquid);color:#fff;">Mở iframe + Copy</button>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__">Để sau</button>' +
+    '</div>';
+  panel.querySelector('#__uvd_iframe_workflow_open__').onclick = function() {
+    copy(BOOKMARKLET_NAME);
+    window.__uvdSafeOpen(target);
+    overlay.remove();
+    toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
+  };
+  panel.querySelector('#__uvd_iframe_workflow_cancel__').onclick = function() { overlay.remove(); };
+  overlay.appendChild(panel);
+  __uvdAppendRoot(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
 function __uvdMaybeOfferIframeWorkflow() {
   if (__uvdIframeWorkflowAsked || __uvdScriptHidden || playerState.overlay) return;
@@ -2469,11 +2512,7 @@ function __uvdMaybeOfferIframeWorkflow() {
   if (!candidates.length) return;
   __uvdIframeWorkflowAsked = true;
   var target = candidates[0][0];
-  var ok = confirm('Chưa tìm thấy video trực tiếp; chỉ thấy iframe hoặc clip preview.\n\nMở iframe ở tab mới và sao chép tên bookmarklet "' + BOOKMARKLET_NAME + '" để bạn dán vào thanh địa chỉ?');
-  if (!ok) return;
-  copy(BOOKMARKLET_NAME);
-  window.__uvdSafeOpen(target);
-  toast('Đã mở iframe và sao chép: ' + BOOKMARKLET_NAME);
+  __uvdOpenIframeWorkflowPrompt(target);
 }
 
 // ========== BUILD UI ==========
@@ -2598,6 +2637,11 @@ function buildUI() {
     __uvdScrollFrame = requestAnimationFrame(function() {
       __uvdScrollFrame = null;
       var top = streamList.scrollTop;
+      if (streamList.scrollHeight <= streamList.clientHeight + 4) {
+        header.classList.remove('uvd-header-hidden');
+        __uvdLastListScrollTop = top;
+        return;
+      }
       var movingDown = top > __uvdLastListScrollTop + 2;
       var movingUp = top < __uvdLastListScrollTop - 2;
       if (top > 24 && movingDown) header.classList.add('uvd-header-hidden');

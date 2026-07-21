@@ -217,7 +217,6 @@ function findUrls(text, source) {
   // Those URLs are segments, not independent streams; adding them caused
   // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
   if (isPlaylistBody) {
-    if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) scheduleLiveUiRefresh();
     return;
   }
   patterns.forEach(function(p) {
@@ -252,10 +251,9 @@ function findUrls(text, source) {
       urls.delete(keys[i]);
     }
   }
-  if (changed && document.getElementById('__uvd__') && (!playerState || !playerState.overlay)) {
-    scheduleLiveUiRefresh();
-    setTimeout(__uvdMaybeOfferIframeWorkflow, 500);
-  }
+  // Keep capture silent. Rebuilding the entire card list for every newly
+  // seen URL was the source of the visible UI flash. Preload/Auto Play do a
+  // single deliberate refresh after their capture window.
 }
 
 function scan(doc, src) {
@@ -1041,7 +1039,6 @@ function runAutoClickAndRescan(silent) {
       var totalFound = afterCount - beforeCount;
       if (reportedAt === -1) {
         reportedAt = idx;
-        toast('▶ Tự động Play: tìm thêm ' + totalFound + ' luồng mới');
         if (document.getElementById('__uvd__')) debouncedBuildUI();
         setTimeout(function() {
           var n = pauseAllPlayingVideos();
@@ -3763,6 +3760,5 @@ var __uvdIframeWorkflowWatch = setInterval(function() {
 }, 1000);
 setTimeout(function() { clearInterval(__uvdIframeWorkflowWatch); }, 15000);
 console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
-toast('V' + VERSION + ' PRO sẵn sàng!');
 
 })();

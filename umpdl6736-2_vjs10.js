@@ -90,6 +90,16 @@ data.settings = Object.assign({
   headerProxyKey: '',
   subdlApiKey: ''
 }, data.settings || {});
+var __uvdSmoothDefaultsVersion = 1;
+if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
+  data.settings.reduceMotion = true;
+  data.settings.blurIntensity = 0;
+  data.settings.transitionSpeed = 0.08;
+  data.settings.glowEffects = false;
+  data.settings.effectsIntensity = 0;
+  data.settings.__uvdSmoothDefaultsVersion = __uvdSmoothDefaultsVersion;
+  storage.set(data);
+}
 
 // ========== PROFILES ==========
 var defaultProfiles = {
@@ -290,7 +300,7 @@ function findUrls(text, source) {
   if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
 }
 
-function scan(doc, src) {
+function scan(doc, src, light) {
   try {
     if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
@@ -302,7 +312,7 @@ function scan(doc, src) {
     doc.querySelectorAll('script').forEach(function(s) {
       findUrls(s.textContent, src + ':script');
     });
-    findUrls(doc.documentElement.outerHTML, src + ':html');
+    if (!light) findUrls(doc.documentElement.outerHTML, src + ':html');
     doc.querySelectorAll('iframe').forEach(function(i, idx) {
       if (i.src) {
         var iframeUrl = i.src;
@@ -478,12 +488,12 @@ function installUniversalOverlayBlocker() {
   var state = __uvdOverlayBlockState = { scanTimer: null, interval: null, observer: null, touched: new Map() };
   state.schedule = function() {
     clearTimeout(state.scanTimer);
-    state.scanTimer = setTimeout(__uvdOverlayScan, 180);
+    state.scanTimer = setTimeout(__uvdOverlayScan, 300);
   };
   document.addEventListener('click', __uvdBlockExternalLink, true);
   state.observer = new MutationObserver(state.schedule);
   try { state.observer.observe(document.body, { childList: true, subtree: true }); } catch(e) {}
-  state.interval = setInterval(state.schedule, 2000);
+  state.interval = setInterval(state.schedule, 3500);
   state.schedule();
 }
 function uninstallUniversalOverlayBlocker() {
@@ -1098,11 +1108,11 @@ function runPreloadCapture() {
   __uvdLiveCaptureMode = true;
   __uvdLiveUiDirty = false;
   toast('⏺ Đã bật bắt link realtime — giờ hãy bấm Play thật trên trang');
-  var delays = [0, 400, 1000, 2000, 4000, 8000];
+  var delays = [0, 700, 1800, 3500, 6000];
   delays.forEach(function(delay) {
     setTimeout(function() {
       try {
-        scan(document, 'preload');
+        scan(document, 'preload', delay !== 0);
         __uvdDismissIframeWorkflowIfVideoFound();
         performance.getEntriesByType('resource').forEach(function(entry) {
           if (!isAdUrl(entry.name)) findUrls(entry.name, 'preload:performance');

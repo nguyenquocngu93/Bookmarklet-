@@ -2676,6 +2676,33 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
 
+function __uvdHasRealVideoCandidate() {
+  var direct = [...urls.entries()].filter(function(entry) {
+    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
+  });
+  if (direct.some(function(entry) { return entry[1].demo === false; })) return true;
+  try {
+    return [...document.querySelectorAll('video')].some(function(video) {
+      return !__uvdIsOwnUI(video) && video.readyState >= 2 && !__uvdIsDemoVideoElement(video);
+    });
+  } catch(e) { return false; }
+}
+function __uvdDismissIframeWorkflowIfVideoFound() {
+  var prompt = document.getElementById('__uvd_iframe_workflow_prompt__');
+  if (!prompt || !__uvdHasRealVideoCandidate()) return;
+  prompt.remove();
+  __uvdIframeWorkflowAsked = true;
+}
+function installIframeWorkflowVideoWatcher() {
+  ['loadedmetadata', 'loadeddata', 'durationchange', 'playing'].forEach(function(type) {
+    document.addEventListener(type, __uvdDismissIframeWorkflowIfVideoFound, true);
+  });
+  addCleanup(function() {
+    ['loadedmetadata', 'loadeddata', 'durationchange', 'playing'].forEach(function(type) {
+      document.removeEventListener(type, __uvdDismissIframeWorkflowIfVideoFound, true);
+    });
+  });
+}
 function __uvdMaybeOfferIframeWorkflow() {
   __uvdDismissIframeWorkflowIfVideoFound();
   if (Date.now() < __uvdIframeWorkflowEarliest) return;

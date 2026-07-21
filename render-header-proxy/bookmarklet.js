@@ -2388,7 +2388,8 @@ style.textContent = `
 .uvd-thumb-menu{position:absolute;top:10px;right:10px;z-index:5}
 .uvd-thumb-menu summary{width:34px;height:34px;min-height:34px;padding:0;justify-content:center;border-radius:12px;background:rgba(43,24,54,.58);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.42);color:#fff;font-size:22px;line-height:1;font-weight:800}
 .uvd-thumb-menu summary:hover{background:rgba(43,24,54,.78)}
-.uvd-thumb-menu .uvd-action-list{position:absolute;top:40px;right:0;width:220px;z-index:8;background:rgba(255,250,253,.94);box-shadow:0 12px 28px rgba(43,24,54,.24)}
+.uvd-thumb-menu .uvd-action-list{position:absolute;top:38px;right:0;width:190px;z-index:8;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:6px;background:rgba(255,250,253,.97);border-radius:12px;box-shadow:0 12px 28px rgba(43,24,54,.24)}
+.uvd-thumb-menu .uvd-action-list .uvd-btn{min-height:30px;padding:6px 8px;border-radius:10px;font-size:11px;line-height:1.15}
 .uvd-action-menu summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,47,200,.09);color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
 .uvd-action-menu summary::-webkit-details-marker{display:none}
 .uvd-action-menu[open] summary{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:rgba(255,47,200,.15)}
@@ -2875,13 +2876,13 @@ function buildStreamCardHTML(item, i) {
   } else if (item.type === 'IFRAME') {
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '" style="grid-column:1/3;">Mở iframe tab</button>';
+      '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '">Mở iframe tab</button>';
   } else if (item.type === 'M3U8') {
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="grid-column:1/3;">Lệnh tải</button>';
+      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
   } else {
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +

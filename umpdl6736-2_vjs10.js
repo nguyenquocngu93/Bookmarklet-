@@ -907,7 +907,7 @@ function __uvdStartAutoplayObserver() {
 function __uvdEnterLowPowerMode() {
   if (__uvdLowPowerMode) return;
   __uvdLowPowerMode = true;
-  stopMonitor();
+  stopLiveMonitorOnly();
   try { __uvdAutoplayObserver.disconnect(); } catch(e) {}
   try { uninstallUniversalOverlayBlocker(); } catch(e) {}
   document.documentElement.classList.add('uvd-page-frozen');
@@ -920,7 +920,7 @@ function __uvdExitLowPowerMode() {
   __uvdLowPowerMode = false;
   document.documentElement.classList.remove('uvd-page-frozen');
   installMonitor();
-  installPopupBlock();
+  if (!__uvdPopupBlockActive) installPopupBlock();
   installUniversalOverlayBlocker();
   __uvdStartAutoplayObserver();
   var panel = document.getElementById('__uvd__');
@@ -997,15 +997,18 @@ function installMonitor() {
   }
 }
 
-function stopMonitor() {
+function stopLiveMonitorOnly() {
   window.fetch = originalFetch;
   XMLHttpRequest.prototype.open = originalXHROpen;
   if (__uvdPerformanceObserver) {
     try { __uvdPerformanceObserver.disconnect(); } catch(e) {}
     __uvdPerformanceObserver = null;
   }
-  uninstallPopupBlock();
   monitorActive = false;
+}
+function stopMonitor() {
+  stopLiveMonitorOnly();
+  uninstallPopupBlock();
 }
 
 // ========== CLEANUP ==========
@@ -1950,6 +1953,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
 
   playerState.overlay = overlay;
   playerState.video = video;
+  // Keep popup blocking active, but pause the expensive background monitors
+  // automatically for the duration of playback.
+  __uvdEnterLowPowerMode();
   videoWrapper.style.boxSizing = 'border-box';
 
   function __uvdBrightenPlayer() {
@@ -2400,6 +2406,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
 function closePlayer() {
   if (playerState.overlay) {
     playerState.closing = true;
+    __uvdExitLowPowerMode();
     if (data.settings.resumePlayback && playerState.url && playerState.video) {
       savePlaybackPosition(playerState.url, playerState.video);
     }

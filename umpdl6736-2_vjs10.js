@@ -899,6 +899,35 @@ function pauseAllPlayingVideos(root, depth) {
   return pausedCount;
 }
 
+// ========== LOW POWER PLAYBACK MODE ==========
+var __uvdLowPowerMode = false;
+function __uvdStartAutoplayObserver() {
+  try { __uvdAutoplayObserver.observe(document.body, { childList: true, subtree: false }); } catch(e) {}
+}
+function __uvdEnterLowPowerMode() {
+  if (__uvdLowPowerMode) return;
+  __uvdLowPowerMode = true;
+  stopMonitor();
+  try { __uvdAutoplayObserver.disconnect(); } catch(e) {}
+  try { uninstallUniversalOverlayBlocker(); } catch(e) {}
+  document.documentElement.classList.add('uvd-page-frozen');
+  var panel = document.getElementById('__uvd__');
+  if (panel) panel.style.display = 'none';
+  toast('🔋 Đã giảm tải nền — video vẫn tiếp tục phát');
+}
+function __uvdExitLowPowerMode() {
+  if (!__uvdLowPowerMode) return;
+  __uvdLowPowerMode = false;
+  document.documentElement.classList.remove('uvd-page-frozen');
+  installMonitor();
+  installPopupBlock();
+  installUniversalOverlayBlocker();
+  __uvdStartAutoplayObserver();
+  var panel = document.getElementById('__uvd__');
+  if (panel) panel.style.display = '';
+  toast('☀️ Đã bật lại giám sát UMP');
+}
+
 // ========== LIVE MONITORING ==========
 var originalFetch = window.fetch;
 var originalXHROpen = XMLHttpRequest.prototype.open;
@@ -1058,7 +1087,7 @@ var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
     __uvdObserverDebounce = setTimeout(__uvdFlushObserver, 200);
   }
 });
-__uvdAutoplayObserver.observe(document.body, { childList: true, subtree: false });
+__uvdStartAutoplayObserver();
 addCleanup(function() { __uvdAutoplayObserver.disconnect(); });
 
 try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {}
@@ -1923,6 +1952,23 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   playerState.video = video;
   videoWrapper.style.boxSizing = 'border-box';
 
+  function __uvdBrightenPlayer() {
+    clearTimeout(playerState.dimTimeout);
+    sheet.classList.remove('uvd-player-dimmed');
+  }
+  function __uvdArmPlayerDim() {
+    clearTimeout(playerState.dimTimeout);
+    sheet.classList.remove('uvd-player-dimmed');
+    playerState.dimTimeout = setTimeout(function() {
+      if (!playerState.closing && video && !video.paused) sheet.classList.add('uvd-player-dimmed');
+    }, 5000);
+  }
+  ['pointerdown', 'touchstart', 'mousemove'].forEach(function(type) {
+    videoWrapper.addEventListener(type, __uvdBrightenPlayer, { passive: true });
+  });
+  video.addEventListener('playing', __uvdArmPlayerDim);
+  video.addEventListener('pause', __uvdBrightenPlayer);
+
   function __uvdIsFullscreenNow() {
     var fe = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     return !!(fe && (fe === videoWrapper || videoWrapper.contains(fe) || fe.contains(videoWrapper)));
@@ -2088,8 +2134,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
     var sBtn = document.createElement('button');
     sBtn.innerHTML = '💬 Phụ đề';
     sBtn.onclick = function() { menu.remove(); showSubtitlePanel(playerState.video); };
+    var powerBtn = document.createElement('button');
+    powerBtn.innerHTML = __uvdLowPowerMode ? '☀️ Bật lại giám sát' : '🔋 Giảm tải nền';
+    powerBtn.onclick = function() { menu.remove(); __uvdLowPowerMode ? __uvdExitLowPowerMode() : __uvdEnterLowPowerMode(); };
     menu.appendChild(qBtn);
     menu.appendChild(sBtn);
+    menu.appendChild(powerBtn);
     sheetHeader.appendChild(menu);
     setTimeout(function() {
       document.addEventListener('click', function onDoc(ev) {
@@ -2354,6 +2404,7 @@ function closePlayer() {
       savePlaybackPosition(playerState.url, playerState.video);
     }
     clearTimeout(playerState.hideTimeout);
+    clearTimeout(playerState.dimTimeout);
     if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}
@@ -2454,6 +2505,7 @@ style.textContent = `
 .uvd-player-info-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(255,47,200,0.4)}
 .uvd-player-info-meta{font-size:11px;font-weight:600;color:var(--accent2);background:var(--btn-bg);border:1px solid var(--border);display:inline-block;padding:4px 12px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.uvd-player-sheet.uvd-player-dimmed .uvd-settings-header,.uvd-player-sheet.uvd-player-dimmed .uvd-player-info-panel{opacity:.22;transition:opacity .35s ease}.uvd-player-sheet.uvd-player-dimmed .uvd-player-video-area::after{background-image:none;background:rgba(0,0,0,.12)}.uvd-page-frozen body>*:not(.uvd-scope){pointer-events:none!important;user-select:none!important}
 .uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}

@@ -2375,6 +2375,10 @@ style.textContent = `
 .uvd-card-actions{margin-top:10px}
 .uvd-card-actions .uvd-btn{min-height:36px}
 .uvd-action-menu{position:relative}
+.uvd-thumb-menu{position:absolute;top:10px;right:10px;z-index:5}
+.uvd-thumb-menu summary{width:34px;height:34px;min-height:34px;padding:0;justify-content:center;border-radius:12px;background:rgba(43,24,54,.58);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.42);color:#fff;font-size:22px;line-height:1;font-weight:800}
+.uvd-thumb-menu summary:hover{background:rgba(43,24,54,.78)}
+.uvd-thumb-menu .uvd-action-list{position:absolute;top:40px;right:0;width:220px;z-index:8;background:rgba(255,250,253,.94);box-shadow:0 12px 28px rgba(43,24,54,.24)}
 .uvd-action-menu summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,47,200,.09);color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
 .uvd-action-menu summary::-webkit-details-marker{display:none}
 .uvd-action-menu[open] summary{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:rgba(255,47,200,.15)}
@@ -2862,7 +2866,7 @@ function buildStreamCardHTML(item, i) {
         )
       );
   }
-  actionsHtml = '<details class="uvd-action-menu"><summary>Thao tác <span>⌄</span></summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
+  var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   return (
     '<div class="uvd-card" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
@@ -2870,6 +2874,7 @@ function buildStreamCardHTML(item, i) {
         '<div class="uvd-thumb-sheen"></div>' +
         '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
+        actionMenuHtml +
       '</div>' +
       '<div class="uvd-card-head">' +
         '<div class="uvd-card-badges"><span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span><span class="uvd-card-status ' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted') + '">' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'PREVIEW…' : 'NO PREVIEW') + '</span></div>' +
@@ -2878,7 +2883,6 @@ function buildStreamCardHTML(item, i) {
       '<div class="uvd-card-stream-meta" data-card-stream-meta>Đang lấy thời lượng và độ phân giải…</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
       '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-card-actions">' + actionsHtml + '</div>' +
     '</div>'
   );
 }

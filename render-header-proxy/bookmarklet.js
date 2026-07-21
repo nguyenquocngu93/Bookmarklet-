@@ -1762,7 +1762,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
     return !!(fe && (fe === videoWrapper || videoWrapper.contains(fe) || fe.contains(videoWrapper)));
   }
   var PORTRAIT_INSET = 12;
-  var FLOAT_SHADOW = 'none';
+  var FLOAT_SHADOW = '10px 14px 28px rgba(43,24,54,.22), 4px 6px 0 rgba(155,61,255,.10)';
   videoWrapper.style.position = 'relative';
   videoWrapper.style.overflow = 'hidden';
   function __uvdApplyPlayerLayout() {
@@ -1820,7 +1820,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
         playerEl.style.width = '95%';
         playerEl.style.height = '95%';
       }
-      playerEl.style.borderRadius = '16px';
+      playerEl.style.borderRadius = '24px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
       video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
@@ -1832,7 +1832,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
       playerEl.style.width = '95%';
       playerEl.style.height = '';
-      playerEl.style.borderRadius = '16px';
+      playerEl.style.borderRadius = '24px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
       video.style.objectFit = 'contain';
       video.style.borderRadius = 'inherit';

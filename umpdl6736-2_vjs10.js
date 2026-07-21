@@ -2248,18 +2248,18 @@ style.textContent = `
 .uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}
 .uvd-app-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%);z-index:0}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
-.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0}
-.uvd-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:0 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
+.uvd-brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto}
 .uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:14px;background:var(--grad-liquid);color:#fff;font-size:15px;box-shadow:0 5px 14px rgba(255,47,200,.25)}
 .uvd-brand-name{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
 .uvd-brand-name span{background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent}
 .uvd-brand-sub{margin-top:2px;color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.uvd-header-actions{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;justify-content:flex-end;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:2px 1px}
+.uvd-header-actions{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;justify-content:flex-end;padding:2px 1px}
 .uvd-header-actions::-webkit-scrollbar{display:none}
 .uvd-header-actions .uvd-btn-icon{width:34px;height:34px;flex:0 0 34px;border-radius:12px;font-size:14px;background:rgba(155,61,255,.10);box-shadow:0 3px 10px rgba(112,45,126,.10),0 0 0 1px rgba(255,255,255,.12) inset;transition:transform .16s ease,background .18s ease,box-shadow .18s ease}
 .uvd-header-actions .uvd-btn-icon:hover{background:rgba(255,47,200,.16);box-shadow:0 5px 14px rgba(255,47,200,.18),0 0 0 1px rgba(255,255,255,.18) inset}
 .uvd-header-actions .uvd-btn-icon:active{transform:scale(.9)}
-#__uvd_preload__{color:var(--success)}
+#__uvd_preload__{color:var(--accent2);border-color:rgba(155,61,255,.32)}
 .uvd-header-actions .uvd-close-action{color:var(--danger)}
 .uvd-context-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:14px 15px;margin-bottom:14px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(135deg,rgba(255,47,200,.09),rgba(155,61,255,.06));flex-shrink:0}
 .uvd-context-main{min-width:0;display:flex;flex-direction:column;gap:5px}
@@ -2353,7 +2353,7 @@ style.textContent = `
 .uvd-action-menu[open] summary span{transform:rotate(180deg)}
 .uvd-action-list{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:9px;border:1px solid var(--border);border-top:0;border-radius:0 0 var(--radius-sm) var(--radius-sm);background:rgba(255,250,253,.66);backdrop-filter:blur(12px)}
 .uvd-action-list .uvd-btn{width:100%;min-width:0}
-@media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{align-items:flex-start}.uvd-brand-sub{display:none}.uvd-header-actions{max-width:calc(100vw - 132px);gap:4px}.uvd-header-actions .uvd-btn-icon{width:30px;height:30px;flex-basis:30px;font-size:13px;border-radius:10px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}.uvd-card-preview.uvd-thumb-portrait{height:190px}}
+@media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{display:grid;grid-template-columns:1fr;align-items:stretch;gap:8px;overflow:visible}.uvd-brand-sub{display:none}.uvd-header-actions{width:100%;max-width:none;justify-content:flex-start;gap:5px;padding:2px 1px 4px;overflow-x:auto}.uvd-header-actions .uvd-btn-icon{width:30px;height:30px;flex:0 0 30px;font-size:13px;border-radius:10px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}.uvd-card-preview.uvd-thumb-portrait{height:190px}}
 @media (prefers-reduced-motion:reduce){.uvd-card:hover{transform:none}}
 .uvd-card-badges{display:flex;align-items:center;gap:6px;min-width:0}.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}.uvd-card-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;white-space:nowrap}.uvd-status-loading{color:var(--gold);background:rgba(224,144,10,.12);border:1px solid rgba(224,144,10,.25)}.uvd-status-ok{color:var(--success);background:rgba(31,169,122,.12);border:1px solid rgba(31,169,122,.25)}.uvd-status-muted{color:var(--text3);background:rgba(43,24,54,.06);border:1px solid var(--border)}
 .uvd-card-stream-meta{display:flex;align-items:center;min-height:26px;margin:-3px 0 8px;padding:6px 9px;border:1px solid var(--border);border-radius:10px;background:rgba(155,61,255,.06);color:var(--text3);font-size:10px;font-weight:700;line-height:1.35;white-space:normal}.uvd-card-stream-meta.uvd-card-meta-ready{color:var(--accent2);background:rgba(155,61,255,.1)}
@@ -2458,7 +2458,7 @@ function buildUI() {
     '</div>' +
     '<div class="uvd-header-actions">' +
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">⏺</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Thử lần lượt từng server">⏭</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script">▾</button>' +

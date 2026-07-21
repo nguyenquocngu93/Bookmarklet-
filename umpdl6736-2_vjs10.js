@@ -291,12 +291,42 @@ var __uvdPopupBlockActive = false;
 var __uvdOriginalWindowOpen = null;
 var __uvdPopupGuardTimer = null;
 var __uvdBlockedCount = 0;
+var __uvdAllowedOpenUrls = {};
+
+function __uvdAllowExternalOpen(url) {
+  try { __uvdAllowedOpenUrls[new URL(url, location.href).href] = Date.now() + 15000; } catch(e) {}
+}
+function __uvdIsAllowedExternalOpen(url) {
+  try {
+    var key = new URL(url, location.href).href;
+    return __uvdAllowedOpenUrls[key] && __uvdAllowedOpenUrls[key] > Date.now();
+  } catch(e) { return false; }
+}
+function __uvdOpenAllowedExternal(url) {
+  __uvdAllowExternalOpen(url);
+  var opened = null;
+  try {
+    if (__uvdOriginalWindowOpen) opened = __uvdOriginalWindowOpen.call(window, url, '_blank');
+  } catch(e) {}
+  // Fallback for a stale/previous popup blocker: an allowed anchor click is
+  // still initiated by the user's button tap and bypasses our own window.open hook.
+  if (!opened) {
+    try {
+      var a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch(e) {}
+  }
+  return opened;
+}
 
 window.__uvdSafeOpen = function(url) {
-  if (__uvdOriginalWindowOpen) {
-    return __uvdOriginalWindowOpen(url, '_blank');
-  }
-  return window.open(url, '_blank');
+  return __uvdOpenAllowedExternal(url);
 };
 
 function killBlankLinks(e) {
@@ -304,6 +334,7 @@ function killBlankLinks(e) {
   if (t.closest && (t.closest('#__uvd__') || t.closest('#__uvd_player_overlay__'))) return;
   while (t && t !== document) {
     if (t && t.tagName === 'A') {
+      if (__uvdIsAllowedExternalOpen(t.href)) return;
       var tg = t.target;
       if (tg && tg !== '_self' && tg !== '_top' && tg !== '_parent') {
         e.preventDefault();
@@ -319,7 +350,8 @@ function killBlankLinks(e) {
 function installPopupBlock() {
   if (__uvdPopupBlockActive) return;
   __uvdPopupBlockActive = true;
-  __uvdOriginalWindowOpen = window.open;
+  if (!window.__uvdNativeWindowOpen) window.__uvdNativeWindowOpen = window.open;
+  __uvdOriginalWindowOpen = window.__uvdNativeWindowOpen;
   var blockWindowOpen = function() { __uvdBlockedCount++; return null; };
   window.open = blockWindowOpen;
   __uvdPopupGuardTimer = setInterval(function() {
@@ -399,7 +431,7 @@ function __uvdBlockExternalLink(e) {
   if (!state) return;
   var target = e.target;
   var a = target && target.closest ? target.closest('a') : null;
-  if (!a || __uvdIsOwnUI(a) || !a.href || a.href.indexOf('#') === 0) return;
+  if (!a || __uvdIsOwnUI(a) || !a.href || a.href.indexOf('#') === 0 || __uvdIsAllowedExternalOpen(a.href)) return;
   try {
     var url = new URL(a.href, location.href);
     if (url.hostname !== location.hostname) {

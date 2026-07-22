@@ -250,21 +250,6 @@ function __uvdLooksLikeHlsUrl(url) {
 function __uvdIsLikelyHlsSegmentUrl(url) {
   return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$)|init-[^/?#]+\.mp4(?:[?#]|$))/i.test(String(url || ''));
 }
-function __uvdAddDetectedMediaUrl(url, type, source) {
-  if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
-  url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-  if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
-  else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
-  type = type || 'MP4';
-  var priorityMap = { M3U8: 1, MPD: 2, MP4: 3, WEBM: 4, BLOB: 8, IFRAME: 99 };
-  var priority = priorityMap[type] || 6;
-  var existing = urls.get(url);
-  if (!existing || existing.type !== type || existing.priority > priority) {
-    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now() });
-    return true;
-  }
-  return false;
-}
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
   var changed = false;
@@ -363,16 +348,8 @@ function scan(doc, src, light) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
     }
     doc.querySelectorAll('video, source, audio').forEach(function(v) {
-      var tag = (v.tagName || '').toUpperCase();
-      var typeHint = ((v.getAttribute && (v.getAttribute('type') || v.getAttribute('data-type') || '')) + ' ' + (v.src || '')).toLowerCase();
-      var mediaType = /m3u8|mpegurl|hls/.test(typeHint) ? 'M3U8' : (/video\//.test(typeHint) || tag === 'VIDEO' || tag === 'SOURCE' ? 'MP4' : '');
-      var elementUrl = v.src || (v.getAttribute && (v.getAttribute('data-src') || v.getAttribute('data-video-url')));
-      if (elementUrl) {
-        if (!__uvdAddDetectedMediaUrl(elementUrl, mediaType, src + ':element')) findUrls(elementUrl, src + ':element');
-      }
-      if (v.currentSrc) {
-        if (!__uvdAddDetectedMediaUrl(v.currentSrc, mediaType, src + ':current')) findUrls(v.currentSrc, src + ':current');
-      }
+      if (v.src) findUrls(v.src, src + ':element');
+      if (v.currentSrc) findUrls(v.currentSrc, src + ':current');
     });
     doc.querySelectorAll('script').forEach(function(s) {
       findUrls(s.textContent, src + ':script');
@@ -1402,7 +1379,6 @@ var playerState = {
   overlay: null,
   video: null,
   hls: null,
-  usingNativeHls: false,
   qualities: [],
   currentQuality: 0,
   speed: 1,
@@ -1414,8 +1390,6 @@ var playerState = {
   proxyRetried: false,
   sizeRequested: false,
   proxyFallbackTimer: null,
-  nativeFallbackTimer: null,
-  nativePlayAttempted: false,
   vjsMountCancel: null,
   closing: false,
   _displayedResolution: '',
@@ -1881,21 +1855,17 @@ function retryThroughHeaderProxy(sourceUrl, type) {
 }
 
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
+function showVideoPlayer(url, type, fromProxy, forceReinit) {
   // When hls.js is loaded lazily, the player shell already exists. Allow the
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
-  playerState.usingNativeHls = false;
   __uvdStopThumbnailHls();
   if (!fromProxy) playerState.proxyRetried = false;
   if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
-  if (playerState.nativeFallbackTimer) clearTimeout(playerState.nativeFallbackTimer);
   playerState.proxyFallbackTimer = null;
-  playerState.nativeFallbackTimer = null;
-  playerState.nativePlayAttempted = false;
   playerState.sizeRequested = false;
   playerState.playbackError = '';
   playerState.closing = false;
@@ -2201,12 +2171,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     }
     if (res) parts.push(res);
     var sizeText = '';
-    video.addEventListener('play', function() { playerState.nativePlayAttempted = true; });
-  video.addEventListener('playing', function() {
-    if (playerState.nativeFallbackTimer) { clearTimeout(playerState.nativeFallbackTimer); playerState.nativeFallbackTimer = null; }
-  });
-
-  if (isHls) {
+    if (isHls) {
       var bw = 0;
       if (playerState.hls) {
         var lvl = playerState.hls.levels[playerState.hls.currentLevel];
@@ -2312,10 +2277,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
-    if (playerState.usingNativeHls && !forceHlsJs) {
-      showVideoPlayer(url, type, fromProxy, true, true);
-      return;
-    }
     if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
     var code = video.error && video.error.code;
     if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc dữ liệu đọc chưa đúng).');
@@ -2349,23 +2310,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   }
 
   if (isHls) {
-    var nativeHlsType = video.canPlayType('application/vnd.apple.mpegurl');
-    var canTryNativeHls = !forceHlsJs && !!nativeHlsType && !fromProxy && !__uvdMediaAccessTokens.length;
-    if (canTryNativeHls) {
-      // Chrome Android reports "maybe" on devices with a native HLS path.
-      // Prefer it for ordinary sources to avoid hls.js transmux CPU usage;
-      // the existing error/stall fallback will retry through hls.js/proxy.
-      playerState.usingNativeHls = true;
-      video.src = url;
-      playerState.nativeFallbackTimer = setTimeout(function() {
-        if (playerState.closing || playerState.video !== video || !playerState.usingNativeHls) return;
-        var metadataReady = video.readyState >= 2 && video.videoWidth > 0 && isFinite(video.duration) && video.duration > 0;
-        if (!metadataReady || playerState.nativePlayAttempted) {
-          toast('🔁 Native HLS chưa phát, chuyển sang hls.js…');
-          showVideoPlayer(url, type, fromProxy, true, true);
-        }
-      }, 8000);
-    } else if (window.Hls && Hls.isSupported()) {
+    if (window.Hls && Hls.isSupported()) {
       activeHls = new Hls(__uvdMakeHlsConfig(Hls));
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
@@ -2395,6 +2340,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
         updateInfoDisplay();
       });
       playerState.hls = activeHls;
+    } else if (video.canPlayType('application/vnd.apple.mpegurl') && /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|Android|Vivaldi/i.test(navigator.userAgent)) {
+      // Chỉ dùng HLS native trên Safari thật. Android Chromium/Vivaldi đôi khi trả "maybe"
+      // nhưng không tải segment ổn định, nên buộc dùng hls.js để đi qua proxy từng segment.
+      video.src = url;
     } else {
       __uvdEnsureHls(function() {
         if (playerState.closing || playerState.video !== video) return;
@@ -2463,7 +2412,6 @@ function closePlayer() {
     }
     clearTimeout(playerState.hideTimeout);
     clearTimeout(playerState.dimTimeout);
-    clearTimeout(playerState.nativeFallbackTimer);
     if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}
@@ -2712,27 +2660,6 @@ style.textContent = `
 .uvd-code-block textarea{width:100%;background:transparent;border:none;color:var(--accent2);font-weight:600;padding:10px 40px 10px 12px;font-size:10px;font-family:'SFMono-Regular',Consolas,monospace;resize:none}
 .uvd-code-copy{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(155,61,255,.09);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .uvd-code-copy:active{background:rgba(155,61,255,.22)}
-
-/* ========== NORMAL UI POLISH ========== */
-.uvd-app-shell{background:rgba(255,255,255,.9)!important;border-color:rgba(255,47,200,.16)!important;box-shadow:0 14px 34px rgba(112,45,126,.10),0 0 0 1px rgba(255,255,255,.55) inset!important}
-.uvd-app-shell .uvd-card{background:rgba(255,255,255,.76)!important;border-color:rgba(255,47,200,.16);box-shadow:0 7px 20px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.45) inset}
-.uvd-app-shell .uvd-card:hover{transform:translateY(-2px);box-shadow:0 11px 24px rgba(112,45,126,.13),0 0 0 1px rgba(255,47,200,.12) inset}
-.uvd-app-shell .uvd-tabbar{background:rgba(245,240,250,.82)!important;border-color:rgba(155,61,255,.16)!important}
-.uvd-app-shell .uvd-tab{color:#776985!important;font-weight:700}
-.uvd-app-shell .uvd-tab.uvd-tab-active{color:#fff!important}
-.uvd-app-shell .uvd-filter-btn{background:rgba(255,255,255,.82)!important;color:#776985!important}
-.uvd-app-shell .uvd-filter-btn.uvd-filter-active{color:#fff!important}
-.uvd-card-preview{height:150px;border-radius:20px}.uvd-card-preview.uvd-thumb-portrait{height:235px}
-.uvd-card-stream-meta{background:rgba(247,242,252,.9);border-color:rgba(155,61,255,.14);font-size:10px}
-.uvd-url-box{max-height:64px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.uvd-context-bar{padding:12px 14px;margin-bottom:10px;background:rgba(250,247,253,.82)}
-.uvd-section-title{margin-top:12px}
-.uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
-.uvd-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:28px 18px;text-align:center;color:var(--text2)}
-.uvd-empty-state strong{color:var(--text);font-size:15px}.uvd-empty-state span{font-size:12px;line-height:1.5}
-.uvd-card-head{margin-bottom:7px}.uvd-card-badges{flex-wrap:wrap}.uvd-url-box{cursor:pointer;transition:border-color .16s ease,background .16s ease}.uvd-url-box:hover{border-color:rgba(255,47,200,.42);background:rgba(255,47,200,.12)}
-.uvd-settings-details{margin:10px 0;border:1px solid rgba(255,47,200,.14);border-radius:18px;background:rgba(255,255,255,.48);overflow:hidden}.uvd-settings-details>summary{display:flex;align-items:center;gap:8px;padding:11px 12px;list-style:none;cursor:pointer;color:var(--text);font-size:13px;font-weight:800}.uvd-settings-details>summary::-webkit-details-marker{display:none}.uvd-settings-details>summary .uvd-section-num{width:22px;height:22px}.uvd-details-chevron{margin-left:auto;font-size:18px;color:var(--accent2);transition:transform .18s ease}.uvd-settings-details[open] .uvd-details-chevron{transform:rotate(180deg)}.uvd-settings-details-body{padding:0 8px 8px}.uvd-settings-details-body>.uvd-card{margin-bottom:0}
-
 `;
 document.head.appendChild(style);
 
@@ -3281,7 +3208,7 @@ function buildStreamCardHTML(item, i) {
       '</div>' +
       '<div class="uvd-card-stream-meta" data-card-stream-meta>Đang lấy thời lượng và độ phân giải…</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
-      '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
+      '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
     '</div>'
   );
 }
@@ -3548,9 +3475,7 @@ function hydrateVideoThumbnails(root) {
 
 function renderStreams(container, arr) {
   if (!arr.length) {
-    container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
-    var emptyPreload = container.querySelector('#__uvd_empty_preload__');
-    if (emptyPreload) emptyPreload.onclick = function() { runPreloadCapture(); };
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">Không phát hiện stream nào.</div>';
     return;
   }
 
@@ -3583,12 +3508,6 @@ function renderStreams(container, arr) {
 
   container.onclick = function(e) {
     if (!e.target.closest('.uvd-action-menu')) container.querySelectorAll('.uvd-action-menu[open]').forEach(function(menu) { menu.open = false; });
-    var urlBox = e.target.closest('.uvd-url-box');
-    if (urlBox) {
-      copy(urlBox.textContent || '');
-      toast('Đã sao chép URL!');
-      return;
-    }
     var blockBtn = e.target.closest('.uvd-block-btn');
     if (blockBtn) {
       addRipple({ currentTarget: blockBtn, clientX: e.clientX, clientY: e.clientY });
@@ -4026,8 +3945,8 @@ function renderSettings(container) {
       '<button class="uvd-btn uvd-btn-sm" id="__uvd_reset__" style="width:100%;background:var(--danger);">Đặt lại tất cả</button>' +
     '</div>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-section-title"><span class="uvd-section-num">1</span> Cài đặt Bookmarklet</div>' +
+    '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit).</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
@@ -4035,10 +3954,10 @@ function renderSettings(container) {
       '<div class="uvd-code-block"><textarea readonly rows="3">' + escapeHtml(bookmarkletCode) + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save).</span></div>' +
       '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, bạn chỉ cần gõ tên bookmark (<strong style="color:var(--accent);">UMP DL</strong>) vào thanh địa chỉ rồi chọn nó để kích hoạt. Script luôn tự động cập nhật phiên bản mới nhất.</span></div>' +
-    '</div></div></details>' +
+    '</div>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-section-title"><span class="uvd-section-num">2</span> Sử dụng</div>' +
+    '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ và chọn nó</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để mở player overlay</span></div>' +
@@ -4046,10 +3965,10 @@ function renderSettings(container) {
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chạm đúp 2 lần vào nửa trái/phải video để tua lùi/tiến (số giây tùy chỉnh trong tab Trình phát)</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Video ngắn dưới 90 giây được đánh dấu <strong>DEMO · NO PREVIEW</strong> để tránh tốn request thumbnail.</span></div>' +
       '<div class="uvd-callout"><span class="uvd-callout-icon">⏺</span><span>Nút <strong style="color:var(--accent);">⏺</strong> bật bắt link realtime. Bấm nút này trước, sau đó bấm Play thật để UMP bắt fetch/XHR/playlist mà không rebuild UI liên tục.</span></div>' +
-    '</div></div></details>' +
+    '</div>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-section-title"><span class="uvd-section-num">3</span> Tải video với yt-dlp và Termux</div>' +
+    '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài đặt yt-dlp trên Termux:</strong></span></div>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg update && pkg upgrade -y</code>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg install python ffmpeg -y</code>' +
@@ -4058,7 +3977,7 @@ function renderSettings(container) {
       '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text">Bấm <strong style="color:var(--accent);">Lệnh tải</strong> → chọn lệnh phù hợp, sao chép</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text">Mở Termux, dán lệnh vào và bấm Enter để tải</span></div>' +
       '<div class="uvd-callout uvd-callout-warn"><span class="uvd-callout-icon">⚠️</span><span><strong style="color:var(--text);">Lưu ý:</strong> Nhớ cấp quyền lưu file cho Termux (Android 11+): <code class="uvd-inline-code">termux-setup-storage</code></span></div>' +
-    '</div></div></details>' +
+    '</div>' +
 
     '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · UMP DL v' + VERSION + ' · Made for Chrome Android</div>';
 

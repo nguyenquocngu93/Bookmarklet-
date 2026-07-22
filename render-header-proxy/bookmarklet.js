@@ -1402,6 +1402,7 @@ var playerState = {
   overlay: null,
   video: null,
   hls: null,
+  usingNativeHls: false,
   qualities: [],
   currentQuality: 0,
   speed: 1,
@@ -1885,6 +1886,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
+  playerState.usingNativeHls = false;
   __uvdStopThumbnailHls();
   if (!fromProxy) playerState.proxyRetried = false;
   if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
@@ -2333,7 +2335,15 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   }
 
   if (isHls) {
-    if (window.Hls && Hls.isSupported()) {
+    var nativeHlsType = video.canPlayType('application/vnd.apple.mpegurl');
+    var canTryNativeHls = !!nativeHlsType && !fromProxy && !__uvdMediaAccessTokens.length;
+    if (canTryNativeHls) {
+      // Chrome Android reports "maybe" on devices with a native HLS path.
+      // Prefer it for ordinary sources to avoid hls.js transmux CPU usage;
+      // the existing error/stall fallback will retry through hls.js/proxy.
+      playerState.usingNativeHls = true;
+      video.src = url;
+    } else if (window.Hls && Hls.isSupported()) {
       activeHls = new Hls(__uvdMakeHlsConfig(Hls));
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
@@ -2363,10 +2373,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
         updateInfoDisplay();
       });
       playerState.hls = activeHls;
-    } else if (video.canPlayType('application/vnd.apple.mpegurl') && /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|Android|Vivaldi/i.test(navigator.userAgent)) {
-      // Chỉ dùng HLS native trên Safari thật. Android Chromium/Vivaldi đôi khi trả "maybe"
-      // nhưng không tải segment ổn định, nên buộc dùng hls.js để đi qua proxy từng segment.
-      video.src = url;
     } else {
       __uvdEnsureHls(function() {
         if (playerState.closing || playerState.video !== video) return;

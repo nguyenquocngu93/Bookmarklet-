@@ -2123,7 +2123,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoArea.style.maxHeight = 'none';
       var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
       var frameWidth = videoWrapper.clientWidth ? videoWrapper.clientWidth * 0.95 : 0;
-      if (frameWidth > 0) videoArea.style.height = Math.ceil(frameWidth * landscapeRatio + 24) + 'px';
+      if (frameWidth > 0) videoArea.style.height = Math.ceil(frameWidth * landscapeRatio + 90) + 'px';
       // Video ngang: giữ nguyên — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';

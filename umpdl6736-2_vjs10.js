@@ -1430,6 +1430,9 @@ var playerState = {
   overlay: null,
   video: null,
   hls: null,
+  usingNativeHls: false,
+  nativeFallbackTimer: null,
+  nativePlayAttempted: false,
   qualities: [],
   currentQuality: 0,
   speed: 1,
@@ -1916,7 +1919,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   __uvdStopThumbnailHls();
   if (!fromProxy) playerState.proxyRetried = false;
   if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
+  if (playerState.nativeFallbackTimer) clearTimeout(playerState.nativeFallbackTimer);
   playerState.proxyFallbackTimer = null;
+  playerState.nativeFallbackTimer = null;
+  playerState.nativePlayAttempted = false;
   playerState.sizeRequested = false;
   playerState.playbackError = '';
   playerState.closing = false;
@@ -2328,6 +2334,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
+    if (playerState.usingNativeHls && !forceHlsJs) { showVideoPlayer(url, type, fromProxy, true, true); return; }
     if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
     var code = video.error && video.error.code;
     if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc dữ liệu đọc chưa đúng).');
@@ -2360,8 +2367,21 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
     return list[idx + 1];
   }
 
+  video.addEventListener('play', function() { playerState.nativePlayAttempted = true; });
+  video.addEventListener('playing', function() { if (playerState.nativeFallbackTimer) { clearTimeout(playerState.nativeFallbackTimer); playerState.nativeFallbackTimer = null; } });
+
   if (isHls) {
-    if (window.Hls && Hls.isSupported()) {
+    var nativeHlsType = video.canPlayType('application/vnd.apple.mpegurl');
+    var canTryNativeHls = !forceHlsJs && !!nativeHlsType && !fromProxy && !__uvdMediaAccessTokens.length;
+    if (canTryNativeHls) {
+      playerState.usingNativeHls = true;
+      video.src = url;
+      playerState.nativeFallbackTimer = setTimeout(function() {
+        if (playerState.closing || playerState.video !== video || !playerState.usingNativeHls) return;
+        var metadataReady = video.readyState >= 2 && video.videoWidth > 0 && isFinite(video.duration) && video.duration > 0;
+        if (!metadataReady || playerState.nativePlayAttempted) showVideoPlayer(url, type, fromProxy, true, true);
+      }, 8000);
+    } else if (window.Hls && Hls.isSupported()) {
       activeHls = new Hls(__uvdMakeHlsConfig(Hls));
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
@@ -2463,6 +2483,7 @@ function closePlayer() {
     }
     clearTimeout(playerState.hideTimeout);
     clearTimeout(playerState.dimTimeout);
+    clearTimeout(playerState.nativeFallbackTimer);
     if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}

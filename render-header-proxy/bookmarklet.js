@@ -1414,6 +1414,8 @@ var playerState = {
   proxyRetried: false,
   sizeRequested: false,
   proxyFallbackTimer: null,
+  nativeFallbackTimer: null,
+  nativePlayAttempted: false,
   vjsMountCancel: null,
   closing: false,
   _displayedResolution: '',
@@ -1879,7 +1881,7 @@ function retryThroughHeaderProxy(sourceUrl, type) {
 }
 
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type, fromProxy, forceReinit) {
+function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   // When hls.js is loaded lazily, the player shell already exists. Allow the
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;
@@ -1890,7 +1892,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   __uvdStopThumbnailHls();
   if (!fromProxy) playerState.proxyRetried = false;
   if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
+  if (playerState.nativeFallbackTimer) clearTimeout(playerState.nativeFallbackTimer);
   playerState.proxyFallbackTimer = null;
+  playerState.nativeFallbackTimer = null;
+  playerState.nativePlayAttempted = false;
   playerState.sizeRequested = false;
   playerState.playbackError = '';
   playerState.closing = false;
@@ -2196,7 +2201,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
     }
     if (res) parts.push(res);
     var sizeText = '';
-    if (isHls) {
+    video.addEventListener('play', function() { playerState.nativePlayAttempted = true; });
+  video.addEventListener('playing', function() {
+    if (playerState.nativeFallbackTimer) { clearTimeout(playerState.nativeFallbackTimer); playerState.nativeFallbackTimer = null; }
+  });
+
+  if (isHls) {
       var bw = 0;
       if (playerState.hls) {
         var lvl = playerState.hls.levels[playerState.hls.currentLevel];
@@ -2302,6 +2312,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
+    if (playerState.usingNativeHls && !forceHlsJs) {
+      showVideoPlayer(url, type, fromProxy, true, true);
+      return;
+    }
     if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
     var code = video.error && video.error.code;
     if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc dữ liệu đọc chưa đúng).');
@@ -2336,13 +2350,21 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
 
   if (isHls) {
     var nativeHlsType = video.canPlayType('application/vnd.apple.mpegurl');
-    var canTryNativeHls = !!nativeHlsType && !fromProxy && !__uvdMediaAccessTokens.length;
+    var canTryNativeHls = !forceHlsJs && !!nativeHlsType && !fromProxy && !__uvdMediaAccessTokens.length;
     if (canTryNativeHls) {
       // Chrome Android reports "maybe" on devices with a native HLS path.
       // Prefer it for ordinary sources to avoid hls.js transmux CPU usage;
       // the existing error/stall fallback will retry through hls.js/proxy.
       playerState.usingNativeHls = true;
       video.src = url;
+      playerState.nativeFallbackTimer = setTimeout(function() {
+        if (playerState.closing || playerState.video !== video || !playerState.usingNativeHls) return;
+        var metadataReady = video.readyState >= 2 && video.videoWidth > 0 && isFinite(video.duration) && video.duration > 0;
+        if (!metadataReady || playerState.nativePlayAttempted) {
+          toast('🔁 Native HLS chưa phát, chuyển sang hls.js…');
+          showVideoPlayer(url, type, fromProxy, true, true);
+        }
+      }, 8000);
     } else if (window.Hls && Hls.isSupported()) {
       activeHls = new Hls(__uvdMakeHlsConfig(Hls));
       activeHls.loadSource(url);
@@ -2441,6 +2463,7 @@ function closePlayer() {
     }
     clearTimeout(playerState.hideTimeout);
     clearTimeout(playerState.dimTimeout);
+    clearTimeout(playerState.nativeFallbackTimer);
     if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}

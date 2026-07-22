@@ -8,38 +8,7 @@
 (function() {
 'use strict';
 
-var __uvdBooting = true;
-window.__uvdBootPhase = 'start';
-function __uvdReportBootError(reason) {
-  try {
-    var message = reason && (reason.message || reason.reason || reason) || 'unknown error';
-    var phase = window.__uvdBootPhase || 'unknown';
-    console.error('[UMP DL] Boot error at ' + phase + ':', reason);
-    if (document.getElementById('__uvd_boot_error__')) return;
-    var box = document.createElement('div');
-    box.id = '__uvd_boot_error__';
-    box.textContent = 'UMP DL không khởi động được ở bước ' + phase + ': ' + String(message);
-    box.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;z-index:2147483647;padding:14px 16px;border-radius:14px;background:#5b173f;color:#fff;font:600 13px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45);';
-    (document.body || document.documentElement).appendChild(box);
-    setTimeout(function() { if (box.parentNode) box.remove(); }, 12000);
-  } catch(e) { console.error('[UMP DL] Boot error reporter failed', e); }
-}
-window.addEventListener('error', function(event) {
-  // Ignore generic cross-origin page errors (Chrome reports these as the
-  // unhelpful "Script error."). Only surface an Error with a real stack
-  // while UMP itself is booting.
-  if (__uvdBooting && event && event.error && event.error.stack && event.message !== 'Script error.') {
-    __uvdReportBootError(event.error);
-  }
-});
-window.addEventListener('unhandledrejection', function(event) {
-  if (__uvdBooting && event && event.reason && (event.reason.stack || event.reason.name)) {
-    __uvdReportBootError(event.reason);
-  }
-});
-
 var VERSION = '6.7.26';
-var BOOKMARKLET_NAME = 'universal media full';
 var HEADER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
 
 // ========== CLEANUP ==========
@@ -90,16 +59,6 @@ data.settings = Object.assign({
   headerProxyKey: '',
   subdlApiKey: ''
 }, data.settings || {});
-var __uvdSmoothDefaultsVersion = 1;
-if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
-  data.settings.reduceMotion = true;
-  data.settings.blurIntensity = 0;
-  data.settings.transitionSpeed = 0.08;
-  data.settings.glowEffects = false;
-  data.settings.effectsIntensity = 0;
-  data.settings.__uvdSmoothDefaultsVersion = __uvdSmoothDefaultsVersion;
-  storage.set(data);
-}
 
 // ========== PROFILES ==========
 var defaultProfiles = {
@@ -107,8 +66,7 @@ var defaultProfiles = {
   'streamtape.com': { referer: 'https://streamtape.com/', userAgent: '' },
   'ok.ru': { referer: 'https://ok.ru/', userAgent: '' },
   'fembed.com': { referer: 'https://fembed.com/', userAgent: '' },
-  'mp4upload.com': { referer: 'https://mp4upload.com/', userAgent: '' },
-  'abyssplayer.com': { referer: 'https://abyssplayer.com/', userAgent: '', playSelector: '#overlay' }
+  'mp4upload.com': { referer: 'https://mp4upload.com/', userAgent: '' }
 };
 
 var host = location.hostname.replace('www.', '');
@@ -191,32 +149,6 @@ function isAdUrl(url) {
 
 // ========== URL DETECTION ==========
 var urls = new Map();
-var __uvdMediaAccessTokens = [];
-function __uvdRememberAccessToken(url) {
-  try {
-    var parsed = new URL(url, location.href);
-    var token = parsed.searchParams.get('access_token');
-    if (!token) return;
-    var existing = __uvdMediaAccessTokens.find(function(item) { return item.host === parsed.hostname && item.token === token; });
-    if (existing) { existing.updatedAt = Date.now(); return; }
-    __uvdMediaAccessTokens.push({ host: parsed.hostname, path: parsed.pathname, token: token, updatedAt: Date.now() });
-    if (__uvdMediaAccessTokens.length > 8) __uvdMediaAccessTokens.shift();
-  } catch(e) {}
-}
-function __uvdGetLatestMediaAccessToken(url) {
-  var list = __uvdMediaAccessTokens.slice().sort(function(a, b) { return b.updatedAt - a.updatedAt; });
-  if (!list.length) return '';
-  return list[0].token;
-}
-function __uvdAppendAccessToken(url, token) {
-  if (!token || !url) return url;
-  try {
-    var parsed = new URL(url, location.href);
-    if (!/customers\.iw01\.xyz$/i.test(parsed.hostname) || parsed.searchParams.has('access_token')) return parsed.toString();
-    parsed.searchParams.set('access_token', token);
-    return parsed.toString();
-  } catch(e) { return url; }
-}
 var patterns = [
   { re: /https?:\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mpd[^\s"'<>()\\]*/gi, type: 'MPD', priority: 2 },
@@ -229,129 +161,22 @@ var patterns = [
 ];
 
 var __uvdFindUrlsCache = {};
-function __uvdIsEmbedMediaUrl(url) {
-  try {
-    var parsed = new URL(url, location.href);
-    var path = (parsed.pathname || '').toLowerCase();
-    var host = (parsed.hostname || '').replace(/^www\./, '');
-    var abyssEmbed = host === 'abyssplayer.com' && /^\/[^\/]+\/?$/.test(path);
-    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed;
-  } catch(e) { return false; }
-}
-function __uvdLooksLikeHlsUrl(url) {
-  try {
-    var parsed = new URL(url, location.href);
-    var path = (parsed.pathname || '').toLowerCase();
-    // javynow-style URLs end in .mp4 but are actually HLS playlists. Their
-    // segment URLs contain /seg= and must remain ordinary proxy segments.
-    return path.indexOf('/seg=') === -1 && /\/media=hls(?:\/|$)/i.test(path);
-  } catch(e) { return /media=hls/i.test(String(url || '')) && !/\/seg=/i.test(String(url || '')); }
-}
-function __uvdIsLikelyHlsSegmentUrl(url) {
-  return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$)|init-[^/?#]+\.mp4(?:[?#]|$))/i.test(String(url || ''));
-}
-function __uvdAddDetectedMediaUrl(url, type, source) {
-  if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
-  url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-  if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
-  else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
-  type = type || 'MP4';
-  var priorityMap = { M3U8: 1, MPD: 2, MP4: 3, WEBM: 4, BLOB: 8, IFRAME: 99 };
-  var priority = priorityMap[type] || 6;
-  var existing = urls.get(url);
-  if (!existing || existing.type !== type || existing.priority > priority) {
-    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now() });
-    return true;
-  }
-  return false;
-}
-function findPlaylistBodyUrls(text, source) {
-  if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
-  var changed = false;
-  var expectingVariant = false;
-  function addPlaylistUrl(raw) {
-    var u = (raw || '').trim().replace(/^['"]|['"]$/g, '')
-      .replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
-    if (!/^https?:\/\//i.test(u)) return;
-    var existing = urls.get(u);
-    if (!existing || existing.type !== 'M3U8' || existing.priority > 1) {
-      urls.set(u, { type: 'M3U8', source: source + ':playlist', priority: 1, timestamp: Date.now() });
-      changed = true;
-    }
-  }
-  text.split(/\r?\n/).forEach(function(line) {
-    var trimmed = line.trim();
-    if (!trimmed) return;
-    if (/^#EXT-X-STREAM-INF/i.test(trimmed)) {
-      expectingVariant = true;
-      return;
-    }
-    if (/^#EXT-X-I-FRAME-STREAM-INF/i.test(trimmed) || (/^#EXT-X-MEDIA/i.test(trimmed) && /TYPE=AUDIO/i.test(trimmed))) {
-      var uri = (trimmed.match(/URI="([^"]+)"/i) || [])[1];
-      if (uri) addPlaylistUrl(uri);
-      return;
-    }
-    if (expectingVariant) {
-      if (trimmed.charAt(0) !== '#') addPlaylistUrl(trimmed);
-      expectingVariant = false;
-    }
-  });
-  return changed;
-}
-var __uvdMediaPauseTimer = null;
-function __uvdPausePageAfterMediaFound() {
-  if (typeof playerState !== 'undefined' && playerState && playerState.overlay) return;
-  clearTimeout(__uvdMediaPauseTimer);
-  __uvdMediaPauseTimer = setTimeout(function() {
-    try { pauseAllPlayingVideos(); } catch(e) {}
-    setTimeout(function() { try { pauseAllPlayingVideos(); } catch(e) {} }, 700);
-  }, 80);
-}
 function findUrls(text, source) {
-  if (!text || typeof text !== 'string' || text.length > 300000) return;
-  if (text.length > 30000 && String(source || '').indexOf(':body') === -1 && String(source || '').indexOf(':playlist') === -1) return;
+  if (!text || typeof text !== 'string' || text.length > 30000) return;
   var hash = text.length + source;
   if (__uvdFindUrlsCache[hash]) return;
   __uvdFindUrlsCache[hash] = true;
-  var isPlaylistBody = text.indexOf('#EXTM3U') !== -1;
-  var changed = findPlaylistBodyUrls(text, source);
-  // Do not run generic .mp4/.ts/image URL matching over an HLS playlist.
-  // Those URLs are segments, not independent streams; adding them caused
-  // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
-  if (isPlaylistBody) {
-    __uvdDismissIframeWorkflowIfVideoFound();
-    if (changed) {
-      __uvdPausePageAfterMediaFound();
-      setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
-    }
-    return;
-  }
   patterns.forEach(function(p) {
     var matches = text.match(p.re);
     if (matches) {
       matches.forEach(function(u) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
-        __uvdRememberAccessToken(u);
-        if (__uvdIsLikelyHlsSegmentUrl(u)) return;
         if (isAdUrl(u)) {
           __uvdAdBlockedCount++;
           return;
         }
-        // Streamtape-style /e/ URLs often contain .mp4 in the slug/query,
-        // but they are HTML embed pages, not playable MP4 files. Keep them
-        // as iframe candidates so the iframe and direct-media paths coexist.
-        if (__uvdIsEmbedMediaUrl(u)) {
-          var oldEmbed = urls.get(u);
-          if (!oldEmbed || oldEmbed.type !== 'IFRAME' || oldEmbed.priority !== 99) changed = true;
-          urls.set(u, { type: 'IFRAME', source: source, priority: 99, timestamp: Date.now() });
-          return;
-        }
-        var detectedType = __uvdLooksLikeHlsUrl(u) ? 'M3U8' : p.type;
-        var detectedPriority = detectedType === 'M3U8' ? 1 : p.priority;
-        if (!urls.has(u) || urls.get(u).priority > detectedPriority || urls.get(u).type !== detectedType) {
-          urls.set(u, { type: detectedType, source: source, priority: detectedPriority, timestamp: Date.now() });
-          changed = true;
-          if (['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(detectedType) !== -1) __uvdPausePageAfterMediaFound();
+        if (!urls.has(u) || urls.get(u).priority > p.priority) {
+          urls.set(u, { type: p.type, source: source, priority: p.priority, timestamp: Date.now() });
         }
       });
     }
@@ -363,41 +188,18 @@ function findUrls(text, source) {
       urls.delete(keys[i]);
     }
   }
-  // Keep capture silent. Rebuilding the entire card list for every newly
-  // seen URL was the source of the visible UI flash. Preload/Auto Play do a
-  // single deliberate refresh after their capture window.
-  __uvdDismissIframeWorkflowIfVideoFound();
-  if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
 }
 
-function scan(doc, src, light) {
+function scan(doc, src) {
   try {
-    if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
-      urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
-    }
-    doc.querySelectorAll('[data-link],[data-src],[data-video-url],[data-file],[data-hls],[data-m3u8]').forEach(function(el) {
-      ['data-link','data-src','data-video-url','data-file','data-hls','data-m3u8'].forEach(function(attr) {
-        var value = el.getAttribute && el.getAttribute(attr);
-        if (value) findUrls(value, src + ':' + attr);
-      });
-    });
     doc.querySelectorAll('video, source, audio').forEach(function(v) {
-      var tag = (v.tagName || '').toUpperCase();
-      var typeHint = ((v.getAttribute && (v.getAttribute('type') || v.getAttribute('data-type') || '')) + ' ' + (v.src || '')).toLowerCase();
-      var mediaType = /m3u8|mpegurl|hls/.test(typeHint) ? 'M3U8' : (/video\//.test(typeHint) || tag === 'VIDEO' || tag === 'SOURCE' ? 'MP4' : '');
-      var elementUrl = v.src || (v.getAttribute && (v.getAttribute('data-src') || v.getAttribute('data-video-url')));
-      if (elementUrl) {
-        if (!__uvdAddDetectedMediaUrl(elementUrl, mediaType, src + ':element')) findUrls(elementUrl, src + ':element');
-        else if (mediaType) __uvdPausePageAfterMediaFound();
-      }
-      if (v.currentSrc) {
-        if (!__uvdAddDetectedMediaUrl(v.currentSrc, mediaType, src + ':current')) findUrls(v.currentSrc, src + ':current');
-      }
+      if (v.src) findUrls(v.src, src + ':element');
+      if (v.currentSrc) findUrls(v.currentSrc, src + ':current');
     });
     doc.querySelectorAll('script').forEach(function(s) {
       findUrls(s.textContent, src + ':script');
     });
-    if (!light) findUrls(doc.documentElement.outerHTML, src + ':html');
+    findUrls(doc.documentElement.outerHTML, src + ':html');
     doc.querySelectorAll('iframe').forEach(function(i, idx) {
       if (i.src) {
         var iframeUrl = i.src;
@@ -418,42 +220,12 @@ var __uvdPopupBlockActive = false;
 var __uvdOriginalWindowOpen = null;
 var __uvdPopupGuardTimer = null;
 var __uvdBlockedCount = 0;
-var __uvdAllowedOpenUrls = {};
-
-function __uvdAllowExternalOpen(url) {
-  try { __uvdAllowedOpenUrls[new URL(url, location.href).href] = Date.now() + 15000; } catch(e) {}
-}
-function __uvdIsAllowedExternalOpen(url) {
-  try {
-    var key = new URL(url, location.href).href;
-    return __uvdAllowedOpenUrls[key] && __uvdAllowedOpenUrls[key] > Date.now();
-  } catch(e) { return false; }
-}
-function __uvdOpenAllowedExternal(url) {
-  __uvdAllowExternalOpen(url);
-  var opened = null;
-  try {
-    if (__uvdOriginalWindowOpen) opened = __uvdOriginalWindowOpen.call(window, url, '_blank');
-  } catch(e) {}
-  // Fallback for a stale/previous popup blocker: an allowed anchor click is
-  // still initiated by the user's button tap and bypasses our own window.open hook.
-  if (!opened) {
-    try {
-      var a = document.createElement('a');
-      a.href = url;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch(e) {}
-  }
-  return opened;
-}
 
 window.__uvdSafeOpen = function(url) {
-  return __uvdOpenAllowedExternal(url);
+  if (__uvdOriginalWindowOpen) {
+    return __uvdOriginalWindowOpen(url, '_blank');
+  }
+  return window.open(url, '_blank');
 };
 
 function killBlankLinks(e) {
@@ -461,7 +233,6 @@ function killBlankLinks(e) {
   if (t.closest && (t.closest('#__uvd__') || t.closest('#__uvd_player_overlay__'))) return;
   while (t && t !== document) {
     if (t && t.tagName === 'A') {
-      if (__uvdIsAllowedExternalOpen(t.href)) return;
       var tg = t.target;
       if (tg && tg !== '_self' && tg !== '_top' && tg !== '_parent') {
         e.preventDefault();
@@ -477,14 +248,13 @@ function killBlankLinks(e) {
 function installPopupBlock() {
   if (__uvdPopupBlockActive) return;
   __uvdPopupBlockActive = true;
-  if (!window.__uvdNativeWindowOpen) window.__uvdNativeWindowOpen = window.open;
-  __uvdOriginalWindowOpen = window.__uvdNativeWindowOpen;
+  __uvdOriginalWindowOpen = window.open;
   var blockWindowOpen = function() { __uvdBlockedCount++; return null; };
   window.open = blockWindowOpen;
   __uvdPopupGuardTimer = setInterval(function() {
     if (__uvdPopupBlockActive && window.open !== blockWindowOpen) window.open = blockWindowOpen;
   }, 1000);
-  ['click', 'mousedown', 'pointerdown', 'pointerup', 'touchend', 'auxclick'].forEach(function(type) {
+  ['click', 'mousedown', 'pointerdown', 'auxclick'].forEach(function(type) {
     document.addEventListener(type, killBlankLinks, true);
   });
 }
@@ -494,109 +264,9 @@ function uninstallPopupBlock() {
   __uvdPopupBlockActive = false;
   if (__uvdPopupGuardTimer) { clearInterval(__uvdPopupGuardTimer); __uvdPopupGuardTimer = null; }
   if (__uvdOriginalWindowOpen) window.open = __uvdOriginalWindowOpen;
-  ['click', 'mousedown', 'pointerdown', 'pointerup', 'touchend', 'auxclick'].forEach(function(type) {
+  ['click', 'mousedown', 'pointerdown', 'auxclick'].forEach(function(type) {
     document.removeEventListener(type, killBlankLinks, true);
   });
-}
-
-// ========== UNIVERSAL OVERLAY BLOCKER ==========
-// The host may place transparent fixed/absolute links or panels over the
-// video. Keep this scan debounced and limited to the video rectangle so it
-// does not continuously walk the whole page during playback.
-var __uvdOverlayBlockState = null;
-function __uvdGetPageVideo() {
-  var found = null;
-  try {
-    document.querySelectorAll('video').forEach(function(v) {
-      if (found || __uvdIsOwnUI(v)) return;
-      var r = v.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) found = v;
-    });
-  } catch(e) {}
-  return found;
-}
-function __uvdOverlayScan() {
-  var state = __uvdOverlayBlockState;
-  if (!state || (typeof playerState !== 'undefined' && playerState && playerState.overlay)) return;
-  var video = __uvdGetPageVideo();
-  if (!video) return;
-  var vr = video.getBoundingClientRect();
-  if (!vr.width || !vr.height) return;
-  try {
-    document.querySelectorAll('a[href],div').forEach(function(el) {
-      if (__uvdIsOwnUI(el) || el === video || el.contains(video) || video.contains(el)) return;
-      var style = getComputedStyle(el);
-      var pos = style.position;
-      if (pos !== 'absolute' && pos !== 'fixed' && pos !== 'sticky') return;
-      var r = el.getBoundingClientRect();
-      var overlaps = !(r.right < vr.left || r.left > vr.right || r.bottom < vr.top || r.top > vr.bottom);
-      if (!overlaps) return;
-      var z = parseInt(style.zIndex, 10) || 0;
-      var isAnchor = el.tagName === 'A';
-      var isOverlayDiv = el.tagName === 'DIV' && z > 1 && !el.querySelector('video,iframe,button,input,select,textarea');
-      if (!isAnchor && !isOverlayDiv) return;
-      if (!state.touched.has(el)) {
-        state.touched.set(el, {
-          pointerEvents: el.style.pointerEvents,
-          display: el.style.display,
-          opacity: el.style.opacity,
-          href: isAnchor ? el.getAttribute('href') : null
-        });
-      }
-      el.style.pointerEvents = 'none';
-      if (isAnchor) {
-        el.style.display = 'none';
-        el.removeAttribute('href');
-      } else {
-        el.style.opacity = '0';
-      }
-    });
-  } catch(e) {}
-}
-function __uvdBlockExternalLink(e) {
-  var state = __uvdOverlayBlockState;
-  if (!state) return;
-  var target = e.target;
-  var a = target && target.closest ? target.closest('a') : null;
-  if (!a || __uvdIsOwnUI(a) || !a.href || a.href.indexOf('#') === 0 || __uvdIsAllowedExternalOpen(a.href)) return;
-  try {
-    var url = new URL(a.href, location.href);
-    if (url.hostname !== location.hostname) {
-      e.preventDefault();
-      e.stopPropagation();
-      __uvdBlockedCount++;
-    }
-  } catch(ex) {}
-}
-function installUniversalOverlayBlocker() {
-  if (__uvdOverlayBlockState) return;
-  var state = __uvdOverlayBlockState = { scanTimer: null, interval: null, observer: null, touched: new Map() };
-  state.schedule = function() {
-    clearTimeout(state.scanTimer);
-    state.scanTimer = setTimeout(__uvdOverlayScan, 300);
-  };
-  ['click', 'pointerup', 'touchend', 'auxclick'].forEach(function(type) { document.addEventListener(type, __uvdBlockExternalLink, true); });
-  state.observer = new MutationObserver(state.schedule);
-  try { state.observer.observe(document.body, { childList: true, subtree: true }); } catch(e) {}
-  state.interval = setInterval(state.schedule, 3500);
-  state.schedule();
-}
-function uninstallUniversalOverlayBlocker() {
-  var state = __uvdOverlayBlockState;
-  if (!state) return;
-  clearTimeout(state.scanTimer);
-  if (state.interval) clearInterval(state.interval);
-  if (state.observer) state.observer.disconnect();
-  ['click', 'pointerup', 'touchend', 'auxclick'].forEach(function(type) { document.removeEventListener(type, __uvdBlockExternalLink, true); });
-  state.touched.forEach(function(original, el) {
-    try {
-      el.style.pointerEvents = original.pointerEvents;
-      el.style.display = original.display;
-      el.style.opacity = original.opacity;
-      if (original.href !== null) el.setAttribute('href', original.href);
-    } catch(e) {}
-  });
-  __uvdOverlayBlockState = null;
 }
 
 // ========== AUTO-CLICK PLAY ==========
@@ -617,7 +287,6 @@ var AUTO_PLAY_SELECTORS = [
 
 function simulateClick(el) {
   try {
-    __uvdGrantPagePlayback(8000);
     var rect = el.getBoundingClientRect();
     if (!rect.width || !rect.height) return false;
     var x = rect.left + rect.width / 2;
@@ -654,32 +323,6 @@ function __uvdElementSelector(el) {
   var parent = el.parentElement;
   var idx = parent ? Array.prototype.indexOf.call(parent.children, el) : 0;
   return tag + ':nth-child(' + (idx + 1) + ')';
-}
-
-function __uvdLooksLikePlayElement(el) {
-  if (!el || __uvdIsOwnUI(el)) return false;
-  var text = (el.textContent || '').trim().toLowerCase();
-  var id = (el.id || '').toLowerCase();
-  var cls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
-  var aria = (el.getAttribute && (el.getAttribute('aria-label') || '') || '').toLowerCase();
-  return /play|start|watch|overlay|playback|xem|phát/.test(text + ' ' + id + ' ' + cls + ' ' + aria);
-}
-function __uvdLearnPlaySelector(e) {
-  var target = e && e.target;
-  if (!target || __uvdIsOwnUI(target)) return;
-  var el = target.closest && target.closest('button,a,[role="button"],[id],[class]');
-  if (!el || !__uvdLooksLikePlayElement(el)) return;
-  var selector = __uvdElementSelector(el);
-  if (!selector) return;
-  data.siteProfiles[pageInfo.host] = data.siteProfiles[pageInfo.host] || {};
-  if (data.siteProfiles[pageInfo.host].playSelector === selector) return;
-  data.siteProfiles[pageInfo.host].playSelector = selector;
-  storage.set(data);
-  console.info('[UMP DL] Đã học Play selector cho ' + pageInfo.host + ': ' + selector);
-}
-function installPlaySelectorLearning() {
-  document.addEventListener('click', __uvdLearnPlaySelector, true);
-  addCleanup(function() { document.removeEventListener('click', __uvdLearnPlaySelector, true); });
 }
 
 function isButtonBlocked(el) {
@@ -909,17 +552,6 @@ function openSettingsOverlay() {
   requestAnimationFrame(function() { ov.classList.add('uvd-open'); });
 }
 
-function __uvdStopThumbnailHls() {
-  try {
-    document.querySelectorAll('.uvd-thumb-video').forEach(function(video) {
-      var preview = video.closest('.uvd-card-preview');
-      var hls = preview && preview.__uvdThumbHls;
-      if (hls) { try { hls.destroy(); } catch(e) {} preview.__uvdThumbHls = null; }
-      try { video.pause(); } catch(e) {}
-    });
-  } catch(e) {}
-}
-
 function pauseAllPlayingVideos(root, depth) {
   root = root || document;
   depth = depth || 0;
@@ -942,39 +574,9 @@ function pauseAllPlayingVideos(root, depth) {
   return pausedCount;
 }
 
-// ========== LOW POWER PLAYBACK MODE ==========
-var __uvdLowPowerMode = false;
-function __uvdStartAutoplayObserver() {
-  try { __uvdAutoplayObserver.observe(document.body, { childList: true, subtree: false }); } catch(e) {}
-}
-function __uvdEnterLowPowerMode() {
-  if (__uvdLowPowerMode) return;
-  __uvdLowPowerMode = true;
-  stopLiveMonitorOnly();
-  try { __uvdAutoplayObserver.disconnect(); } catch(e) {}
-  try { uninstallUniversalOverlayBlocker(); } catch(e) {}
-  document.documentElement.classList.add('uvd-page-frozen');
-  var panel = document.getElementById('__uvd__');
-  if (panel) panel.style.display = 'none';
-  toast('🔋 Đã giảm tải nền — video vẫn tiếp tục phát');
-}
-function __uvdExitLowPowerMode() {
-  if (!__uvdLowPowerMode) return;
-  __uvdLowPowerMode = false;
-  document.documentElement.classList.remove('uvd-page-frozen');
-  installMonitor();
-  if (!__uvdPopupBlockActive) installPopupBlock();
-  installUniversalOverlayBlocker();
-  __uvdStartAutoplayObserver();
-  var panel = document.getElementById('__uvd__');
-  if (panel) panel.style.display = '';
-  toast('☀️ Đã bật lại giám sát UMP');
-}
-
 // ========== LIVE MONITORING ==========
 var originalFetch = window.fetch;
 var originalXHROpen = XMLHttpRequest.prototype.open;
-var __uvdPerformanceObserver = null;
 var monitorActive = false;
 
 function installMonitor() {
@@ -983,83 +585,23 @@ function installMonitor() {
   window.fetch = function() {
     var url = arguments[0];
     if (typeof url === 'string') {
-      __uvdRememberAccessToken(url);
-      if (!isAdUrl(url) && !__uvdIsLikelyHlsSegmentUrl(url)) findUrls(url, 'fetch:live');
+      if (!isAdUrl(url)) findUrls(url, 'fetch:live');
     } else if (url && url.url) {
-      __uvdRememberAccessToken(url.url);
-      if (!isAdUrl(url.url) && !__uvdIsLikelyHlsSegmentUrl(url.url)) findUrls(url.url, 'fetch:live');
+      if (!isAdUrl(url.url)) findUrls(url.url, 'fetch:live');
     }
-    var requestPromise = originalFetch.apply(this, arguments);
-    Promise.resolve(requestPromise).then(function(response) {
-      try {
-        var responseUrl = response && response.url;
-        var contentType = response && response.headers && (response.headers.get('content-type') || '');
-        if (responseUrl && !isAdUrl(responseUrl)) {
-          if (/mpegurl/i.test(contentType)) __uvdAddDetectedMediaUrl(responseUrl, 'M3U8', 'fetch:manifest');
-          else findUrls(responseUrl, 'fetch:response');
-        }
-        var inspectResponseBody = /mpegurl/i.test(contentType) ||
-          (/json/i.test(contentType) && /api|source|video|media|play|stream|manifest|playlist/i.test(responseUrl || '')) ||
-          /m3u8|manifest|playlist/i.test(responseUrl || '');
-        if (response && response.clone && inspectResponseBody) {
-          response.clone().text().then(function(body) {
-            findUrls(body, 'fetch:body');
-          }).catch(function() {});
-        }
-      } catch(e) {}
-    }).catch(function() {});
-    return requestPromise;
+    return originalFetch.apply(this, arguments);
   };
   XMLHttpRequest.prototype.open = function(method, url) {
-    __uvdRememberAccessToken(url);
-    if (url && !isAdUrl(url) && !__uvdIsLikelyHlsSegmentUrl(url)) findUrls(url, 'xhr:live');
-    if (!this.__uvdBodyHooked) {
-      this.__uvdBodyHooked = true;
-      this.addEventListener('load', function() {
-        try {
-          var xhrType = this.getResponseHeader('content-type') || '';
-          var xhrBody = typeof this.responseText === 'string' ? this.responseText : '';
-          if (this.responseURL && !isAdUrl(this.responseURL)) {
-            if (/mpegurl/i.test(xhrType) || xhrBody.indexOf('#EXTM3U') !== -1) __uvdAddDetectedMediaUrl(this.responseURL, 'M3U8', 'xhr:manifest');
-            else findUrls(this.responseURL, 'xhr:response');
-          }
-          if (xhrBody) findUrls(xhrBody, 'xhr:body');
-        } catch(e) {}
-      });
-    }
+    if (url && !isAdUrl(url)) findUrls(url, 'xhr:live');
     return originalXHROpen.apply(this, arguments);
   };
-  if (typeof PerformanceObserver !== 'undefined') {
-    try {
-      __uvdPerformanceObserver = new PerformanceObserver(function(list) {
-        list.getEntries().forEach(function(entry) {
-          if (entry && entry.name) { __uvdRememberAccessToken(entry.name); }
-          if (entry && entry.name && !isAdUrl(entry.name) && !__uvdIsLikelyHlsSegmentUrl(entry.name)) findUrls(entry.name, 'network:observer');
-        });
-      });
-      __uvdPerformanceObserver.observe({ type: 'resource', buffered: true });
-      addCleanup(function() {
-        if (__uvdPerformanceObserver) {
-          __uvdPerformanceObserver.disconnect();
-          __uvdPerformanceObserver = null;
-        }
-      });
-    } catch(e) {}
-  }
 }
 
-function stopLiveMonitorOnly() {
+function stopMonitor() {
   window.fetch = originalFetch;
   XMLHttpRequest.prototype.open = originalXHROpen;
-  if (__uvdPerformanceObserver) {
-    try { __uvdPerformanceObserver.disconnect(); } catch(e) {}
-    __uvdPerformanceObserver = null;
-  }
-  monitorActive = false;
-}
-function stopMonitor() {
-  stopLiveMonitorOnly();
   uninstallPopupBlock();
+  monitorActive = false;
 }
 
 // ========== CLEANUP ==========
@@ -1074,18 +616,11 @@ function runCleanup() {
 
 // ========== CHẶN AUTOPLAY ==========
 var __uvdNativeMediaPlay = HTMLMediaElement.prototype.play;
-var __uvdPagePlaybackGraceUntil = 0;
-function __uvdGrantPagePlayback(ms) {
-  __uvdPagePlaybackGraceUntil = Math.max(__uvdPagePlaybackGraceUntil, Date.now() + (ms || 8000));
-}
-function __uvdPagePlaybackAllowed() {
-  return Date.now() < __uvdPagePlaybackGraceUntil;
-}
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
 }
 HTMLMediaElement.prototype.play = function() {
-  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this) && !__uvdPagePlaybackAllowed()) {
+  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this)) {
     var self = this;
     setTimeout(function() { try { self.pause(); } catch(e) {} }, 0);
     return Promise.reject(new DOMException('UVD: đã chặn tự phát', 'NotAllowedError'));
@@ -1095,7 +630,7 @@ HTMLMediaElement.prototype.play = function() {
 addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
 
 function __uvdNeutralizeMedia(el) {
-  if (!el || __uvdIsAllowedMedia(el) || __uvdPagePlaybackAllowed()) return;
+  if (!el || __uvdIsAllowedMedia(el)) return;
   try {
     el.removeAttribute('autoplay');
     el.autoplay = false;
@@ -1103,7 +638,7 @@ function __uvdNeutralizeMedia(el) {
   } catch(e) {}
 }
 function __uvdBlockPlayEvent(e) {
-  if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
+  if (!data.settings.blockAutoplay) return;
   var el = e.target;
   if (el && (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') && !__uvdIsAllowedMedia(el)) {
     try { el.pause(); } catch(err) {}
@@ -1128,7 +663,7 @@ function __uvdFlushObserver() {
   }
 }
 var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
-  if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
+  if (!data.settings.blockAutoplay) return;
   for (var i = 0; i < mutations.length; i++) {
     var added = mutations[i].addedNodes;
     if (!added || !added.length) continue;
@@ -1141,7 +676,7 @@ var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
     __uvdObserverDebounce = setTimeout(__uvdFlushObserver, 200);
   }
 });
-__uvdStartAutoplayObserver();
+__uvdAutoplayObserver.observe(document.body, { childList: true, subtree: false });
 addCleanup(function() { __uvdAutoplayObserver.disconnect(); });
 
 try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {}
@@ -1157,20 +692,10 @@ addCleanup(function() {
 });
 
 // ========== INIT ==========
-try {
-  window.__uvdBootPhase = 'scan';
-  scan(document, 'main');
-  try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
-  window.__uvdBootPhase = 'monitor';
-  installMonitor();
-  installPopupBlock();
-  installUniversalOverlayBlocker();
-  addCleanup(uninstallUniversalOverlayBlocker);
-  installPlaySelectorLearning();
-  installIframeWorkflowVideoWatcher();
-} catch (initError) {
-  __uvdReportBootError(initError);
-}
+scan(document, 'main');
+try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
+installMonitor();
+installPopupBlock();
 
 var panelObserver = new MutationObserver(function() {
   if (!document.getElementById('__uvd__')) {
@@ -1187,23 +712,6 @@ var __uvdBuildUIDebounce = null;
 function debouncedBuildUI() {
   clearTimeout(__uvdBuildUIDebounce);
   __uvdBuildUIDebounce = setTimeout(buildUI, 300);
-}
-var __uvdLiveUiRefreshTimer = null;
-var __uvdLastLiveUiRefresh = 0;
-var __uvdLiveCaptureMode = false;
-var __uvdLiveUiDirty = false;
-function scheduleLiveUiRefresh() {
-  if (__uvdLiveCaptureMode) {
-    __uvdLiveUiDirty = true;
-    return;
-  }
-  if (!document.getElementById('__uvd__') || (playerState && playerState.overlay)) return;
-  var wait = Math.max(0, 900 - (Date.now() - __uvdLastLiveUiRefresh));
-  clearTimeout(__uvdLiveUiRefreshTimer);
-  __uvdLiveUiRefreshTimer = setTimeout(function() {
-    __uvdLastLiveUiRefresh = Date.now();
-    debouncedBuildUI();
-  }, wait);
 }
 
 function runAutoClickAndRescan(silent) {
@@ -1230,6 +738,7 @@ function runAutoClickAndRescan(silent) {
       var totalFound = afterCount - beforeCount;
       if (reportedAt === -1) {
         reportedAt = idx;
+        toast('▶ Tự động Play: tìm thêm ' + totalFound + ' luồng mới');
         if (document.getElementById('__uvd__')) debouncedBuildUI();
         setTimeout(function() {
           var n = pauseAllPlayingVideos();
@@ -1241,37 +750,6 @@ function runAutoClickAndRescan(silent) {
     }, delay);
   });
 }
-
-function runPreloadCapture() {
-  installMonitor();
-  installPopupBlock();
-  __uvdLiveCaptureMode = true;
-  __uvdLiveUiDirty = false;
-  toast('⏺ Đã bật bắt link realtime — giờ hãy bấm Play thật trên trang');
-  var delays = [0, 700, 1800, 3500, 6000];
-  delays.forEach(function(delay) {
-    setTimeout(function() {
-      try {
-        scan(document, 'preload', delay !== 0);
-        __uvdDismissIframeWorkflowIfVideoFound();
-        performance.getEntriesByType('resource').forEach(function(entry) {
-          if (!isAdUrl(entry.name)) findUrls(entry.name, 'preload:performance');
-        });
-      } catch(e) {}
-      if (delay === delays[delays.length - 1]) {
-        __uvdLiveCaptureMode = false;
-        if (__uvdLiveUiDirty) {
-          __uvdLiveUiDirty = false;
-          scheduleLiveUiRefresh();
-        }
-      } else {
-        __uvdMaybeOfferIframeWorkflow();
-        scheduleLiveUiRefresh();
-      }
-    }, delay);
-  });
-}
-window.__uvd_preload = function() { runPreloadCapture(); };
 
 window.__uvd_autoClickPlay = function() { runAutoClickAndRescan(false); };
 setTimeout(function() { runAutoClickAndRescan(true); }, 400);
@@ -1326,12 +804,6 @@ function makeCommands(url, type, title) {
 
 // ========== UTILS ==========
 function copy(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).catch(function() {
-      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-    });
-    return;
-  }
   var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
 }
 
@@ -1430,9 +902,6 @@ var playerState = {
   overlay: null,
   video: null,
   hls: null,
-  usingNativeHls: false,
-  nativeFallbackTimer: null,
-  nativePlayAttempted: false,
   qualities: [],
   currentQuality: 0,
   speed: 1,
@@ -1444,7 +913,6 @@ var playerState = {
   proxyRetried: false,
   sizeRequested: false,
   proxyFallbackTimer: null,
-  vjsMountCancel: null,
   closing: false,
   _displayedResolution: '',
   onFullscreenChange: null,
@@ -1730,32 +1198,21 @@ function hideGestureHintSoon() {
 function __uvdMountVjs10(wrapper, video, onMount) {
   var FALLBACK_MS = 4000;
   var done = false;
-  var cancelled = false;
-  var iv = null;
-  function cancel() {
-    cancelled = true;
-    if (iv) { clearInterval(iv); iv = null; }
-  }
   function fallbackToNative() {
-    if (done || cancelled) return;
+    if (done) return;
     done = true;
-    if (iv) { clearInterval(iv); iv = null; }
     if (!video.parentNode) wrapper.appendChild(video);
     video.setAttribute('controls', '');
   }
   function wrapWithSkin() {
-    if (done || cancelled || !video.isConnected) return;
+    if (done) return;
     done = true;
-    if (iv) { clearInterval(iv); iv = null; }
     try {
       var player = document.createElement('video-player');
-      // Flat mount: video-player is the only visual frame. video-skin is
-      // retained because VJS10 needs it, but it has no independent radius or
-      // background, avoiding nested rounded boxes.
-      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:0;background:#000;--media-border-radius:0;';
+      player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:inherit;background:var(--glass);';
       player.id = '__uvd_player_el__';
       var skin = document.createElement('video-skin');
-      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:0;background:transparent;';
+      skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:inherit;background:var(--glass);';
       if (video.parentNode) video.parentNode.removeChild(video);
       skin.appendChild(video);
       player.appendChild(skin);
@@ -1767,7 +1224,7 @@ function __uvdMountVjs10(wrapper, video, onMount) {
       fallbackToNative();
     }
   }
-  if (customElements.get('video-player')) { wrapWithSkin(); return cancel; }
+  if (customElements.get('video-player')) { wrapWithSkin(); return; }
   if (!window.__uvdVjs10Loading) {
     window.__uvdVjs10Loading = true;
     var s = document.createElement('script');
@@ -1777,104 +1234,16 @@ function __uvdMountVjs10(wrapper, video, onMount) {
     document.head.appendChild(s);
   }
   var checkStart = Date.now();
-  iv = setInterval(function() {
-    if (cancelled) { clearInterval(iv); iv = null; return; }
+  var iv = setInterval(function() {
     if (customElements.get('video-player')) {
+      clearInterval(iv);
       wrapWithSkin();
     } else if (Date.now() - checkStart > FALLBACK_MS) {
-      clearInterval(iv); iv = null;
+      clearInterval(iv);
       console.warn('[UMP DL] Video.js v10 chưa sẵn sàng sau ' + FALLBACK_MS + 'ms, dùng controls gốc');
       fallbackToNative();
     }
   }, 100);
-  return cancel;
-}
-
-// ========== HLS LOADER ==========
-// Share one lazy hls.js load between the player and HLS thumbnails. Without
-// this, thumbnail video elements fall back to a raw .m3u8 URL on Android
-// Chromium, which has no native HLS support.
-function __uvdFindClientMpegTsOffset(data) {
-  if (!data || typeof data === 'string') return -1;
-  var bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  var packetSize = 188;
-  var packetCount = 5;
-  var limit = Math.min(bytes.length - packetSize * packetCount, 64 * 1024);
-  if (limit < 0) return -1;
-  for (var offset = 0; offset <= limit; offset++) {
-    var aligned = true;
-    for (var packet = 0; packet < packetCount; packet++) {
-      if (bytes[offset + packet * packetSize] !== 0x47) { aligned = false; break; }
-    }
-    if (aligned) return offset;
-  }
-  return -1;
-}
-function __uvdNormalizeClientHlsData(data) {
-  var offset = __uvdFindClientMpegTsOffset(data);
-  if (offset <= 0) return data;
-  var bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  return bytes.buffer.slice(bytes.byteOffset + offset, bytes.byteOffset + bytes.byteLength);
-}
-function __uvdMakeHlsConfig(HlsCtor, options) {
-  var config = Object.assign({
-    maxBufferLength: 12,
-    maxMaxBufferLength: 24,
-    backBufferLength: 20,
-    maxBufferSize: 30 * 1000 * 1000,
-    capLevelToPlayerSize: true,
-    enableWorker: true
-  }, options || {});
-  var BaseLoader = HlsCtor && HlsCtor.DefaultConfig && HlsCtor.DefaultConfig.loader;
-  if (!BaseLoader) return config;
-  if (!HlsCtor.__uvdPngStripLoader) {
-    HlsCtor.__uvdPngStripLoader = class UvdPngStripLoader extends BaseLoader {
-      load(context, config, callbacks) {
-        var token = __uvdGetLatestMediaAccessToken(context && context.url);
-        if (token && context && context.url) context.url = __uvdAppendAccessToken(context.url, token);
-        var originalSuccess = callbacks.onSuccess;
-        callbacks.onSuccess = function(response, stats, loadedContext, networkDetails) {
-          try {
-            if (response && response.data && typeof response.data !== 'string') {
-              response.data = __uvdNormalizeClientHlsData(response.data);
-            }
-          } catch(e) {}
-          originalSuccess(response, stats, loadedContext, networkDetails);
-        };
-        return super.load(context, config, callbacks);
-      }
-    };
-  }
-  config.loader = HlsCtor.__uvdPngStripLoader;
-  config.fLoader = HlsCtor.__uvdPngStripLoader;
-  return config;
-}
-
-function __uvdEnsureHls(onReady, onError) {
-  if (window.Hls) {
-    onReady(window.Hls);
-    return;
-  }
-  window.__uvdHlsWaiters = window.__uvdHlsWaiters || [];
-  window.__uvdHlsWaiters.push({ ready: onReady, error: onError });
-  if (window.__uvdHlsLoading) return;
-  window.__uvdHlsLoading = true;
-  var script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.6.13/hls.min.js';
-  script.onload = function() {
-    window.__uvdHlsLoading = false;
-    var waiters = window.__uvdHlsWaiters || [];
-    window.__uvdHlsWaiters = [];
-    if (window.Hls) waiters.forEach(function(waiter) { try { waiter.ready(window.Hls); } catch(e) {} });
-    else waiters.forEach(function(waiter) { try { if (waiter.error) waiter.error(new Error('hls.js không đăng ký được')); } catch(e) {} });
-  };
-  script.onerror = function() {
-    window.__uvdHlsLoading = false;
-    var waiters = window.__uvdHlsWaiters || [];
-    window.__uvdHlsWaiters = [];
-    waiters.forEach(function(waiter) { try { if (waiter.error) waiter.error(new Error('Không tải được hls.js')); } catch(e) {} });
-  };
-  document.head.appendChild(script);
 }
 
 // ========== HEADER PROXY ==========
@@ -1887,8 +1256,6 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   params.set('referer', pageInfo.referer || location.href);
   params.set('origin', location.origin);
   params.set('ua', navigator.userAgent);
-  var accessToken = __uvdGetLatestMediaAccessToken(sourceUrl);
-  if (accessToken) params.set('access_token', accessToken);
   if (data.settings.headerProxyKey) params.set('key', data.settings.headerProxyKey);
   return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
 }
@@ -1909,25 +1276,14 @@ function retryThroughHeaderProxy(sourceUrl, type) {
 }
 
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
-  // forceHlsJs is used only after native HLS has failed. It must be a real
-  // parameter: an undeclared flag here would stop the player before hls.js
-  // gets a chance to take over, leaving the loading spinner forever.
-  forceHlsJs = !!forceHlsJs;
-  // When hls.js is loaded lazily, the player shell already exists. Allow the
-  // same URL to be re-initialized after the library finishes loading.
-  if (playerState.overlay && playerState.url === url && !forceReinit) return;
+function showVideoPlayer(url, type, fromProxy) {
+  if (playerState.overlay && playerState.url === url) return;
   if (playerState.overlay) closePlayer();
   playerState.url = url;
   playerState.type = type;
-  __uvdStopThumbnailHls();
   if (!fromProxy) playerState.proxyRetried = false;
   if (playerState.proxyFallbackTimer) clearTimeout(playerState.proxyFallbackTimer);
-  if (playerState.nativeFallbackTimer) clearTimeout(playerState.nativeFallbackTimer);
   playerState.proxyFallbackTimer = null;
-  playerState.nativeFallbackTimer = null;
-  playerState.nativePlayAttempted = false;
-  playerState.usingNativeHls = false;
   playerState.sizeRequested = false;
   playerState.playbackError = '';
   playerState.closing = false;
@@ -1952,13 +1308,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   sheet.className = 'uvd-settings-sheet uvd-player-sheet' + (playerState.launchFromThumbnail ? ' uvd-player-from-thumbnail' : '');
   playerState.launchFromThumbnail = false;
   sheet.style.cssText = 'display:flex; flex-direction:column; height:92dvh; max-height:92dvh; overflow:hidden; box-sizing:border-box;';
-  // On phones, let the bottom sheet wrap its actual video + info content
-  // instead of reserving the whole viewport for an otherwise empty player.
-  var __uvdCompactMobilePlayer = window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
-  if (__uvdCompactMobilePlayer) {
-    sheet.style.height = 'auto';
-    sheet.style.minHeight = '0';
-  }
   overlay.appendChild(sheet);
 
   var sheetHeader = document.createElement('div');
@@ -1986,18 +1335,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   var sheetBody = document.createElement('div');
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
-  if (__uvdCompactMobilePlayer) sheetBody.style.flex = '0 1 auto';
   var videoArea = document.createElement('div');
   videoArea.className = 'uvd-player-video-area';
-  // Mobile: the player area follows the video's aspect ratio instead of
-  // stretching to fill the whole sheet. This removes the large empty glass
-  // region above landscape video while keeping portrait video comfortable.
-  // The outer wrapper is the card; keep it slightly wider than the video
-  // surface so its glass edge and shadow remain visible without padding.
-  videoArea.style.cssText = 'flex:0 0 auto; min-height:0; overflow:visible; display:flex; align-items:center; justify-content:center;';
+  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass); border-radius:28px;';
+  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass);';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:var(--glass);';
@@ -2028,97 +1371,35 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   playerState.overlay = overlay;
   playerState.video = video;
-  // Keep popup blocking active, but pause the expensive background monitors
-  // automatically for the duration of playback.
-  __uvdEnterLowPowerMode();
   videoWrapper.style.boxSizing = 'border-box';
-
-  function __uvdBrightenPlayer() {
-    clearTimeout(playerState.dimTimeout);
-    sheet.classList.remove('uvd-player-dimmed');
-  }
-  function __uvdArmPlayerDim() {
-    clearTimeout(playerState.dimTimeout);
-    sheet.classList.remove('uvd-player-dimmed');
-    playerState.dimTimeout = setTimeout(function() {
-      if (!playerState.closing && video && !video.paused) sheet.classList.add('uvd-player-dimmed');
-    }, 5000);
-  }
-  ['pointerdown', 'touchstart', 'mousemove'].forEach(function(type) {
-    videoWrapper.addEventListener(type, __uvdBrightenPlayer, { passive: true });
-  });
-  video.addEventListener('playing', __uvdArmPlayerDim);
-  video.addEventListener('pause', __uvdBrightenPlayer);
 
   function __uvdIsFullscreenNow() {
     var fe = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     return !!(fe && (fe === videoWrapper || videoWrapper.contains(fe) || fe.contains(videoWrapper)));
   }
   var PORTRAIT_INSET = 12;
-  var FLOAT_SHADOW = '10px 14px 28px rgba(43,24,54,.22), 4px 6px 0 rgba(155,61,255,.10)';
+  var FLOAT_SHADOW = 'none';
   videoWrapper.style.position = 'relative';
   videoWrapper.style.overflow = 'hidden';
   function __uvdApplyPlayerLayout() {
     var playerEl = document.getElementById('__uvd_player_el__');
     if (!playerEl) return;
-    var skinEl = playerEl.querySelector('video-skin');
     var fs = __uvdIsFullscreenNow();
     var hasDims = video.videoWidth && video.videoHeight;
     var isPortrait = hasDims && video.videoHeight > video.videoWidth;
-    var surface = '#000';
-
-    // Keep one visual frame inside a slightly larger glass card: playerEl
-    // owns the black surface, while the wrapper provides the visible edge/shadow.
-    videoArea.style.background = fs ? '#000' : '';
-    videoArea.style.overflow = fs ? 'hidden' : 'visible';
-    videoWrapper.style.background = fs ? '#000' : 'var(--glass)';
-    videoWrapper.style.overflow = fs ? 'hidden' : 'visible';
-    videoWrapper.style.borderRadius = fs ? '0' : '28px';
-    videoWrapper.style.boxShadow = fs ? 'none' : FLOAT_SHADOW;
-    video.style.background = surface;
-    video.style.borderRadius = '0';
-    playerEl.style.background = surface;
-    playerEl.style.setProperty('--media-border-radius', '0');
-    if (skinEl) {
-      skinEl.style.background = 'transparent';
-      skinEl.style.borderRadius = '0';
-    }
 
     if (fs) {
-      // Fullscreen: restore the flexible viewport layout.
-      videoArea.style.flex = '1 1 auto';
-      videoArea.style.height = '';
-      videoArea.style.minHeight = '0';
-      videoArea.style.overflow = 'hidden';
-      videoArea.style.padding = '0';
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
       playerEl.style.margin = 'auto';
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.setProperty('width', '100%', 'important');
+      playerEl.style.width = '100%';
       playerEl.style.height = '';
       playerEl.style.borderRadius = '0';
       playerEl.style.boxShadow = 'none';
       video.style.objectFit = 'contain';
       return;
-    }
-
-    // Outside fullscreen, reserve only the height needed by this video's
-    // aspect ratio. A capped height prevents a single player from pushing
-    // the title/info panel far below the fold on small screens.
-    videoArea.style.flex = '0 0 auto';
-    videoArea.style.minHeight = '0';
-    videoArea.style.overflow = 'visible';
-    var layoutW = videoWrapper.clientWidth || window.innerWidth || 360;
-    var layoutH = window.innerHeight || 720;
-    var maxAreaH = Math.max(220, Math.min(Math.round(layoutH * 0.54), 520));
-    if (isPortrait) {
-      videoArea.style.height = Math.round(Math.min(maxAreaH, Math.max(280, layoutH * 0.58))) + 'px';
-    } else {
-      var streamRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
-      var landscapeAreaH = Math.min(layoutW * streamRatio, maxAreaH);
-      videoArea.style.height = Math.round(Math.max(200, landscapeAreaH)) + 'px';
     }
 
     if (isPortrait) {
@@ -2133,13 +1414,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       playerEl.style.margin = 'auto';
       playerEl.style.aspectRatio = 'auto';
       if (boxW > 0 && boxH > 0) {
-        playerEl.style.setProperty('width', boxW + 'px', 'important');
+        playerEl.style.width = boxW + 'px';
         playerEl.style.height = boxH + 'px';
       } else {
-        playerEl.style.setProperty('width', '95%', 'important');
+        playerEl.style.width = '95%';
         playerEl.style.height = '95%';
       }
-      playerEl.style.borderRadius = '24px';
+      playerEl.style.borderRadius = '16px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
       video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
@@ -2148,16 +1429,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
       playerEl.style.margin = 'auto';
-      var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
-      var areaWidth = videoWrapper.clientWidth || layoutW;
-      var areaHeight = videoArea.clientHeight || Math.round(areaWidth * landscapeRatio);
-      var maxPlayerWidth = landscapeRatio > 0 ? (areaHeight / landscapeRatio) : areaWidth;
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.setProperty('width', Math.min(areaWidth * 0.94, maxPlayerWidth) + 'px', 'important');
+      playerEl.style.width = '95%';
       playerEl.style.height = '';
-      playerEl.style.borderRadius = '24px';
-      // The wrapper is the shadow card; keep the video surface itself clean.
-      playerEl.style.boxShadow = 'none';
+      playerEl.style.borderRadius = '16px';
+      playerEl.style.boxShadow = FLOAT_SHADOW;
       video.style.objectFit = 'contain';
       video.style.borderRadius = 'inherit';
     }
@@ -2169,7 +1445,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   playerState.__uvdLayoutFn = __uvdApplyPlayerLayout;
   __uvdApplyPlayerLayout();
   playerState.updatePlayerWidth = __uvdApplyPlayerLayout;
-  playerState.vjsMountCancel = __uvdMountVjs10(videoWrapper, video, __uvdApplyPlayerLayout);
+  __uvdMountVjs10(videoWrapper, video, __uvdApplyPlayerLayout);
 
   // Đóng
   backBtn.onclick = function() { closePlayer(); };
@@ -2246,12 +1522,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     var sBtn = document.createElement('button');
     sBtn.innerHTML = '💬 Phụ đề';
     sBtn.onclick = function() { menu.remove(); showSubtitlePanel(playerState.video); };
-    var powerBtn = document.createElement('button');
-    powerBtn.innerHTML = __uvdLowPowerMode ? '☀️ Bật lại giám sát' : '🔋 Giảm tải nền';
-    powerBtn.onclick = function() { menu.remove(); __uvdLowPowerMode ? __uvdExitLowPowerMode() : __uvdEnterLowPowerMode(); };
     menu.appendChild(qBtn);
     menu.appendChild(sBtn);
-    menu.appendChild(powerBtn);
     sheetHeader.appendChild(menu);
     setTimeout(function() {
       document.addEventListener('click', function onDoc(ev) {
@@ -2344,7 +1616,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   }
 
   // Khởi tạo phát video
-  var isHls = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(url) || __uvdLooksLikeHlsUrl(url);
+  var isHls = url.includes('.m3u8') || url.includes('m3u8');
   var activeHls = null;
 
   function onMetadataLoaded() {
@@ -2383,7 +1655,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
-    if (playerState.usingNativeHls && !forceHlsJs) { showVideoPlayer(url, type, fromProxy, true, true); return; }
     if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
     var code = video.error && video.error.code;
     if (code === 3) setPlaybackError('Không giải mã được video (codec/container hoặc dữ liệu đọc chưa đúng).');
@@ -2416,22 +1687,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     return list[idx + 1];
   }
 
-  video.addEventListener('play', function() { playerState.nativePlayAttempted = true; });
-  video.addEventListener('playing', function() { if (playerState.nativeFallbackTimer) { clearTimeout(playerState.nativeFallbackTimer); playerState.nativeFallbackTimer = null; } });
-
   if (isHls) {
-    var nativeHlsType = video.canPlayType('application/vnd.apple.mpegurl');
-    var canTryNativeHls = !forceHlsJs && !!nativeHlsType && !fromProxy && !__uvdMediaAccessTokens.length;
-    if (canTryNativeHls) {
-      playerState.usingNativeHls = true;
-      video.src = url;
-      playerState.nativeFallbackTimer = setTimeout(function() {
-        if (playerState.closing || playerState.video !== video || !playerState.usingNativeHls) return;
-        var metadataReady = video.readyState >= 2 && video.videoWidth > 0 && isFinite(video.duration) && video.duration > 0;
-        if (!metadataReady || playerState.nativePlayAttempted) showVideoPlayer(url, type, fromProxy, true, true);
-      }, 8000);
-    } else if (window.Hls && Hls.isSupported()) {
-      activeHls = new Hls(__uvdMakeHlsConfig(Hls));
+    if (window.Hls && Hls.isSupported()) {
+      activeHls = new Hls();
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
       activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -2465,15 +1723,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       // nhưng không tải segment ổn định, nên buộc dùng hls.js để đi qua proxy từng segment.
       video.src = url;
     } else {
-      __uvdEnsureHls(function() {
-        if (playerState.closing || playerState.video !== video) return;
-        // Preserve fromProxy. Without this, a lazy hls.js load could restart
-        // the proxy fallback as if the source were direct.
-        showVideoPlayer(url, type, fromProxy, true, forceHlsJs);
-      }, function() {
-        if (playerState.closing || playerState.video !== video) return;
-        setPlaybackError('Không tải được hls.js — thử tải lại bookmarklet hoặc kiểm tra CSP/CDN.');
-      });
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+      s.onload = function() { showVideoPlayer(url, type); };
+      document.head.appendChild(s);
       return;
     }
   } else {
@@ -2526,13 +1779,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 function closePlayer() {
   if (playerState.overlay) {
     playerState.closing = true;
-    __uvdExitLowPowerMode();
     if (data.settings.resumePlayback && playerState.url && playerState.video) {
       savePlaybackPosition(playerState.url, playerState.video);
     }
     clearTimeout(playerState.hideTimeout);
-    clearTimeout(playerState.dimTimeout);
-    clearTimeout(playerState.nativeFallbackTimer);
     if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
     if (playerState.audioCtx) {
       try { playerState.audioCtx.close(); } catch(e) {}
@@ -2540,16 +1790,11 @@ function closePlayer() {
       playerState.gainNode = null;
       playerState.sourceNode = null;
     }
-    if (playerState.vjsMountCancel) {
-      playerState.vjsMountCancel();
-      playerState.vjsMountCancel = null;
-    }
-    if (playerState.hls) { playerState.hls.destroy(); playerState.hls = null; }
     if (playerState.video) {
       playerState.video.pause();
-      playerState.video.removeAttribute('src');
-      try { playerState.video.load(); } catch(e) {}
+      playerState.video.src = '';
     }
+    if (playerState.hls) { playerState.hls.destroy(); playerState.hls = null; }
     if (playerState.onFullscreenChange) {
       document.removeEventListener('fullscreenchange', playerState.onFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', playerState.onFullscreenChange);
@@ -2604,8 +1849,6 @@ style.textContent = `
 .uvd-glass-card::before,.uvd-glass-panel::before,.uvd-settings-sheet:not(.uvd-player-sheet)::before,.uvd-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(255,47,200,.55),rgba(155,61,255,.5),transparent);opacity:.8;pointer-events:none}
 .uvd-glass-panel::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(255,47,200,0.6),rgba(155,61,255,0.6),transparent);opacity:0.7}
 .uvd-settings-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);transition:background .28s ease}
-#__uvd_video_wrapper__:fullscreen,#__uvd_video_wrapper__:fullscreen::backdrop,#__uvd_video_wrapper__:fullscreen video,#__uvd_video_wrapper__:fullscreen video-player,#__uvd_video_wrapper__:fullscreen video-skin,#__uvd_player_video__:fullscreen,#__uvd_player_video__:fullscreen::backdrop{background:#000!important}
-#__uvd_player_el__ video-skin,#__uvd_player_el__ video{border-radius:0!important}#__uvd_player_el__{background:#000!important;overflow:hidden!important}#__uvd_player_el__ video-skin{background:transparent!important}
 .uvd-icon-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--accent2);width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;transition:all var(--uvd-transition)}
 .uvd-icon-btn:active{transform:scale(.9)}
 .uvd-player-card{width:100%;max-width:1000px;margin:auto;display:flex;flex-direction:column;border-radius:22px 22px 0 0;overflow:hidden;background:var(--glass);box-shadow:0 -10px 40px rgba(0,0,0,0.6);max-height:94dvh}
@@ -2633,24 +1876,20 @@ style.textContent = `
 .uvd-player-info-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(255,47,200,0.4)}
 .uvd-player-info-meta{font-size:11px;font-weight:600;color:var(--accent2);background:var(--btn-bg);border:1px solid var(--border);display:inline-block;padding:4px 12px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.uvd-player-sheet.uvd-player-dimmed .uvd-settings-header,.uvd-player-sheet.uvd-player-dimmed .uvd-player-info-panel{opacity:.22;transition:opacity .35s ease}.uvd-player-sheet.uvd-player-dimmed .uvd-player-video-area::after{background-image:none;background:rgba(0,0,0,.12)}.uvd-page-frozen body>*:not(.uvd-scope){pointer-events:none!important;user-select:none!important}
 .uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
 .uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}
 .uvd-app-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%);z-index:0}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
-.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:0;padding:10px 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:visible}
-.uvd-brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto}
-.uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 52px;border-radius:18px;background:var(--grad-liquid);color:#fff;font-size:23px;box-shadow:0 7px 18px rgba(255,47,200,.28)}
-.uvd-brand-name{font-size:21px;font-weight:850;line-height:1.05;letter-spacing:-.025em;color:var(--text)}
-.uvd-brand-version{margin-top:3px;font-size:16px;line-height:1.05;font-weight:850;background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent}
-.uvd-brand-sub{margin-top:5px;color:var(--text3);font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.uvd-header-actions{display:grid;grid-template-columns:repeat(3,34px);grid-auto-rows:34px;gap:6px;flex:0 0 114px;width:114px;min-width:114px;max-width:114px;justify-content:end;align-content:center;padding:2px 0}
-.uvd-header-actions .uvd-btn-icon{width:34px;height:34px;flex:0 0 34px;border-radius:12px;font-size:14px;background:rgba(155,61,255,.10);box-shadow:0 3px 10px rgba(112,45,126,.10),0 0 0 1px rgba(255,255,255,.12) inset;transition:transform .16s ease,background .18s ease,box-shadow .18s ease}
-.uvd-header-actions .uvd-btn-icon:hover{background:rgba(255,47,200,.16);box-shadow:0 5px 14px rgba(255,47,200,.18),0 0 0 1px rgba(255,255,255,.18) inset}
-.uvd-header-actions .uvd-btn-icon:active{transform:scale(.9)}
-#__uvd_preload__{color:var(--accent2);border-color:rgba(155,61,255,.32)}
+.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.uvd-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:14px;background:var(--grad-liquid);color:#fff;font-size:15px;box-shadow:0 5px 14px rgba(255,47,200,.25)}
+.uvd-brand-name{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.uvd-brand-name span{background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent}
+.uvd-brand-sub{margin-top:2px;color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.uvd-header-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.uvd-header-actions .uvd-btn-icon{width:32px;height:32px;border-radius:11px;font-size:14px}
 .uvd-header-actions .uvd-close-action{color:var(--danger)}
 .uvd-context-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:14px 15px;margin-bottom:14px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(135deg,rgba(255,47,200,.09),rgba(155,61,255,.06));flex-shrink:0}
 .uvd-context-main{min-width:0;display:flex;flex-direction:column;gap:5px}
@@ -2661,7 +1900,6 @@ style.textContent = `
 .uvd-meta-chip:hover{background:var(--btn-accent-bg)}
 .uvd-reduce-motion *{animation:none!important;transition:none!important}
 .uvd-reduce-motion .uvd-glass-panel{backdrop-filter:blur(0)!important;-webkit-backdrop-filter:blur(0)!important;background:rgba(255,248,252,.98)!important;border-color:rgba(255,47,200,.18)}
-.uvd-reduce-motion .uvd-card,.uvd-reduce-motion .uvd-settings-sheet,.uvd-reduce-motion .uvd-glass-panel,.uvd-reduce-motion .uvd-player-menu,.uvd-reduce-motion .uvd-action-list{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important}.uvd-reduce-motion .uvd-card{contain:layout paint style}.uvd-settings-body>.uvd-card,.uvd-settings-body>.uvd-section-title{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
@@ -2678,7 +1916,6 @@ style.textContent = `
 .uvd-filter-btn:hover{background:var(--btn-accent-bg);color:var(--accent2)}
 .uvd-filter-btn.uvd-filter-active{background:var(--grad-liquid);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(255,47,200,.2)}
 .uvd-scope{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;--bg:rgba(255,246,251,0.97);--glass:rgba(255,250,253,0.82);--glass-hi:rgba(155,61,255,0.08);--border:rgba(255,47,200,0.22);--text:#2b1836;--text2:#7c6a8f;--text3:#a698ba;--accent:#ff2fc8;--accent2:#9b3dff;--danger:#ff5d72;--gold:#e0900a;--success:#1fa97a;--card-bg:rgba(255,255,255,0.55);--fs-xs:11px;--fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--radius-sm:14px;--radius-md:20px;--radius-lg:32px;--grad-liquid:linear-gradient(135deg,var(--accent),var(--accent2));--glow-px:0px;--glow-op:0;--btn-bg:rgba(255,47,200,0.10);--btn-danger-bg:rgba(255,93,114,0.16);--btn-danger-border:rgba(255,93,114,0.35);--btn-success-bg:rgba(31,169,122,0.14);--btn-success-border:rgba(31,169,122,0.35);--btn-accent-bg:rgba(255,47,200,0.16);--btn-purple-bg:rgba(155,61,255,0.16);--btn-gold-bg:rgba(224,144,10,0.16)}
-.uvd-scope,.uvd-scope *{box-sizing:border-box}.uvd-scope button,.uvd-scope input,.uvd-scope select,.uvd-scope textarea{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif!important}.uvd-scope button{-webkit-appearance:none!important;appearance:none!important}.uvd-scope .uvd-btn-icon{background:rgba(155,61,255,.10)!important;border-color:var(--border)!important;color:var(--accent2)!important}.uvd-scope .uvd-tabbar{background:rgba(155,61,255,.07)!important;border-color:var(--border)!important}.uvd-scope .uvd-tab{background:transparent!important;color:var(--text2)!important}.uvd-scope .uvd-tab.uvd-tab-active{background:var(--grad-liquid)!important;color:#fff!important}.uvd-scope .uvd-filter-btn{background:rgba(255,255,255,.24)!important;border-color:var(--border)!important;color:var(--text2)!important}.uvd-scope .uvd-filter-btn.uvd-filter-active{background:var(--grad-liquid)!important;border-color:transparent!important;color:#fff!important}.uvd-scope .uvd-meta-chip{background:rgba(255,255,255,.28)!important;border-color:var(--border)!important;color:var(--accent2)!important}
 .uvd-fx-on .uvd-btn{transition:box-shadow .25s ease,transform .15s ease}
 .uvd-fx-on .uvd-btn:active{transform:scale(.95)}
 .uvd-fx-on.uvd-glass-panel,.uvd-fx-on #__uvd_player_header__{box-shadow:0 0 var(--glow-px) rgba(255,47,200,var(--glow-op)),0 8px 30px rgba(0,0,0,0.5)}
@@ -2705,8 +1942,8 @@ style.textContent = `
 .uvd-app-shell #__uvd_stream_list__{padding-left:0!important;padding-right:0!important}
 
 .uvd-card:hover{transform:translateY(-3px);border-color:rgba(255,47,200,.38);box-shadow:0 16px 34px rgba(112,45,126,.18),0 0 0 1px rgba(255,47,200,.16) inset,0 1px 0 rgba(255,255,255,.7) inset}
-.uvd-card-preview{position:relative;width:100%;height:140px;margin:0 0 13px;overflow:visible;border-radius:16px;background:linear-gradient(135deg,rgba(255,47,200,.18),rgba(155,61,255,.2));isolation:isolate;transition:height .24s ease,aspect-ratio .24s ease}.uvd-card-preview.uvd-thumb-portrait{height:220px}.uvd-card-preview.uvd-thumb-landscape{height:140px}.uvd-card-preview>.uvd-thumb-image,.uvd-card-preview>.uvd-thumb-sheen{border-radius:inherit}
-.uvd-thumb-image,.uvd-thumb-video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}.uvd-thumb-video{border-radius:inherit}
+.uvd-card-preview{position:relative;width:100%;height:140px;margin:0 0 13px;overflow:hidden;border-radius:16px;background:linear-gradient(135deg,rgba(255,47,200,.18),rgba(155,61,255,.2));isolation:isolate;transition:height .24s ease,aspect-ratio .24s ease}.uvd-card-preview.uvd-thumb-portrait{height:220px}.uvd-card-preview.uvd-thumb-landscape{height:140px}
+.uvd-thumb-image,.uvd-thumb-video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
 .uvd-thumb-image{background:linear-gradient(120deg,rgba(255,47,200,.22),rgba(155,61,255,.2));transition:filter .25s ease}
 .uvd-thumb-video{opacity:0;transition:opacity .25s ease}
 .uvd-thumb-ready .uvd-thumb-video{opacity:1}
@@ -2733,11 +1970,6 @@ style.textContent = `
 .uvd-card-actions{margin-top:10px}
 .uvd-card-actions .uvd-btn{min-height:36px}
 .uvd-action-menu{position:relative}
-.uvd-thumb-menu{position:absolute;top:10px;right:10px;z-index:5}
-.uvd-thumb-menu summary{width:34px;height:34px;min-height:34px;padding:0;justify-content:center;border-radius:12px;background:rgba(43,24,54,.58);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-color:rgba(255,255,255,.42);color:#fff;font-size:22px;line-height:1;font-weight:800}
-.uvd-thumb-menu summary:hover{background:rgba(43,24,54,.78)}
-.uvd-thumb-menu .uvd-action-list{position:absolute;top:38px;right:0;width:190px;z-index:8;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:6px;background:rgba(255,250,253,.97);border-radius:12px;box-shadow:0 12px 28px rgba(43,24,54,.24)}
-.uvd-thumb-menu .uvd-action-list .uvd-btn{min-height:30px;padding:6px 8px;border-radius:10px;font-size:11px;line-height:1.15}
 .uvd-action-menu summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,47,200,.09);color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
 .uvd-action-menu summary::-webkit-details-marker{display:none}
 .uvd-action-menu[open] summary{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:rgba(255,47,200,.15)}
@@ -2745,10 +1977,8 @@ style.textContent = `
 .uvd-action-menu[open] summary span{transform:rotate(180deg)}
 .uvd-action-list{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:9px;border:1px solid var(--border);border-top:0;border-radius:0 0 var(--radius-sm) var(--radius-sm);background:rgba(255,250,253,.66);backdrop-filter:blur(12px)}
 .uvd-action-list .uvd-btn{width:100%;min-width:0}
-@media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{display:flex;align-items:center;gap:10px;overflow:visible}.uvd-brand-sub{display:none}.uvd-brand{gap:9px}.uvd-brand-mark{width:48px;height:48px;flex-basis:48px;border-radius:16px;font-size:21px}.uvd-brand-name{font-size:19px}.uvd-brand-version{font-size:15px}.uvd-header-actions{width:100px;min-width:100px;max-width:100px;flex-basis:100px;grid-template-columns:repeat(3,30px);grid-auto-rows:30px;gap:4px;padding:2px 0}.uvd-header-actions .uvd-btn-icon{width:30px;height:30px;flex-basis:30px;font-size:13px;border-radius:10px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}.uvd-card-preview.uvd-thumb-portrait{height:190px}}
 @media (prefers-reduced-motion:reduce){.uvd-card:hover{transform:none}}
 .uvd-card-badges{display:flex;align-items:center;gap:6px;min-width:0}.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}.uvd-card-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;white-space:nowrap}.uvd-status-loading{color:var(--gold);background:rgba(224,144,10,.12);border:1px solid rgba(224,144,10,.25)}.uvd-status-ok{color:var(--success);background:rgba(31,169,122,.12);border:1px solid rgba(31,169,122,.25)}.uvd-status-muted{color:var(--text3);background:rgba(43,24,54,.06);border:1px solid var(--border)}
-.uvd-card-stream-meta{display:flex;align-items:center;min-height:26px;margin:-3px 0 8px;padding:6px 9px;border:1px solid var(--border);border-radius:10px;background:rgba(155,61,255,.06);color:var(--text3);font-size:10px;font-weight:700;line-height:1.35;white-space:normal}.uvd-card-stream-meta.uvd-card-meta-ready{color:var(--accent2);background:rgba(155,61,255,.1)}
 .uvd-url-box{background:var(--btn-bg);border-radius:var(--radius-sm);padding:12px;font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);font-weight:600;word-break:break-all;color:var(--accent2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid var(--border)}
 .uvd-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .uvd-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
@@ -2781,27 +2011,6 @@ style.textContent = `
 .uvd-code-block textarea{width:100%;background:transparent;border:none;color:var(--accent2);font-weight:600;padding:10px 40px 10px 12px;font-size:10px;font-family:'SFMono-Regular',Consolas,monospace;resize:none}
 .uvd-code-copy{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(155,61,255,.09);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .uvd-code-copy:active{background:rgba(155,61,255,.22)}
-
-/* ========== NORMAL UI POLISH ========== */
-.uvd-app-shell{background:rgba(255,255,255,.9)!important;border-color:rgba(255,47,200,.16)!important;box-shadow:0 14px 34px rgba(112,45,126,.10),0 0 0 1px rgba(255,255,255,.55) inset!important}
-.uvd-app-shell .uvd-card{background:rgba(255,255,255,.76)!important;border-color:rgba(255,47,200,.16);box-shadow:0 7px 20px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.45) inset}
-.uvd-app-shell .uvd-card:hover{transform:translateY(-2px);box-shadow:0 11px 24px rgba(112,45,126,.13),0 0 0 1px rgba(255,47,200,.12) inset}
-.uvd-app-shell .uvd-tabbar{background:rgba(245,240,250,.82)!important;border-color:rgba(155,61,255,.16)!important}
-.uvd-app-shell .uvd-tab{color:#776985!important;font-weight:700}
-.uvd-app-shell .uvd-tab.uvd-tab-active{color:#fff!important}
-.uvd-app-shell .uvd-filter-btn{background:rgba(255,255,255,.82)!important;color:#776985!important}
-.uvd-app-shell .uvd-filter-btn.uvd-filter-active{color:#fff!important}
-.uvd-card-preview{height:150px;border-radius:20px}.uvd-card-preview.uvd-thumb-portrait{height:235px}
-.uvd-card-stream-meta{background:rgba(247,242,252,.9);border-color:rgba(155,61,255,.14);font-size:10px}
-.uvd-url-box{max-height:64px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.uvd-context-bar{padding:12px 14px;margin-bottom:10px;background:rgba(250,247,253,.82)}
-.uvd-section-title{margin-top:12px}
-.uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
-.uvd-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:28px 18px;text-align:center;color:var(--text2)}
-.uvd-empty-state strong{color:var(--text);font-size:15px}.uvd-empty-state span{font-size:12px;line-height:1.5}
-.uvd-card-head{margin-bottom:7px}.uvd-card-badges{flex-wrap:wrap}.uvd-url-box{cursor:pointer;transition:border-color .16s ease,background .16s ease}.uvd-url-box:hover{border-color:rgba(255,47,200,.42);background:rgba(255,47,200,.12)}
-.uvd-settings-details{margin:10px 0;border:1px solid rgba(255,47,200,.14);border-radius:18px;background:rgba(255,255,255,.48);overflow:hidden}.uvd-settings-details>summary{display:flex;align-items:center;gap:8px;padding:11px 12px;list-style:none;cursor:pointer;color:var(--text);font-size:13px;font-weight:800}.uvd-settings-details>summary::-webkit-details-marker{display:none}.uvd-settings-details>summary .uvd-section-num{width:22px;height:22px}.uvd-details-chevron{margin-left:auto;font-size:18px;color:var(--accent2);transition:transform .18s ease}.uvd-settings-details[open] .uvd-details-chevron{transform:rotate(180deg)}.uvd-settings-details-body{padding:0 8px 8px}.uvd-settings-details-body>.uvd-card{margin-bottom:0}
-
 `;
 document.head.appendChild(style);
 
@@ -2838,165 +2047,6 @@ function __uvdIsolateLayer(el) {
   el.style.contain = 'layout paint style';
 }
 
-// ========== IFRAME WORKFLOW ==========
-var __uvdIframeWorkflowAsked = false;
-var __uvdIframeWorkflowEarliest = Date.now() + 8000;
-var __uvdDemoPreviewMaxSeconds = 90;
-function __uvdIsLikelyVideoIframe(url) {
-  if (__uvdIsEmbedMediaUrl(url)) return true;
-  try {
-    var parsed = new URL(url, location.href);
-    return /player|video|embed|stream|watch/i.test((parsed.hostname || '') + ' ' + (parsed.pathname || ''));
-  } catch(e) { return false; }
-}
-function __uvdIsDemoVideoElement(video) {
-  if (!video) return false;
-  var duration = video.duration;
-  if ((!duration || isNaN(duration)) && video.readyState < 1) return !video.currentSrc && !video.src;
-  if (isFinite(duration) && duration > 0 && duration <= __uvdDemoPreviewMaxSeconds) return true;
-  var hint = ((video.currentSrc || video.src || '') + ' ' + (video.getAttribute('poster') || '')).toLowerCase();
-  return /preview|trailer|sample|teaser|demo/.test(hint);
-}
-function __uvdScoreIframeCandidate(url, element) {
-  var lower = String(url || '').toLowerCase();
-  if (/doubleclick|googlesyndication|adservice|popunder|popads|clickadu|exoclick|propeller|betting|casino/.test(lower)) return -100;
-  var score = 0;
-  if (__uvdIsEmbedMediaUrl(url)) score += 50;
-  if (/embed|player|video|stream|watch|\/e(?:\/|$)/i.test(lower)) score += 30;
-  if (/player|video|stream|play|hls|tape|cdn/i.test(lower)) score += 10;
-  if (element) {
-    try {
-      var rect = element.getBoundingClientRect();
-      if (rect.width >= 240 && rect.height >= 120) score += 25;
-      var hint = ((element.id || '') + ' ' + (typeof element.className === 'string' ? element.className : '')).toLowerCase();
-      if (/player|video|embed|stream|media/.test(hint)) score += 20;
-    } catch(e) {}
-  }
-  return score;
-}
-function __uvdCollectWorkflowFrames() {
-  var map = {};
-  function add(url, element) {
-    if (!url || isAdUrl(url)) return;
-    var score = __uvdScoreIframeCandidate(url, element);
-    if (score < -50) return;
-    if (!map[url] || score > map[url].score) map[url] = { url: url, score: score, element: element };
-  }
-  [...urls.entries()].forEach(function(entry) {
-    if (entry[1].type === 'IFRAME') add(entry[0], null);
-  });
-  try {
-    if (__uvdIsEmbedMediaUrl(location.href)) add(location.href, null);
-    document.querySelectorAll('iframe').forEach(function(frame) { if (frame.src) add(frame.src, frame); });
-  } catch(e) {}
-  return Object.keys(map).map(function(key) { return map[key]; }).sort(function(a, b) { return b.score - a.score; });
-}
-
-function __uvdHasOnlyIframeOrDemo() {
-  var frames = __uvdCollectWorkflowFrames();
-  if (!frames.length) return false;
-  var direct = [...urls.entries()].filter(function(entry) {
-    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
-  });
-  if (!direct.length) return true;
-  var videos = [];
-  try { videos = [...document.querySelectorAll('video')].filter(function(video) { return !__uvdIsOwnUI(video); }); } catch(e) {}
-  // A URL found in JSON/network is only a candidate until a real page video
-  // has loaded. An unready video or a short demo must not suppress the iframe
-  // workflow prompt.
-  if (!videos.length) return true;
-  // A real video element may still be initializing. Do not show the iframe
-  // prompt while its duration/source is unresolved; wait for metadata first.
-  if (videos.some(function(video) {
-    return !!(video.currentSrc || video.src || video.querySelector('source[src]')) && video.readyState < 1 && !isFinite(video.duration);
-  })) return false;
-  var verifiedLongVideo = videos.some(function(video) {
-    return video.readyState >= 2 && !__uvdIsDemoVideoElement(video);
-  });
-  if (verifiedLongVideo) return false;
-  return true;
-}
-function __uvdOpenIframeWorkflowPrompt(candidates) {
-  var old = document.getElementById('__uvd_iframe_workflow_prompt__');
-  if (old) old.remove();
-  var overlay = document.createElement('div');
-  overlay.id = '__uvd_iframe_workflow_prompt__';
-  overlay.className = 'uvd-overlay';
-  var panel = document.createElement('div');
-  panel.className = 'uvd-glass-panel';
-  panel.style.cssText = 'max-width:460px;margin:auto;text-align:center;';
-  panel.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">↗</div>' +
-    '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">Chỉ tìm thấy iframe</div>' +
-    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:12px;">Chọn iframe muốn mở. Các iframe quảng cáo thường đã bị loại khỏi danh sách.</div>' +
-    '<div id="__uvd_iframe_workflow_list__" style="max-height:45vh;overflow-y:auto;margin-bottom:10px;"></div>' +
-    '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;">Để sau</button>';
-  var list = panel.querySelector('#__uvd_iframe_workflow_list__');
-  candidates.slice(0, 6).forEach(function(candidate, index) {
-    var row = document.createElement('div');
-    row.className = 'uvd-card';
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:6px;text-align:left;';
-    var label = document.createElement('div');
-    label.style.cssText = 'flex:1;min-width:0;font-size:10px;color:var(--text2);word-break:break-all;';
-    label.textContent = '#' + (index + 1) + ' ' + candidate.url;
-    var open = document.createElement('button');
-    open.className = 'uvd-btn uvd-btn-sm';
-    open.textContent = 'Mở + Copy';
-    open.onclick = function() {
-      copy(BOOKMARKLET_NAME);
-      window.__uvdSafeOpen(candidate.url);
-      overlay.remove();
-      toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
-    };
-    row.appendChild(label);
-    row.appendChild(open);
-    list.appendChild(row);
-  });
-  panel.querySelector('#__uvd_iframe_workflow_cancel__').onclick = function() { overlay.remove(); };
-  overlay.appendChild(panel);
-  __uvdAppendRoot(overlay);
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
-}
-
-function __uvdHasRealVideoCandidate() {
-  var direct = [...urls.entries()].filter(function(entry) {
-    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
-  });
-  if (direct.some(function(entry) { return entry[1].demo === false; })) return true;
-  try {
-    return [...document.querySelectorAll('video')].some(function(video) {
-      return !__uvdIsOwnUI(video) && video.readyState >= 2 && !__uvdIsDemoVideoElement(video);
-    });
-  } catch(e) { return false; }
-}
-function __uvdDismissIframeWorkflowIfVideoFound() {
-  var prompt = document.getElementById('__uvd_iframe_workflow_prompt__');
-  if (!prompt || !__uvdHasRealVideoCandidate()) return;
-  prompt.remove();
-  __uvdIframeWorkflowAsked = true;
-}
-function installIframeWorkflowVideoWatcher() {
-  ['loadedmetadata', 'loadeddata', 'durationchange', 'playing'].forEach(function(type) {
-    document.addEventListener(type, __uvdDismissIframeWorkflowIfVideoFound, true);
-  });
-  addCleanup(function() {
-    ['loadedmetadata', 'loadeddata', 'durationchange', 'playing'].forEach(function(type) {
-      document.removeEventListener(type, __uvdDismissIframeWorkflowIfVideoFound, true);
-    });
-  });
-}
-function __uvdMaybeOfferIframeWorkflow() {
-  __uvdDismissIframeWorkflowIfVideoFound();
-  if (Date.now() < __uvdIframeWorkflowEarliest) return;
-  if (__uvdIframeWorkflowAsked || playerState.overlay) return;
-  if (!__uvdHasOnlyIframeOrDemo()) return;
-  var allFrames = __uvdCollectWorkflowFrames();
-  var candidates = allFrames.filter(function(candidate) { return candidate.score >= 20; });
-  if (!candidates.length) candidates = allFrames.slice(0, 4);
-  if (!candidates.length) return;
-  __uvdIframeWorkflowAsked = true;
-  __uvdOpenIframeWorkflowPrompt(candidates);
-}
-
 // ========== BUILD UI ==========
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
@@ -3025,14 +2075,14 @@ function buildUI() {
   header.innerHTML =
     '<div class="uvd-brand">' +
       '<span class="uvd-brand-mark">▶</span>' +
-      '<div><div class="uvd-brand-name">UMP DL</div><div class="uvd-brand-version">V' + VERSION + '</div>' +
+      '<div><div class="uvd-brand-name">UMP DL <span>V' + VERSION + '</span></div>' +
       '<div class="uvd-brand-sub">Universal media workspace</div></div>' +
     '</div>' +
     '<div class="uvd-header-actions">' +
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Thử lần lượt từng server">⏭</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_refresh__" title="Làm mới">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
     '</div>';
@@ -3108,7 +2158,7 @@ function buildUI() {
   var streamList = document.createElement('div');
   streamList.id = '__uvd_stream_list__';
   streamList.className = 'uvd-scroll';
-  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;height:100%;padding:0;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
+  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;height:100%;padding:0;min-width:0;';
   contentWrapper.appendChild(streamList);
   
   content.appendChild(contentWrapper);
@@ -3167,19 +2217,13 @@ function buildUI() {
   
   renderTab('streams');
   
-  if (window.__uvdPanelResizeHandler) window.removeEventListener('resize', window.__uvdPanelResizeHandler);
-  window.__uvdPanelResizeHandler = function() {
-    moveIndicatorTo(panel.querySelector('.uvd-tab.uvd-tab-active'));
-  };
-  window.addEventListener('resize', window.__uvdPanelResizeHandler);
+  window.addEventListener('resize', function() {
+    moveIndicatorTo(document.querySelector('.uvd-tab.uvd-tab-active'));
+  });
   
   document.getElementById('__uvd_close__').onclick = function() {
     if (playerState.overlay) closePlayer();
     stopMonitor();
-    if (window.__uvdPanelResizeHandler) {
-      window.removeEventListener('resize', window.__uvdPanelResizeHandler);
-      window.__uvdPanelResizeHandler = null;
-    }
     panel.remove();
     __uvdRemoveRestoreBtn();
     __uvdScriptHidden = false;
@@ -3187,6 +2231,7 @@ function buildUI() {
     urls.clear();
     if (typeof style !== 'undefined' && style.parentNode) style.remove();
   };
+  document.getElementById('__uvd_refresh__').onclick = function() { debouncedBuildUI(); toast('Đã làm mới'); };
   document.getElementById('__uvd_hide__').onclick = function() {
     __uvdSetHidden(true);
     toast('Đã ẩn script — vẫn chặn popup nền, chạm nút UMP DL để mở lại');
@@ -3196,7 +2241,6 @@ function buildUI() {
     toast(n > 0 ? 'Đã thử bấm Play (' + n + ' nút)' : 'Không tìm thấy nút Play, thử đặt selector riêng ở Cài đặt');
     setTimeout(function() { debouncedBuildUI(); }, 1200);
   };
-  document.getElementById('__uvd_preload__').onclick = function() { runPreloadCapture(); };
   document.getElementById('__uvd_seq_autoplay__').onclick = function() { autoClickSequential(false); };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
   
@@ -3243,73 +2287,8 @@ function buildUI() {
   };
 }
 
-// ========== STREAM METADATA ==========
-function __uvdFormatDuration(sec) {
-  if (!isFinite(sec) || sec < 0) return '';
-  sec = Math.floor(sec);
-  var h = Math.floor(sec / 3600);
-  var m = Math.floor((sec % 3600) / 60);
-  var s = sec % 60;
-  if (h > 0) return h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-}
-function __uvdResolutionLabel(width, height) {
-  if (!width && !height) return '';
-  if (height) return height + 'p';
-  return width + 'px';
-}
-function __uvdSetCardMetadata(card, meta) {
-  if (!card) return;
-  var el = card.querySelector('[data-card-stream-meta]');
-  if (!el) return;
-  if (meta.quality) card.dataset.cardQuality = meta.quality;
-  var parts = [];
-  if (meta.quality || card.dataset.cardQuality) parts.push(meta.quality || card.dataset.cardQuality);
-  if (meta.resolution) parts.push(meta.resolution);
-  if (meta.duration) parts.push('⏱ ' + meta.duration);
-  el.textContent = parts.length ? parts.join('  ·  ') : 'Đang phân tích media…';
-  el.classList.toggle('uvd-card-meta-ready', parts.length > 0);
-}
-function __uvdSetCardStatus(card, text, statusClass) {
-  if (!card) return;
-  var el = card.querySelector('.uvd-card-status');
-  if (!el) return;
-  el.textContent = text;
-  el.className = 'uvd-card-status ' + (statusClass || 'uvd-status-muted');
-}
-function __uvdUpdateCardFromMedia(card, media, extra) {
-  extra = extra || {};
-  var meta = { quality: extra.quality || card.dataset.cardQuality || '', resolution: '', duration: '' };
-  if (media && media.videoWidth && media.videoHeight) {
-    meta.resolution = media.videoWidth + '×' + media.videoHeight + ' (' + __uvdResolutionLabel(media.videoWidth, media.videoHeight) + ')';
-  } else if (extra.resolution) {
-    meta.resolution = extra.resolution;
-  }
-  if (media && isFinite(media.duration) && media.duration > 0) {
-    meta.duration = __uvdFormatDuration(media.duration);
-    if (card.dataset.url && urls.has(card.dataset.url)) urls.get(card.dataset.url).demo = media.duration <= __uvdDemoPreviewMaxSeconds;
-  } else if (extra.duration) {
-    meta.duration = extra.duration;
-  }
-  __uvdSetCardMetadata(card, meta);
-}
-function __uvdDescribeHlsLevels(card, levels, media) {
-  levels = (levels || []).filter(Boolean);
-  var labels = levels.map(function(level) {
-    return __uvdResolutionLabel(level.width, level.height) || (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'auto');
-  }).filter(function(label, index, list) { return list.indexOf(label) === index; });
-  labels.sort(function(a, b) { return (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0); });
-  var quality = labels.length > 1 ? 'Đa chất lượng · ' + labels.length + ' mức (' + labels.slice(0, 6).join(' · ') + (labels.length > 6 ? ' …' : '') + ')' : (labels[0] || 'M3U8');
-  var top = levels.slice().sort(function(a, b) { return (b.height || 0) - (a.height || 0); })[0] || {};
-  __uvdUpdateCardFromMedia(card, media, {
-    quality: quality,
-    resolution: top.width && top.height ? (top.width + '×' + top.height + ' (' + __uvdResolutionLabel(top.width, top.height) + ')') : ''
-  });
-  __uvdSetCardStatus(card, labels.length > 1 ? 'MASTER · ' + labels.length + ' QUALITY' : 'PREVIEW…', labels.length > 1 ? 'uvd-status-ok' : 'uvd-status-loading');
-}
-
 // ========== RENDER STREAMS ==========
-var UVD_LAZY_BATCH = 20;
+var UVD_LAZY_BATCH = 40;
 
 function buildStreamCardHTML(item, i) {
   var actionsHtml;
@@ -3318,23 +2297,22 @@ function buildStreamCardHTML(item, i) {
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="blobdl" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(52,211,153,0.22);">⬇ Tải Blob</button>' +
       '<div style="grid-column:1/3;font-size:11px;color:var(--text3);line-height:1.4;">Blob chỉ tải được nếu là file gốc (không áp dụng cho stream HLS/DASH qua MediaSource).</div>';
-  } else if (item.type === 'IFRAME') {
-    actionsHtml =
-      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '">Mở iframe tab</button>';
-  } else if (item.type === 'M3U8') {
-    actionsHtml =
-      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
   } else {
     actionsHtml =
+      '<button class="uvd-btn uvd-btn-sm" data-action="share" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(155,61,255,0.22);">Chia sẻ</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
+      (item.type === 'IFRAME' ?
+        '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '" style="text-align:center;grid-column:1/3;">Mở iframe</button>' :
+        (item.type === 'M3U8' ?
+          '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
+          '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
+          '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="grid-column:1/3;">Lệnh tải</button>' :
+          '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(255,47,200,0.25);">Xem</button>' +
+          '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>'
+        )
+      );
   }
-  var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
+  actionsHtml = '<details class="uvd-action-menu"><summary>Thao tác <span>⌄</span></summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   return (
     '<div class="uvd-card" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
@@ -3342,15 +2320,14 @@ function buildStreamCardHTML(item, i) {
         '<div class="uvd-thumb-sheen"></div>' +
         '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
-        actionMenuHtml +
       '</div>' +
       '<div class="uvd-card-head">' +
         '<div class="uvd-card-badges"><span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span><span class="uvd-card-status ' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted') + '">' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'PREVIEW…' : 'NO PREVIEW') + '</span></div>' +
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
-      '<div class="uvd-card-stream-meta" data-card-stream-meta>Đang lấy thời lượng và độ phân giải…</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
-      '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
+      '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
+      '<div class="uvd-card-actions">' + actionsHtml + '</div>' +
     '</div>'
   );
 }
@@ -3422,16 +2399,6 @@ function loadExtraVideoThumbnails(preview) {
   next();
 }
 
-function __uvdShouldSkipThumbnail(url) {
-  if (/preview|trailer|sample|teaser|demo/i.test(url || '')) return true;
-  try {
-    return [...document.querySelectorAll('video')].some(function(video) {
-      if (__uvdIsOwnUI(video)) return false;
-      var same = video.currentSrc === url || video.src === url;
-      return same && __uvdIsDemoVideoElement(video);
-    });
-  } catch(e) { return false; }
-}
 function hydrateVideoThumbnails(root) {
   if (!root) return;
   root.querySelectorAll('.uvd-card-preview[data-thumb-url]').forEach(function(preview) {
@@ -3440,23 +2407,6 @@ function hydrateVideoThumbnails(root) {
     var type = card ? (card.dataset.type || '').toUpperCase() : '';
     if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO') {
       preview.dataset.thumbState = 'unsupported';
-      return;
-    }
-    if (type === 'M3U8') {
-      var existingHlsThumb = root.querySelector('.uvd-card-preview[data-uvd-hls-owner="1"]');
-      if (existingHlsThumb && existingHlsThumb !== preview) {
-        preview.dataset.thumbState = 'quality-only';
-        var qualityOnlyStatus = card && card.querySelector('.uvd-card-status');
-        if (qualityOnlyStatus) { qualityOnlyStatus.textContent = 'QUALITY ONLY'; qualityOnlyStatus.className = 'uvd-card-status uvd-status-muted'; }
-        return;
-      }
-      preview.dataset.uvdHlsOwner = '1';
-    }
-    var earlyThumbUrl = preview.getAttribute('data-thumb-url') || '';
-    if (__uvdShouldSkipThumbnail(earlyThumbUrl)) {
-      preview.dataset.thumbState = 'demo';
-      var demoCardStatus = card && card.querySelector('.uvd-card-status');
-      if (demoCardStatus) { demoCardStatus.textContent = 'DEMO · NO PREVIEW'; demoCardStatus.className = 'uvd-card-status uvd-status-muted'; }
       return;
     }
     preview.dataset.thumbState = 'loading';
@@ -3469,16 +2419,10 @@ function hydrateVideoThumbnails(root) {
     media.preload = 'metadata';
     media.setAttribute('aria-hidden', 'true');
     var thumbUrl = preview.getAttribute('data-thumb-url');
-    var thumbProxyUrl = type === 'M3U8' ? (buildHeaderProxyUrl(thumbUrl, 'M3U8') || '') : '';
-    // Prefer the same direct URL that the player can use. If the source has
-    // CORS/PNG-wrapper problems, retry this thumbnail through Render.
-    var thumbSources = type === 'M3U8' ? [thumbUrl].concat(thumbProxyUrl && thumbProxyUrl !== thumbUrl ? [thumbProxyUrl] : []) : [thumbUrl];
     var thumbHls = null;
     preview.__thumbVideo = media;
     function showFrame() {
-      if (preview.dataset.thumbState === 'demo') return;
       preview.dataset.thumbState = 'ready';
-      __uvdUpdateCardFromMedia(card, media);
       var status = card && card.querySelector('.uvd-card-status');
       if (status) { status.textContent = 'PREVIEW OK'; status.className = 'uvd-card-status uvd-status-ok'; }
       if (media.videoWidth && media.videoHeight) {
@@ -3489,20 +2433,10 @@ function hydrateVideoThumbnails(root) {
       try { media.pause(); } catch(e) {}
     }
     media.addEventListener('loadedmetadata', function() {
-      __uvdUpdateCardFromMedia(card, media);
-      if (isFinite(media.duration) && media.duration > 0 && media.duration <= __uvdDemoPreviewMaxSeconds) {
-        preview.dataset.thumbState = 'demo';
-        __uvdSetCardStatus(card, 'DEMO · NO PREVIEW', 'uvd-status-muted');
-        __uvdSetCardMetadata(card, { quality: 'Clip preview', duration: __uvdFormatDuration(media.duration) });
-        try { if (thumbHls) thumbHls.destroy(); media.pause(); } catch(e) {}
-        return;
-      }
       try {
         if (isFinite(media.duration) && media.duration > 1) {
-          // Thumbnail nhanh: không seek tới 20% của phim dài vì HLS sẽ phải
-          // tải quá nhiều segment trước khi có frame. Một frame khoảng giây 12
-          // đủ bỏ qua intro mà vẫn giữ preview nhẹ.
-          var thumbTime = Math.min(12, Math.max(0, media.duration - .5));
+          // Bỏ qua logo/intro ở đầu video; ưu tiên thumbnail khoảng giây 12.
+          var thumbTime = Math.min(Math.max(12, media.duration * .2), Math.max(0, media.duration - .5));
           media.currentTime = thumbTime;
         }
       } catch(e) {}
@@ -3510,116 +2444,50 @@ function hydrateVideoThumbnails(root) {
     media.addEventListener('loadeddata', showFrame, { once: true });
     media.addEventListener('seeked', showFrame, { once: true });
     media.addEventListener('error', function() {
-      // hls.js may emit a media error while the thumbnail is being retried
-      // with the alternate direct/proxy source. Do not remove the element yet.
-      if (preview.__uvdThumbRetrying) return;
       preview.dataset.thumbState = 'unavailable';
       var errorStatus = card && card.querySelector('.uvd-card-status');
       if (errorStatus) { errorStatus.textContent = 'NO PREVIEW'; errorStatus.className = 'uvd-card-status uvd-status-muted'; }
       if (image) image.classList.add('uvd-thumb-fallback');
-    });
+      try { media.remove(); } catch(e) {}
+    }, { once: true });
     if (image) image.appendChild(media);
     var pressTimer = null;
     preview.addEventListener('touchstart', function() {
-      pressTimer = setTimeout(function() {
-        if (preview.__uvdStartThumb) preview.__uvdStartThumb();
-        loadExtraVideoThumbnails(preview);
-      }, 520);
+      pressTimer = setTimeout(function() { loadExtraVideoThumbnails(preview); }, 520);
     }, { passive: true });
     preview.addEventListener('touchend', function() { if (pressTimer) clearTimeout(pressTimer); }, { passive: true });
     preview.addEventListener('touchcancel', function() { if (pressTimer) clearTimeout(pressTimer); }, { passive: true });
-    function markThumbUnavailable() {
-      preview.dataset.thumbState = 'unavailable';
-      var hlsStatus = card && card.querySelector('.uvd-card-status');
-      if (hlsStatus) { hlsStatus.textContent = 'NO PREVIEW'; hlsStatus.className = 'uvd-card-status uvd-status-muted'; }
-      if (image) image.classList.add('uvd-thumb-fallback');
-    }
-    var thumbStarted = false;
-    var thumbAttempt = 0;
-    function startThumbHls(HlsCtor) {
-      if (!preview.isConnected || preview.dataset.thumbState !== 'loading') return;
-      var sourceUrl = thumbSources[thumbAttempt];
-      if (!sourceUrl) { markThumbUnavailable(); return; }
+    if (type === 'M3U8' && window.Hls && Hls.isSupported()) {
       try {
-        if (thumbHls) thumbHls.destroy();
-        thumbHls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 2, maxMaxBufferLength: 4 }));
-        preview.__uvdThumbHls = thumbHls;
-        thumbHls.loadSource(sourceUrl);
+        thumbHls = new Hls({ maxBufferLength: 2, maxMaxBufferLength: 4 });
+        thumbHls.loadSource(thumbUrl);
         thumbHls.attachMedia(media);
-        thumbHls.on(HlsCtor.Events.MANIFEST_PARSED, function() {
-          __uvdDescribeHlsLevels(card, thumbHls.levels, media);
-        });
-        thumbHls.on(HlsCtor.Events.LEVEL_SWITCHED, function() {
-          __uvdDescribeHlsLevels(card, thumbHls.levels, media);
-        });
-        thumbHls.on(HlsCtor.Events.ERROR, function(_, data) {
-          if (!data || !data.fatal) return;
-          if (thumbAttempt + 1 < thumbSources.length) {
-            // Direct HLS may work in the player while the Render relay is
-            // required only for PNG-wrapped/CORS-restricted thumbnails.
-            thumbAttempt++;
-            preview.__uvdThumbRetrying = true;
-            try { thumbHls.destroy(); } catch(e) {}
-            try { media.pause(); media.removeAttribute('src'); media.load(); } catch(e) {}
-            setTimeout(function() {
-              preview.__uvdThumbRetrying = false;
-              startThumbHls(HlsCtor);
-            }, 120);
-          } else {
-            markThumbUnavailable();
+        thumbHls.on(Hls.Events.ERROR, function(_, data) {
+          if (data && data.fatal) {
+            preview.dataset.thumbState = 'unavailable';
+            var hlsStatus = card && card.querySelector('.uvd-card-status');
+            if (hlsStatus) { hlsStatus.textContent = 'NO PREVIEW'; hlsStatus.className = 'uvd-card-status uvd-status-muted'; }
+            if (image) image.classList.add('uvd-thumb-fallback');
           }
         });
-      } catch(e) {
-        if (thumbAttempt + 1 < thumbSources.length) {
-          thumbAttempt++;
-          setTimeout(function() { startThumbHls(HlsCtor); }, 120);
-        } else {
-          markThumbUnavailable();
-        }
-      }
-    }
-    function startThumbSource() {
-      if (thumbStarted || !preview.isConnected) return;
-      thumbStarted = true;
-      if (type === 'M3U8') {
-        __uvdEnsureHls(function(HlsCtor) {
-          if (!HlsCtor.isSupported()) { markThumbUnavailable(); return; }
-          startThumbHls(HlsCtor);
-        }, markThumbUnavailable);
-      } else {
-        media.src = thumbUrl;
-      }
-      setTimeout(function() {
-        if (preview.dataset.thumbState === 'loading') {
-          preview.dataset.thumbState = 'timeout';
-          var timeoutStatus = card && card.querySelector('.uvd-card-status');
-          if (timeoutStatus) { timeoutStatus.textContent = 'TIMEOUT'; timeoutStatus.className = 'uvd-card-status uvd-status-muted'; }
-          if (image) image.classList.add('uvd-thumb-fallback');
-        }
-      }, 9000);
-    }
-    preview.__uvdStartThumb = startThumbSource;
-    if (window.IntersectionObserver) {
-      var thumbRoot = preview.closest('#__uvd_stream_list__');
-      var thumbObserver = new IntersectionObserver(function(entries) {
-        if (entries[0] && entries[0].isIntersecting) {
-          thumbObserver.disconnect();
-          startThumbSource();
-        }
-      }, { root: thumbRoot || null, rootMargin: '240px' });
-      preview.__thumbObserver = thumbObserver;
-      thumbObserver.observe(preview);
+      } catch(e) { media.src = thumbUrl; }
     } else {
-      startThumbSource();
+      media.src = thumbUrl;
     }
+    setTimeout(function() {
+      if (preview.dataset.thumbState === 'loading') {
+        preview.dataset.thumbState = 'timeout';
+        var timeoutStatus = card && card.querySelector('.uvd-card-status');
+        if (timeoutStatus) { timeoutStatus.textContent = 'TIMEOUT'; timeoutStatus.className = 'uvd-card-status uvd-status-muted'; }
+        if (image) image.classList.add('uvd-thumb-fallback');
+      }
+    }, 9000);
   });
 }
 
 function renderStreams(container, arr) {
   if (!arr.length) {
-    container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
-    var emptyPreload = container.querySelector('#__uvd_empty_preload__');
-    if (emptyPreload) emptyPreload.onclick = function() { runPreloadCapture(); };
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">Không phát hiện stream nào.</div>';
     return;
   }
 
@@ -3652,12 +2520,6 @@ function renderStreams(container, arr) {
 
   container.onclick = function(e) {
     if (!e.target.closest('.uvd-action-menu')) container.querySelectorAll('.uvd-action-menu[open]').forEach(function(menu) { menu.open = false; });
-    var urlBox = e.target.closest('.uvd-url-box');
-    if (urlBox) {
-      copy(urlBox.textContent || '');
-      toast('Đã sao chép URL!');
-      return;
-    }
     var blockBtn = e.target.closest('.uvd-block-btn');
     if (blockBtn) {
       addRipple({ currentTarget: blockBtn, clientX: e.clientX, clientY: e.clientY });
@@ -3695,7 +2557,7 @@ function renderStreams(container, arr) {
         }, 260);
       }
       else if (action === 'cmd') showCommandPicker(u2, t);
-      else if (action === 'iframe') { copy(BOOKMARKLET_NAME); window.__uvdSafeOpen(u2); toast('Đã mở iframe tab và copy: ' + BOOKMARKLET_NAME); }
+      else if (action === 'iframe') window.__uvdSafeOpen(u2);
       else if (action === 'blobdl') downloadBlobUrl(u2);
       return;
     }
@@ -4019,7 +2881,7 @@ function renderClickedButtons(container) {
 // ========== RENDER SETTINGS ==========
 function renderSettings(container) {
   var totalStreams = urls.size;
-  var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();var s=document.createElement('script');s.src=u;s.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(s);})();";
+  var bookmarkletCode = "javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/nguyenquocngu93/bookmarklet-@main/umpdl.js?force='+Date.now();document.head.appendChild(s);})();";
 
   container.innerHTML =
     '<div class="uvd-profile-card">' +
@@ -4032,7 +2894,7 @@ function renderSettings(container) {
           '<span class="uvd-tag">Vanilla JS</span>' +
           '<span class="uvd-tag">HLS · M3U8</span>' +
           '<span class="uvd-tag">Adblock</span>' +
-          '<span class="uvd-tag">HLS Normalize · Iframe workflow</span>' +
+          '<span class="uvd-tag">Resume · Tua đúp · PiP</span>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -4095,30 +2957,30 @@ function renderSettings(container) {
       '<button class="uvd-btn uvd-btn-sm" id="__uvd_reset__" style="width:100%;background:var(--danger);">Đặt lại tất cả</button>' +
     '</div>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-section-title"><span class="uvd-section-num">1</span> Cài đặt Bookmarklet</div>' +
+    '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit).</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">UMP DL</code></span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text"><strong>Xóa toàn bộ địa chỉ</strong> trong ô URL, dán đoạn code sau vào:</span></div>' +
       '<div class="uvd-code-block"><textarea readonly rows="3">' + escapeHtml(bookmarkletCode) + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save).</span></div>' +
       '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, bạn chỉ cần gõ tên bookmark (<strong style="color:var(--accent);">UMP DL</strong>) vào thanh địa chỉ rồi chọn nó để kích hoạt. Script luôn tự động cập nhật phiên bản mới nhất.</span></div>' +
-    '</div></div></details>' +
+    '</div>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-section-title"><span class="uvd-section-num">2</span> Sử dụng</div>' +
+    '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ và chọn nó</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark (vd: <code class="uvd-inline-code">UMP DL</code>) vào thanh địa chỉ và chọn nó</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream và bấm <strong style="color:var(--accent);">Xem</strong> để mở player overlay</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: chọn <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong> và <strong style="color:var(--accent);">Phụ đề</strong> trong menu. Player hỗ trợ HLS qua hls.js và tự thử proxy header khi nguồn trực tiếp lỗi.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: thanh công cụ gồm <strong style="color:var(--accent);">Chất lượng</strong>, <strong style="color:var(--accent);">Tốc độ (+/-)</strong>, <strong style="color:var(--accent);">Toàn màn hình</strong>, <strong style="color:var(--accent);">PiP</strong>, <strong style="color:var(--accent);">Hẹn giờ</strong>, <strong style="color:var(--accent);">Boost</strong>, <strong style="color:var(--accent);">Mute</strong>, <strong style="color:var(--accent);">📷 Screenshot</strong>, <strong style="color:var(--accent);">📌 Ghim</strong></span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chạm đúp 2 lần vào nửa trái/phải video để tua lùi/tiến (số giây tùy chỉnh trong tab Trình phát)</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Video ngắn dưới 90 giây được đánh dấu <strong>DEMO · NO PREVIEW</strong> để tránh tốn request thumbnail.</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">⏺</span><span>Nút <strong style="color:var(--accent);">⏺</strong> bật bắt link realtime. Bấm nút này trước, sau đó bấm Play thật để UMP bắt fetch/XHR/playlist mà không rebuild UI liên tục.</span></div>' +
-    '</div></div></details>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Click vào thời gian để chuyển đổi giữa <strong>còn lại</strong> / <strong>đã qua</strong> / <strong>tổng</strong>.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">▶</span><span>Nút <strong style="color:var(--accent);">▶</strong> trên header: tự động bấm giúp các nút Play ẩn để link stream lộ ra. Nếu không ăn, đặt CSS selector riêng ở dòng "Play selector".</span></div>' +
+    '</div>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-section-title"><span class="uvd-section-num">3</span> Tải video với yt-dlp và Termux</div>' +
+    '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài đặt yt-dlp trên Termux:</strong></span></div>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg update && pkg upgrade -y</code>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg install python ffmpeg -y</code>' +
@@ -4127,7 +2989,7 @@ function renderSettings(container) {
       '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text">Bấm <strong style="color:var(--accent);">Lệnh tải</strong> → chọn lệnh phù hợp, sao chép</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text">Mở Termux, dán lệnh vào và bấm Enter để tải</span></div>' +
       '<div class="uvd-callout uvd-callout-warn"><span class="uvd-callout-icon">⚠️</span><span><strong style="color:var(--text);">Lưu ý:</strong> Nhớ cấp quyền lưu file cho Termux (Android 11+): <code class="uvd-inline-code">termux-setup-storage</code></span></div>' +
-    '</div></div></details>' +
+    '</div>' +
 
     '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · UMP DL v' + VERSION + ' · Made for Chrome Android</div>';
 
@@ -4257,20 +3119,8 @@ function renderSettings(container) {
 }
 
 // ========== START ==========
-try {
-window.__uvdBootPhase = 'build-ui';
 buildUI();
-setTimeout(__uvdMaybeOfferIframeWorkflow, 1800);
-setTimeout(__uvdMaybeOfferIframeWorkflow, 5000);
-var __uvdIframeWorkflowWatch = setInterval(function() {
-  __uvdMaybeOfferIframeWorkflow();
-  if (__uvdIframeWorkflowAsked) clearInterval(__uvdIframeWorkflowWatch);
-}, 1000);
-setTimeout(function() { clearInterval(__uvdIframeWorkflowWatch); }, 15000);
 console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
-} catch (bootError) {
-  __uvdReportBootError(bootError);
-}
-__uvdBooting = false;
+toast('V' + VERSION + ' PRO sẵn sàng!');
 
 })();

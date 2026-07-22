@@ -1992,7 +1992,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   // Mobile: the player area follows the video's aspect ratio instead of
   // stretching to fill the whole sheet. This removes the large empty glass
   // region above landscape video while keeping portrait video comfortable.
-  videoArea.style.cssText = 'flex:0 0 auto; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center;';
+  // Leave a small glass inset around the frame so the rounded corners and
+  // shadow remain visible instead of touching the phone edges.
+  videoArea.style.cssText = 'flex:0 0 auto; min-height:0; overflow:hidden; box-sizing:border-box; padding:10px 12px 8px; display:flex; align-items:center; justify-content:center;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
   videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass);';
@@ -2084,6 +2086,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoArea.style.flex = '1 1 auto';
       videoArea.style.height = '';
       videoArea.style.minHeight = '0';
+      videoArea.style.padding = '0';
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
@@ -2102,6 +2105,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     // the title/info panel far below the fold on small screens.
     videoArea.style.flex = '0 0 auto';
     videoArea.style.minHeight = '0';
+    if (!videoArea.style.padding) videoArea.style.padding = '10px 12px 8px';
     var layoutW = videoWrapper.clientWidth || window.innerWidth || 360;
     var layoutH = window.innerHeight || 720;
     var maxAreaH = Math.max(220, Math.min(Math.round(layoutH * 0.54), 520));
@@ -2109,7 +2113,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoArea.style.height = Math.round(Math.min(maxAreaH, Math.max(280, layoutH * 0.58))) + 'px';
     } else {
       var streamRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
-      var landscapeAreaH = Math.min(layoutW * streamRatio, maxAreaH);
+      // Include the vertical inset in the reserved area height.
+      var landscapeAreaH = Math.min(layoutW * streamRatio + 18, maxAreaH);
       videoArea.style.height = Math.round(Math.max(200, landscapeAreaH)) + 'px';
     }
 
@@ -2142,7 +2147,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       playerEl.style.margin = 'auto';
       var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
       var areaWidth = videoWrapper.clientWidth || layoutW;
-      var areaHeight = videoArea.clientHeight || Math.round(areaWidth * landscapeRatio);
+      var areaHeight = videoArea.clientHeight || Math.round(areaWidth * landscapeRatio + 18);
       var maxPlayerWidth = landscapeRatio > 0 ? (areaHeight / landscapeRatio) : areaWidth;
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
       playerEl.style.width = Math.min(areaWidth * 0.95, maxPlayerWidth) + 'px';

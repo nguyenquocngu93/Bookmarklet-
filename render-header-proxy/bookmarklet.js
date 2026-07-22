@@ -1909,7 +1909,11 @@ function retryThroughHeaderProxy(sourceUrl, type) {
 }
 
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type, fromProxy, forceReinit) {
+function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
+  // forceHlsJs is used only after native HLS has failed. It must be a real
+  // parameter: an undeclared flag here would stop the player before hls.js
+  // gets a chance to take over, leaving the loading spinner forever.
+  forceHlsJs = !!forceHlsJs;
   // When hls.js is loaded lazily, the player shell already exists. Allow the
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;
@@ -1923,6 +1927,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
   playerState.proxyFallbackTimer = null;
   playerState.nativeFallbackTimer = null;
   playerState.nativePlayAttempted = false;
+  playerState.usingNativeHls = false;
   playerState.sizeRequested = false;
   playerState.playbackError = '';
   playerState.closing = false;
@@ -2420,7 +2425,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit) {
         if (playerState.closing || playerState.video !== video) return;
         // Preserve fromProxy. Without this, a lazy hls.js load could restart
         // the proxy fallback as if the source were direct.
-        showVideoPlayer(url, type, fromProxy, true);
+        showVideoPlayer(url, type, fromProxy, true, forceHlsJs);
       }, function() {
         if (playerState.closing || playerState.video !== video) return;
         setPlaybackError('Không tải được hls.js — thử tải lại bookmarklet hoặc kiểm tra CSP/CDN.');

@@ -2711,6 +2711,23 @@ style.textContent = `
 .uvd-card-head{margin-bottom:7px}.uvd-card-badges{flex-wrap:wrap}.uvd-url-box{cursor:pointer;transition:border-color .16s ease,background .16s ease}.uvd-url-box:hover{border-color:rgba(255,47,200,.42);background:rgba(255,47,200,.12)}
 .uvd-settings-details{margin:10px 0;border:1px solid rgba(255,47,200,.14);border-radius:18px;background:rgba(255,255,255,.48);overflow:hidden}.uvd-settings-details>summary{display:flex;align-items:center;gap:8px;padding:11px 12px;list-style:none;cursor:pointer;color:var(--text);font-size:13px;font-weight:800}.uvd-settings-details>summary::-webkit-details-marker{display:none}.uvd-settings-details>summary .uvd-section-num{width:22px;height:22px}.uvd-details-chevron{margin-left:auto;font-size:18px;color:var(--accent2);transition:transform .18s ease}.uvd-settings-details[open] .uvd-details-chevron{transform:rotate(180deg)}.uvd-settings-details-body{padding:0 8px 8px}.uvd-settings-details-body>.uvd-card{margin-bottom:0}
 
+
+/* ========== HOST CSS HARD RESET FOR CONTROLS ========== */
+.uvd-scope,.uvd-scope *{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif!important}
+.uvd-scope .uvd-glass-panel,.uvd-scope.uvd-settings-overlay,.uvd-scope .uvd-settings-sheet,.uvd-scope .uvd-glass-panel,.uvd-scope .uvd-overlay .uvd-glass-panel{color:#2b1836!important;background:rgba(255,252,255,.99)!important;background-image:none!important}
+.uvd-scope .uvd-settings-body,.uvd-scope .uvd-panel-content{color:#2b1836!important}
+.uvd-scope .uvd-settings-body>.uvd-card,.uvd-scope .uvd-settings-details,.uvd-scope .uvd-settings-details-body>.uvd-card{background:#fff!important;color:#2b1836!important;border-color:rgba(255,47,200,.18)!important}
+.uvd-scope .uvd-settings-body .uvd-card *,.uvd-scope .uvd-settings-details *{text-shadow:none!important}
+.uvd-scope .uvd-toggle-switch{appearance:none!important;-webkit-appearance:none!important;width:44px!important;height:26px!important;padding:0!important;border:0!important;border-radius:14px!important;background:rgba(43,24,54,.16)!important;box-shadow:none!important}
+.uvd-scope .uvd-toggle-switch.uvd-toggle-on{background:linear-gradient(135deg,#ff2fc8,#9b3dff)!important}
+.uvd-scope .uvd-toggle-switch .uvd-toggle-knob{display:block!important;width:20px!important;height:20px!important;top:3px!important;left:3px!important;background:#fff!important;border-radius:50%!important;box-shadow:0 1px 4px rgba(0,0,0,.28)!important}
+.uvd-scope select,.uvd-scope input[type=number],.uvd-scope input[type=password],.uvd-scope textarea{appearance:none!important;-webkit-appearance:none!important;background:#fff!important;background-image:none!important;color:#2b1836!important;border:1px solid rgba(255,47,200,.22)!important;border-radius:12px!important;box-shadow:0 2px 8px rgba(43,24,54,.08)!important}
+.uvd-scope select option{background:#fff!important;color:#2b1836!important}
+.uvd-scope input[type=range]{appearance:none!important;-webkit-appearance:none!important;width:100%!important;height:24px!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;accent-color:#ff2fc8!important}
+.uvd-scope input[type=range]::-webkit-slider-runnable-track{height:6px!important;border:0!important;border-radius:6px!important;background:rgba(155,61,255,.22)!important}
+.uvd-scope input[type=range]::-webkit-slider-thumb{appearance:none!important;-webkit-appearance:none!important;width:20px!important;height:20px!important;margin-top:-7px!important;border:0!important;border-radius:50%!important;background:#ff2fc8!important;box-shadow:0 2px 7px rgba(255,47,200,.35)!important}
+.uvd-scope input[type=range]::-moz-range-track{height:6px!important;border:0!important;border-radius:6px!important;background:rgba(155,61,255,.22)!important}
+.uvd-scope input[type=range]::-moz-range-thumb{width:20px!important;height:20px!important;border:0!important;border-radius:50%!important;background:#ff2fc8!important;box-shadow:0 2px 7px rgba(255,47,200,.35)!important}
 `;
 document.head.appendChild(style);
 

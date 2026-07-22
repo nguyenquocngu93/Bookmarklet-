@@ -2107,9 +2107,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
     } else {
-      // Video ngang: chiếm khoảng 70% chiều cao vùng player để giảm khoảng trống.
-      videoArea.style.flex = '0 0 70%';
-      videoArea.style.maxHeight = '70%';
+      // Video ngang: thu gọn vùng chứa theo đúng chiều cao khung video,
+      // không đẩy info/footer lên giữa một vùng trống lớn.
+      videoArea.style.flex = '0 0 auto';
+      videoArea.style.maxHeight = 'none';
+      var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
+      var frameWidth = videoWrapper.clientWidth ? videoWrapper.clientWidth * 0.95 : 0;
+      if (frameWidth > 0) videoArea.style.height = Math.ceil(frameWidth * landscapeRatio + 24) + 'px';
       // Video ngang: giữ nguyên — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';

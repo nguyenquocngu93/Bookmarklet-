@@ -988,7 +988,10 @@ function installMonitor() {
       try {
         var responseUrl = response && response.url;
         var contentType = response && response.headers && (response.headers.get('content-type') || '');
-        if (responseUrl && !isAdUrl(responseUrl)) findUrls(responseUrl, 'fetch:response');
+        if (responseUrl && !isAdUrl(responseUrl)) {
+          if (/mpegurl/i.test(contentType)) __uvdAddDetectedMediaUrl(responseUrl, 'M3U8', 'fetch:manifest');
+          else findUrls(responseUrl, 'fetch:response');
+        }
         var inspectResponseBody = /mpegurl/i.test(contentType) ||
           (/json/i.test(contentType) && /api|source|video|media|play|stream|manifest|playlist/i.test(responseUrl || '')) ||
           /m3u8|manifest|playlist/i.test(responseUrl || '');
@@ -1008,8 +1011,13 @@ function installMonitor() {
       this.__uvdBodyHooked = true;
       this.addEventListener('load', function() {
         try {
-          if (this.responseURL && !isAdUrl(this.responseURL)) findUrls(this.responseURL, 'xhr:response');
-          if (typeof this.responseText === 'string') findUrls(this.responseText, 'xhr:body');
+          var xhrType = this.getResponseHeader('content-type') || '';
+          var xhrBody = typeof this.responseText === 'string' ? this.responseText : '';
+          if (this.responseURL && !isAdUrl(this.responseURL)) {
+            if (/mpegurl/i.test(xhrType) || xhrBody.indexOf('#EXTM3U') !== -1) __uvdAddDetectedMediaUrl(this.responseURL, 'M3U8', 'xhr:manifest');
+            else findUrls(this.responseURL, 'xhr:response');
+          }
+          if (xhrBody) findUrls(xhrBody, 'xhr:body');
         } catch(e) {}
       });
     }

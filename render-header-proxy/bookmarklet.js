@@ -1952,6 +1952,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   sheet.className = 'uvd-settings-sheet uvd-player-sheet' + (playerState.launchFromThumbnail ? ' uvd-player-from-thumbnail' : '');
   playerState.launchFromThumbnail = false;
   sheet.style.cssText = 'display:flex; flex-direction:column; height:92dvh; max-height:92dvh; overflow:hidden; box-sizing:border-box;';
+  // On phones, let the bottom sheet wrap its actual video + info content
+  // instead of reserving the whole viewport for an otherwise empty player.
+  var __uvdCompactMobilePlayer = window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+  if (__uvdCompactMobilePlayer) {
+    sheet.style.height = 'auto';
+    sheet.style.minHeight = '0';
+  }
   overlay.appendChild(sheet);
 
   var sheetHeader = document.createElement('div');
@@ -1979,9 +1986,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   var sheetBody = document.createElement('div');
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
+  if (__uvdCompactMobilePlayer) sheetBody.style.flex = '0 1 auto';
   var videoArea = document.createElement('div');
   videoArea.className = 'uvd-player-video-area';
-  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center;';
+  // Mobile: the player area follows the video's aspect ratio instead of
+  // stretching to fill the whole sheet. This removes the large empty glass
+  // region above landscape video while keeping portrait video comfortable.
+  videoArea.style.cssText = 'flex:0 0 auto; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
   videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass);';
@@ -2069,6 +2080,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     }
 
     if (fs) {
+      // Fullscreen: restore the flexible viewport layout.
+      videoArea.style.flex = '1 1 auto';
+      videoArea.style.height = '';
+      videoArea.style.minHeight = '0';
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
@@ -2080,6 +2095,22 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       playerEl.style.boxShadow = 'none';
       video.style.objectFit = 'contain';
       return;
+    }
+
+    // Outside fullscreen, reserve only the height needed by this video's
+    // aspect ratio. A capped height prevents a single player from pushing
+    // the title/info panel far below the fold on small screens.
+    videoArea.style.flex = '0 0 auto';
+    videoArea.style.minHeight = '0';
+    var layoutW = videoWrapper.clientWidth || window.innerWidth || 360;
+    var layoutH = window.innerHeight || 720;
+    var maxAreaH = Math.max(220, Math.min(Math.round(layoutH * 0.54), 520));
+    if (isPortrait) {
+      videoArea.style.height = Math.round(Math.min(maxAreaH, Math.max(280, layoutH * 0.58))) + 'px';
+    } else {
+      var streamRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
+      var landscapeAreaH = Math.min(layoutW * streamRatio, maxAreaH);
+      videoArea.style.height = Math.round(Math.max(200, landscapeAreaH)) + 'px';
     }
 
     if (isPortrait) {
@@ -2109,8 +2140,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
       playerEl.style.margin = 'auto';
+      var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
+      var areaWidth = videoWrapper.clientWidth || layoutW;
+      var areaHeight = videoArea.clientHeight || Math.round(areaWidth * landscapeRatio);
+      var maxPlayerWidth = landscapeRatio > 0 ? (areaHeight / landscapeRatio) : areaWidth;
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.width = '95%';
+      playerEl.style.width = Math.min(areaWidth * 0.95, maxPlayerWidth) + 'px';
       playerEl.style.height = '';
       playerEl.style.borderRadius = '24px';
       playerEl.style.boxShadow = FLOAT_SHADOW;

@@ -218,6 +218,9 @@ function __uvdAppendAccessToken(url, token) {
   } catch(e) { return url; }
 }
 var patterns = [
+  // Some JWPlayer hosts expose an HLS playlist through an extensionless
+  // endpoint such as ?format=play instead of a visible .m3u8 URL.
+  { re: /https?:\/\/[^\s"'<>()\\]+[?&]format=play[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mpd[^\s"'<>()\\]*/gi, type: 'MPD', priority: 2 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mp4[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },

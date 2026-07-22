@@ -2690,6 +2690,8 @@ style.textContent = `
 .uvd-code-copy:active{background:rgba(155,61,255,.22)}
 
 /* ========== NORMAL UI POLISH ========== */
+/* Keep host-page resets and translucent backgrounds from bleeding into UMP. */
+.uvd-scope{isolation:isolate;color-scheme:light}.uvd-scope button,.uvd-scope input,.uvd-scope select,.uvd-scope textarea{box-sizing:border-box!important;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif!important;line-height:1.3!important;letter-spacing:normal!important;text-transform:none!important}.uvd-app-shell{background:rgba(255,252,255,.98)!important}.uvd-app-shell .uvd-card{background:rgba(255,255,255,.96)!important}.uvd-settings-overlay .uvd-settings-sheet,.uvd-overlay .uvd-glass-panel{background:rgba(255,252,255,.98)!important}.uvd-scope select,.uvd-scope input[type=number],.uvd-scope input[type=password],.uvd-scope textarea{background:#fff!important;color:var(--text)!important;border-color:var(--border)!important}.uvd-scope select option{background:#fff!important;color:#2b1836!important}.uvd-scope input[type=range]{appearance:auto!important;-webkit-appearance:auto!important;accent-color:var(--accent)!important;background:transparent!important;color-scheme:light}
 .uvd-app-shell{background:rgba(255,255,255,.9)!important;border-color:rgba(255,47,200,.16)!important;box-shadow:0 14px 34px rgba(112,45,126,.10),0 0 0 1px rgba(255,255,255,.55) inset!important}
 .uvd-app-shell .uvd-card{background:rgba(255,255,255,.76)!important;border-color:rgba(255,47,200,.16);box-shadow:0 7px 20px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.45) inset}
 .uvd-app-shell .uvd-card:hover{transform:translateY(-2px);box-shadow:0 11px 24px rgba(112,45,126,.13),0 0 0 1px rgba(255,47,200,.12) inset}
@@ -3019,18 +3021,6 @@ function buildUI() {
   contentWrapper.appendChild(streamList);
   
   content.appendChild(contentWrapper);
-  
-  var footer = document.createElement('div');
-  footer.style.cssText = 'display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;flex-shrink:0;';
-  ['TXT','JSON','M3U','CSV'].forEach(function(f) {
-    var btn = document.createElement('button');
-    btn.className = 'uvd-btn uvd-btn-sm';
-    btn.textContent = f;
-    btn.style.flex = '1 0 auto';
-    btn.onclick = function() { exportData(f.toLowerCase()); };
-    footer.appendChild(btn);
-  });
-  content.appendChild(footer);
   
   var author = document.createElement('div');
   author.style.cssText = 'text-align:center;font-size:11px;color:var(--text3);margin-top:8px;flex-shrink:0;';

@@ -2701,6 +2701,7 @@ style.textContent = `
 .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
 .uvd-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:28px 18px;text-align:center;color:var(--text2)}
 .uvd-empty-state strong{color:var(--text);font-size:15px}.uvd-empty-state span{font-size:12px;line-height:1.5}
+.uvd-card-head{margin-bottom:7px}.uvd-card-badges{flex-wrap:wrap}.uvd-url-box{cursor:pointer;transition:border-color .16s ease,background .16s ease}.uvd-url-box:hover{border-color:rgba(255,47,200,.42);background:rgba(255,47,200,.12)}
 
 `;
 document.head.appendChild(style);
@@ -3250,7 +3251,7 @@ function buildStreamCardHTML(item, i) {
       '</div>' +
       '<div class="uvd-card-stream-meta" data-card-stream-meta>Đang lấy thời lượng và độ phân giải…</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
-      '<div class="uvd-url-box">' + escapeHtml(item.url) + '</div>' +
+      '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
     '</div>'
   );
 }
@@ -3552,6 +3553,12 @@ function renderStreams(container, arr) {
 
   container.onclick = function(e) {
     if (!e.target.closest('.uvd-action-menu')) container.querySelectorAll('.uvd-action-menu[open]').forEach(function(menu) { menu.open = false; });
+    var urlBox = e.target.closest('.uvd-url-box');
+    if (urlBox) {
+      copy(urlBox.textContent || '');
+      toast('Đã sao chép URL!');
+      return;
+    }
     var blockBtn = e.target.closest('.uvd-block-btn');
     if (blockBtn) {
       addRipple({ currentTarget: blockBtn, clientX: e.clientX, clientY: e.clientY });

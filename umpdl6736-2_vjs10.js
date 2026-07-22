@@ -2683,6 +2683,25 @@ style.textContent = `
 .uvd-code-block textarea{width:100%;background:transparent;border:none;color:var(--accent2);font-weight:600;padding:10px 40px 10px 12px;font-size:10px;font-family:'SFMono-Regular',Consolas,monospace;resize:none}
 .uvd-code-copy{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:8px;background:rgba(155,61,255,.09);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .uvd-code-copy:active{background:rgba(155,61,255,.22)}
+
+/* ========== NORMAL UI POLISH ========== */
+.uvd-app-shell{background:rgba(255,255,255,.9)!important;border-color:rgba(255,47,200,.16)!important;box-shadow:0 14px 34px rgba(112,45,126,.10),0 0 0 1px rgba(255,255,255,.55) inset!important}
+.uvd-app-shell .uvd-card{background:rgba(255,255,255,.76)!important;border-color:rgba(255,47,200,.16);box-shadow:0 7px 20px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.45) inset}
+.uvd-app-shell .uvd-card:hover{transform:translateY(-2px);box-shadow:0 11px 24px rgba(112,45,126,.13),0 0 0 1px rgba(255,47,200,.12) inset}
+.uvd-app-shell .uvd-tabbar{background:rgba(245,240,250,.82)!important;border-color:rgba(155,61,255,.16)!important}
+.uvd-app-shell .uvd-tab{color:#776985!important;font-weight:700}
+.uvd-app-shell .uvd-tab.uvd-tab-active{color:#fff!important}
+.uvd-app-shell .uvd-filter-btn{background:rgba(255,255,255,.82)!important;color:#776985!important}
+.uvd-app-shell .uvd-filter-btn.uvd-filter-active{color:#fff!important}
+.uvd-card-preview{height:150px;border-radius:20px}.uvd-card-preview.uvd-thumb-portrait{height:235px}
+.uvd-card-stream-meta{background:rgba(247,242,252,.9);border-color:rgba(155,61,255,.14);font-size:10px}
+.uvd-url-box{max-height:64px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.uvd-context-bar{padding:12px 14px;margin-bottom:10px;background:rgba(250,247,253,.82)}
+.uvd-section-title{margin-top:12px}
+.uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
+.uvd-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:28px 18px;text-align:center;color:var(--text2)}
+.uvd-empty-state strong{color:var(--text);font-size:15px}.uvd-empty-state span{font-size:12px;line-height:1.5}
+
 `;
 document.head.appendChild(style);
 
@@ -3498,7 +3517,9 @@ function hydrateVideoThumbnails(root) {
 
 function renderStreams(container, arr) {
   if (!arr.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">Không phát hiện stream nào.</div>';
+    container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
+    var emptyPreload = container.querySelector('#__uvd_empty_preload__');
+    if (emptyPreload) emptyPreload.onclick = function() { runPreloadCapture(); };
     return;
   }
 

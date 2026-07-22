@@ -298,6 +298,15 @@ function findPlaylistBodyUrls(text, source) {
   });
   return changed;
 }
+var __uvdMediaPauseTimer = null;
+function __uvdPausePageAfterMediaFound() {
+  if (typeof playerState !== 'undefined' && playerState && playerState.overlay) return;
+  clearTimeout(__uvdMediaPauseTimer);
+  __uvdMediaPauseTimer = setTimeout(function() {
+    try { pauseAllPlayingVideos(); } catch(e) {}
+    setTimeout(function() { try { pauseAllPlayingVideos(); } catch(e) {} }, 700);
+  }, 80);
+}
 function findUrls(text, source) {
   if (!text || typeof text !== 'string' || text.length > 300000) return;
   if (text.length > 30000 && String(source || '').indexOf(':body') === -1 && String(source || '').indexOf(':playlist') === -1) return;
@@ -311,7 +320,10 @@ function findUrls(text, source) {
   // live capture to show hundreds of TikTok/CDN links as fake M3U8 entries.
   if (isPlaylistBody) {
     __uvdDismissIframeWorkflowIfVideoFound();
-    if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
+    if (changed) {
+      __uvdPausePageAfterMediaFound();
+      setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
+    }
     return;
   }
   patterns.forEach(function(p) {
@@ -339,6 +351,7 @@ function findUrls(text, source) {
         if (!urls.has(u) || urls.get(u).priority > detectedPriority || urls.get(u).type !== detectedType) {
           urls.set(u, { type: detectedType, source: source, priority: detectedPriority, timestamp: Date.now() });
           changed = true;
+          if (['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(detectedType) !== -1) __uvdPausePageAfterMediaFound();
         }
       });
     }
@@ -369,6 +382,7 @@ function scan(doc, src, light) {
       var elementUrl = v.src || (v.getAttribute && (v.getAttribute('data-src') || v.getAttribute('data-video-url')));
       if (elementUrl) {
         if (!__uvdAddDetectedMediaUrl(elementUrl, mediaType, src + ':element')) findUrls(elementUrl, src + ':element');
+        else if (mediaType) __uvdPausePageAfterMediaFound();
       }
       if (v.currentSrc) {
         if (!__uvdAddDetectedMediaUrl(v.currentSrc, mediaType, src + ':current')) findUrls(v.currentSrc, src + ':current');

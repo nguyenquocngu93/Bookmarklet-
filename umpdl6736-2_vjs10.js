@@ -1851,7 +1851,7 @@ function __uvdEnsureHls(onReady, onError) {
   if (window.__uvdHlsLoading) return;
   window.__uvdHlsLoading = true;
   var script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.6.13/hls.min.js';
   script.onload = function() {
     window.__uvdHlsLoading = false;
     var waiters = window.__uvdHlsWaiters || [];
@@ -3943,7 +3943,7 @@ function renderClickedButtons(container) {
 // ========== RENDER SETTINGS ==========
 function renderSettings(container) {
   var totalStreams = urls.size;
-  var bookmarkletCode = "javascript:(function(){var s=document.createElement('script');s.src='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();document.head.appendChild(s);})();";
+  var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);}).catch(function(){var s=document.createElement('script');s.src=u;document.head.appendChild(s);});})();";
 
   container.innerHTML =
     '<div class="uvd-profile-card">' +

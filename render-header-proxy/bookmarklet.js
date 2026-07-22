@@ -1992,12 +1992,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   // Mobile: the player area follows the video's aspect ratio instead of
   // stretching to fill the whole sheet. This removes the large empty glass
   // region above landscape video while keeping portrait video comfortable.
-  // Leave a small glass inset around the frame so the rounded corners and
-  // shadow remain visible instead of touching the phone edges.
-  videoArea.style.cssText = 'flex:0 0 auto; min-height:0; overflow:hidden; box-sizing:border-box; padding:10px 12px 8px; display:flex; align-items:center; justify-content:center;';
+  // The outer wrapper is the card; keep it slightly wider than the video
+  // surface so its glass edge and shadow remain visible without padding.
+  videoArea.style.cssText = 'flex:0 0 auto; min-height:0; overflow:visible; display:flex; align-items:center; justify-content:center;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass);';
+  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass); border-radius:28px;';
   var video = document.createElement('video');
   video.id = '__uvd_player_video__';
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:var(--glass);';
@@ -2067,11 +2067,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     var isPortrait = hasDims && video.videoHeight > video.videoWidth;
     var surface = '#000';
 
-    // Keep one visual frame only: playerEl owns the black surface/radius;
-    // wrapper, video-skin and video stay transparent/flat.
+    // Keep one visual frame inside a slightly larger glass card: playerEl
+    // owns the black surface, while the wrapper provides the visible edge/shadow.
     videoArea.style.background = fs ? '#000' : '';
-    videoWrapper.style.background = 'transparent';
-    videoWrapper.style.overflow = 'hidden';
+    videoArea.style.overflow = fs ? 'hidden' : 'visible';
+    videoWrapper.style.background = fs ? '#000' : 'var(--glass)';
+    videoWrapper.style.overflow = fs ? 'hidden' : 'visible';
+    videoWrapper.style.borderRadius = fs ? '0' : '28px';
+    videoWrapper.style.boxShadow = fs ? 'none' : FLOAT_SHADOW;
     video.style.background = surface;
     video.style.borderRadius = '0';
     playerEl.style.background = surface;
@@ -2086,13 +2089,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoArea.style.flex = '1 1 auto';
       videoArea.style.height = '';
       videoArea.style.minHeight = '0';
+      videoArea.style.overflow = 'hidden';
       videoArea.style.padding = '0';
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
       playerEl.style.margin = 'auto';
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.width = '100%';
+      playerEl.style.setProperty('width', '100%', 'important');
       playerEl.style.height = '';
       playerEl.style.borderRadius = '0';
       playerEl.style.boxShadow = 'none';
@@ -2105,7 +2109,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     // the title/info panel far below the fold on small screens.
     videoArea.style.flex = '0 0 auto';
     videoArea.style.minHeight = '0';
-    if (!videoArea.style.padding) videoArea.style.padding = '10px 12px 8px';
+    videoArea.style.overflow = 'visible';
     var layoutW = videoWrapper.clientWidth || window.innerWidth || 360;
     var layoutH = window.innerHeight || 720;
     var maxAreaH = Math.max(220, Math.min(Math.round(layoutH * 0.54), 520));
@@ -2113,8 +2117,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       videoArea.style.height = Math.round(Math.min(maxAreaH, Math.max(280, layoutH * 0.58))) + 'px';
     } else {
       var streamRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
-      // Include the vertical inset in the reserved area height.
-      var landscapeAreaH = Math.min(layoutW * streamRatio + 18, maxAreaH);
+      var landscapeAreaH = Math.min(layoutW * streamRatio, maxAreaH);
       videoArea.style.height = Math.round(Math.max(200, landscapeAreaH)) + 'px';
     }
 
@@ -2130,10 +2133,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       playerEl.style.margin = 'auto';
       playerEl.style.aspectRatio = 'auto';
       if (boxW > 0 && boxH > 0) {
-        playerEl.style.width = boxW + 'px';
+        playerEl.style.setProperty('width', boxW + 'px', 'important');
         playerEl.style.height = boxH + 'px';
       } else {
-        playerEl.style.width = '95%';
+        playerEl.style.setProperty('width', '95%', 'important');
         playerEl.style.height = '95%';
       }
       playerEl.style.borderRadius = '24px';
@@ -2147,13 +2150,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       playerEl.style.margin = 'auto';
       var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
       var areaWidth = videoWrapper.clientWidth || layoutW;
-      var areaHeight = videoArea.clientHeight || Math.round(areaWidth * landscapeRatio + 18);
+      var areaHeight = videoArea.clientHeight || Math.round(areaWidth * landscapeRatio);
       var maxPlayerWidth = landscapeRatio > 0 ? (areaHeight / landscapeRatio) : areaWidth;
       playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.width = Math.min(areaWidth * 0.95, maxPlayerWidth) + 'px';
+      playerEl.style.setProperty('width', Math.min(areaWidth * 0.94, maxPlayerWidth) + 'px', 'important');
       playerEl.style.height = '';
       playerEl.style.borderRadius = '24px';
-      playerEl.style.boxShadow = FLOAT_SHADOW;
+      // The wrapper is the shadow card; keep the video surface itself clean.
+      playerEl.style.boxShadow = 'none';
       video.style.objectFit = 'contain';
       video.style.borderRadius = 'inherit';
     }

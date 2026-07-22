@@ -375,6 +375,12 @@ function scan(doc, src, light) {
     if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
     }
+    doc.querySelectorAll('[data-link],[data-src],[data-video-url],[data-file],[data-hls],[data-m3u8]').forEach(function(el) {
+      ['data-link','data-src','data-video-url','data-file','data-hls','data-m3u8'].forEach(function(attr) {
+        var value = el.getAttribute && el.getAttribute(attr);
+        if (value) findUrls(value, src + ':' + attr);
+      });
+    });
     doc.querySelectorAll('video, source, audio').forEach(function(v) {
       var tag = (v.tagName || '').toUpperCase();
       var typeHint = ((v.getAttribute && (v.getAttribute('type') || v.getAttribute('data-type') || '')) + ' ' + (v.src || '')).toLowerCase();

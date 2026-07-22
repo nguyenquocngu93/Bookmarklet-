@@ -2713,6 +2713,13 @@ style.textContent = `
 
 
 /* ========== HOST CSS HARD RESET FOR CONTROLS ========== */
+
+.uvd-scope .uvd-btn{background:rgba(155,61,255,.10)!important;border:1px solid rgba(255,47,200,.22)!important;color:#2b1836!important;box-shadow:0 2px 8px rgba(43,24,54,.10)!important;text-shadow:none!important}
+.uvd-scope .uvd-btn:hover{background:rgba(255,47,200,.16)!important;color:#2b1836!important}
+.uvd-scope .uvd-btn[style*="var(--danger)"],.uvd-scope .uvd-btn[style*="var(--btn-danger-bg)"]{background:rgba(255,93,114,.16)!important;border-color:rgba(255,93,114,.35)!important;color:#d63d5d!important}
+.uvd-scope .uvd-context-title{background:transparent!important;color:#2b1836!important;border:0!important;box-shadow:none!important;text-shadow:none!important}
+.uvd-scope .uvd-back-btn,.uvd-scope .uvd-code-copy,.uvd-scope .uvd-action-list summary{background:rgba(155,61,255,.10)!important;border-color:rgba(255,47,200,.22)!important;color:#2b1836!important}
+.uvd-scope .uvd-settings-overlay.uvd-open{background:rgba(16,8,22,.78)!important}
 .uvd-scope,.uvd-scope *{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif!important}
 .uvd-scope .uvd-glass-panel,.uvd-scope.uvd-settings-overlay,.uvd-scope .uvd-settings-sheet,.uvd-scope .uvd-glass-panel,.uvd-scope .uvd-overlay .uvd-glass-panel{color:#2b1836!important;background:rgba(255,252,255,.99)!important;background-image:none!important}
 .uvd-scope .uvd-settings-body,.uvd-scope .uvd-panel-content{color:#2b1836!important}

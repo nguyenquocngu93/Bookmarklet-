@@ -250,6 +250,21 @@ function __uvdLooksLikeHlsUrl(url) {
 function __uvdIsLikelyHlsSegmentUrl(url) {
   return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$)|init-[^/?#]+\.mp4(?:[?#]|$))/i.test(String(url || ''));
 }
+function __uvdAddDetectedMediaUrl(url, type, source) {
+  if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
+  url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+  if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
+  else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
+  type = type || 'MP4';
+  var priorityMap = { M3U8: 1, MPD: 2, MP4: 3, WEBM: 4, BLOB: 8, IFRAME: 99 };
+  var priority = priorityMap[type] || 6;
+  var existing = urls.get(url);
+  if (!existing || existing.type !== type || existing.priority > priority) {
+    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now() });
+    return true;
+  }
+  return false;
+}
 function findPlaylistBodyUrls(text, source) {
   if (!text || typeof text !== 'string' || text.indexOf('#EXTM3U') === -1) return false;
   var changed = false;
@@ -348,8 +363,16 @@ function scan(doc, src, light) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
     }
     doc.querySelectorAll('video, source, audio').forEach(function(v) {
-      if (v.src) findUrls(v.src, src + ':element');
-      if (v.currentSrc) findUrls(v.currentSrc, src + ':current');
+      var tag = (v.tagName || '').toUpperCase();
+      var typeHint = ((v.getAttribute && (v.getAttribute('type') || v.getAttribute('data-type') || '')) + ' ' + (v.src || '')).toLowerCase();
+      var mediaType = /m3u8|mpegurl|hls/.test(typeHint) ? 'M3U8' : (/video\//.test(typeHint) || tag === 'VIDEO' || tag === 'SOURCE' ? 'MP4' : '');
+      var elementUrl = v.src || (v.getAttribute && (v.getAttribute('data-src') || v.getAttribute('data-video-url')));
+      if (elementUrl) {
+        if (!__uvdAddDetectedMediaUrl(elementUrl, mediaType, src + ':element')) findUrls(elementUrl, src + ':element');
+      }
+      if (v.currentSrc) {
+        if (!__uvdAddDetectedMediaUrl(v.currentSrc, mediaType, src + ':current')) findUrls(v.currentSrc, src + ':current');
+      }
     });
     doc.querySelectorAll('script').forEach(function(s) {
       findUrls(s.textContent, src + ':script');

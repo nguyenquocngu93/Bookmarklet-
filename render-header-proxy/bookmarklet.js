@@ -2069,6 +2069,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     }
 
     if (fs) {
+      sheet.style.height = '92dvh';
+      sheet.style.maxHeight = '92dvh';
+      sheetBody.style.flex = '1 1 auto';
       // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';
@@ -2083,6 +2086,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     }
 
     if (isPortrait) {
+      sheet.style.height = '92dvh';
+      sheet.style.maxHeight = '92dvh';
+      sheetBody.style.flex = '1 1 auto';
       videoArea.style.flex = '1 1 auto';
       videoArea.style.maxHeight = '';
       // Video dọc: tính khung bằng pixel thật (JS đo trực tiếp) thay vì để CSS/aspect-ratio nội bộ
@@ -2107,6 +2113,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
     } else {
+      // Video ngang: card chỉ ôm header + video + info, không giữ phần trống của 92dvh.
+      sheet.style.height = 'auto';
+      sheet.style.maxHeight = '70dvh';
+      sheetBody.style.flex = '0 0 auto';
       // Video ngang: thu gọn vùng chứa theo đúng chiều cao khung video,
       // không đẩy info/footer lên giữa một vùng trống lớn.
       videoArea.style.flex = '0 0 auto';

@@ -3949,7 +3949,7 @@ function renderClickedButtons(container) {
 // ========== RENDER SETTINGS ==========
 function renderSettings(container) {
   var totalStreams = urls.size;
-  var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);}).catch(function(){var s=document.createElement('script');s.src=u;document.head.appendChild(s);});})();";
+  var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();var s=document.createElement('script');s.src=u;s.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(s);})();";
 
   container.innerHTML =
     '<div class="uvd-profile-card">' +

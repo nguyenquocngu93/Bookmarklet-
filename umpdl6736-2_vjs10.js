@@ -82,6 +82,8 @@ data.settings = Object.assign({
   doubleTapSeconds: 10,
   autoHideControls: true,
   showRemainingTime: true,
+  thumbnailEnabled: true,
+  thumbnailCount: 3,
   hideDelay: 5,
   maxStoredUrls: 200,
   blockAutoplay: true,
@@ -3276,9 +3278,11 @@ function loadExtraVideoThumbnails(preview) {
     return;
   }
   var card = preview.closest('.uvd-card');
-  if (!card) return;
+  if (!card || data.settings.thumbnailEnabled === false) return;
   preview.dataset.extraThumbs = 'loading';
-  var times = [12, 30, 60, 90, 120].map(function(t) {
+  var thumbCount = Math.max(0, Math.min(5, parseInt(data.settings.thumbnailCount, 10) || 0));
+  if (!thumbCount) { preview.dataset.extraThumbs = 'disabled'; return; }
+  var times = [12, 30, 60, 90, 120].slice(0, thumbCount).map(function(t) {
     return Math.min(t, Math.max(0, media.duration - .5));
   }).filter(function(t, i, a) { return a.indexOf(t) === i; });
   var strip = document.createElement('div');
@@ -3356,6 +3360,12 @@ function hydrateVideoThumbnails(root) {
         return;
       }
       preview.dataset.uvdHlsOwner = '1';
+    }
+    if (data.settings.thumbnailEnabled === false) {
+      preview.dataset.thumbState = 'disabled';
+      var disabledStatus = card && card.querySelector('.uvd-card-status');
+      if (disabledStatus) { disabledStatus.textContent = 'THUMBNAIL OFF'; disabledStatus.className = 'uvd-card-status uvd-status-muted'; }
+      return;
     }
     var earlyThumbUrl = preview.getAttribute('data-thumb-url') || '';
     if (__uvdShouldSkipThumbnail(earlyThumbUrl)) {
@@ -3803,6 +3813,14 @@ function renderPlayerSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:10px;">🖼 Thumbnail</div>' +
+      buildToggleRow('__uvd_toggle_thumbnails__', 'Tải thumbnail video trong danh sách', s.thumbnailEnabled !== false) +
+      '<div style="font-size:12px;color:var(--text2);margin:10px 0 6px;">Số ảnh cảnh khác khi giữ thumbnail</div>' +
+      '<input type="number" id="__uvd_thumbnail_count__" min="0" max="5" step="1" value="' + (s.thumbnailCount == null ? 3 : s.thumbnailCount) + '" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Tắt thumbnail hoặc giảm số ảnh để tiết kiệm data, CPU và pin.</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:10px;">⚙️ Tuỳ chọn</div>' +
       buildToggleRow('__uvd_toggle_resume__', 'Nhớ vị trí xem dở (Resume)', s.resumePlayback) +
       buildToggleRow('__uvd_toggle_autofs__', 'Tự động toàn màn hình khi mở', s.autoFullscreen) +
@@ -3836,8 +3854,10 @@ function renderPlayerSettings(container) {
         case '__uvd_toggle_datasaver__': s.dataSaver = isOn; break;
         case '__uvd_toggle_autohide__': s.autoHideControls = isOn; break;
         case '__uvd_toggle_showremaining__': s.showRemainingTime = isOn; break;
+        case '__uvd_toggle_thumbnails__': s.thumbnailEnabled = isOn; break;
       }
       storage.set(data);
+      if (btn.id === '__uvd_toggle_thumbnails__') debouncedBuildUI();
     };
   });
 
@@ -3848,6 +3868,15 @@ function renderPlayerSettings(container) {
   document.getElementById('__uvd_set_quality__').onchange = function() {
     s.defaultQuality = this.value;
     storage.set(data);
+  };
+  document.getElementById('__uvd_thumbnail_count__').onchange = function() {
+    var val = parseInt(this.value, 10);
+    if (isNaN(val)) val = 3;
+    val = Math.max(0, Math.min(5, val));
+    s.thumbnailCount = val;
+    this.value = val;
+    storage.set(data);
+    toast('Đã đặt ' + val + ' thumbnail cảnh khác');
   };
   document.getElementById('__uvd_doubletap_seconds__').onchange = function() {
     var val = parseInt(this.value) || 10;

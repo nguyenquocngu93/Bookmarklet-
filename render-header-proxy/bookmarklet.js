@@ -2095,13 +2095,15 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     videoArea.style.background = fs ? '#000' : '';
     videoWrapper.style.background = 'transparent';
     videoWrapper.style.overflow = 'hidden';
+    var frameRadius = fs ? '0' : '24px';
     video.style.background = surface;
-    video.style.borderRadius = '0';
+    video.style.borderRadius = frameRadius;
     playerEl.style.background = surface;
-    playerEl.style.setProperty('--media-border-radius', '0');
+    playerEl.style.borderRadius = frameRadius;
+    playerEl.style.setProperty('--media-border-radius', frameRadius);
     if (skinEl) {
       skinEl.style.background = 'transparent';
-      skinEl.style.borderRadius = '0';
+      skinEl.style.borderRadius = 'inherit';
     }
 
     if (fs) {
@@ -2181,6 +2183,16 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   __uvdApplyPlayerLayout();
   playerState.updatePlayerWidth = __uvdApplyPlayerLayout;
   playerState.vjsMountCancel = __uvdMountVjs10(videoWrapper, video, __uvdApplyPlayerLayout);
+  if (String(type || '').toUpperCase() === 'M3U8') {
+    var skinQualityBtn = document.createElement('button');
+    skinQualityBtn.id = '__uvd_skin_quality__';
+    skinQualityBtn.className = 'uvd-skin-quality-btn';
+    skinQualityBtn.type = 'button';
+    skinQualityBtn.textContent = 'HD';
+    skinQualityBtn.title = 'Chọn chất lượng';
+    skinQualityBtn.onclick = function(e) { e.stopPropagation(); showQualitySubMenu(); };
+    videoWrapper.appendChild(skinQualityBtn);
+  }
 
   // Đóng
   backBtn.onclick = function() { closePlayer(); };
@@ -2651,7 +2663,7 @@ style.textContent = `
 .uvd-player-video-area{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(255,47,200,.16),transparent 34%),radial-gradient(circle at 84% 76%,rgba(155,61,255,.14),transparent 40%),linear-gradient(135deg,rgba(255,238,249,.92),rgba(245,232,255,.94));}
 .uvd-player-video-area::before{content:'';position:absolute;inset:-25%;pointer-events:none;background:conic-gradient(from 120deg at 50% 50%,transparent,rgba(255,47,200,.08),transparent 28%,rgba(155,61,255,.08),transparent 55%);filter:blur(22px);animation:uvdLiquidDrift 18s ease-in-out infinite}
 .uvd-player-video-area::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,transparent,black 25%,black 75%,transparent)}
-.uvd-player-video-area>#__uvd_video_wrapper__{position:relative;z-index:1}
+.uvd-player-video-area>#__uvd_video_wrapper__{position:relative;z-index:1}.uvd-skin-quality-btn{position:absolute;right:18px;bottom:74px;z-index:12;min-width:42px;height:30px;padding:0 9px;border:1px solid rgba(255,255,255,.32);border-radius:10px;background:rgba(43,24,54,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:11px;font-weight:850;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.22)}.uvd-skin-quality-btn:active{transform:scale(.94);background:var(--accent)}
 .uvd-player-info-panel{flex-shrink:0;padding:14px 18px 18px;border-top:1px solid var(--border);background:linear-gradient(180deg,rgba(255,47,200,0.05),rgba(155,61,255,0.03));}
 .uvd-player-info-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(255,47,200,0.4)}

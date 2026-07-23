@@ -178,9 +178,17 @@ function compileAdFilters() {
 }
 compileAdFilters();
 
+var DEFAULT_AD_MARKERS = [
+  'go.mnaspm.com', 'go.mayzaent.com', 'smartpop', 'popunder', 'popads',
+  'doubleclick.net', 'googlesyndication.com', 'adservice.google.com',
+  'adsterra', 'trafficjunky', 'exoclick', 'onclickads', 'redirect-ad'
+];
 function isAdUrl(url) {
+  var lowerUrl = String(url || '').toLowerCase();
+  for (var d = 0; d < DEFAULT_AD_MARKERS.length; d++) {
+    if (lowerUrl.indexOf(DEFAULT_AD_MARKERS[d]) !== -1) return true;
+  }
   if (!compiledFilters.length) return false;
-  var lowerUrl = url.toLowerCase();
   for (var i = 0; i < compiledFilters.length; i++) {
     var f = compiledFilters[i];
     if (f.type === 'regex') { if (f.re.test(url)) return true; }
@@ -375,6 +383,16 @@ function scan(doc, src, light) {
     if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
     }
+    doc.querySelectorAll('a[href],[onclick],[data-href],[data-url],[data-server]').forEach(function(el) {
+      var href = el.getAttribute && (el.getAttribute('href') || el.getAttribute('data-href') || el.getAttribute('data-url') || el.getAttribute('data-server'));
+      var onclick = el.getAttribute && el.getAttribute('onclick');
+      var label = (el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase();
+      if (href && (/server|play|watch|stream|download|\brg\b|\bsuby\b/.test(label) || /m3u8|mp4|video|stream|play|download/i.test(href))) {
+        if (__uvdIsEmbedMediaUrl(href)) __uvdAddDetectedMediaUrl(href, 'IFRAME', src + ':server-link');
+        else findUrls(href, src + ':server-link');
+      }
+      if (onclick && /window\.open|location|href|server|play|stream/i.test(onclick)) findUrls(onclick, src + ':onclick');
+    });
     doc.querySelectorAll('[data-link],[data-src],[data-video-url],[data-file],[data-hls],[data-m3u8]').forEach(function(el) {
       ['data-link','data-src','data-video-url','data-file','data-hls','data-m3u8'].forEach(function(attr) {
         var value = el.getAttribute && el.getAttribute(attr);

@@ -821,6 +821,11 @@ function autoClickPlayButtons(root, depth, allowVideoPlayFallback, allowTextGues
 // ========== AUTO-CLICK LẦN LƯỢT ==========
 function collectServerButtons(root) {
   root = root || document;
+  if (pageInfo.host === 'supjav.com') {
+    var supjavButtons = collectFallbackButtons(root);
+    supjavButtons.__uvdFallback = true;
+    return supjavButtons;
+  }
   var customSel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
   var selectors = customSel ? [customSel] : AUTO_PLAY_SELECTORS;
   var seen = [];
@@ -1186,6 +1191,10 @@ try {
   addCleanup(uninstallUniversalOverlayBlocker);
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
+  // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).
+  // Try those server controls automatically after the initial scan; do not
+  // auto-click generic Play buttons on this host because they trigger ads.
+  if (pageInfo.host === 'supjav.com') setTimeout(function() { autoClickSequential(); }, 900);
 } catch (initError) {
   __uvdReportBootError(initError);
 }

@@ -1789,6 +1789,7 @@ function __uvdMountVjs10(wrapper, video, onMount) {
       // background, avoiding nested rounded boxes.
       player.style.cssText = 'width:100%;max-height:100%;display:block;aspect-ratio:16/9;margin:auto;position:relative;z-index:1;overflow:hidden;transition:width .25s ease;border-radius:0;background:#000;--media-border-radius:0;';
       player.id = '__uvd_player_el__';
+      player.className = 'uvd-player-loading';
       var skin = document.createElement('video-skin');
       skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:0;background:transparent;';
       if (video.parentNode) video.parentNode.removeChild(video);
@@ -2368,6 +2369,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   function onMetadataLoaded() {
     if (playerState.proxyFallbackTimer) { clearTimeout(playerState.proxyFallbackTimer); playerState.proxyFallbackTimer = null; }
+    var mountedPlayer = document.getElementById('__uvd_player_el__');
+    if (mountedPlayer) mountedPlayer.classList.remove('uvd-player-loading');
     lockOrientation(video);
     if (video.videoWidth && video.videoHeight && !playerState.resolution) {
       playerState.resolution = video.videoWidth + 'x' + video.videoHeight;
@@ -2624,7 +2627,7 @@ style.textContent = `
 .uvd-glass-panel::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;z-index:2;background:linear-gradient(90deg,transparent,rgba(255,47,200,0.6),rgba(155,61,255,0.6),transparent);opacity:0.7}
 .uvd-settings-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);transition:background .28s ease}
 #__uvd_video_wrapper__:fullscreen,#__uvd_video_wrapper__:fullscreen::backdrop,#__uvd_video_wrapper__:fullscreen video,#__uvd_video_wrapper__:fullscreen video-player,#__uvd_video_wrapper__:fullscreen video-skin,#__uvd_player_video__:fullscreen,#__uvd_player_video__:fullscreen::backdrop{background:#000!important}
-#__uvd_player_el__ video-skin,#__uvd_player_el__ video{border-radius:inherit!important}#__uvd_player_el__{background:#000!important;overflow:hidden!important;border-radius:24px!important}#__uvd_player_el__ video-skin{background:transparent!important}
+#__uvd_player_el__ video-skin,#__uvd_player_el__ video{border-radius:inherit!important}#__uvd_player_el__{background:#000!important;overflow:hidden!important;border-radius:24px!important}#__uvd_player_el__ video-skin{background:transparent!important}#__uvd_player_el__.uvd-player-loading,#__uvd_player_el__.uvd-player-loading video-skin,#__uvd_player_el__.uvd-player-loading video{border-radius:24px!important;overflow:hidden!important}
 #__uvd_video_wrapper__:fullscreen #__uvd_player_el__,#__uvd_video_wrapper__:fullscreen #__uvd_player_el__ video-skin,#__uvd_video_wrapper__:fullscreen #__uvd_player_el__ video{border-radius:0!important}
 .uvd-icon-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--accent2);width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;transition:all var(--uvd-transition)}
 .uvd-icon-btn:active{transform:scale(.9)}

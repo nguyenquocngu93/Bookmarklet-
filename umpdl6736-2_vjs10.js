@@ -2206,10 +2206,15 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   function __uvdOpenSkinQualityMenu(menu, sourceItem) {
     if (!menu || menu.querySelector('.uvd-quality-submenu')) return;
     var children = Array.prototype.slice.call(menu.children);
+    var oldMenuStyle = { position: menu.style.position, overflow: menu.style.overflow, maxHeight: menu.style.maxHeight, height: menu.style.height };
     children.forEach(function(child) { child.style.display = 'none'; });
+    menu.style.position = 'relative';
+    menu.style.overflow = 'visible';
+    menu.style.maxHeight = 'none';
+    menu.style.height = 'auto';
     var sub = document.createElement('div');
     sub.className = 'uvd-quality-submenu';
-    sub.style.cssText = 'display:block;width:100%;padding:8px 10px;box-sizing:border-box;color:inherit;';
+    sub.style.cssText = 'display:block;position:relative;width:100%;max-height:60vh;overflow-y:auto;padding:8px 10px;box-sizing:border-box;border-radius:inherit;background:rgba(30,30,30,.82);color:inherit;';
     var back = document.createElement('button');
     back.type = 'button';
     back.innerHTML = '<span style="font-size:18px;margin-right:8px;">‹</span><strong>Quality</strong>';
@@ -2218,6 +2223,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       e.stopPropagation();
       sub.remove();
       children.forEach(function(child) { child.style.display = ''; });
+      menu.style.position = oldMenuStyle.position;
+      menu.style.overflow = oldMenuStyle.overflow;
+      menu.style.maxHeight = oldMenuStyle.maxHeight;
+      menu.style.height = oldMenuStyle.height;
     };
     sub.appendChild(back);
     var options = playerState.qualities && playerState.qualities.length ? playerState.qualities.map(function(q, i) { return { label: q.label || q.resolution || ('Level ' + i), value: i }; }) : [];
@@ -2234,7 +2243,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
         var row = document.createElement('button');
         row.type = 'button';
         row.textContent = option.label;
-        row.style.cssText = 'display:block;width:100%;min-height:42px;margin-top:6px;padding:8px 12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:rgba(255,255,255,.08);color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer;';
+        row.style.cssText = 'display:flex;align-items:center;width:100%;min-height:48px;margin-top:4px;padding:10px 14px;border:0;border-top:1px solid rgba(255,255,255,.16);border-radius:0;background:transparent;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer;';
         row.onclick = function(e) {
           e.stopPropagation();
           if (playerState.hls && playerState.hls.levels[option.value]) playerState.hls.currentLevel = option.value;

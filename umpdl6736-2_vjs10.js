@@ -2203,6 +2203,49 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       });
     });
   }
+  function __uvdOpenSkinQualityMenu(menu, sourceItem) {
+    if (!menu || menu.querySelector('.uvd-quality-submenu')) return;
+    var children = Array.prototype.slice.call(menu.children);
+    children.forEach(function(child) { child.style.display = 'none'; });
+    var sub = document.createElement('div');
+    sub.className = 'uvd-quality-submenu';
+    sub.style.cssText = 'display:block;width:100%;padding:8px 10px;box-sizing:border-box;color:inherit;';
+    var back = document.createElement('button');
+    back.type = 'button';
+    back.innerHTML = '<span style="font-size:18px;margin-right:8px;">‹</span><strong>Quality</strong>';
+    back.style.cssText = 'display:flex;align-items:center;width:100%;min-height:42px;padding:8px 6px;border:0;border-bottom:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;';
+    back.onclick = function(e) {
+      e.stopPropagation();
+      sub.remove();
+      children.forEach(function(child) { child.style.display = ''; });
+    };
+    sub.appendChild(back);
+    var options = playerState.qualities && playerState.qualities.length ? playerState.qualities.map(function(q, i) { return { label: q.label || q.resolution || ('Level ' + i), value: i }; }) : [];
+    if (!options.length && playerState.hls && playerState.hls.levels) {
+      options = playerState.hls.levels.map(function(level, i) { return { label: (level.height ? level.height + 'p' : 'Level ' + i) + (level.width ? ' (' + level.width + 'x' + level.height + ')' : ''), value: i }; });
+    }
+    if (!options.length) {
+      var empty = document.createElement('div');
+      empty.textContent = 'Chưa có chất lượng';
+      empty.style.cssText = 'padding:14px 6px;opacity:.7;';
+      sub.appendChild(empty);
+    } else {
+      options.forEach(function(option) {
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.textContent = option.label;
+        row.style.cssText = 'display:block;width:100%;min-height:42px;margin-top:6px;padding:8px 12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:rgba(255,255,255,.08);color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer;';
+        row.onclick = function(e) {
+          e.stopPropagation();
+          if (playerState.hls && playerState.hls.levels[option.value]) playerState.hls.currentLevel = option.value;
+          sub.remove();
+          children.forEach(function(child) { child.style.display = ''; });
+        };
+        sub.appendChild(row);
+      });
+    }
+    menu.appendChild(sub);
+  }
   function __uvdInjectQualityIntoSkinMenu() {
     if (String(type || '').toUpperCase() !== 'M3U8') return;
     var playerEl = document.getElementById('__uvd_player_el__');
@@ -2220,9 +2263,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
         var item = document.createElement('button');
         item.className = 'uvd-quality-menu-item';
         item.type = 'button';
-        item.textContent = 'Quality';
-        item.style.cssText = 'display:block;width:100%;padding:10px 14px;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer;';
-        item.onclick = function(e) { e.stopPropagation(); showQualitySubMenu(); };
+        item.innerHTML = '<span style="display:flex;align-items:center;gap:10px;"><span style="color:#fff;font-size:18px;line-height:1;">◉</span><span>Quality</span></span><span style="font-size:18px;opacity:.8;">›</span>';
+        item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:48px;padding:10px 14px;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer;';
+        item.onclick = function(e) { e.stopPropagation(); __uvdOpenSkinQualityMenu(menu, item); };
         menu.appendChild(item);
       });
     });

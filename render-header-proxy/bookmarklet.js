@@ -243,7 +243,8 @@ function __uvdIsEmbedMediaUrl(url) {
     var path = (parsed.pathname || '').toLowerCase();
     var host = (parsed.hostname || '').replace(/^www\./, '');
     var abyssEmbed = host === 'abyssplayer.com' && /^\/[^\/]+\/?$/.test(path);
-    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed;
+    var supremeServer = /(?:^|\.)supremejav\.com$/.test(host) && path.indexOf('/supjav.php') === 0;
+    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed || supremeServer;
   } catch(e) { return false; }
 }
 function __uvdLooksLikeHlsUrl(url) {
@@ -877,13 +878,20 @@ function autoClickSequential() {
     if (idx >= candidates.length) { finish(false); return; }
     var el = candidates[idx++];
     var sel = __uvdElementSelector(el);
-    var beforeThis = urls.size;
+    var beforeDirect = [...urls.values()].filter(function(item) {
+      return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(item.type) !== -1;
+    }).length;
     if (!simulateClick(el)) { tryNext(); return; }
     recordClickedButton(el, sel, isFallback);
     setTimeout(function() {
       scan(document, 'seq-autoclick');
       pauseAllPlayingVideos();
-      if (urls.size > beforeThis) {
+      var afterDirect = [...urls.values()].filter(function(item) {
+        return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(item.type) !== -1;
+      }).length;
+      // A supremejav server URL is only an intermediate page; do not report
+      // it as a successful media link and keep trying the other servers.
+      if (afterDirect > beforeDirect) {
         finish(true, sel);
       } else {
         tryNext();
@@ -2937,9 +2945,10 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel';
   panel.style.cssText = 'max-width:460px;margin:auto;text-align:center;';
+  var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">↗</div>' +
-    '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">Chỉ tìm thấy iframe</div>' +
-    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:12px;">Chọn iframe muốn mở. Các iframe quảng cáo thường đã bị loại khỏi danh sách.</div>' +
+    '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">' + (hasIntermediateServer ? 'Server trung gian cần mở' : 'Chỉ tìm thấy iframe') + '</div>' +
+    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:12px;">' + (hasIntermediateServer ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm bookmarklet UMP DL lại trên tab đó để lấy link thật.' : 'Chọn iframe muốn mở. Các iframe quảng cáo thường đã bị loại khỏi danh sách.') + '</div>' +
     '<div id="__uvd_iframe_workflow_list__" style="max-height:45vh;overflow-y:auto;margin-bottom:10px;"></div>' +
     '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;">Để sau</button>';
   var list = panel.querySelector('#__uvd_iframe_workflow_list__');

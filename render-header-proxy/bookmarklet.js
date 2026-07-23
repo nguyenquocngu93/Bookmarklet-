@@ -1065,7 +1065,7 @@ function installMonitor() {
       __uvdPerformanceObserver = new PerformanceObserver(function(list) {
         list.getEntries().forEach(function(entry) {
           if (entry && entry.name) { __uvdRememberAccessToken(entry.name); }
-          if (entry && entry.name && !isAdUrl(entry.name) && !__uvdIsLikelyHlsSegmentUrl(entry.name)) findUrls(entry.name, 'network:observer');
+          if (entry && entry.name && !isAdUrl(entry.name) && !__uvdIsLikelyHlsSegmentUrl(entry.name)) { if (/\.m3u8(?:[?#]|$)/i.test(entry.name)) __uvdAddDetectedMediaUrl(entry.name, 'M3U8', 'network:observer:manifest'); else findUrls(entry.name, 'network:observer'); }
         });
       });
       __uvdPerformanceObserver.observe({ type: 'resource', buffered: true });
@@ -1191,7 +1191,7 @@ addCleanup(function() {
 try {
   window.__uvdBootPhase = 'scan';
   scan(document, 'main');
-  try { performance.getEntriesByType('resource').forEach(function(e) { if (!isAdUrl(e.name)) findUrls(e.name, 'network:perf'); }); } catch(e) {}
+  try { performance.getEntriesByType('resource').forEach(function(e) { if (!e || !e.name || isAdUrl(e.name)) return; if (/\.m3u8(?:[?#]|$)/i.test(e.name)) __uvdAddDetectedMediaUrl(e.name, 'M3U8', 'network:perf:manifest'); else findUrls(e.name, 'network:perf'); }); } catch(e) {}
   window.__uvdBootPhase = 'monitor';
   installMonitor();
   installPopupBlock();
@@ -1290,7 +1290,7 @@ function runPreloadCapture() {
         scan(document, 'preload', delay !== 0);
         __uvdDismissIframeWorkflowIfVideoFound();
         performance.getEntriesByType('resource').forEach(function(entry) {
-          if (!isAdUrl(entry.name)) findUrls(entry.name, 'preload:performance');
+          if (!isAdUrl(entry.name)) { if (/\.m3u8(?:[?#]|$)/i.test(entry.name)) __uvdAddDetectedMediaUrl(entry.name, 'M3U8', 'preload:manifest'); else findUrls(entry.name, 'preload:performance'); }
         });
       } catch(e) {}
       if (delay === delays[delays.length - 1]) {

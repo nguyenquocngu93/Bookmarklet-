@@ -2198,7 +2198,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
         if (!/setting|quality|gear|cài đặt|⚙/.test(label)) return;
         btn.__uvdQualityBound = true;
         btn.addEventListener('click', function() {
-          setTimeout(function() { __uvdInjectQualityIntoSkinMenu(); showQualitySubMenu(); }, 80);
+          setTimeout(function() { __uvdInjectQualityIntoSkinMenu(); }, 80);
         }, true);
       });
     });

@@ -286,11 +286,7 @@ function findPlaylistBodyUrls(text, source) {
     var u = (raw || '').trim().replace(/^['"]|['"]$/g, '')
       .replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
     if (!/^https?:\/\//i.test(u)) return;
-    var existing = urls.get(u);
-    if (!existing || existing.type !== 'M3U8' || existing.priority > 1) {
-      urls.set(u, { type: 'M3U8', source: source + ':playlist', priority: 1, timestamp: Date.now() });
-      changed = true;
-    }
+    if (__uvdAddDetectedMediaUrl(u, 'M3U8', source + ':playlist')) changed = true;
   }
   text.split(/\r?\n/).forEach(function(line) {
     var trimmed = line.trim();

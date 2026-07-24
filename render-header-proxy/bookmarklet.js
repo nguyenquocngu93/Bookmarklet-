@@ -4115,7 +4115,8 @@ function __uvdBuildConfigLink() {
   delete safeSettings.subdlApiKey;
   var payload = { version: 1, settings: safeSettings, siteProfiles: data.siteProfiles, filterlist: data.filterlist };
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  return HEADER_PROXY_BASE + '/bookmarklet.js?cfg=' + encodeURIComponent(encoded) + '&v=' + Date.now();
+  var scriptUrl = HEADER_PROXY_BASE + '/bookmarklet.js?cfg=' + encodeURIComponent(encoded) + '&v=' + Date.now();
+  return "javascript:(function(){var s=document.createElement('script');s.src='" + scriptUrl + "';document.head.appendChild(s);})();";
 }
 
 function renderSettings(container) {

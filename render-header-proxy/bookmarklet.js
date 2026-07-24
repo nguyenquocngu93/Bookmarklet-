@@ -1191,6 +1191,38 @@ addCleanup(function() {
   document.documentElement.classList.remove('uvd-tab-hidden');
 });
 
+// ========== AD GATE CAPTURE (EPORNER) ==========
+var __uvdEpornerGateTimer = null;
+function __uvdStartEpornerAdGate() {
+  if (!/eporner\./i.test(pageInfo.host) || __uvdEpornerGateTimer) return;
+  var seen = {};
+  var startedAt = Date.now();
+  function tick() {
+    if (Date.now() - startedAt > 180000 || (playerState && playerState.overlay)) return;
+    try {
+      document.querySelectorAll('video').forEach(function(video) {
+        if (__uvdIsOwnUI(video)) return;
+        // Let the page's ad gate run silently; do not click Play or open ads.
+        video.muted = true;
+        video.defaultMuted = true;
+        video.volume = 0;
+      });
+      performance.getEntriesByType('resource').forEach(function(entry) {
+        var name = entry && entry.name;
+        if (!name || isAdUrl(name) || !/\.m3u8(?:[?#]|$)/i.test(name) || seen[name]) return;
+        seen[name] = true;
+        if (__uvdAddDetectedMediaUrl(name, 'M3U8', 'eporner:ad-gate')) {
+          if (document.getElementById('__uvd__')) debouncedBuildUI();
+          toast('✅ Đã bắt được link HLS sau bước quảng cáo');
+        }
+      });
+    } catch(e) {}
+  }
+  tick();
+  __uvdEpornerGateTimer = setInterval(tick, 1200);
+  addCleanup(function() { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; });
+}
+
 // ========== INIT ==========
 try {
   window.__uvdBootPhase = 'scan';
@@ -1203,6 +1235,7 @@ try {
   addCleanup(uninstallUniversalOverlayBlocker);
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
+  __uvdStartEpornerAdGate();
   // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).
   // Try those server controls automatically after the initial scan; do not
   // auto-click generic Play buttons on this host because they trigger ads.

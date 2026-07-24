@@ -300,7 +300,8 @@ function __uvdIsEmbedMediaUrl(url) {
     var host = (parsed.hostname || '').replace(/^www\./, '');
     var abyssEmbed = host === 'abyssplayer.com' && /^\/[^\/]+\/?$/.test(path);
     var supremeServer = /(?:^|\.)supremejav\.com$/.test(host) && path.indexOf('/supjav.php') === 0;
-    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed || supremeServer;
+    var hashPlayer = (host === 'stb.strp2p.com' || host === 'player.upn.one') && !!parsed.hash;
+    return /\/(?:e|embed)(?:\/|$)/.test(path) || (host === 'streamtape.com' && path.indexOf('/e/') === 0) || abyssEmbed || supremeServer || hashPlayer;
   } catch(e) { return false; }
 }
 function __uvdLooksLikeHlsUrl(url) {

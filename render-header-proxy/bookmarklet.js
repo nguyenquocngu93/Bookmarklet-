@@ -264,6 +264,10 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   // Android browsers may expose AV1 download links before the H.264 variant.
   // Prefer the browser-safe H.264 MP4 for direct playback.
   if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(url) && /Android/i.test(navigator.userAgent)) return false;
+  if (/eporner\./i.test(pageInfo.host) && /\.m3u8(?:[?#]|$)/i.test(url) && !/master\.m3u8/i.test(url)) {
+    var hasEpornerMaster = [...urls.keys()].some(function(existingUrl) { return /master\.m3u8/i.test(existingUrl); });
+    if (hasEpornerMaster) return false;
+  }
   url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
   if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
@@ -1201,6 +1205,9 @@ function __uvdStartEpornerAdGate() {
   if (!/eporner\./i.test(pageInfo.host) || __uvdEpornerGateTimer) return;
   var seen = {};
   var startedAt = Date.now();
+  __uvdGrantPagePlayback(30000);
+  var gateClick = function() { __uvdGrantPagePlayback(30000); };
+  document.addEventListener('click', gateClick, true);
   function tick() {
     if (Date.now() - startedAt > 180000 || (playerState && playerState.overlay)) return;
     try {
@@ -1216,15 +1223,19 @@ function __uvdStartEpornerAdGate() {
         if (!name || isAdUrl(name) || !/\.m3u8(?:[?#]|$)/i.test(name) || seen[name]) return;
         seen[name] = true;
         if (__uvdAddDetectedMediaUrl(name, 'M3U8', 'eporner:ad-gate')) {
-          if (document.getElementById('__uvd__')) debouncedBuildUI();
-          toast('✅ Đã bắt được link HLS sau bước quảng cáo');
+          if (/master\.m3u8/i.test(name)) {
+            clearInterval(__uvdEpornerGateTimer);
+            __uvdEpornerGateTimer = null;
+            if (document.getElementById('__uvd__')) debouncedBuildUI();
+            toast('✅ Đã bắt được master HLS sau bước quảng cáo');
+          }
         }
       });
     } catch(e) {}
   }
   tick();
   __uvdEpornerGateTimer = setInterval(tick, 1200);
-  addCleanup(function() { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; });
+  addCleanup(function() { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; document.removeEventListener('click', gateClick, true); });
 }
 
 // ========== INIT ==========

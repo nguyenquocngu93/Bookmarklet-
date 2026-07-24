@@ -1214,7 +1214,7 @@ function __uvdGrantPagePlayback(ms) {
   __uvdPagePlaybackGraceUntil = Math.max(__uvdPagePlaybackGraceUntil, Date.now() + (ms || 8000));
 }
 function __uvdPagePlaybackAllowed() {
-  return Date.now() < __uvdPagePlaybackGraceUntil;
+  return __uvdScriptHidden || Date.now() < __uvdPagePlaybackGraceUntil;
 }
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));

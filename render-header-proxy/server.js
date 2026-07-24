@@ -63,7 +63,7 @@ function authorized(req) {
   return req.get('x-proxy-key') === PROXY_KEY || req.query.key === PROXY_KEY;
 }
 
-function requestHeaders(req, target, refererOverride) {
+function requestHeaders(req, target, refererOverride, skipRange) {
   const headers = {
     'user-agent': req.query.ua || process.env.DEFAULT_USER_AGENT ||
       'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36',
@@ -71,7 +71,7 @@ function requestHeaders(req, target, refererOverride) {
     'accept-encoding': 'identity'
   };
   const range = req.get('range');
-  if (range) headers.range = range;
+  if (range && !skipRange) headers.range = range;
   // Do not forward cache validators. A source 304 has no body, which is unsafe
   // for a relay: the browser cache belongs to the proxy URL, not the source URL.
   // If-Range is still useful together with Range for byte-range media requests.
@@ -90,11 +90,11 @@ function requestHeaders(req, target, refererOverride) {
   return headers;
 }
 
-async function fetchSource(target, req, referer) {
+async function fetchSource(target, req, referer, skipRange) {
   let current = target;
   for (let attempt = 0; attempt <= MAX_REDIRECTS; attempt++) {
     const response = await fetch(current, {
-      headers: requestHeaders(req, current, referer),
+      headers: requestHeaders(req, current, referer, skipRange),
       redirect: 'manual',
       dispatcher: process.env.ALLOW_INSECURE_TLS === 'true' ? insecureDispatcher : undefined,
       signal: AbortSignal.timeout(30000)
@@ -218,7 +218,11 @@ app.get('/proxy', async (req, res) => {
     if (req.query.access_token && /(?:^|\.)iw01\.xyz$/i.test(target.hostname) && !target.searchParams.has('access_token')) {
       target.searchParams.set('access_token', req.query.access_token);
     }
-    const source = await fetchSource(target, req, req.query.referer);
+    let source = await fetchSource(target, req, req.query.referer);
+    if (source.status === 403 && req.get('range')) {
+      console.log(`[proxy retry] source=${target.host} retryWithoutRange=true`);
+      source = await fetchSource(target, req, req.query.referer, true);
+    }
     const sourceType = source.headers.get('content-type') || '';
 
     // This host returns each MPEG-TS segment as a PNG-looking wrapper with

@@ -649,6 +649,9 @@ function __uvdBlockExternalLink(e) {
   } catch(ex) {}
 }
 function installUniversalOverlayBlocker() {
+  // Jav Guru uses clickable JS server buttons; the overlay detector can
+  // mistake their container for an ad layer and make the buttons inert.
+  if (pageInfo.host === 'jav.guru') return;
   if (__uvdOverlayBlockState) return;
   var state = __uvdOverlayBlockState = { scanTimer: null, interval: null, observer: null, touched: new Map() };
   state.schedule = function() {

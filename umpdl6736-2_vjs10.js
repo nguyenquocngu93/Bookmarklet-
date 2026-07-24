@@ -223,6 +223,10 @@ function compileAdFilters() {
     if (rule) compiledFilters.push(rule);
   });
 }
+if (Array.isArray(data.filterlist) && data.filterlist.length > 5000) {
+  data.filterlist = [];
+  storage.set(data);
+}
 compileAdFilters();
 
 var DEFAULT_AD_MARKERS = [

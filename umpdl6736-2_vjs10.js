@@ -528,7 +528,7 @@ window.__uvdSafeOpen = function(url) {
 function killBlankLinks(e) {
   var t = e.target;
   if (pageInfo.host === 'jav.guru' && t && t.closest && looksLikeServerButton(t.closest('button,a,[role="button"],div'))) {
-    __uvdManualServerClickUntil = Date.now() + 3000;
+    __uvdManualServerClickUntil = Date.now() + 8000;
     __uvdGrantPagePlayback(10000);
     return;
   }
@@ -1046,7 +1046,9 @@ function __uvdEnterLowPowerMode() {
     try { __uvdAutoplayObserver.disconnect(); } catch(e) {}
     try { uninstallUniversalOverlayBlocker(); } catch(e) {}
   }
-  document.documentElement.classList.add('uvd-page-frozen');
+  // Do not freeze the host page: users must still be able to click server
+  // buttons while UMP is hidden/low-power. Popup blocking remains active.
+  document.documentElement.classList.remove('uvd-page-frozen');
   var panel = document.getElementById('__uvd__');
   if (panel) panel.style.display = 'none';
   toast('🔋 Đã giảm tải nền — video vẫn tiếp tục phát');

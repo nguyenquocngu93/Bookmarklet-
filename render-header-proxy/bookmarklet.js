@@ -2105,6 +2105,24 @@ function retryThroughHeaderProxy(sourceUrl, type) {
   return true;
 }
 
+// ========== BLOB / MEDIASOURCE SOURCE REUSE ==========
+function findSourceVideoElement(url) {
+  function searchDoc(doc) {
+    try {
+      var videos = doc.querySelectorAll('video');
+      for (var i = 0; i < videos.length; i++) {
+        if (videos[i].currentSrc === url || videos[i].src === url) return videos[i];
+      }
+      var frames = doc.querySelectorAll('iframe');
+      for (var j = 0; j < frames.length; j++) {
+        try { if (frames[j].contentDocument) { var found = searchDoc(frames[j].contentDocument); if (found) return found; } } catch(e) {}
+      }
+    } catch(e) {}
+    return null;
+  }
+  return searchDoc(document);
+}
+
 // ========== SHOW VIDEO PLAYER ==========
 function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   // forceHlsJs is used only after native HLS has failed. It must be a real
@@ -2182,14 +2200,25 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
   videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass);';
-  var video = document.createElement('video');
+  var video = null;
+  var reusedOriginalVideo = false;
+  if (String(type || '').toUpperCase() === 'BLOB') {
+    var sourceVideo = findSourceVideoElement(url);
+    if (sourceVideo) {
+      video = sourceVideo;
+      reusedOriginalVideo = true;
+      playerState.originalVideoParent = sourceVideo.parentNode;
+      playerState.originalVideoNextSibling = sourceVideo.nextSibling;
+    } else {
+      toast('Không tìm thấy thẻ video gốc cho blob — hãy mở player khi video nguồn vẫn đang chạy.');
+    }
+  }
+  if (!video) video = document.createElement('video');
   video.id = '__uvd_player_video__';
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:var(--glass);';
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
-  // MP4 nguồn gốc thường không trả CORS; không ép anonymous vì sẽ khiến browser từ chối phát.
-  // Chỉ cần CORS khi phát qua proxy hoặc HLS/hls.js.
-  if (url.indexOf(HEADER_PROXY_BASE) === 0 || String(type || '').toUpperCase() === 'M3U8') {
+  if (!reusedOriginalVideo && (url.indexOf(HEADER_PROXY_BASE) === 0 || String(type || '').toUpperCase() === 'M3U8')) {
     video.setAttribute('crossorigin', 'anonymous');
   }
   videoWrapper.appendChild(video);
@@ -2212,6 +2241,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   playerState.overlay = overlay;
   playerState.video = video;
+  playerState.reusedOriginalVideo = reusedOriginalVideo;
   // Low-power mode is entered after the sheet has finished sliding in.
   // Keep the video surface hidden during this short warm-up.
   videoWrapper.style.boxSizing = 'border-box';
@@ -2662,11 +2692,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       });
       return;
     }
+  } else if (reusedOriginalVideo) {
+    // Preserve the existing MediaSource attached to the original video node.
+    setTimeout(function() { try { video.play().catch(function(){}); } catch(e) {} }, 50);
   } else {
     video.src = url;
   }
 
-  if (!fromProxy) {
+  if (!fromProxy && !reusedOriginalVideo) {
     playerState.proxyFallbackTimer = setTimeout(function() {
       if (!playerState.closing && playerState.video === video && !video.videoWidth && !playerState.playbackError) {
         if (retryThroughHeaderProxy(url, type)) toast('⏳ Nguồn gốc đang treo, chuyển sang proxy…');
@@ -2733,8 +2766,15 @@ function closePlayer() {
     if (playerState.hls) { playerState.hls.destroy(); playerState.hls = null; }
     if (playerState.video) {
       playerState.video.pause();
-      playerState.video.removeAttribute('src');
-      try { playerState.video.load(); } catch(e) {}
+      if (playerState.reusedOriginalVideo && playerState.originalVideoParent) {
+        try {
+          if (playerState.originalVideoNextSibling && playerState.originalVideoNextSibling.parentNode === playerState.originalVideoParent) playerState.originalVideoParent.insertBefore(playerState.video, playerState.originalVideoNextSibling);
+          else playerState.originalVideoParent.appendChild(playerState.video);
+        } catch(e) {}
+      } else {
+        playerState.video.removeAttribute('src');
+        try { playerState.video.load(); } catch(e) {}
+      }
     }
     if (playerState.onFullscreenChange) {
       document.removeEventListener('fullscreenchange', playerState.onFullscreenChange);

@@ -330,6 +330,8 @@ function __uvdRefreshCapture() {
   if (__uvdIsMatthewHost()) __uvdMatthewFrozen = false;
   document.documentElement.classList.remove('uvd-page-frozen');
   installMonitor();
+  __uvdInstallOneShotClickCapture();
+  __uvdStartOneShotCapture('boot');
   installPopupBlock();
   installUniversalOverlayBlocker();
   try { scan(document, 'manual-refresh'); performance.getEntriesByType('resource').forEach(function(e) { if (e.name && !isAdUrl(e.name)) findUrls(e.name, 'manual-refresh:performance'); }); } catch(e) {}
@@ -1337,6 +1339,43 @@ function __uvdStartEpornerAdGate() {
   addCleanup(function() { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; document.removeEventListener('click', gateClick, true); });
 }
 
+var __uvdOneShotCaptureTimer = null;
+var __uvdOneShotCaptureActive = false;
+function __uvdFinishOneShotCapture() {
+  if (!__uvdOneShotCaptureActive) return;
+  try {
+    scan(document, 'one-shot-final');
+    performance.getEntriesByType('resource').forEach(function(entry) {
+      if (!entry || !entry.name || isAdUrl(entry.name)) return;
+      if (/\.m3u8(?:[?#]|$)/i.test(entry.name)) __uvdAddDetectedMediaUrl(entry.name, 'M3U8', 'one-shot:manifest');
+      else findUrls(entry.name, 'one-shot:performance');
+    });
+  } catch(e) {}
+  __uvdOneShotCaptureActive = false;
+  __uvdLiveCaptureMode = false;
+  if (__uvdOneShotCaptureTimer) { clearTimeout(__uvdOneShotCaptureTimer); __uvdOneShotCaptureTimer = null; }
+  stopLiveMonitorOnly();
+  debouncedBuildUI();
+}
+function __uvdStartOneShotCapture(reason) {
+  if (__uvdOneShotCaptureActive) return;
+  __uvdOneShotCaptureActive = true;
+  __uvdLiveCaptureMode = true;
+  installMonitor();
+  clearTimeout(__uvdOneShotCaptureTimer);
+  __uvdOneShotCaptureTimer = setTimeout(__uvdFinishOneShotCapture, reason === 'boot' ? 2200 : 10000);
+}
+function __uvdInstallOneShotClickCapture() {
+  var handler = function(e) {
+    if (__uvdIsOwnUI(e.target)) return;
+    var el = e.target && e.target.closest ? e.target.closest('button,a,[role="button"],[class],[id]') : null;
+    if (!el) return;
+    if (__uvdLooksLikePlayElement(el) || looksLikeServerButton(el)) __uvdStartOneShotCapture('user');
+  };
+  document.addEventListener('click', handler, true);
+  addCleanup(function() { document.removeEventListener('click', handler, true); });
+}
+
 // ========== INIT ==========
 try {
   window.__uvdBootPhase = 'scan';
@@ -1350,11 +1389,9 @@ try {
   addCleanup(uninstallUniversalOverlayBlocker);
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
-  __uvdStartEpornerAdGate();
   // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).
   // Try those server controls automatically after the initial scan; do not
   // auto-click generic Play buttons on this host because they trigger ads.
-  if (pageInfo.host === 'supjav.com') setTimeout(function() { autoClickSequential(); }, 900);
 } catch (initError) {
   __uvdReportBootError(initError);
 }
@@ -1462,7 +1499,6 @@ function runPreloadCapture() {
 window.__uvd_preload = function() { runPreloadCapture(); };
 
 window.__uvd_autoClickPlay = function() { runAutoClickAndRescan(false); };
-setTimeout(function() { runAutoClickAndRescan(true); }, 400);
 
 // ========== M3U8 PARSER ==========
 function parseM3U8Master(url, callback) {

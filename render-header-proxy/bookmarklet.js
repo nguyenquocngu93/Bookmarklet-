@@ -353,19 +353,10 @@ function findUrls(text, source) {
           __uvdAdBlockedCount++;
           return;
         }
-        // Streamtape-style /e/ URLs often contain .mp4 in the slug/query,
-        // but they are HTML embed pages, not playable MP4 files. Keep them
-        // as iframe candidates so the iframe and direct-media paths coexist.
-        if (__uvdIsEmbedMediaUrl(u)) {
-          var oldEmbed = urls.get(u);
-          if (!oldEmbed || oldEmbed.type !== 'IFRAME' || oldEmbed.priority !== 99) changed = true;
-          urls.set(u, { type: 'IFRAME', source: source, priority: 99, timestamp: Date.now() });
-          return;
-        }
+        // Use one canonical insertion path so master playlists are pinned,
+        // duplicates are de-duplicated and explicit download links are ignored.
         var detectedType = __uvdLooksLikeHlsUrl(u) ? 'M3U8' : p.type;
-        var detectedPriority = detectedType === 'M3U8' ? 1 : p.priority;
-        if (!urls.has(u) || urls.get(u).priority > detectedPriority || urls.get(u).type !== detectedType) {
-          urls.set(u, { type: detectedType, source: source, priority: detectedPriority, timestamp: Date.now() });
+        if (__uvdAddDetectedMediaUrl(u, detectedType, source)) {
           changed = true;
           if (['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(detectedType) !== -1) __uvdPausePageAfterMediaFound();
         }

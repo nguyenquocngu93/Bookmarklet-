@@ -1983,6 +1983,7 @@ function __uvdMountVjs10(wrapper, video, onMount) {
       var skin = document.createElement('video-skin');
       skin.style.cssText = 'width:100%;height:100%;display:block;overflow:hidden;border-radius:0;background:transparent;';
       if (video.parentNode) video.parentNode.removeChild(video);
+      video.removeAttribute('controls');
       skin.appendChild(video);
       player.appendChild(skin);
       wrapper.appendChild(player);
@@ -2267,9 +2268,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:var(--glass);';
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
-  // Video.js v10 skin reads the native controls flag; without it the video
-  // can render frames but expose no play/progress controls on some pages.
-  video.setAttribute('controls', '');
+  // Native controls are enabled only by fallbackToNative(). Keeping them
+  // here would render Chrome controls underneath the Video.js v10 skin.
   if (!reusedOriginalVideo && (url.indexOf(HEADER_PROXY_BASE) === 0 || String(type || '').toUpperCase() === 'M3U8')) {
     video.setAttribute('crossorigin', 'anonymous');
   }

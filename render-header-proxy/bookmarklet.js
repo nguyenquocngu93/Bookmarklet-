@@ -109,6 +109,7 @@ data.settings = Object.assign({
   hideDelay: 5,
   maxStoredUrls: 200,
   blockAutoplay: true,
+  autoClickPlay: false,
   glowEffects: true,
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
@@ -255,6 +256,7 @@ function isAdUrl(url) {
 // ========== URL DETECTION ==========
 var urls = new Map();
 var __uvdPinnedMasters = new Set();
+var __uvdUrlSequence = 0;
 var __uvdMediaAccessTokens = [];
 function __uvdRememberAccessToken(url) {
   try {
@@ -332,6 +334,7 @@ function __uvdRefreshCapture() {
   installMonitor();
   __uvdInstallOneShotClickCapture();
   __uvdStartOneShotCapture('boot');
+  if (data.settings.autoClickPlay) setTimeout(function() { runAutoClickAndRescan(true); }, 500);
   installPopupBlock();
   installUniversalOverlayBlocker();
   try { scan(document, 'manual-refresh'); performance.getEntriesByType('resource').forEach(function(e) { if (e.name && !isAdUrl(e.name)) findUrls(e.name, 'manual-refresh:performance'); }); } catch(e) {}
@@ -367,7 +370,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var priority = priorityMap[type] || 6;
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
-    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now() });
+    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
     return true;
   }
   return false;
@@ -3288,8 +3291,8 @@ function __uvdGetUrlResolution(url) {
 
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, resolution: __uvdGetUrlResolution(e[0]) };
-  }).sort(function(a, b) { return a.priority - b.priority; });
+    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, resolution: __uvdGetUrlResolution(e[0]) };
+  }).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
   // through the quality picker inside the player.
@@ -3358,7 +3361,7 @@ function buildUI() {
 
   var streamFilter = 'ALL';
   var streamResolution = 'ALL';
-  var streamOrder = 'newest';
+  var streamOrder = 'captured';
   var filterBar = document.createElement('div');
   filterBar.className = 'uvd-filter-bar';
   ['ALL','MP4','M3U8','IFRAME','BLOB'].forEach(function(filter) {
@@ -3380,7 +3383,7 @@ function buildUI() {
   filterBar.appendChild(resolutionSelect);
   var orderSelect = document.createElement('select');
   orderSelect.className = 'uvd-filter-select';
-  orderSelect.innerHTML = '<option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option>';
+  orderSelect.innerHTML = '<option value="captured">Theo thứ tự bắt được</option><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option>';
   orderSelect.onchange = function() { streamOrder = this.value; renderTab('streams'); };
   filterBar.appendChild(orderSelect);
   content.appendChild(filterBar);
@@ -3468,7 +3471,9 @@ function buildUI() {
         return (streamFilter === 'ALL' || String(item.type || '').toUpperCase() === streamFilter) &&
           (streamResolution === 'ALL' || item.resolution === streamResolution);
       });
-      visibleStreams.sort(function(a, b) { return streamOrder === 'newest' ? (b.timestamp - a.timestamp) : (a.timestamp - b.timestamp); });
+      if (streamOrder === 'newest') visibleStreams.sort(function(a, b) { return b.timestamp - a.timestamp; });
+      else if (streamOrder === 'oldest') visibleStreams.sort(function(a, b) { return a.timestamp - b.timestamp; });
+      else visibleStreams.sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
       renderStreams(streamList, visibleStreams);
     }
     else if (tabId === 'clicked') renderClickedButtons(streamList);
@@ -4419,6 +4424,7 @@ function renderSettings(container) {
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">⛔ Chặn tự phát</div>' +
       buildToggleRow('__uvd_toggle_blockautoplay__', 'Chặn mạnh web tự mở/phát video sau khi chạy script', data.settings.blockAutoplay) +
+      buildToggleRow('__uvd_toggle_autoclick__', 'Tự động quét và bấm Play sau khi chạy script', data.settings.autoClickPlay) +
       '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Video/audio do chính trang web tự bật (quảng cáo, autoplay ẩn...) sẽ luôn bị tạm dừng ngay. Video mở qua UMP DL Player không bị ảnh hưởng.</div>' +
     '</div>' +
 
@@ -4543,6 +4549,14 @@ function renderSettings(container) {
 
   var copyConfigBtn = document.getElementById('__uvd_copy_config_link__');
   if (copyConfigBtn) copyConfigBtn.onclick = function() { copy(__uvdBuildConfigLink()); toast('Đã copy link bookmarklet riêng'); };
+
+  document.getElementById('__uvd_toggle_autoclick__').onclick = function() {
+    var isOn = this.classList.toggle('uvd-toggle-on');
+    data.settings.autoClickPlay = isOn;
+    storage.set(data);
+    toast(isOn ? 'Đã bật tự động quét/bấm Play' : 'Đã tắt tự động quét/bấm Play');
+    if (isOn) runAutoClickAndRescan(false);
+  };
 
   document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {
     var isOn = this.classList.toggle('uvd-toggle-on');

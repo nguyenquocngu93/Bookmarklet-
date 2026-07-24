@@ -384,6 +384,10 @@ function scan(doc, src, light) {
     if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
     }
+    doc.querySelectorAll('a[href*="/dload/" i]').forEach(function(el) {
+      var downloadUrl = el.getAttribute('href');
+      if (downloadUrl) __uvdAddDetectedMediaUrl(new URL(downloadUrl, location.href).href, 'MP4', src + ':direct-download');
+    });
     doc.querySelectorAll('a[href],[onclick],[data-href],[data-url],[data-server]').forEach(function(el) {
       var href = el.getAttribute && (el.getAttribute('href') || el.getAttribute('data-href') || el.getAttribute('data-url') || el.getAttribute('data-server'));
       var onclick = el.getAttribute && el.getAttribute('onclick');
@@ -2151,17 +2155,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
     } else {
-      // Video ngang: card chỉ ôm header + video + info, không giữ phần trống của 92dvh.
-      sheet.style.height = 'auto';
-      sheet.style.maxHeight = '70dvh';
-      sheetBody.style.flex = '0 0 auto';
-      // Video ngang: thu gọn vùng chứa theo đúng chiều cao khung video,
-      // không đẩy info/footer lên giữa một vùng trống lớn.
-      videoArea.style.flex = '0 0 auto';
+      // Video ngang: card player chiếm khoảng 60% màn hình; info/footer nằm ở đáy card.
+      sheet.style.height = '60dvh';
+      sheet.style.maxHeight = '60dvh';
+      sheetBody.style.flex = '1 1 auto';
+      videoArea.style.flex = '1 1 auto';
       videoArea.style.maxHeight = 'none';
-      var landscapeRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (9 / 16);
-      var frameWidth = videoWrapper.clientWidth ? videoWrapper.clientWidth * 0.95 : 0;
-      if (frameWidth > 0) videoArea.style.height = Math.ceil(frameWidth * landscapeRatio + 90) + 'px';
+      videoArea.style.height = '';
       // Video ngang: giữ nguyên — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
       videoWrapper.style.padding = '0';
       playerEl.style.position = 'relative';

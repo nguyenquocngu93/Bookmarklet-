@@ -86,6 +86,7 @@ data.settings = Object.assign({
   maxStoredUrls: 200,
   blockAutoplay: true,
   glowEffects: true,
+  darkMode: false,
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
   subdlApiKey: ''
@@ -157,6 +158,10 @@ function applyMotionPref(el) {
   var speed = data.settings.reduceMotion ? 0 : data.settings.transitionSpeed;
   el.style.setProperty('--uvd-blur', blur + 'px');
   el.style.setProperty('--uvd-transition', speed + 's ' + data.settings.transitionEasing);
+}
+function applyThemePref(el) {
+  if (!el) return;
+  el.classList.toggle('uvd-dark-mode', !!data.settings.darkMode);
 }
 
 // ========== AD FILTER ==========
@@ -920,6 +925,7 @@ function openSettingsOverlay() {
   __uvdAppendRoot(ov);
   applyEffectsPref(ov);
   applyMotionPref(ov);
+  applyThemePref(ov);
   var settingsBody = document.getElementById('__uvd_settings_body__');
   var settingsSheet = ov.querySelector('.uvd-settings-sheet');
   renderSettings(settingsBody);
@@ -2021,6 +2027,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   __uvdAppendRoot(overlay);
   __uvdIsolateLayer(overlay);
   applyEffectsPref(overlay);
+  applyThemePref(overlay);
 
   var sheet = document.createElement('div');
   sheet.className = 'uvd-settings-sheet uvd-player-sheet' + (playerState.launchFromThumbnail ? ' uvd-player-from-thumbnail' : '');
@@ -2162,31 +2169,25 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     }
 
     if (isPortrait) {
-      sheet.style.height = '92dvh';
+      // Video dọc: khung tự ôm theo tỉ lệ thật, không crop nội dung.
+      sheet.style.height = 'auto';
       sheet.style.maxHeight = '92dvh';
-      sheetBody.style.flex = '1 1 auto';
-      videoArea.style.flex = '1 1 auto';
-      videoArea.style.maxHeight = '';
-      // Video dọc: tính khung bằng pixel thật (JS đo trực tiếp) thay vì để CSS/aspect-ratio nội bộ
-      // của <video-player> tự quyết định — đảm bảo lề đều 4 phía, không bo góc, video phủ kín (cover)
-      videoWrapper.style.padding = '0';
-      var availW = videoWrapper.clientWidth;
-      var availH = videoWrapper.clientHeight;
-      var boxW = Math.max(0, availW - PORTRAIT_INSET * 2);
-      var boxH = Math.max(0, availH - PORTRAIT_INSET * 2);
+      sheetBody.style.flex = '0 1 auto';
+      videoArea.style.flex = '0 0 auto';
+      videoArea.style.maxHeight = 'none';
+      videoWrapper.style.padding = '12px 0';
+      var portraitW = Math.min((videoWrapper.clientWidth || window.innerWidth) * .78, 340);
+      var portraitRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (16 / 9);
+      var portraitH = Math.min(portraitW * portraitRatio, (window.innerHeight || 720) * .58);
+      if (portraitW > 0 && portraitH > 0) videoArea.style.height = Math.ceil(portraitH + 24) + 'px';
       playerEl.style.position = 'relative';
       playerEl.style.margin = 'auto';
       playerEl.style.aspectRatio = 'auto';
-      if (boxW > 0 && boxH > 0) {
-        playerEl.style.width = boxW + 'px';
-        playerEl.style.height = boxH + 'px';
-      } else {
-        playerEl.style.width = '95%';
-        playerEl.style.height = '95%';
-      }
+      playerEl.style.width = Math.round(portraitW) + 'px';
+      playerEl.style.height = Math.round(portraitH) + 'px';
       playerEl.style.borderRadius = '24px';
       playerEl.style.boxShadow = FLOAT_SHADOW;
-      video.style.objectFit = 'cover';
+      video.style.objectFit = 'contain';
       video.style.borderRadius = 'inherit';
     } else {
       // Video ngang: card player chiếm khoảng 80% màn hình; info/footer nằm ở đáy card.
@@ -2655,6 +2656,7 @@ style.textContent = `
 @keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
 @keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
+.uvd-dark-mode{--bg:rgba(12,9,17,.98);--glass:rgba(24,18,30,.86);--glass-hi:rgba(255,47,200,.13);--border:rgba(255,120,220,.24);--text:#f8efff;--text2:#c9b9d4;--text3:#a08fac;--card-bg:rgba(30,22,38,.78);--btn-bg:rgba(255,255,255,.08);--accent:#ff5bd2;--accent2:#c38cff;background:var(--bg)!important;color:var(--text)!important}.uvd-dark-mode .uvd-settings-sheet,.uvd-dark-mode .uvd-glass-panel,.uvd-dark-mode .uvd-card{background:var(--glass)}
 .uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(112,45,126,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
 .uvd-settings-sheet:not(.uvd-player-sheet){border-radius:32px 32px 0 0;transition:transform .3s cubic-bezier(.22,1,.36,1)!important}
@@ -3193,6 +3195,7 @@ function buildUI() {
   __uvdIsolateLayer(panel);
   applyEffectsPref(panel);
   applyMotionPref(panel);
+  applyThemePref(panel);
   if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdShowRestoreBtn(); }
   else { __uvdRemoveRestoreBtn(); }
   
@@ -4106,6 +4109,7 @@ function renderSettings(container) {
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">⚡ Hiệu năng</div>' +
       buildToggleRow('__uvd_toggle_reducemotion__', 'Bật chế độ hiệu suất (giảm hiệu ứng)', data.settings.reduceMotion) +
+      buildToggleRow('__uvd_toggle_darkmode__', 'Giao diện tối (Dark mode)', data.settings.darkMode) +
       '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Cường độ làm mờ (blur): <span id="__uvd_blur_val__">' + data.settings.blurIntensity + 'px</span></div>' +
       '<input type="range" id="__uvd_blur_range__" min="0" max="20" step="1" value="' + data.settings.blurIntensity + '" style="width:100%;">' +
       '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Tốc độ chuyển tiếp: <span id="__uvd_transition_val__">' + data.settings.transitionSpeed + 's</span></div>' +
@@ -4204,6 +4208,17 @@ function renderSettings(container) {
     storage.set(data);
     applyMotionPref(document.getElementById('__uvd__'));
     toast(isOn ? 'Đã bật chế độ hiệu suất' : 'Đã tắt chế độ hiệu suất');
+  };
+
+  document.getElementById('__uvd_toggle_darkmode__').onclick = function() {
+    var isOn = this.classList.toggle('uvd-toggle-on');
+    data.settings.darkMode = isOn;
+    storage.set(data);
+    applyThemePref(document.getElementById('__uvd__'));
+    if (playerState.overlay) applyThemePref(playerState.overlay);
+    var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
+    if (settingsOverlay) applyThemePref(settingsOverlay);
+    toast(isOn ? 'Đã bật giao diện tối' : 'Đã tắt giao diện tối');
   };
 
   document.getElementById('__uvd_blur_range__').oninput = function() {

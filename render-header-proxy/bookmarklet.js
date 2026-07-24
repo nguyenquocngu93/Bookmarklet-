@@ -265,20 +265,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   // Android browsers may expose AV1 download links before the H.264 variant.
   // Prefer the browser-safe H.264 MP4 for direct playback.
   if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(url) && /Android/i.test(navigator.userAgent)) return false;
-  if (/eporner\./i.test(pageInfo.host) && /\.m3u8(?:[?#]|$)/i.test(url) && !/master\.m3u8/i.test(url)) {
-    var hasEpornerMaster = [...urls.keys()].some(function(existingUrl) { return /master\.m3u8/i.test(existingUrl); });
-    if (hasEpornerMaster) return false;
-  }
-  url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-  if (/eporner\./i.test(pageInfo.host) && /master\.m3u8/i.test(url)) {
-    __uvdPinnedMasters.add(url);
-    var masterHost = '';
-    try { masterHost = new URL(url).hostname; } catch(e) {}
-    [...urls.keys()].forEach(function(existingUrl) {
-      if (!/\.m3u8(?:[?#]|$)/i.test(existingUrl) || /master\.m3u8/i.test(existingUrl)) return;
-      try { if (!masterHost || new URL(existingUrl).hostname === masterHost) urls.delete(existingUrl); } catch(e) {}
-    });
-  }
+  if (/master\.m3u8/i.test(url)) __uvdPinnedMasters.add(url);
   if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
   type = type || 'MP4';
@@ -1321,6 +1308,7 @@ function runAutoClickAndRescan(silent) {
       var newSinceLast = afterCount - lastCount;
       lastCount = afterCount;
       if (newSinceLast <= 0) {
+        if (idx === delays.length - 1 && reportedAt !== -1 && document.getElementById('__uvd__')) debouncedBuildUI();
         if (idx === delays.length - 1 && !silent && reportedAt === -1) {
           toast(clicked > 0 ? 'Đã bấm Play nhưng chưa thấy link mới — site này có thể chặn click giả lập, thử bấm tay' : 'Không tìm thấy nút Play trên trang này');
         }
@@ -1329,14 +1317,13 @@ function runAutoClickAndRescan(silent) {
       var totalFound = afterCount - beforeCount;
       if (reportedAt === -1) {
         reportedAt = idx;
-        if (document.getElementById('__uvd__')) debouncedBuildUI();
         setTimeout(function() {
           var n = pauseAllPlayingVideos();
           if (n > 0) toast('⏸ Đã tạm dừng video gốc, xem qua player script cho ổn định');
         }, 800);
-      } else if (document.getElementById('__uvd__')) {
-        debouncedBuildUI();
       }
+      // Rebuild once after the capture window, not once per discovered variant.
+      if (idx === delays.length - 1 && document.getElementById('__uvd__')) debouncedBuildUI();
     }, delay);
   });
 }

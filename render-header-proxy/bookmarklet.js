@@ -261,6 +261,9 @@ function __uvdIsLikelyHlsSegmentUrl(url) {
 }
 function __uvdAddDetectedMediaUrl(url, type, source) {
   if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
+  // Android browsers may expose AV1 download links before the H.264 variant.
+  // Prefer the browser-safe H.264 MP4 for direct playback.
+  if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(url) && /Android/i.test(navigator.userAgent)) return false;
   url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
   if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
@@ -341,6 +344,7 @@ function findUrls(text, source) {
       matches.forEach(function(u) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
         __uvdRememberAccessToken(u);
+        if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(u) && /Android/i.test(navigator.userAgent)) return;
         if (__uvdIsLikelyHlsSegmentUrl(u)) return;
         if (isAdUrl(u)) {
           __uvdAdBlockedCount++;

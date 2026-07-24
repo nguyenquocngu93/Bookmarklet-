@@ -315,6 +315,40 @@ function __uvdLooksLikeHlsUrl(url) {
 function __uvdIsLikelyHlsSegmentUrl(url) {
   return /(?:\/seg=|segment|chunk|frag|\.ts(?:[?#]|$)|\.m4s(?:[?#]|$)|\.aac(?:[?#]|$)|\.image(?:[?#]|$)|init-[^/?#]+\.mp4(?:[?#]|$))/i.test(String(url || ''));
 }
+var __uvdMatthewFrozen = false;
+function __uvdIsMatthewHost() { return /(?:^|\.)matthewhotelscience\.com$/i.test(pageInfo.host); }
+function __uvdFreezeMatthewPage() {
+  if (!__uvdIsMatthewHost() || __uvdMatthewFrozen) return;
+  __uvdMatthewFrozen = true;
+  document.documentElement.classList.add('uvd-page-frozen');
+  try { installPopupBlock(); } catch(e) {}
+  toast('🧊 Đã khóa page sau khi bắt được video');
+}
+function __uvdRefreshMatthewCapture() {
+  if (!__uvdIsMatthewHost()) return;
+  __uvdMatthewFrozen = false;
+  document.documentElement.classList.remove('uvd-page-frozen');
+  installMonitor();
+  installPopupBlock();
+  installUniversalOverlayBlocker();
+  try { scan(document, 'manual-refresh'); performance.getEntriesByType('resource').forEach(function(e) { if (e.name && !isAdUrl(e.name)) findUrls(e.name, 'manual-refresh:performance'); }); } catch(e) {}
+  debouncedBuildUI();
+  toast('↻ Đã quét lại nguồn video');
+}
+function __uvdStartMatthewGuard() {
+  if (!__uvdIsMatthewHost()) return;
+  var handler = function(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (!a || __uvdIsOwnUI(a) || !a.href || __uvdIsAllowedExternalOpen(a.href)) return;
+    try {
+      var u = new URL(a.href, location.href);
+      if (u.hostname !== location.hostname) { e.preventDefault(); e.stopPropagation(); __uvdBlockedCount++; }
+    } catch(ex) {}
+  };
+  document.addEventListener('click', handler, true);
+  addCleanup(function() { document.removeEventListener('click', handler, true); });
+}
+
 function __uvdAddDetectedMediaUrl(url, type, source) {
   if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
   // Android browsers may expose AV1 download links before the H.264 variant.
@@ -324,6 +358,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
   type = type || 'MP4';
+  if (__uvdIsMatthewHost() && type === 'M3U8') setTimeout(__uvdFreezeMatthewPage, 0);
   var priorityMap = { M3U8: 1, MPD: 2, MP4: 3, WEBM: 4, BLOB: 8, IFRAME: 99 };
   var priority = priorityMap[type] || 6;
   var existing = urls.get(url);
@@ -1309,6 +1344,7 @@ try {
   installMonitor();
   installPopupBlock();
   installUniversalOverlayBlocker();
+  __uvdStartMatthewGuard();
   addCleanup(uninstallUniversalOverlayBlocker);
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
@@ -3346,7 +3382,14 @@ function buildUI() {
     setTimeout(function() { debouncedBuildUI(); }, 1200);
   };
   document.getElementById('__uvd_preload__').onclick = function() { runPreloadCapture(); };
-  document.getElementById('__uvd_seq_autoplay__').onclick = function() { autoClickSequential(false); };
+  var seqBtn = document.getElementById('__uvd_seq_autoplay__');
+  if (__uvdIsMatthewHost()) {
+    seqBtn.textContent = '↻';
+    seqBtn.title = 'Reload và quét lại nguồn video';
+    seqBtn.onclick = function() { __uvdRefreshMatthewCapture(); };
+  } else {
+    seqBtn.onclick = function() { autoClickSequential(false); };
+  }
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
   
   document.getElementById('__uvd_title__').onclick = function() {

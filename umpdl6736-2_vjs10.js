@@ -192,18 +192,35 @@ function applyMotionPref(el) {
 // ========== AD FILTER ==========
 var __uvdAdBlockedCount = 0;
 var compiledFilters = [];
+var compiledExceptions = [];
 
+function compileFilterPattern(raw) {
+  var pattern = (raw || '').trim().toLowerCase();
+  if (!pattern || pattern.charAt(0) === '!' || pattern.charAt(0) === '[' || pattern.indexOf('##') !== -1 || pattern.indexOf('#@#') !== -1) return null;
+  pattern = pattern.split('$')[0].trim();
+  if (!pattern) return null;
+  if (pattern.indexOf('regex:') === 0) {
+    try { return { type: 'regex', re: new RegExp(pattern.slice(6), 'i') }; } catch(e) { return null; }
+  }
+  // Common AdGuard/uBlock host rule: ||ads.example^ → ads.example
+  if (pattern.indexOf('||') === 0) pattern = pattern.slice(2);
+  pattern = pattern.replace(/^\|+|\|+$/g, '').replace(/\^.*$/, '').replace(/^\*\./, '');
+  if (!pattern) return null;
+  return { type: 'plain', value: pattern };
+}
 function compileAdFilters() {
   compiledFilters = [];
+  compiledExceptions = [];
   (data.filterlist || []).forEach(function(raw) {
-    var pattern = (raw || '').trim().toLowerCase();
-    if (!pattern) return;
-    if (pattern.indexOf('regex:') === 0) {
-      try { compiledFilters.push({ type: 'regex', re: new RegExp(pattern.slice(6), 'i') }); }
-      catch(e) {}
-    } else {
-      compiledFilters.push({ type: 'plain', value: pattern });
+    var text = String(raw || '').trim();
+    if (!text) return;
+    if (text.indexOf('@@') === 0) {
+      var exception = compileFilterPattern(text.slice(2));
+      if (exception) compiledExceptions.push(exception);
+      return;
     }
+    var rule = compileFilterPattern(text);
+    if (rule) compiledFilters.push(rule);
   });
 }
 compileAdFilters();
@@ -215,6 +232,10 @@ var DEFAULT_AD_MARKERS = [
 ];
 function isAdUrl(url) {
   var lowerUrl = String(url || '').toLowerCase();
+  for (var ex = 0; ex < compiledExceptions.length; ex++) {
+    var allow = compiledExceptions[ex];
+    if (allow.type === 'regex' ? allow.re.test(url) : lowerUrl.indexOf(allow.value) !== -1) return false;
+  }
   for (var d = 0; d < DEFAULT_AD_MARKERS.length; d++) {
     if (lowerUrl.indexOf(DEFAULT_AD_MARKERS[d]) !== -1) return true;
   }
@@ -1152,7 +1173,13 @@ HTMLMediaElement.prototype.play = function() {
 addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
 
 function __uvdNeutralizeMedia(el) {
-  if (!el || __uvdIsAllowedMedia(el) || __uvdPagePlaybackAllowed()) return;
+  if (!el || __uvdIsAllowedMedia(el)) return;
+  var mediaUrl = el.currentSrc || el.src || '';
+  if (mediaUrl && isAdUrl(mediaUrl)) {
+    try { el.muted = true; el.volume = 0; el.pause(); el.removeAttribute('autoplay'); } catch(e) {}
+    return;
+  }
+  if (__uvdPagePlaybackAllowed()) return;
   try {
     el.removeAttribute('autoplay');
     el.autoplay = false;
@@ -2401,6 +2428,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   function setPlaybackError(message) {
     playerState.playbackError = message;
     updateInfoDisplay();
+    try {
+      document.querySelectorAll('.uvd-card[data-url]').forEach(function(card) {
+        if (card.getAttribute('data-url') === url || card.getAttribute('data-url') === playerState.url) {
+          var status = card.querySelector('.uvd-card-status');
+          if (status) { status.textContent = 'LINK LỖI'; status.className = 'uvd-card-status uvd-status-error'; }
+        }
+      });
+    } catch(e) {}
     toast('⚠ ' + message, '#ff5d72');
   }
 
@@ -2829,7 +2864,7 @@ style.textContent = `
 .uvd-action-list .uvd-btn{width:100%;min-width:0}
 @media (max-width:560px){.uvd-app-shell{top:8px!important;left:8px!important;right:8px!important;height:calc(100dvh - 16px)!important;padding:14px 12px 10px!important;border-radius:26px!important}.uvd-app-shell #__uvd_header__{display:flex;align-items:center;gap:10px;overflow:visible}.uvd-brand-sub{display:none}.uvd-brand{gap:9px}.uvd-brand-mark{width:48px;height:48px;flex-basis:48px;border-radius:16px;font-size:21px}.uvd-brand-name{font-size:19px}.uvd-brand-version{font-size:15px}.uvd-header-actions{width:100px;min-width:100px;max-width:100px;flex-basis:100px;grid-template-columns:repeat(3,30px);grid-auto-rows:30px;gap:4px;padding:2px 0}.uvd-header-actions .uvd-btn-icon{width:30px;height:30px;flex-basis:30px;font-size:13px;border-radius:10px}.uvd-context-bar{display:block;padding:12px;margin-bottom:10px}.uvd-context-meta{justify-content:flex-start;margin-top:9px}.uvd-meta-chip{max-width:48%}.uvd-tab{padding:8px 11px}.uvd-card{padding:12px}.uvd-grid-2{gap:6px}.uvd-card-actions .uvd-btn{padding:7px 8px;font-size:11px}.uvd-card-preview.uvd-thumb-portrait{height:190px}}
 @media (prefers-reduced-motion:reduce){.uvd-card:hover{transform:none}}
-.uvd-card-badges{display:flex;align-items:center;gap:6px;min-width:0}.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}.uvd-card-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;white-space:nowrap}.uvd-status-loading{color:var(--gold);background:rgba(224,144,10,.12);border:1px solid rgba(224,144,10,.25)}.uvd-status-ok{color:var(--success);background:rgba(31,169,122,.12);border:1px solid rgba(31,169,122,.25)}.uvd-status-muted{color:var(--text3);background:rgba(43,24,54,.06);border:1px solid var(--border)}
+.uvd-card-badges{display:flex;align-items:center;gap:6px;min-width:0}.uvd-type-badge{display:inline-block;padding:4px 12px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:linear-gradient(135deg,rgba(255,47,200,0.22),rgba(155,61,255,0.18));color:var(--accent);border:1px solid rgba(255,47,200,0.28);letter-spacing:.03em}.uvd-card-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.04em;white-space:nowrap}.uvd-status-loading{color:var(--gold);background:rgba(224,144,10,.12);border:1px solid rgba(224,144,10,.25)}.uvd-status-error{color:var(--danger);background:rgba(255,93,114,.14);border:1px solid rgba(255,93,114,.3)}.uvd-status-ok{color:var(--success);background:rgba(31,169,122,.12);border:1px solid rgba(31,169,122,.25)}.uvd-status-muted{color:var(--text3);background:rgba(43,24,54,.06);border:1px solid var(--border)}
 .uvd-card-stream-meta{display:flex;align-items:center;min-height:26px;margin:-3px 0 8px;padding:6px 9px;border:1px solid var(--border);border-radius:10px;background:rgba(155,61,255,.06);color:var(--text3);font-size:10px;font-weight:700;line-height:1.35;white-space:normal}.uvd-card-stream-meta.uvd-card-meta-ready{color:var(--accent2);background:rgba(155,61,255,.1)}
 .uvd-url-box{background:var(--btn-bg);border-radius:var(--radius-sm);padding:12px;font-family:'SFMono-Regular',Consolas,monospace;font-size:var(--fs-sm);font-weight:600;word-break:break-all;color:var(--accent2);max-height:100px;overflow-y:auto;line-height:1.5;border:1px solid var(--border)}
 .uvd-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -4185,7 +4220,7 @@ function renderSettings(container) {
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🛡️ Lọc quảng cáo (Filterlist)</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">' +
-        'Nhập mỗi dòng một từ khóa hoặc domain (vd: <code>doubleclick.net</code>). Hỗ trợ regex nếu bắt đầu bằng <code>regex:</code>. Các URL chứa pattern sẽ bị bỏ qua.' +
+        'Nhập mỗi dòng một rule. Hỗ trợ domain/từ khóa, regex (<code>regex:</code>) và rule AdGuard/uBlock như <code>||ads.example^</code>, ngoại lệ <code>@@||example.com^</code>. Rule áp dụng trước khi quét media.' +
       '</div>' +
       '<textarea id="__uvd_filter_text__" style="width:100%;height:80px;background:var(--btn-bg);border:1px solid var(--border);border-radius:10px;color:var(--accent2);font-weight:600;padding:12px;font-size:12px;">' + escapeHtml((data.filterlist||[]).join('\n')) + '</textarea>' +
       '<div class="uvd-grid-2" style="margin-top:8px;">' +

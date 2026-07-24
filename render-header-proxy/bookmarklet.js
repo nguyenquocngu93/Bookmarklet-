@@ -3216,7 +3216,7 @@ function buildUI() {
     '<div class="uvd-header-actions">' +
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Thử lần lượt từng server">⏭</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="' + (__uvdIsMatthewHost() ? 'Reload và quét lại nguồn video' : 'Thử lần lượt từng server') + '">' + (__uvdIsMatthewHost() ? '↻' : '⏭') + '</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +

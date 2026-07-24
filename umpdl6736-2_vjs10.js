@@ -324,9 +324,8 @@ function __uvdFreezeMatthewPage() {
   try { installPopupBlock(); } catch(e) {}
   toast('🧊 Đã khóa page sau khi bắt được video');
 }
-function __uvdRefreshMatthewCapture() {
-  if (!__uvdIsMatthewHost()) return;
-  __uvdMatthewFrozen = false;
+function __uvdRefreshCapture() {
+  if (__uvdIsMatthewHost()) __uvdMatthewFrozen = false;
   document.documentElement.classList.remove('uvd-page-frozen');
   installMonitor();
   installPopupBlock();
@@ -3216,7 +3215,7 @@ function buildUI() {
     '<div class="uvd-header-actions">' +
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="' + (__uvdIsMatthewHost() ? 'Reload và quét lại nguồn video' : 'Thử lần lượt từng server') + '">' + (__uvdIsMatthewHost() ? '↻' : '⏭') + '</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
@@ -3383,13 +3382,9 @@ function buildUI() {
   };
   document.getElementById('__uvd_preload__').onclick = function() { runPreloadCapture(); };
   var seqBtn = document.getElementById('__uvd_seq_autoplay__');
-  if (__uvdIsMatthewHost()) {
-    seqBtn.textContent = '↻';
-    seqBtn.title = 'Reload và quét lại nguồn video';
-    seqBtn.onclick = function() { __uvdRefreshMatthewCapture(); };
-  } else {
-    seqBtn.onclick = function() { autoClickSequential(false); };
-  }
+  seqBtn.textContent = '↻';
+  seqBtn.title = 'Reload và quét lại nguồn video';
+  seqBtn.onclick = function() { __uvdRefreshCapture(); };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
   
   document.getElementById('__uvd_title__').onclick = function() {

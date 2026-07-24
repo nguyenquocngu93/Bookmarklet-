@@ -2129,7 +2129,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   var overlay = document.createElement('div');
   overlay.id = '__uvd_player_overlay__';
-  overlay.className = 'uvd-settings-overlay';
+  overlay.className = 'uvd-settings-overlay uvd-player-overlay';
   __uvdAppendRoot(overlay);
   __uvdIsolateLayer(overlay);
   applyEffectsPref(overlay);
@@ -2792,7 +2792,7 @@ style.textContent = `
 .uvd-icon-btn-wide{width:auto;padding:0 10px;font-size:13px;font-weight:600;gap:4px}
 .uvd-liquid-bg{position:absolute;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(closest-side,rgba(255,47,200,0.14),transparent 70%) 20% 25%/60% 60% no-repeat;filter:blur(28px);animation:uvdLiquidDrift 16s ease-in-out infinite}
 .uvd-reduce-motion .uvd-liquid-bg{display:none}
-.uvd-settings-overlay.uvd-open{background:rgba(0,0,0,0.55)}
+.uvd-settings-overlay.uvd-open{background:rgba(0,0,0,0.55)}.uvd-player-overlay.uvd-open{background:rgba(0,0,0,.9)}
 .uvd-settings-sheet{width:100%;max-width:1000px;max-height:92dvh;display:flex;flex-direction:column;transform:translate3d(0,100%,0);will-change:transform;backface-visibility:hidden;transition:transform .3s cubic-bezier(.22,1,.36,1);border-radius:32px 32px 0 0;overflow:hidden;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);box-shadow:0 -20px 50px rgba(0,0,0,0.8)}
 .uvd-settings-overlay.uvd-open .uvd-settings-sheet{transform:translate3d(0,0,0)}
 .uvd-player-sheet{transition:none!important;will-change:auto!important}

@@ -1288,7 +1288,7 @@ addCleanup(function() { panelObserver.disconnect(); });
 var __uvdBuildUIDebounce = null;
 function debouncedBuildUI() {
   clearTimeout(__uvdBuildUIDebounce);
-  __uvdBuildUIDebounce = setTimeout(buildUI, 300);
+  __uvdBuildUIDebounce = setTimeout(buildUI, 700);
 }
 var __uvdLiveUiRefreshTimer = null;
 var __uvdLastLiveUiRefresh = 0;
@@ -1301,7 +1301,7 @@ function scheduleLiveUiRefresh() {
   }
   if (__uvdEpornerGateTimer) { __uvdLiveUiDirty = true; return; }
   if (!document.getElementById('__uvd__') || (playerState && playerState.overlay)) return;
-  var wait = Math.max(0, 900 - (Date.now() - __uvdLastLiveUiRefresh));
+  var wait = Math.max(0, 1800 - (Date.now() - __uvdLastLiveUiRefresh));
   clearTimeout(__uvdLiveUiRefreshTimer);
   __uvdLiveUiRefreshTimer = setTimeout(function() {
     __uvdLastLiveUiRefresh = Date.now();
@@ -3085,6 +3085,13 @@ function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
     return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority };
   }).sort(function(a, b) { return a.priority - b.priority; });
+  // If a master playlist exists, keep its card as the canonical entry and
+  // hide the variant playlists from the main list. They remain available
+  // through the quality picker inside the player.
+  var masterEntries = arr.filter(function(item) { return item.type === 'M3U8' && /master\.m3u8/i.test(item.url); });
+  if (masterEntries.length) {
+    arr = arr.filter(function(item) { return item.type !== 'M3U8' || /master\.m3u8/i.test(item.url); });
+  }
 
   var panel = document.getElementById('__uvd__');
   if (panel) panel.remove();

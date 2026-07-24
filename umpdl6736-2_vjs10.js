@@ -270,13 +270,12 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
     if (hasEpornerMaster) return false;
   }
   url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-  if (/eporner\\./i.test(pageInfo.host) && /master\\.m3u8/i.test(url)) {
-    __uvdPinnedMasters.add(url);
+  if (/eporner\./i.test(pageInfo.host) && /master\.m3u8/i.test(url)) {
     __uvdPinnedMasters.add(url);
     var masterHost = '';
     try { masterHost = new URL(url).hostname; } catch(e) {}
     [...urls.keys()].forEach(function(existingUrl) {
-      if (!/\\.m3u8(?:[?#]|$)/i.test(existingUrl) || /master\\.m3u8/i.test(existingUrl)) return;
+      if (!/\.m3u8(?:[?#]|$)/i.test(existingUrl) || /master\.m3u8/i.test(existingUrl)) return;
       try { if (!masterHost || new URL(existingUrl).hostname === masterHost) urls.delete(existingUrl); } catch(e) {}
     });
   }

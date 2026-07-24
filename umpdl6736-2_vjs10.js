@@ -356,7 +356,8 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   // Prefer the browser-safe H.264 MP4 for direct playback.
   if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(url) && /Android/i.test(navigator.userAgent)) return false;
   if (/master\.m3u8/i.test(url)) __uvdPinnedMasters.add(url);
-  if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
+  if (/^blob:/i.test(url)) type = 'BLOB';
+  else if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
   type = type || 'MP4';
   if (__uvdIsMatthewHost() && type === 'M3U8') setTimeout(__uvdFreezeMatthewPage, 0);
@@ -3704,7 +3705,7 @@ function hydrateVideoThumbnails(root) {
     if (preview.dataset.thumbState) return;
     var card = preview.closest('.uvd-card');
     var type = card ? (card.dataset.type || '').toUpperCase() : '';
-    if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO') {
+    if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO' && type !== 'BLOB') {
       preview.dataset.thumbState = 'unsupported';
       return;
     }
@@ -3727,14 +3728,27 @@ function hydrateVideoThumbnails(root) {
     }
     preview.dataset.thumbState = 'loading';
     var image = preview.querySelector('.uvd-thumb-image');
-    var media = document.createElement('video');
-    media.className = 'uvd-thumb-video';
-    media.muted = true;
-    media.defaultMuted = true;
-    media.playsInline = true;
-    media.preload = 'metadata';
-    media.setAttribute('aria-hidden', 'true');
     var thumbUrl = preview.getAttribute('data-thumb-url');
+    var reusedBlobThumb = type === 'BLOB' ? findSourceVideoElement(thumbUrl) : null;
+    var media = reusedBlobThumb || document.createElement('video');
+    if (!reusedBlobThumb) {
+      media.className = 'uvd-thumb-video';
+      media.muted = true;
+      media.defaultMuted = true;
+      media.playsInline = true;
+      media.preload = 'metadata';
+      media.setAttribute('aria-hidden', 'true');
+    } else {
+      media.classList.add('uvd-thumb-video');
+      media.muted = true;
+    }
+    preview.__thumbVideo = media;
+    if (reusedBlobThumb) {
+      preview.dataset.thumbState = 'ready';
+      __uvdUpdateCardFromMedia(card, media);
+      __uvdSetCardStatus(card, 'BLOB READY', 'uvd-status-ok');
+      return;
+    }
     var thumbProxyUrl = type === 'M3U8' ? (buildHeaderProxyUrl(thumbUrl, 'M3U8') || '') : '';
     // Prefer the same direct URL that the player can use. If the source has
     // CORS/PNG-wrapper problems, retry this thumbnail through Render.

@@ -282,6 +282,7 @@ function __uvdAppendAccessToken(url, token) {
   } catch(e) { return url; }
 }
 var patterns = [
+  { re: /https?:\/\/[^\s"'<>()\\]+\/v\d+\/miy\/[^\s"'<>()\\]+\.txt(?:\?[^\s"'<>()\\]*)?/gi, type: 'M3U8', priority: 1 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mpd[^\s"'<>()\\]*/gi, type: 'MPD', priority: 2 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mp4[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
@@ -310,7 +311,7 @@ function __uvdLooksLikeHlsUrl(url) {
     var path = (parsed.pathname || '').toLowerCase();
     // javynow-style URLs end in .mp4 but are actually HLS playlists. Their
     // segment URLs contain /seg= and must remain ordinary proxy segments.
-    return path.indexOf('/seg=') === -1 && /\/media=hls(?:\/|$)/i.test(path);
+    return path.indexOf('/seg=') === -1 && (/\/media=hls(?:\/|$)/i.test(path) || /\/v\d+\/miy\/[^/]+\.txt$/i.test(path) || /\.m3u8$/i.test(path));
   } catch(e) { return /media=hls/i.test(String(url || '')) && !/\/seg=/i.test(String(url || '')); }
 }
 function __uvdIsLikelyHlsSegmentUrl(url) {

@@ -158,6 +158,15 @@ function looksLikePlaylist(url) {
   return /(?:\.m3u8|m3u8)(?:$|[?#])/i.test(url);
 }
 
+function resolvePlaylistUri(rawUri, playlistUrl) {
+  const base = new URL(playlistUrl);
+  const target = new URL(rawUri, base);
+  // This provider signs the playlist with query parameters and uses relative
+  // init/segment names. Carry the token query onto relative child URLs.
+  if (!target.search && base.search && !/^https?:\/\//i.test(rawUri)) target.search = base.search;
+  return target;
+}
+
 function rewritePlaylist(text, playlistUrl, req, referer) {
   let expectingVariantPlaylist = false;
   return text.split(/\r?\n/).map((line) => {
@@ -171,7 +180,7 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
       if (isVariantTag) expectingVariantPlaylist = true;
       return line.replace(/URI="([^"]+)"/g, (_, uri) => {
         try {
-          const target = new URL(uri, playlistUrl);
+          const target = resolvePlaylistUri(uri, playlistUrl);
           const isPlaylist = expectingVariantPlaylist || looksLikePlaylist(target.toString());
           return `URI="${proxyUrl(target, req, referer, isPlaylist)}"`;
         } catch (_) { return `URI="${uri}"`; }
@@ -179,7 +188,7 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
     }
 
     try {
-      const target = new URL(trimmed, playlistUrl);
+      const target = resolvePlaylistUri(trimmed, playlistUrl);
       const isPlaylist = expectingVariantPlaylist || looksLikePlaylist(target.toString());
       expectingVariantPlaylist = false;
       return proxyUrl(target, req, referer, isPlaylist);

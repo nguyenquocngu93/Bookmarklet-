@@ -2131,6 +2131,17 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   // parameter: an undeclared flag here would stop the player before hls.js
   // gets a chance to take over, leaving the loading spinner forever.
   forceHlsJs = !!forceHlsJs;
+  // These tokenized TXT playlists use relative child playlists that need the
+  // k/kx query carried onto every child URL. Start them through /hls directly
+  // instead of waiting for the direct source to fail first.
+  if (!fromProxy && /\/v\d+\/miy\/[^?#]+\.txt(?:[?#]|$)/i.test(url)) {
+    var tokenizedProxy = buildHeaderProxyUrl(url, 'M3U8');
+    if (tokenizedProxy) {
+      toast('🔗 Đang mở HLS token qua proxy…');
+      showVideoPlayer(tokenizedProxy, 'M3U8', true, forceReinit, forceHlsJs);
+      return;
+    }
+  }
   // When hls.js is loaded lazily, the player shell already exists. Allow the
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;

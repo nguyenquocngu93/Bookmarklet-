@@ -2863,6 +2863,7 @@ style.textContent = `
 .uvd-filter-btn{flex:0 0 auto;border:1px solid var(--border);border-radius:999px;padding:6px 12px;background:rgba(255,255,255,.24);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer}
 .uvd-filter-btn:hover{background:var(--btn-accent-bg);color:var(--accent2)}
 .uvd-filter-btn.uvd-filter-active{background:var(--grad-liquid);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(255,47,200,.2)}
+.uvd-filter-select{flex:0 0 auto;min-width:108px;border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.24);color:var(--text2);font-size:11px;font-weight:700;outline:none}
 .uvd-scope{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;--bg:rgba(255,246,251,0.97);--glass:rgba(255,250,253,0.82);--glass-hi:rgba(155,61,255,0.08);--border:rgba(255,47,200,0.22);--text:#2b1836;--text2:#7c6a8f;--text3:#a698ba;--accent:#ff2fc8;--accent2:#9b3dff;--danger:#ff5d72;--gold:#e0900a;--success:#1fa97a;--card-bg:rgba(255,255,255,0.55);--fs-xs:11px;--fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--radius-sm:14px;--radius-md:20px;--radius-lg:32px;--grad-liquid:linear-gradient(135deg,var(--accent),var(--accent2));--glow-px:0px;--glow-op:0;--btn-bg:rgba(255,47,200,0.10);--btn-danger-bg:rgba(255,93,114,0.16);--btn-danger-border:rgba(255,93,114,0.35);--btn-success-bg:rgba(31,169,122,0.14);--btn-success-border:rgba(31,169,122,0.35);--btn-accent-bg:rgba(255,47,200,0.16);--btn-purple-bg:rgba(155,61,255,0.16);--btn-gold-bg:rgba(224,144,10,0.16)}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}.uvd-scope button,.uvd-scope input,.uvd-scope select,.uvd-scope textarea{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif!important}.uvd-scope button{-webkit-appearance:none!important;appearance:none!important}.uvd-scope .uvd-btn-icon{background:rgba(155,61,255,.10)!important;border-color:var(--border)!important;color:var(--accent2)!important}.uvd-scope .uvd-tabbar{background:rgba(155,61,255,.07)!important;border-color:var(--border)!important}.uvd-scope .uvd-tab{background:transparent!important;color:var(--text2)!important}.uvd-scope .uvd-tab.uvd-tab-active{background:var(--grad-liquid)!important;color:#fff!important}.uvd-scope .uvd-filter-btn{background:rgba(255,255,255,.24)!important;border-color:var(--border)!important;color:var(--text2)!important}.uvd-scope .uvd-filter-btn.uvd-filter-active{background:var(--grad-liquid)!important;border-color:transparent!important;color:#fff!important}.uvd-scope .uvd-meta-chip{background:rgba(255,255,255,.28)!important;border-color:var(--border)!important;color:var(--accent2)!important}
 .uvd-fx-on .uvd-btn{transition:box-shadow .25s ease,transform .15s ease}
@@ -3185,9 +3186,16 @@ function __uvdMaybeOfferIframeWorkflow() {
 }
 
 // ========== BUILD UI ==========
+function __uvdGetUrlResolution(url) {
+  var match = String(url || '').match(/(?:^|[-_/,])((?:2160|1440|1080|720|480|360|240))p(?:\b|[-_.,])/i);
+  if (match) return match[1] + 'p';
+  var wh = String(url || '').match(/(?:^|[-_])([0-9]{3,4})x([0-9]{3,4})(?:\b|[-_.])/i);
+  return wh ? wh[2] + 'p' : '';
+}
+
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority };
+    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, resolution: __uvdGetUrlResolution(e[0]) };
   }).sort(function(a, b) { return a.priority - b.priority; });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
@@ -3256,6 +3264,8 @@ function buildUI() {
   content.appendChild(tabbar);
 
   var streamFilter = 'ALL';
+  var streamResolution = 'ALL';
+  var streamOrder = 'newest';
   var filterBar = document.createElement('div');
   filterBar.className = 'uvd-filter-bar';
   ['ALL','MP4','M3U8','IFRAME','BLOB'].forEach(function(filter) {
@@ -3270,6 +3280,16 @@ function buildUI() {
     };
     filterBar.appendChild(filterBtn);
   });
+  var resolutionSelect = document.createElement('select');
+  resolutionSelect.className = 'uvd-filter-select';
+  resolutionSelect.innerHTML = '<option value="ALL">Độ phân giải</option><option value="2160p">2160p</option><option value="1440p">1440p</option><option value="1080p">1080p</option><option value="720p">720p</option><option value="480p">480p</option><option value="360p">360p</option><option value="240p">240p</option>';
+  resolutionSelect.onchange = function() { streamResolution = this.value; renderTab('streams'); };
+  filterBar.appendChild(resolutionSelect);
+  var orderSelect = document.createElement('select');
+  orderSelect.className = 'uvd-filter-select';
+  orderSelect.innerHTML = '<option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option>';
+  orderSelect.onchange = function() { streamOrder = this.value; renderTab('streams'); };
+  filterBar.appendChild(orderSelect);
   content.appendChild(filterBar);
   
   function moveIndicatorTo(btn) {
@@ -3350,7 +3370,14 @@ function buildUI() {
     streamList.style.display = 'block';
     streamList.innerHTML = '';
     
-    if (tabId === 'streams') renderStreams(streamList, streamFilter === 'ALL' ? arr : arr.filter(function(item) { return String(item.type || '').toUpperCase() === streamFilter; }));
+    if (tabId === 'streams') {
+      var visibleStreams = arr.filter(function(item) {
+        return (streamFilter === 'ALL' || String(item.type || '').toUpperCase() === streamFilter) &&
+          (streamResolution === 'ALL' || item.resolution === streamResolution);
+      });
+      visibleStreams.sort(function(a, b) { return streamOrder === 'newest' ? (b.timestamp - a.timestamp) : (a.timestamp - b.timestamp); });
+      renderStreams(streamList, visibleStreams);
+    }
     else if (tabId === 'clicked') renderClickedButtons(streamList);
     else if (tabId === 'player') renderPlayerSettings(streamList);
   }

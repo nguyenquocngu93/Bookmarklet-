@@ -3289,10 +3289,22 @@ function __uvdGetUrlResolution(url) {
   return wh ? wh[2] + 'p' : '';
 }
 
+function __uvdStreamRank(item) {
+  var type = String(item.type || '').toUpperCase();
+  if (type === 'IFRAME') return 0;
+  if (type === 'M3U8') {
+    if (item.qualityCount > 1 || item.isMaster || /master\.m3u8|urlset|playlist/i.test(item.url)) return 100 + (item.qualityCount || 0);
+    return 85;
+  }
+  if (type === 'MP4' || type === 'WEBM') return 70;
+  if (type === 'BLOB') return 60;
+  return 30;
+}
+
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, resolution: __uvdGetUrlResolution(e[0]) };
-  }).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
+    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]) };
+  }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
   // through the quality picker inside the player.
@@ -3473,7 +3485,7 @@ function buildUI() {
       });
       if (streamOrder === 'newest') visibleStreams.sort(function(a, b) { return b.timestamp - a.timestamp; });
       else if (streamOrder === 'oldest') visibleStreams.sort(function(a, b) { return a.timestamp - b.timestamp; });
-      else visibleStreams.sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
+      else visibleStreams.sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
       renderStreams(streamList, visibleStreams);
     }
     else if (tabId === 'clicked') renderClickedButtons(streamList);
@@ -3622,6 +3634,7 @@ function __uvdDescribeHlsLevels(card, levels, media) {
   }).filter(function(label, index, list) { return list.indexOf(label) === index; });
   labels.sort(function(a, b) { return (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0); });
   var quality = labels.length > 1 ? 'Đa chất lượng · ' + labels.length + ' mức (' + labels.slice(0, 6).join(' · ') + (labels.length > 6 ? ' …' : '') + ')' : (labels[0] || 'M3U8');
+  if (card && card.dataset.url && urls.has(card.dataset.url)) { urls.get(card.dataset.url).qualityCount = labels.length; urls.get(card.dataset.url).isMaster = labels.length > 1; }
   var top = levels.slice().sort(function(a, b) { return (b.height || 0) - (a.height || 0); })[0] || {};
   __uvdUpdateCardFromMedia(card, media, {
     quality: quality,

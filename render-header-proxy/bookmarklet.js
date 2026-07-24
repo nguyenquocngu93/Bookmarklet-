@@ -1226,6 +1226,7 @@ function __uvdStartEpornerAdGate() {
           if (/master\.m3u8/i.test(name)) {
             clearInterval(__uvdEpornerGateTimer);
             __uvdEpornerGateTimer = null;
+            __uvdLiveUiDirty = false;
             if (document.getElementById('__uvd__')) debouncedBuildUI();
             toast('✅ Đã bắt được master HLS sau bước quảng cáo');
           }
@@ -1284,6 +1285,7 @@ function scheduleLiveUiRefresh() {
     __uvdLiveUiDirty = true;
     return;
   }
+  if (__uvdEpornerGateTimer) { __uvdLiveUiDirty = true; return; }
   if (!document.getElementById('__uvd__') || (playerState && playerState.overlay)) return;
   var wait = Math.max(0, 900 - (Date.now() - __uvdLastLiveUiRefresh));
   clearTimeout(__uvdLiveUiRefreshTimer);
@@ -2203,9 +2205,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
       video.style.objectFit = 'cover';
       video.style.borderRadius = 'inherit';
     } else {
-      // Video ngang: card player chiếm khoảng 60% màn hình; info/footer nằm ở đáy card.
-      sheet.style.height = '60dvh';
-      sheet.style.maxHeight = '60dvh';
+      // Video ngang: card player chiếm khoảng 80% màn hình; info/footer nằm ở đáy card.
+      sheet.style.height = '80dvh';
+      sheet.style.maxHeight = '80dvh';
       sheetBody.style.flex = '1 1 auto';
       videoArea.style.flex = '1 1 auto';
       videoArea.style.maxHeight = 'none';

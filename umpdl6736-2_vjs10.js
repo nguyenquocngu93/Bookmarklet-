@@ -1913,8 +1913,9 @@ function hideGestureHintSoon() {
 
 // ========== VIDEO.JS V10 MOUNT ==========
 function __uvdMountVjs10(wrapper, video, onMount) {
-  var FALLBACK_MS = 4000;
+  var FALLBACK_MS = 10000;
   var done = false;
+  var scriptAttempts = 0;
   var cancelled = false;
   var iv = null;
   function cancel() {
@@ -1954,23 +1955,32 @@ function __uvdMountVjs10(wrapper, video, onMount) {
     }
   }
   if (customElements.get('video-player')) { wrapWithSkin(); return cancel; }
-  if (!window.__uvdVjs10Loading) {
+  function requestVjs10Script() {
+    if (customElements.get('video-player') || scriptAttempts >= 2) return;
+    scriptAttempts++;
     window.__uvdVjs10Loading = true;
     var s = document.createElement('script');
     s.type = 'module';
-    s.src = 'https://cdn.jsdelivr.net/npm/@videojs/html/cdn/video.js';
-    s.onerror = function() { console.error('[UMP DL] Không tải được Video.js v10 (có thể do CSP chặn trang), dùng controls gốc'); };
+    s.src = 'https://cdn.jsdelivr.net/npm/@videojs/html/cdn/video.js?v=' + Date.now();
+    s.onerror = function() { window.__uvdVjs10Loading = false; console.error('[UMP DL] Không tải được Video.js v10'); };
     document.head.appendChild(s);
   }
+  if (!customElements.get('video-player')) requestVjs10Script();
   var checkStart = Date.now();
   iv = setInterval(function() {
     if (cancelled) { clearInterval(iv); iv = null; return; }
     if (customElements.get('video-player')) {
       wrapWithSkin();
     } else if (Date.now() - checkStart > FALLBACK_MS) {
-      clearInterval(iv); iv = null;
-      console.warn('[UMP DL] Video.js v10 chưa sẵn sàng sau ' + FALLBACK_MS + 'ms, dùng controls gốc');
-      fallbackToNative();
+      if (scriptAttempts < 2) {
+        window.__uvdVjs10Loading = false;
+        requestVjs10Script();
+        checkStart = Date.now();
+      } else {
+        clearInterval(iv); iv = null;
+        console.warn('[UMP DL] Video.js v10 chưa sẵn sàng, dùng controls gốc');
+        fallbackToNative();
+      }
     }
   }, 100);
   return cancel;

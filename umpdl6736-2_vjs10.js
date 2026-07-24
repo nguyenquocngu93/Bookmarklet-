@@ -269,6 +269,14 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
     if (hasEpornerMaster) return false;
   }
   url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+  if (/eporner\\./i.test(pageInfo.host) && /master\\.m3u8/i.test(url)) {
+    var masterHost = '';
+    try { masterHost = new URL(url).hostname; } catch(e) {}
+    [...urls.keys()].forEach(function(existingUrl) {
+      if (!/\\.m3u8(?:[?#]|$)/i.test(existingUrl) || /master\\.m3u8/i.test(existingUrl)) return;
+      try { if (!masterHost || new URL(existingUrl).hostname === masterHost) urls.delete(existingUrl); } catch(e) {}
+    });
+  }
   if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
   type = type || 'MP4';
@@ -348,6 +356,8 @@ function findUrls(text, source) {
       matches.forEach(function(u) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
         __uvdRememberAccessToken(u);
+        // /dload/ links are explicit download buttons, not hidden playback sources.
+        if (/\/dload\//i.test(u)) return;
         if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(u) && /Android/i.test(navigator.userAgent)) return;
         if (__uvdIsLikelyHlsSegmentUrl(u)) return;
         if (isAdUrl(u)) {
@@ -392,10 +402,6 @@ function scan(doc, src, light) {
     if (doc === document && __uvdIsEmbedMediaUrl(location.href)) {
       urls.set(location.href, { type: 'IFRAME', source: 'location', priority: 99, timestamp: Date.now() });
     }
-    doc.querySelectorAll('a[href*="/dload/" i]').forEach(function(el) {
-      var downloadUrl = el.getAttribute('href');
-      if (downloadUrl) __uvdAddDetectedMediaUrl(new URL(downloadUrl, location.href).href, 'MP4', src + ':direct-download');
-    });
     doc.querySelectorAll('a[href],[onclick],[data-href],[data-url],[data-server]').forEach(function(el) {
       var href = el.getAttribute && (el.getAttribute('href') || el.getAttribute('data-href') || el.getAttribute('data-url') || el.getAttribute('data-server'));
       var onclick = el.getAttribute && el.getAttribute('onclick');

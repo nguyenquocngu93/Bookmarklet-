@@ -2115,7 +2115,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   sheetBody.className = 'uvd-settings-body';
   sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
   var videoArea = document.createElement('div');
-  videoArea.className = 'uvd-player-video-area';
+  videoArea.className = 'uvd-player-video-area uvd-player-pending';
   videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
@@ -2150,9 +2150,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   playerState.overlay = overlay;
   playerState.video = video;
-  // Keep popup blocking active, but pause the expensive background monitors
-  // automatically for the duration of playback.
-  __uvdEnterLowPowerMode();
+  // Low-power mode is entered after the sheet has finished sliding in.
+  // Keep the video surface hidden during this short warm-up.
   videoWrapper.style.boxSizing = 'border-box';
 
   function __uvdBrightenPlayer() {
@@ -2281,6 +2280,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   requestAnimationFrame(function() {
     overlay.classList.add('uvd-open');
   });
+  setTimeout(function() {
+    if (playerState.closing || !playerState.overlay) return;
+    __uvdEnterLowPowerMode();
+    videoArea.classList.remove('uvd-player-pending');
+  }, data.settings.reduceMotion ? 180 : 420);
 
   // Menu ⋮
   function createMenuPanel(title, options, callback) {
@@ -2746,7 +2750,7 @@ style.textContent = `
 .uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .uvd-settings-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}.uvd-settings-title{font-weight:800;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}.uvd-settings-subtitle{font-size:10px;color:var(--text3);font-weight:600}.uvd-player-header-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1;justify-content:flex-start;margin-left:10px;color:var(--text)}.uvd-player-header-title strong{display:block;font-size:14px;font-weight:800;white-space:nowrap}.uvd-player-sheet .uvd-settings-header{min-height:84px;padding:18px 20px}.uvd-player-sheet .uvd-back-btn,.uvd-player-sheet .uvd-icon-btn{width:44px;height:44px;border-radius:16px}.uvd-settings-sheet.uvd-scroll-performance,.uvd-settings-sheet.uvd-scroll-performance .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.uvd-settings-sheet.uvd-scroll-performance .uvd-card{box-shadow:0 2px 10px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.12) inset}.uvd-settings-sheet.uvd-scroll-performance::before{display:none}.uvd-player-header-title small{display:block;margin-top:2px;color:var(--text3);font-size:9px;text-align:center}.uvd-player-live-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,47,200,.12),0 0 12px rgba(255,47,200,.7);animation:uvdPulse 2s infinite}
-.uvd-player-video-area{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(255,47,200,.16),transparent 34%),radial-gradient(circle at 84% 76%,rgba(155,61,255,.14),transparent 40%),linear-gradient(135deg,rgba(255,238,249,.92),rgba(245,232,255,.94));}
+.uvd-player-video-area{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(255,47,200,.16),transparent 34%),radial-gradient(circle at 84% 76%,rgba(155,61,255,.14),transparent 40%),linear-gradient(135deg,rgba(255,238,249,.92),rgba(245,232,255,.94));}.uvd-player-video-area.uvd-player-pending>#__uvd_video_wrapper__{opacity:0;pointer-events:none}.uvd-player-video-area.uvd-player-pending::before{content:'Chuẩn bị trình phát…';position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);padding:9px 14px;border:1px solid var(--border);border-radius:999px;background:rgba(255,250,253,.62);backdrop-filter:blur(10px);color:var(--accent2);font-size:12px;font-weight:750;white-space:nowrap}
 .uvd-player-video-area::before{content:'';position:absolute;inset:-25%;pointer-events:none;background:conic-gradient(from 120deg at 50% 50%,transparent,rgba(255,47,200,.08),transparent 28%,rgba(155,61,255,.08),transparent 55%);filter:blur(22px);animation:uvdLiquidDrift 18s ease-in-out infinite}
 .uvd-player-video-area::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,transparent,black 25%,black 75%,transparent)}
 .uvd-player-video-area>#__uvd_video_wrapper__{position:relative;z-index:1}

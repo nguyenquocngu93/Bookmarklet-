@@ -2198,7 +2198,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
         if (!/setting|quality|gear|cài đặt|⚙/.test(label)) return;
         btn.__uvdQualityBound = true;
         btn.addEventListener('click', function() {
-          setTimeout(function() { __uvdInjectQualityIntoSkinMenu(); }, 80);
+          setTimeout(function() { showQualitySubMenu(); }, 80);
         }, true);
       });
     });
@@ -2272,9 +2272,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   }
   setTimeout(__uvdBindQualityToSkin, 120);
   setTimeout(__uvdBindQualityToSkin, 700);
-  setTimeout(__uvdInjectQualityIntoSkinMenu, 250);
-  setTimeout(__uvdInjectQualityIntoSkinMenu, 700);
-  setTimeout(__uvdInjectQualityIntoSkinMenu, 1400);
 
   // Đóng
   backBtn.onclick = function() { closePlayer(); };

@@ -950,6 +950,36 @@ function autoClickSequential() {
   tryNext();
 }
 window.__uvd_autoClickSequential = function() { autoClickSequential(); };
+function autoClickAllServers() {
+  if (__uvdSeqRunning) return;
+  var candidates = collectFallbackButtons(document);
+  if (!candidates.length) { toast('Không tìm thấy nút server'); return; }
+  __uvdSeqRunning = true;
+  __uvdLiveCaptureMode = true;
+  __uvdLiveUiDirty = false;
+  var idx = 0;
+  toast('🔎 Đang thử và bắt tất cả ' + candidates.length + ' server...');
+  function next() {
+    if (idx >= candidates.length) {
+      __uvdSeqRunning = false;
+      __uvdLiveCaptureMode = false;
+      __uvdLiveUiDirty = false;
+      debouncedBuildUI();
+      toast('✅ Đã quét xong tất cả server');
+      return;
+    }
+    var el = candidates[idx++];
+    __uvdGrantPagePlayback(10000);
+    simulateClick(el);
+    recordClickedButton(el, __uvdElementSelector(el), true);
+    setTimeout(function() {
+      scan(document, 'all-server-rescan');
+      next();
+    }, 1800);
+  }
+  next();
+}
+window.__uvd_autoClickAllServers = function() { autoClickAllServers(); };
 
 // ========== SETTINGS OVERLAY ==========
 function closeSettingsOverlay() {
@@ -1301,6 +1331,7 @@ try {
   // Try those server controls automatically after the initial scan; do not
   // auto-click generic Play buttons on this host because they trigger ads.
   if (pageInfo.host === 'supjav.com') setTimeout(function() { autoClickSequential(); }, 900);
+  if (pageInfo.host === 'jav.guru') setTimeout(function() { autoClickAllServers(); }, 900);
 } catch (initError) {
   __uvdReportBootError(initError);
 }

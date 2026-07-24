@@ -2231,6 +2231,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   video.style.cssText = 'max-width:100%; max-height:100%; width:100%; height:100%; display:block; object-fit:contain; background:var(--glass);';
   video.setAttribute('playsinline', '');
   video.setAttribute('webkit-playsinline', '');
+  // Video.js v10 skin reads the native controls flag; without it the video
+  // can render frames but expose no play/progress controls on some pages.
+  video.setAttribute('controls', '');
   if (!reusedOriginalVideo && (url.indexOf(HEADER_PROXY_BASE) === 0 || String(type || '').toUpperCase() === 'M3U8')) {
     video.setAttribute('crossorigin', 'anonymous');
   }

@@ -61,6 +61,30 @@ var storage = {
   }
 };
 
+function __uvdDecodeConfig(raw) {
+  if (!raw) return null;
+  try {
+    var normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+    while (normalized.length % 4) normalized += '=';
+    var json = decodeURIComponent(escape(atob(normalized)));
+    return JSON.parse(json);
+  } catch(e) { return null; }
+}
+function __uvdReadLinkConfig() {
+  try {
+    var script = document.currentScript;
+    if (!script || !script.src) {
+      var scripts = document.querySelectorAll('script[src]');
+      for (var i = scripts.length - 1; i >= 0; i--) {
+        if (/bookmarklet\.js/i.test(scripts[i].src)) { script = scripts[i]; break; }
+      }
+    }
+    if (!script || !script.src) return null;
+    return __uvdDecodeConfig(new URL(script.src).searchParams.get('cfg'));
+  } catch(e) { return null; }
+}
+var __uvdLinkConfig = __uvdReadLinkConfig();
+
 var data = storage.get();
 data.favorites = data.favorites || [];
 data.siteProfiles = data.siteProfiles || {};
@@ -91,6 +115,12 @@ data.settings = Object.assign({
   headerProxyKey: '',
   subdlApiKey: ''
 }, data.settings || {});
+if (__uvdLinkConfig) {
+  if (__uvdLinkConfig.settings) data.settings = Object.assign({}, data.settings, __uvdLinkConfig.settings);
+  if (__uvdLinkConfig.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, __uvdLinkConfig.siteProfiles);
+  if (Array.isArray(__uvdLinkConfig.filterlist)) data.filterlist = __uvdLinkConfig.filterlist.slice();
+  storage.set(data);
+}
 var __uvdSmoothDefaultsVersion = 1;
 if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
   data.settings.reduceMotion = true;
@@ -4079,6 +4109,15 @@ function renderClickedButtons(container) {
 }
 
 // ========== RENDER SETTINGS ==========
+function __uvdBuildConfigLink() {
+  var safeSettings = Object.assign({}, data.settings);
+  delete safeSettings.headerProxyKey;
+  delete safeSettings.subdlApiKey;
+  var payload = { version: 1, settings: safeSettings, siteProfiles: data.siteProfiles, filterlist: data.filterlist };
+  var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return HEADER_PROXY_BASE + '/bookmarklet.js?cfg=' + encodeURIComponent(encoded) + '&v=' + Date.now();
+}
+
 function renderSettings(container) {
   var totalStreams = urls.size;
   var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();var s=document.createElement('script');s.src=u;s.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(s);})();";
@@ -4130,6 +4169,13 @@ function renderSettings(container) {
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tự thử Render proxy khi MP4/HLS lỗi do thiếu Referer hoặc User-Agent.</div>' +
       '<input id="__uvd_proxy_key__" type="password" autocomplete="off" placeholder="PROXY_KEY (nếu Render yêu cầu)" value="' + escapeHtml(data.settings.headerProxyKey || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:12px;">' +
       '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Proxy: ' + escapeHtml(HEADER_PROXY_BASE) + '</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">🔗 Bookmarklet riêng</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tạo link chạy với các cài đặt hiện tại. Link không chứa Proxy key hoặc SubDL API key.</div>' +
+      '<input id="__uvd_config_link__" readonly value="' + escapeHtml(__uvdBuildConfigLink()) + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:10px;">' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_copy_config_link__" style="width:100%;margin-top:8px;">📋 Copy link bookmarklet riêng</button>' +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -4267,6 +4313,9 @@ function renderSettings(container) {
     storage.set(data);
     toast(data.settings.headerProxyKey ? 'Đã lưu proxy key' : 'Đã xóa proxy key');
   };
+
+  var copyConfigBtn = document.getElementById('__uvd_copy_config_link__');
+  if (copyConfigBtn) copyConfigBtn.onclick = function() { copy(__uvdBuildConfigLink()); toast('Đã copy link bookmarklet riêng'); };
 
   document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {
     var isOn = this.classList.toggle('uvd-toggle-on');

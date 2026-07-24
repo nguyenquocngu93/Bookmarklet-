@@ -486,6 +486,7 @@ var __uvdPopupBlockActive = false;
 var __uvdOriginalWindowOpen = null;
 var __uvdPopupGuardTimer = null;
 var __uvdBlockedCount = 0;
+var __uvdManualServerClickUntil = 0;
 var __uvdAllowedOpenUrls = {};
 
 function __uvdAllowExternalOpen(url) {
@@ -526,6 +527,11 @@ window.__uvdSafeOpen = function(url) {
 
 function killBlankLinks(e) {
   var t = e.target;
+  if (pageInfo.host === 'jav.guru' && t && t.closest && looksLikeServerButton(t.closest('button,a,[role="button"],div'))) {
+    __uvdManualServerClickUntil = Date.now() + 3000;
+    __uvdGrantPagePlayback(10000);
+    return;
+  }
   if (t.closest && (t.closest('#__uvd__') || t.closest('#__uvd_player_overlay__'))) return;
   while (t && t !== document) {
     if (t && t.tagName === 'A') {
@@ -547,7 +553,13 @@ function installPopupBlock() {
   __uvdPopupBlockActive = true;
   if (!window.__uvdNativeWindowOpen) window.__uvdNativeWindowOpen = window.open;
   __uvdOriginalWindowOpen = window.__uvdNativeWindowOpen;
-  var blockWindowOpen = function() { __uvdBlockedCount++; return null; };
+  var blockWindowOpen = function() {
+    if (pageInfo.host === 'jav.guru' && Date.now() < __uvdManualServerClickUntil && __uvdOriginalWindowOpen) {
+      return __uvdOriginalWindowOpen.apply(window, arguments);
+    }
+    __uvdBlockedCount++;
+    return null;
+  };
   window.open = blockWindowOpen;
   __uvdPopupGuardTimer = setInterval(function() {
     if (__uvdPopupBlockActive && window.open !== blockWindowOpen) window.open = blockWindowOpen;
@@ -736,7 +748,7 @@ function __uvdLearnPlaySelector(e) {
   var target = e && e.target;
   if (!target || __uvdIsOwnUI(target)) return;
   var el = target.closest && target.closest('button,a,[role="button"],[id],[class]');
-  if (!el || !__uvdLooksLikePlayElement(el)) return;
+  if (!el || (pageInfo.host === 'jav.guru' && looksLikeServerButton(el)) || !__uvdLooksLikePlayElement(el)) return;
   var selector = __uvdElementSelector(el);
   if (!selector) return;
   data.siteProfiles[pageInfo.host] = data.siteProfiles[pageInfo.host] || {};
@@ -950,37 +962,6 @@ function autoClickSequential() {
   tryNext();
 }
 window.__uvd_autoClickSequential = function() { autoClickSequential(); };
-function autoClickAllServers() {
-  if (__uvdSeqRunning) return;
-  var candidates = collectFallbackButtons(document);
-  if (!candidates.length) { toast('Không tìm thấy nút server'); return; }
-  __uvdSeqRunning = true;
-  __uvdLiveCaptureMode = true;
-  __uvdLiveUiDirty = false;
-  var idx = 0;
-  toast('🔎 Đang thử và bắt tất cả ' + candidates.length + ' server...');
-  function next() {
-    if (idx >= candidates.length) {
-      __uvdSeqRunning = false;
-      __uvdLiveCaptureMode = false;
-      __uvdLiveUiDirty = false;
-      debouncedBuildUI();
-      toast('✅ Đã quét xong tất cả server');
-      return;
-    }
-    var el = candidates[idx++];
-    __uvdGrantPagePlayback(10000);
-    simulateClick(el);
-    recordClickedButton(el, __uvdElementSelector(el), true);
-    setTimeout(function() {
-      scan(document, 'all-server-rescan');
-      next();
-    }, 1800);
-  }
-  next();
-}
-window.__uvd_autoClickAllServers = function() { autoClickAllServers(); };
-
 // ========== SETTINGS OVERLAY ==========
 function closeSettingsOverlay() {
   var ov = document.getElementById('__uvd_settings_overlay__');
@@ -1331,7 +1312,6 @@ try {
   // Try those server controls automatically after the initial scan; do not
   // auto-click generic Play buttons on this host because they trigger ads.
   if (pageInfo.host === 'supjav.com') setTimeout(function() { autoClickSequential(); }, 900);
-  if (pageInfo.host === 'jav.guru') setTimeout(function() { autoClickAllServers(); }, 900);
 } catch (initError) {
   __uvdReportBootError(initError);
 }

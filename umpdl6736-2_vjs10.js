@@ -199,6 +199,7 @@ function isAdUrl(url) {
 
 // ========== URL DETECTION ==========
 var urls = new Map();
+var __uvdPinnedMasters = new Set();
 var __uvdMediaAccessTokens = [];
 function __uvdRememberAccessToken(url) {
   try {
@@ -270,6 +271,8 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   }
   url = url.replace(/&amp;/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/');
   if (/eporner\\./i.test(pageInfo.host) && /master\\.m3u8/i.test(url)) {
+    __uvdPinnedMasters.add(url);
+    __uvdPinnedMasters.add(url);
     var masterHost = '';
     try { masterHost = new URL(url).hostname; } catch(e) {}
     [...urls.keys()].forEach(function(existingUrl) {
@@ -385,7 +388,7 @@ function findUrls(text, source) {
   });
   if (urls.size > data.settings.maxStoredUrls) {
     var toRemove = urls.size - data.settings.maxStoredUrls;
-    var keys = [...urls.keys()].sort(function(a, b) { return urls.get(a).timestamp - urls.get(b).timestamp; });
+    var keys = [...urls.keys()].filter(function(key) { return !__uvdPinnedMasters.has(key); }).sort(function(a, b) { return urls.get(a).timestamp - urls.get(b).timestamp; });
     for (var i = 0; i < toRemove; i++) {
       urls.delete(keys[i]);
     }
@@ -999,9 +1002,11 @@ function __uvdStartAutoplayObserver() {
 function __uvdEnterLowPowerMode() {
   if (__uvdLowPowerMode) return;
   __uvdLowPowerMode = true;
-  stopLiveMonitorOnly();
-  try { __uvdAutoplayObserver.disconnect(); } catch(e) {}
-  try { uninstallUniversalOverlayBlocker(); } catch(e) {}
+  if (!/eporner\./i.test(pageInfo.host)) {
+    stopLiveMonitorOnly();
+    try { __uvdAutoplayObserver.disconnect(); } catch(e) {}
+    try { uninstallUniversalOverlayBlocker(); } catch(e) {}
+  }
   document.documentElement.classList.add('uvd-page-frozen');
   var panel = document.getElementById('__uvd__');
   if (panel) panel.style.display = 'none';

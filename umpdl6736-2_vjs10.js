@@ -2126,6 +2126,7 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   params.set('referer', pageInfo.referer || location.href);
   params.set('origin', location.origin);
   params.set('ua', navigator.userAgent);
+  if (document.cookie) params.set('cookie', document.cookie);
   var accessToken = __uvdGetLatestMediaAccessToken(sourceUrl);
   if (accessToken) params.set('access_token', accessToken);
   if (data.settings.headerProxyKey) params.set('key', data.settings.headerProxyKey);

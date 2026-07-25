@@ -1236,6 +1236,7 @@ addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; 
 
 function __uvdNeutralizeMedia(el) {
   if (!el || __uvdIsAllowedMedia(el)) return;
+  if (__uvdScriptHidden) return;
   var mediaUrl = el.currentSrc || el.src || '';
   if (mediaUrl && isAdUrl(mediaUrl)) {
     try { el.muted = true; el.volume = 0; el.pause(); el.removeAttribute('autoplay'); } catch(e) {}
@@ -1245,7 +1246,7 @@ function __uvdNeutralizeMedia(el) {
   try {
     el.removeAttribute('autoplay');
     el.autoplay = false;
-    if (!el.paused) el.pause();
+    if (!el.paused) { el.__uvdPausedByUvd = true; el.pause(); }
   } catch(e) {}
 }
 function __uvdBlockPlayEvent(e) {
@@ -3108,8 +3109,19 @@ function __uvdSetHidden(hidden) {
   __uvdScriptHidden = hidden;
   var panel = document.getElementById('__uvd__');
   if (panel) panel.style.display = hidden ? 'none' : '';
-  if (hidden) __uvdShowRestoreBtn();
-  else __uvdRemoveRestoreBtn();
+  if (hidden) {
+    __uvdShowRestoreBtn();
+    // Resume only media that UMP itself paused during its initial scan.
+    try {
+      document.querySelectorAll('video,audio').forEach(function(media) {
+        if (media.__uvdPausedByUvd && !isAdUrl(media.currentSrc || media.src || '')) {
+          media.__uvdPausedByUvd = false;
+          var playResult = media.play();
+          if (playResult && playResult.catch) playResult.catch(function() {});
+        }
+      });
+    } catch(e) {}
+  } else __uvdRemoveRestoreBtn();
 }
 
 // ========== FIX LAYER ==========

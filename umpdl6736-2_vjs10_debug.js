@@ -164,6 +164,71 @@ function __uvdAppendRoot(el) {
   (document.documentElement || document.body).appendChild(el);
 }
 
+// ========== HLS DEBUG LOG (bền vững, không bị trang web xóa DOM) ==========
+var __UVD_HLS_LOG_KEY = 'uvd_hls_debug_log_v1';
+function __uvdLogHlsEvent(data, sourceUrl) {
+  var entry = {
+    t: new Date().toLocaleTimeString(),
+    fatal: !!(data && data.fatal),
+    type: data && data.type,
+    details: data && data.details,
+    url: (data && data.frag && data.frag.url) || (data && data.context && data.context.url) || (data && data.response && data.response.url) || sourceUrl,
+    status: data && data.response && data.response.code,
+    text: data && data.response && data.response.text ? String(data.response.text).slice(0, 200) : ''
+  };
+  var log = [];
+  try { log = JSON.parse(localStorage.getItem(__UVD_HLS_LOG_KEY)) || []; } catch(e) {}
+  log.push(entry);
+  if (log.length > 60) log = log.slice(log.length - 60);
+  try { localStorage.setItem(__UVD_HLS_LOG_KEY, JSON.stringify(log)); } catch(e) {}
+  __uvdUpdateHlsLogBadge(log.length);
+}
+function __uvdFormatHlsLog() {
+  var log = [];
+  try { log = JSON.parse(localStorage.getItem(__UVD_HLS_LOG_KEY)) || []; } catch(e) {}
+  if (!log.length) return 'Chưa có log lỗi HLS nào.';
+  return log.map(function(e, i) {
+    return '#' + (i + 1) + ' [' + e.t + '] fatal=' + e.fatal + ' type=' + e.type + ' details=' + e.details +
+      '\nurl: ' + e.url + (e.status ? ('\nstatus: ' + e.status) : '') + (e.text ? ('\ntext: ' + e.text) : '');
+  }).join('\n\n');
+}
+function __uvdUpdateHlsLogBadge(count) {
+  var btn = document.getElementById('__uvd_hls_log_btn__');
+  if (btn) btn.textContent = '📋 Log(' + count + ')';
+}
+function __uvdInstallHlsLogButton() {
+  if (document.getElementById('__uvd_hls_log_btn__')) return;
+  var btn = document.createElement('button');
+  btn.id = '__uvd_hls_log_btn__';
+  var savedLen = 0;
+  try { savedLen = (JSON.parse(localStorage.getItem(__UVD_HLS_LOG_KEY)) || []).length; } catch(e) {}
+  btn.textContent = '📋 Log(' + savedLen + ')';
+  btn.style.cssText = 'position:fixed;top:8px;left:8px;z-index:2147483647;padding:6px 10px;border:none;border-radius:10px;background:#111;color:#0f0;font:700 11px monospace;box-shadow:0 4px 14px rgba(0,0,0,.5);opacity:.85;';
+  btn.onclick = function() {
+    var text = __uvdFormatHlsLog();
+    // alert() là dialog gốc trình duyệt, trang web không xóa/can thiệp được.
+    alert(text);
+    try { copy(text); } catch(e) {}
+  };
+  var clearBtn = document.createElement('button');
+  clearBtn.textContent = '🗑';
+  clearBtn.style.cssText = 'position:fixed;top:8px;left:88px;z-index:2147483647;padding:6px 10px;border:none;border-radius:10px;background:#111;color:#f66;font:700 11px monospace;box-shadow:0 4px 14px rgba(0,0,0,.5);opacity:.85;';
+  clearBtn.onclick = function() {
+    try { localStorage.removeItem(__UVD_HLS_LOG_KEY); } catch(e) {}
+    __uvdUpdateHlsLogBadge(0);
+  };
+  (document.body || document.documentElement).appendChild(btn);
+  (document.body || document.documentElement).appendChild(clearBtn);
+  // Nếu trang web tự xóa DOM lạ (anti-modification), tự chèn lại mỗi giây.
+  setInterval(function() {
+    if (!document.getElementById('__uvd_hls_log_btn__')) {
+      (document.body || document.documentElement).appendChild(btn);
+      (document.body || document.documentElement).appendChild(clearBtn);
+    }
+  }, 1000);
+}
+__uvdInstallHlsLogButton();
+
 // ========== ESCAPE HTML ==========
 function escapeHtml(text) {
   if (!text) return '';
@@ -2717,33 +2782,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
         applyDefaultQualityPreference();
       });
       activeHls.on(Hls.Events.ERROR, function(event, data) {
-        // ---- DEBUG OVERLAY: hiện chi tiết lỗi ngay trên màn hình, không cần console ----
-        try {
-          var dbgUrl = (data && data.frag && data.frag.url) || (data && data.context && data.context.url) || (data && data.response && data.response.url) || url;
-          var dbgCode = data && data.response && data.response.code;
-          var dbgText = data && data.response && data.response.text;
-          var box = document.getElementById('__uvd_hls_debug__');
-          if (!box) {
-            box = document.createElement('div');
-            box.id = '__uvd_hls_debug__';
-            box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;max-height:60vh;overflow:auto;padding:10px 12px;border-radius:12px;background:#111;color:#0f0;font:11px/1.4 monospace;box-shadow:0 8px 26px rgba(0,0,0,.6);white-space:pre-wrap;word-break:break-all;';
-            var closeBtn = document.createElement('div');
-            closeBtn.textContent = '[đóng]';
-            closeBtn.style.cssText = 'color:#f66;font-weight:bold;margin-bottom:6px;';
-            closeBtn.onclick = function() { box.remove(); };
-            box.appendChild(closeBtn);
-            (document.body || document.documentElement).appendChild(box);
-          }
-          var line = document.createElement('div');
-          line.style.cssText = 'border-top:1px solid #333;padding-top:6px;margin-top:6px;';
-          line.textContent = '[' + new Date().toLocaleTimeString() + '] fatal=' + !!(data && data.fatal) +
-            ' type=' + (data && data.type) + ' details=' + (data && data.details) +
-            '\nurl: ' + dbgUrl +
-            (dbgCode ? ('\nhttp_status: ' + dbgCode) : '') +
-            (dbgText ? ('\nresponse_text: ' + String(dbgText).slice(0,200)) : '');
-          box.appendChild(line);
-        } catch(e) {}
-        // ---- HẾT DEBUG OVERLAY ----
+        try { __uvdLogHlsEvent(data, url); } catch(e) {}
         if (playerState.closing || !data || !data.fatal) return;
         if (!fromProxy && retryThroughHeaderProxy(url, type)) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setPlaybackError('HLS gặp lỗi mạng hoặc không đọc được segment.');

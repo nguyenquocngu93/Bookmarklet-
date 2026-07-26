@@ -2501,7 +2501,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
     menu.appendChild(qBtn);
     menu.appendChild(sBtn);
     menu.appendChild(powerBtn);
-    sheetHeader.appendChild(menu);
+    sheet.appendChild(menu);
     setTimeout(function() {
       document.addEventListener('click', function onDoc(ev) {
         if (!menu.contains(ev.target) && ev.target !== menuBtn) { menu.remove(); document.removeEventListener('click', onDoc); }
@@ -2898,7 +2898,7 @@ style.textContent = `
 .uvd-settings-overlay.uvd-open{background:rgba(0,0,0,0.55)}.uvd-player-overlay.uvd-open{background:rgba(0,0,0,.9)}
 .uvd-settings-sheet{width:100%;max-width:1000px;max-height:92dvh;display:flex;flex-direction:column;transform:translate3d(0,100%,0);will-change:transform;backface-visibility:hidden;transition:transform .3s cubic-bezier(.22,1,.36,1);border-radius:32px 32px 0 0;overflow:hidden;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid var(--border);box-shadow:0 -20px 50px rgba(0,0,0,0.8)}
 .uvd-settings-overlay.uvd-open .uvd-settings-sheet{transform:translate3d(0,0,0)}
-.uvd-player-sheet{transition:none!important;will-change:auto!important}
+.uvd-player-sheet{position:relative;transition:none!important;will-change:auto!important}
 @keyframes uvdPlayerFromThumb{from{opacity:0;transform:translate3d(0,28px,0) scale(.965);filter:blur(2px)}to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
 .uvd-player-sheet.uvd-player-from-thumbnail{animation:uvdPlayerFromThumb .34s cubic-bezier(.22,1,.36,1) both}
 .uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}

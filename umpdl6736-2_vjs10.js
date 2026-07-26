@@ -2170,14 +2170,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   // These tokenized TXT playlists use relative child playlists that need the
   // k/kx query carried onto every child URL. Start them through /hls directly
   // instead of waiting for the direct source to fail first.
-  if (!fromProxy && /(?:^|\.)morencius\.com$/i.test(pageInfo.host) && /m3u8/i.test(url)) {
-    var morenciusProxy = buildHeaderProxyUrl(url, 'M3U8');
-    if (morenciusProxy) {
-      toast('🔗 Đang mở Morencius HLS qua proxy…');
-      showVideoPlayer(morenciusProxy, 'M3U8', true, forceReinit, forceHlsJs);
-      return;
-    }
-  }
   if (!fromProxy && /\/v\d+\/miy\/[^?#]+\.txt(?:[?#]|$)/i.test(url)) {
     var tokenizedProxy = buildHeaderProxyUrl(url, 'M3U8');
     if (tokenizedProxy) {

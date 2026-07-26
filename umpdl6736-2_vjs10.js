@@ -2917,7 +2917,7 @@ style.textContent = `
 .uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
-.uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:auto!important;bottom:10px!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){display:none!important}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
+.uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
 .uvd-app-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%);z-index:0}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
 .uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:0;padding:10px 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:visible}
@@ -3109,8 +3109,8 @@ function __uvdSetHidden(hidden) {
     panel.classList.toggle('uvd-panel-collapsed', hidden);
   }
   if (hidden) {
-    // Stealth mode: hide the UMP surface completely so anti-adblock page
-    // scripts do not see a floating restore button. Popup blocking remains.
+    // Collapsed mode keeps the header in its original position while the
+    // content below it folds upward. Popup blocking remains active.
     __uvdRemoveRestoreBtn();
     // Resume only media that UMP itself paused during its initial scan.
     try {
@@ -3357,7 +3357,7 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn overlay, giữ chặn popup">▾</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng UMP DL">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
     '</div>';
   content.appendChild(header);
@@ -3533,8 +3533,11 @@ function buildUI() {
     if (typeof style !== 'undefined' && style.parentNode) style.remove();
   };
   document.getElementById('__uvd_hide__').onclick = function() {
-    __uvdSetHidden(true);
-    toast('Đã bật stealth: ẩn overlay UMP, vẫn chặn popup. Chạy lại bookmarklet để hiện lại UI.');
+    var isCollapsed = panel.classList.contains('uvd-panel-collapsed');
+    __uvdSetHidden(!isCollapsed);
+    this.textContent = isCollapsed ? '▾' : '▴';
+    this.title = isCollapsed ? 'Thu gọn UMP DL' : 'Mở rộng UMP DL';
+    toast(isCollapsed ? 'Đã mở rộng UMP DL' : 'Đã thu gọn UMP DL — bấm lại để mở');
   };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false, true);

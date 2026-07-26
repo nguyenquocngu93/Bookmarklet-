@@ -1222,14 +1222,10 @@ function __uvdPagePlaybackAllowed() {
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
 }
-HTMLMediaElement.prototype.play = function() {
-  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this) && !__uvdPagePlaybackAllowed()) {
-    var self = this;
-    setTimeout(function() { try { self.pause(); } catch(e) {} }, 0);
-    return Promise.reject(new DOMException('UVD: đã chặn tự phát', 'NotAllowedError'));
-  }
-  return __uvdNativeMediaPlay.apply(this, arguments);
-};
+// Lite protection: do not override HTMLMediaElement.play(). Page video must
+// remain playable even while UMP UI is hidden; popup/redirect blocking is
+// handled separately.
+HTMLMediaElement.prototype.play = __uvdNativeMediaPlay;
 addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
 
 function __uvdNeutralizeMedia(el) {

@@ -1222,23 +1222,24 @@ function __uvdPagePlaybackAllowed() {
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
 }
-// Lite protection: do not override HTMLMediaElement.play(). Page video must
-// remain playable even while UMP UI is hidden; popup/redirect blocking is
-// handled separately.
-HTMLMediaElement.prototype.play = __uvdNativeMediaPlay;
+HTMLMediaElement.prototype.play = function() {
+  if (data.settings.blockAutoplay && !__uvdIsAllowedMedia(this) && !__uvdPagePlaybackAllowed()) {
+    var self = this;
+    self.__uvdPausedByUvd = true;
+    setTimeout(function() { try { self.pause(); } catch(e) {} }, 0);
+    return Promise.reject(new DOMException('UVD: autoplay blocked', 'NotAllowedError'));
+  }
+  return __uvdNativeMediaPlay.apply(this, arguments);
+};
 addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
 
 function __uvdNeutralizeMedia(el) {
-  // Lite protection mode: never pause or mutate page media.
-  return;
-  if (!el || __uvdIsAllowedMedia(el)) return;
-  if (__uvdScriptHidden) return;
+  if (!el || __uvdIsAllowedMedia(el) || __uvdPagePlaybackAllowed()) return;
   var mediaUrl = el.currentSrc || el.src || '';
   if (mediaUrl && isAdUrl(mediaUrl)) {
     try { el.muted = true; el.volume = 0; el.pause(); el.removeAttribute('autoplay'); } catch(e) {}
     return;
   }
-  if (__uvdPagePlaybackAllowed()) return;
   try {
     el.removeAttribute('autoplay');
     el.autoplay = false;
@@ -1246,7 +1247,6 @@ function __uvdNeutralizeMedia(el) {
   } catch(e) {}
 }
 function __uvdBlockPlayEvent(e) {
-  return;
   if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
   var el = e.target;
   if (el && (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') && !__uvdIsAllowedMedia(el)) {
@@ -1384,6 +1384,8 @@ try {
   window.__uvdBootPhase = 'monitor';
   installMonitor();
   installPopupBlock();
+  installUniversalOverlayBlocker();
+  __uvdStartAutoplayObserver();
   __uvdStartMatthewGuard();
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
@@ -2915,7 +2917,7 @@ style.textContent = `
 .uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
-.uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}
+.uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:auto!important;bottom:10px!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){display:none!important}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
 .uvd-app-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%);z-index:0}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
 .uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:0;padding:10px 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:visible}
@@ -3102,7 +3104,10 @@ function __uvdShowRestoreBtn() {
 function __uvdSetHidden(hidden) {
   __uvdScriptHidden = hidden;
   var panel = document.getElementById('__uvd__');
-  if (panel) panel.style.display = hidden ? 'none' : '';
+  if (panel) {
+    panel.style.display = '';
+    panel.classList.toggle('uvd-panel-collapsed', hidden);
+  }
   if (hidden) {
     // Stealth mode: hide the UMP surface completely so anti-adblock page
     // scripts do not see a floating restore button. Popup blocking remains.

@@ -3101,7 +3101,7 @@ function __uvdShowRestoreBtn() {
   btn.id = '__uvd_restore_btn__';
   btn.className = 'uvd-restore-btn uvd-scope';
   btn.innerHTML = '<span class="uvd-restore-dot"></span>UMP DL';
-  btn.title = 'Mở lại UMP DL (popup vẫn đang bị chặn)';
+  btn.title = 'Stealth mode: chạy lại bookmarklet để hiện UMP DL';
   btn.onclick = function() { __uvdSetHidden(false); };
   __uvdAppendRoot(btn);
 }
@@ -3110,7 +3110,9 @@ function __uvdSetHidden(hidden) {
   var panel = document.getElementById('__uvd__');
   if (panel) panel.style.display = hidden ? 'none' : '';
   if (hidden) {
-    __uvdShowRestoreBtn();
+    // Stealth mode: hide the UMP surface completely so anti-adblock page
+    // scripts do not see a floating restore button. Popup blocking remains.
+    __uvdRemoveRestoreBtn();
     // Resume only media that UMP itself paused during its initial scan.
     try {
       document.querySelectorAll('video,audio').forEach(function(media) {
@@ -3356,7 +3358,7 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn script">▾</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Ẩn overlay, giữ chặn popup">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
     '</div>';
   content.appendChild(header);
@@ -3533,7 +3535,7 @@ function buildUI() {
   };
   document.getElementById('__uvd_hide__').onclick = function() {
     __uvdSetHidden(true);
-    toast('Đã ẩn script — vẫn chặn popup nền, chạm nút UMP DL để mở lại');
+    toast('Đã bật stealth: ẩn overlay UMP, vẫn chặn popup. Chạy lại bookmarklet để hiện lại UI.');
   };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false, true);

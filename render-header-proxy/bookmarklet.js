@@ -336,7 +336,6 @@ function __uvdRefreshCapture() {
   __uvdStartOneShotCapture('boot');
   if (data.settings.autoClickPlay) setTimeout(function() { runAutoClickAndRescan(true); }, 500);
   installPopupBlock();
-  installUniversalOverlayBlocker();
   try { scan(document, 'manual-refresh'); performance.getEntriesByType('resource').forEach(function(e) { if (e.name && !isAdUrl(e.name)) findUrls(e.name, 'manual-refresh:performance'); }); } catch(e) {}
   debouncedBuildUI();
   toast('↻ Đã quét lại nguồn video');
@@ -1104,8 +1103,6 @@ function __uvdExitLowPowerMode() {
   document.documentElement.classList.remove('uvd-page-frozen');
   installMonitor();
   if (!__uvdPopupBlockActive) installPopupBlock();
-  installUniversalOverlayBlocker();
-  __uvdStartAutoplayObserver();
   var panel = document.getElementById('__uvd__');
   if (panel) panel.style.display = '';
   toast('☀️ Đã bật lại giám sát UMP');
@@ -1235,6 +1232,8 @@ HTMLMediaElement.prototype.play = function() {
 addCleanup(function() { HTMLMediaElement.prototype.play = __uvdNativeMediaPlay; });
 
 function __uvdNeutralizeMedia(el) {
+  // Lite protection mode: never pause or mutate page media.
+  return;
   if (!el || __uvdIsAllowedMedia(el)) return;
   if (__uvdScriptHidden) return;
   var mediaUrl = el.currentSrc || el.src || '';
@@ -1250,6 +1249,7 @@ function __uvdNeutralizeMedia(el) {
   } catch(e) {}
 }
 function __uvdBlockPlayEvent(e) {
+  return;
   if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
   var el = e.target;
   if (el && (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') && !__uvdIsAllowedMedia(el)) {
@@ -1288,7 +1288,6 @@ var __uvdAutoplayObserver = new MutationObserver(function(mutations) {
     __uvdObserverDebounce = setTimeout(__uvdFlushObserver, 200);
   }
 });
-__uvdStartAutoplayObserver();
 addCleanup(function() { __uvdAutoplayObserver.disconnect(); });
 
 try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {}
@@ -1388,9 +1387,7 @@ try {
   window.__uvdBootPhase = 'monitor';
   installMonitor();
   installPopupBlock();
-  installUniversalOverlayBlocker();
   __uvdStartMatthewGuard();
-  addCleanup(uninstallUniversalOverlayBlocker);
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
   // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).

@@ -40,7 +40,8 @@ window.addEventListener('unhandledrejection', function(event) {
 
 var VERSION = '6.7.26';
 var BOOKMARKLET_NAME = 'universal media full';
-var HEADER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
+var HEADER_PROXY_BASE = 'https://saunhung-saunhung.hf.space';
+var RENDER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
 
 // ========== CLEANUP ==========
 var old = document.getElementById('__uvd__');

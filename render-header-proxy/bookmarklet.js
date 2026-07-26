@@ -693,7 +693,7 @@ function __uvdBlockExternalLink(e) {
 function installUniversalOverlayBlocker() {
   // Jav Guru uses clickable JS server buttons; the overlay detector can
   // mistake their container for an ad layer and make the buttons inert.
-  if (pageInfo.host === 'jav.guru') return;
+  if (pageInfo.host === 'jav.guru' || /(?:^|\.)morencius\.com$/i.test(pageInfo.host)) return;
   if (__uvdOverlayBlockState) return;
   var state = __uvdOverlayBlockState = { scanTimer: null, interval: null, observer: null, touched: new Map() };
   state.schedule = function() {
@@ -1219,7 +1219,7 @@ function __uvdGrantPagePlayback(ms) {
   __uvdPagePlaybackGraceUntil = Math.max(__uvdPagePlaybackGraceUntil, Date.now() + (ms || 8000));
 }
 function __uvdPagePlaybackAllowed() {
-  return __uvdScriptHidden || Date.now() < __uvdPagePlaybackGraceUntil;
+  return __uvdScriptHidden || /(?:^|\.)morencius\.com$/i.test(pageInfo.host) || Date.now() < __uvdPagePlaybackGraceUntil;
 }
 function __uvdIsAllowedMedia(el) {
   return !!(el && (el.__uvdAllow || el.id === '__uvd_player_video__'));
@@ -1253,7 +1253,7 @@ function __uvdBlockPlayEvent(e) {
   if (!data.settings.blockAutoplay || __uvdPagePlaybackAllowed()) return;
   var el = e.target;
   if (el && (el.tagName === 'VIDEO' || el.tagName === 'AUDIO') && !__uvdIsAllowedMedia(el)) {
-    try { el.pause(); } catch(err) {}
+    try { el.__uvdPausedByUvd = true; el.pause(); } catch(err) {}
   }
 }
 document.addEventListener('play', __uvdBlockPlayEvent, true);

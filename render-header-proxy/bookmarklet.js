@@ -2483,6 +2483,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   menuBtn.onclick = function(e) {
     e.stopPropagation();
+    sheet.classList.remove('uvd-player-dimmed');
     var existing = document.getElementById('__uvd_player_menu__');
     if (existing) { existing.remove(); return; }
     var menu = document.createElement('div');
@@ -2887,7 +2888,7 @@ style.textContent = `
 .uvd-icon-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--accent2);width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;transition:all var(--uvd-transition)}
 .uvd-icon-btn:active{transform:scale(.9)}
 .uvd-player-card{width:100%;max-width:1000px;margin:auto;display:flex;flex-direction:column;border-radius:22px 22px 0 0;overflow:hidden;background:var(--glass);box-shadow:0 -10px 40px rgba(0,0,0,0.6);max-height:94dvh}
-.uvd-player-menu{position:absolute;top:48px;right:12px;z-index:20;background:rgba(43,24,54,.96)!important;backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border:1px solid rgba(255,120,220,.42);border-radius:var(--radius-md);overflow:hidden;min-width:190px;box-shadow:0 12px 30px rgba(0,0,0,.45);animation:uvdFadeIn .15s ease}.uvd-player-menu button{color:#fff!important;background:transparent!important}.uvd-player-menu button:hover{background:rgba(255,47,200,.2)!important}
+.uvd-player-menu{position:absolute;top:48px;right:12px;z-index:2147483647!important;opacity:1!important;filter:none!important;mix-blend-mode:normal!important;background:#2b1836!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:1px solid rgba(255,120,220,.55);border-radius:var(--radius-md);overflow:hidden;min-width:190px;box-shadow:0 12px 30px rgba(0,0,0,.55);animation:uvdFadeIn .15s ease}.uvd-player-menu button{color:#fff!important;background:transparent!important}.uvd-player-menu button:hover{background:rgba(255,47,200,.2)!important}
 .uvd-player-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer}
 .uvd-player-menu button:active{background:var(--btn-accent-bg)}
 .uvd-player-menu button+button{border-top:1px solid var(--border)}

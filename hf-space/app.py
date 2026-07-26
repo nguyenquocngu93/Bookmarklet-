@@ -46,6 +46,9 @@ def source_headers(request: Request, referer: str, origin: str, ua: str, cookie:
         headers['Referer'] = referer
     if origin:
         headers['Origin'] = origin
+        headers['Sec-Fetch-Site'] = 'same-site'
+        headers['Sec-Fetch-Mode'] = 'cors'
+        headers['Sec-Fetch-Dest'] = 'video'
     if cookie:
         headers['Cookie'] = cookie
     if not skip_range and request.headers.get('range'):

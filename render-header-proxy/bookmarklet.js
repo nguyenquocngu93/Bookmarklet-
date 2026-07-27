@@ -2921,7 +2921,7 @@ style.textContent = `
 .uvd-app-shell>.uvd-panel-content{z-index:1}
 .uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:0;padding:10px 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:visible}
 .uvd-brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto}
-.uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 52px;border-radius:18px;background:var(--grad-liquid);color:#fff;font-size:23px;box-shadow:0 7px 18px rgba(255,47,200,.28)}
+.uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 52px;border-radius:18px;background:var(--grad-liquid);color:#fff;font-size:23px;box-shadow:0 7px 18px rgba(255,47,200,.28);position:relative;overflow:hidden}.uvd-brand-mark::after{content:'';position:absolute;inset:-30%;background:linear-gradient(120deg,transparent 35%,rgba(255,255,255,.42) 50%,transparent 65%);transform:translateX(-60%) rotate(12deg);animation:uvdLogoShine 4.5s ease-in-out infinite}@keyframes uvdLogoShine{0%,65%{transform:translateX(-70%) rotate(12deg)}85%,100%{transform:translateX(70%) rotate(12deg)}}.uvd-logo-ring{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2px solid rgba(255,255,255,.78);border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,.13),0 0 14px rgba(255,255,255,.28)}.uvd-logo-ring span{font-size:14px;transform:translateX(1px)}
 .uvd-brand-name{font-size:21px;font-weight:850;line-height:1.05;letter-spacing:-.025em;color:var(--text)}
 .uvd-brand-version{margin-top:3px;font-size:16px;line-height:1.05;font-weight:850;background:var(--grad-liquid);-webkit-background-clip:text;background-clip:text;color:transparent}
 .uvd-brand-sub{margin-top:5px;color:var(--text3);font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -3347,7 +3347,7 @@ function buildUI() {
   header.style.cssText = 'flex-shrink:0;';
   header.innerHTML =
     '<div class="uvd-brand">' +
-      '<span class="uvd-brand-mark">▶</span>' +
+      '<span class="uvd-brand-mark"><span class="uvd-logo-ring"><span>▶</span></span></span>' +
       '<div><div class="uvd-brand-name">UMP DL</div><div class="uvd-brand-version">V' + VERSION + '</div>' +
       '<div class="uvd-brand-sub">Universal media workspace</div></div>' +
     '</div>' +
@@ -3449,21 +3449,9 @@ function buildUI() {
   content.appendChild(contentWrapper);
   
   var footer = document.createElement('div');
-  footer.style.cssText = 'display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;flex-shrink:0;';
-  ['TXT','JSON','M3U','CSV'].forEach(function(f) {
-    var btn = document.createElement('button');
-    btn.className = 'uvd-btn uvd-btn-sm';
-    btn.textContent = f;
-    btn.style.flex = '1 0 auto';
-    btn.onclick = function() { exportData(f.toLowerCase()); };
-    footer.appendChild(btn);
-  });
+  footer.className = 'uvd-profile-footer';
+  footer.textContent = '© ' + new Date().getFullYear() + ' nguyenquocngu91 · UMP DL v' + VERSION + ' · Made for Chrome Android';
   content.appendChild(footer);
-  
-  var author = document.createElement('div');
-  author.style.cssText = 'text-align:center;font-size:11px;color:var(--text3);margin-top:8px;flex-shrink:0;';
-  author.textContent = '© nguyenquocngu91';
-  content.appendChild(author);
   
   __uvdAppendRoot(panel);
   __uvdIsolateLayer(panel);

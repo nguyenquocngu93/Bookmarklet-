@@ -2460,7 +2460,16 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
   playerState.__uvdLayoutFn = __uvdApplyPlayerLayout;
   __uvdApplyPlayerLayout();
   playerState.updatePlayerWidth = __uvdApplyPlayerLayout;
-  playerState.vjsMountCancel = __uvdMountVjs10(videoWrapper, video, __uvdApplyPlayerLayout);
+  var forceNativeBlobPlayer = reusedOriginalVideo && /(?:^|\.)api\.phimsrv\.com$/i.test(pageInfo.host);
+  if (forceNativeBlobPlayer) {
+    // Phimsrv/ArtPlayer owns a MediaSource blob; do not load Video.js into
+    // this document, because its CSP/player wrapper can hide the controls.
+    video.setAttribute('controls', '');
+    video.style.borderRadius = '24px';
+    playerState.vjsMountCancel = null;
+  } else {
+    playerState.vjsMountCancel = __uvdMountVjs10(videoWrapper, video, __uvdApplyPlayerLayout);
+  }
   // Đóng
   backBtn.onclick = function() { closePlayer(); };
   overlay.addEventListener('click', function(e) {

@@ -4332,12 +4332,12 @@ function renderHistory(container) {
   var batch = 12;
   function renderMore() {
     var end = Math.min(rendered + batch, entries.length);
-    for (var i = rendered; i < end; i++) {
-      var item = entries[i];
-      var card = document.createElement('article');
+    for (let i = rendered; i < end; i++) {
+      let item = entries[i];
+      let card = document.createElement('article');
       card.className = 'uvd-history-card';
       var date = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Không rõ thời gian';
-      var type = item.type || 'MEDIA';
+      let type = item.type || 'MEDIA';
       var thumb = item.thumbnail ? '<img src="' + escapeHtml(item.thumbnail) + '" alt="">' : '<span>▶</span>';
       card.innerHTML = '<div class="uvd-history-thumb">' + thumb + '<small>' + escapeHtml(type) + '</small></div>' +
         '<div class="uvd-history-body"><strong>' + escapeHtml(item.title || 'Video không có tên') + '</strong>' +

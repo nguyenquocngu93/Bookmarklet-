@@ -209,14 +209,20 @@ async function syncRequest(method, profileId, body) {
     error.status = 503;
     throw error;
   }
-  const endpoint = `${SUPABASE_URL}/rest/v1/umpdl_profiles?profile_id=eq.${encodeURIComponent(profileId)}`;
+  const endpoint = method === 'PUT'
+    ? `${SUPABASE_URL}/rest/v1/umpdl_profiles`
+    : `${SUPABASE_URL}/rest/v1/umpdl_profiles?profile_id=eq.${encodeURIComponent(profileId)}`;
   const headers = {
     apikey: SUPABASE_SERVICE_KEY,
     Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
     'Content-Type': 'application/json',
     Prefer: method === 'PUT' ? 'resolution=merge-duplicates,return=representation' : 'return=representation'
   };
-  const response = await fetch(endpoint, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  // PostgREST upsert is a POST with resolution=merge-duplicates. A PUT with
+  // a filter only updates an existing row and silently saves nothing for a
+  // newly generated profile ID.
+  const requestMethod = method === 'PUT' ? 'POST' : method;
+  const response = await fetch(endpoint, { method: requestMethod, headers, body: body ? JSON.stringify(body) : undefined });
   const text = await response.text();
   if (!response.ok) {
     const error = new Error(`Supabase ${response.status}: ${text.slice(0, 300)}`);

@@ -4513,7 +4513,9 @@ function __uvdBuildConfigLink() {
   var safeSettings = Object.assign({}, data.settings);
   delete safeSettings.headerProxyKey;
   delete safeSettings.subdlApiKey;
-  var payload = { version: 1, settings: safeSettings, siteProfiles: data.siteProfiles, filterlist: data.filterlist, history: data.history, favorites: data.favorites };
+  // Keep the bookmarklet URL short. The shared data lives in Supabase;
+  // the link only needs the profile ID (and a few safe defaults).
+  var payload = { version: 2, settings: { syncProfileId: safeSettings.syncProfileId || '' } };
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   var scriptUrl = RENDER_PROXY_BASE + '/bookmarklet.js?cfg=' + encodeURIComponent(encoded) + '&v=' + Date.now();
   var packedUrl = btoa(scriptUrl);

@@ -59,6 +59,7 @@ var storage = {
   set: function(data) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
     catch(e) {}
+    if (typeof __uvdSyncSchedule === 'function') __uvdSyncSchedule();
   }
 };
 
@@ -114,7 +115,8 @@ data.settings = Object.assign({
   glowEffects: true,
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
-  subdlApiKey: ''
+  subdlApiKey: '',
+  syncProfileId: ''
 }, data.settings || {});
 if (__uvdLinkConfig) {
   if (__uvdLinkConfig.settings) data.settings = Object.assign({}, data.settings, __uvdLinkConfig.settings);
@@ -131,6 +133,51 @@ if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
   data.settings.effectsIntensity = 0;
   data.settings.__uvdSmoothDefaultsVersion = __uvdSmoothDefaultsVersion;
   storage.set(data);
+}
+
+// ========== CLOUD SYNC ==========
+var __uvdSyncTimer = null;
+function __uvdSyncPayload() {
+  var settings = Object.assign({}, data.settings);
+  delete settings.headerProxyKey;
+  delete settings.subdlApiKey;
+  return { settings: settings, siteProfiles: data.siteProfiles, filterlist: data.filterlist, history: data.history, favorites: data.favorites };
+}
+function __uvdSyncSchedule() {
+  if (!data || !data.settings || !data.settings.syncProfileId) return;
+  clearTimeout(__uvdSyncTimer);
+  __uvdSyncTimer = setTimeout(function() {
+    fetch(RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
+    }).catch(function() {});
+  }, 1500);
+}
+function __uvdSyncLoad() {
+  if (!data.settings.syncProfileId) return;
+  fetch(RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId), { cache: 'no-store' })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(remote) {
+      if (!remote || !remote.payload) return;
+      var payload = remote.payload;
+      if (payload.settings) data.settings = Object.assign({}, data.settings, payload.settings, { syncProfileId: data.settings.syncProfileId });
+      if (payload.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, payload.siteProfiles);
+      if (Array.isArray(payload.filterlist)) data.filterlist = payload.filterlist.slice();
+      if (Array.isArray(payload.history)) data.history = payload.history;
+      if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
+      compileAdFilters();
+      storage.set(data);
+      if (document.getElementById('__uvd__')) debouncedBuildUI();
+      toast('☁ Đã tải cấu hình đồng bộ');
+    }).catch(function() {});
+}
+function __uvdCreateSyncProfileId() {
+  var bytes = new Uint8Array(16);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+  else for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  var id = 'u_' + Array.from(bytes).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  data.settings.syncProfileId = id;
+  storage.set(data);
+  return id;
 }
 
 // ========== PROFILES ==========
@@ -4439,6 +4486,13 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">☁ Đồng bộ cấu hình</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Đồng bộ site profile, filterlist, history và settings giữa các thiết bị.</div>' +
+      '<input id="__uvd_sync_profile__" placeholder="Profile ID (vd: u_...)" value="' + escapeHtml(data.settings.syncProfileId || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:12px;">' +
+      '<div class="uvd-grid-2" style="margin-top:8px;"><button class="uvd-btn uvd-btn-sm" id="__uvd_sync_create__">Tạo profile</button><button class="uvd-btn uvd-btn-sm" id="__uvd_sync_now__">Đồng bộ ngay</button></div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">⛔ Chặn tự phát</div>' +
       buildToggleRow('__uvd_toggle_blockautoplay__', 'Chặn mạnh web tự mở/phát video sau khi chạy script', data.settings.blockAutoplay) +
       buildToggleRow('__uvd_toggle_autoclick__', 'Tự động quét và bấm Play sau khi chạy script', data.settings.autoClickPlay) +
@@ -4575,6 +4629,13 @@ function renderSettings(container) {
     if (isOn) runAutoClickAndRescan(false);
   };
 
+  var syncInput = document.getElementById('__uvd_sync_profile__');
+  if (syncInput) syncInput.onchange = function() { data.settings.syncProfileId = this.value.trim(); storage.set(data); };
+  var syncCreate = document.getElementById('__uvd_sync_create__');
+  if (syncCreate) syncCreate.onclick = function() { var id = __uvdCreateSyncProfileId(); if (syncInput) syncInput.value = id; toast('Đã tạo profile: ' + id); };
+  var syncNow = document.getElementById('__uvd_sync_now__');
+  if (syncNow) syncNow.onclick = function() { if (!data.settings.syncProfileId) __uvdCreateSyncProfileId(); __uvdSyncSchedule(); toast('☁ Đang đồng bộ...'); };
+
   document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {
     var isOn = this.classList.toggle('uvd-toggle-on');
     data.settings.blockAutoplay = isOn;
@@ -4641,6 +4702,7 @@ function renderSettings(container) {
 try {
 window.__uvdBootPhase = 'build-ui';
 buildUI();
+setTimeout(__uvdSyncLoad, 350);
 setTimeout(__uvdMaybeOfferIframeWorkflow, 1800);
 setTimeout(__uvdMaybeOfferIframeWorkflow, 5000);
 var __uvdIframeWorkflowWatch = setInterval(function() {

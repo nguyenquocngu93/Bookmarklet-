@@ -1633,6 +1633,7 @@ function addToHistory(url, type) {
   entry.type = type;
   entry.title = pageInfo.title;
   entry.host = pageInfo.host;
+  entry.pageUrl = pageInfo.url;
   entry.timestamp = Date.now();
   data.history.unshift(entry);
   if (data.history.length > 50) data.history = data.history.slice(0, 50);
@@ -4343,7 +4344,7 @@ function renderHistory(container) {
         '<div class="uvd-history-meta">' + escapeHtml(item.host || '') + ' · ' + escapeHtml(date) + '</div>' +
         '<div class="uvd-history-meta">' + escapeHtml([item.quality, item.resolution, item.duration].filter(Boolean).join(' · ')) + '</div>' +
         '<div class="uvd-history-url">' + escapeHtml(item.url || '') + '</div>' +
-        '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">Xem lại</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button><button class="uvd-btn uvd-btn-sm history-delete">Xóa</button></div></div>';
+        '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">' + (String(type).toUpperCase() === 'IFRAME' ? 'Mở nguồn' : 'Xem lại') + '</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button><button class="uvd-btn uvd-btn-sm history-delete">Xóa</button></div></div>';
       card.querySelector('.history-play').onclick = function() { if (String(type).toUpperCase() === 'IFRAME') __uvdSafeOpen(item.url); else showVideoPlayer(item.url, type); };
       card.querySelector('.history-copy').onclick = function() { copy(item.url); toast('Đã sao chép link lịch sử'); };
       card.querySelector('.history-delete').onclick = function() { data.history = data.history.filter(function(x) { return x.url !== item.url; }); storage.set(data); renderHistory(container); };

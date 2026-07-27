@@ -122,6 +122,8 @@ if (__uvdLinkConfig) {
   if (__uvdLinkConfig.settings) data.settings = Object.assign({}, data.settings, __uvdLinkConfig.settings);
   if (__uvdLinkConfig.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, __uvdLinkConfig.siteProfiles);
   if (Array.isArray(__uvdLinkConfig.filterlist)) data.filterlist = __uvdLinkConfig.filterlist.slice();
+  if (Array.isArray(__uvdLinkConfig.history)) data.history = __uvdLinkConfig.history.slice();
+  if (Array.isArray(__uvdLinkConfig.favorites)) data.favorites = __uvdLinkConfig.favorites.slice();
   storage.set(data);
 }
 var __uvdSmoothDefaultsVersion = 1;
@@ -4460,7 +4462,7 @@ function __uvdBuildConfigLink() {
   var safeSettings = Object.assign({}, data.settings);
   delete safeSettings.headerProxyKey;
   delete safeSettings.subdlApiKey;
-  var payload = { version: 1, settings: safeSettings, siteProfiles: data.siteProfiles, filterlist: data.filterlist };
+  var payload = { version: 1, settings: safeSettings, siteProfiles: data.siteProfiles, filterlist: data.filterlist, history: data.history, favorites: data.favorites };
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   var scriptUrl = RENDER_PROXY_BASE + '/bookmarklet.js?cfg=' + encodeURIComponent(encoded) + '&v=' + Date.now();
   var packedUrl = btoa(scriptUrl);

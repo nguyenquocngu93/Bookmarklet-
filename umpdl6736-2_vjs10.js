@@ -1626,7 +1626,15 @@ function shareUrl(url) {
 
 function addToHistory(url, type) {
   data.history = data.history || [];
-  data.history.unshift({ url, type, title: pageInfo.title, host: pageInfo.host, timestamp: Date.now() });
+  var old = data.history.find(function(item) { return item.url === url; });
+  data.history = data.history.filter(function(item) { return item.url !== url; });
+  var entry = old || {};
+  entry.url = url;
+  entry.type = type;
+  entry.title = pageInfo.title;
+  entry.host = pageInfo.host;
+  entry.timestamp = Date.now();
+  data.history.unshift(entry);
   if (data.history.length > 50) data.history = data.history.slice(0, 50);
   storage.set(data);
 }
@@ -3136,7 +3144,7 @@ style.textContent = `
 .uvd-section-title{margin-top:12px}
 .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
 .uvd-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:28px 18px;text-align:center;color:var(--text2)}
-.uvd-empty-state strong{color:var(--text);font-size:15px}.uvd-empty-state span{font-size:12px;line-height:1.5}.uvd-history-list{display:flex;flex-direction:column;gap:10px}.uvd-history-card{display:flex;gap:12px;min-width:0;padding:10px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.42);box-shadow:0 4px 14px rgba(112,45,126,.08)}.uvd-history-thumb{position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 104px;height:72px;overflow:hidden;border-radius:13px;background:linear-gradient(135deg,rgba(255,47,200,.28),rgba(155,61,255,.22));color:#fff;font-size:24px}.uvd-history-thumb small{position:absolute;left:7px;bottom:5px;font-size:9px;font-weight:800;letter-spacing:.06em}.uvd-history-body{min-width:0;flex:1}.uvd-history-body strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:13px}.uvd-history-meta{margin-top:4px;color:var(--text3);font-size:10px}.uvd-history-url{margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent2);font:10px monospace}.uvd-history-actions{display:flex;gap:6px;margin-top:7px}.uvd-history-actions .uvd-btn{padding:5px 9px;font-size:10px}
+.uvd-empty-state strong{color:var(--text);font-size:15px}.uvd-empty-state span{font-size:12px;line-height:1.5}.uvd-history-list{display:flex;flex-direction:column;gap:10px}.uvd-history-card{display:flex;gap:12px;min-width:0;padding:10px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.42);box-shadow:0 4px 14px rgba(112,45,126,.08)}.uvd-history-thumb{position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 104px;height:72px;overflow:hidden;border-radius:13px;background:linear-gradient(135deg,rgba(255,47,200,.28),rgba(155,61,255,.22));color:#fff;font-size:24px}.uvd-history-thumb img{display:block;width:100%;height:100%;object-fit:cover}.uvd-history-thumb small{position:absolute;left:7px;bottom:5px;font-size:9px;font-weight:800;letter-spacing:.06em}.uvd-history-body{min-width:0;flex:1}.uvd-history-body strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:13px}.uvd-history-meta{margin-top:4px;color:var(--text3);font-size:10px}.uvd-history-url{margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent2);font:10px monospace}.uvd-history-actions{display:flex;gap:6px;margin-top:7px}.uvd-history-actions .uvd-btn{padding:5px 9px;font-size:10px}
 .uvd-card-head{margin-bottom:7px}.uvd-card-badges{flex-wrap:wrap}.uvd-url-box{cursor:pointer;transition:border-color .16s ease,background .16s ease}.uvd-url-box:hover{border-color:rgba(255,47,200,.42);background:rgba(255,47,200,.12)}
 .uvd-settings-details{margin:10px 0;border:1px solid rgba(255,47,200,.14);border-radius:18px;background:rgba(255,255,255,.48);overflow:hidden}.uvd-settings-details>summary{display:flex;align-items:center;gap:8px;padding:11px 12px;list-style:none;cursor:pointer;color:var(--text);font-size:13px;font-weight:800}.uvd-settings-details>summary::-webkit-details-marker{display:none}.uvd-settings-details>summary .uvd-section-num{width:22px;height:22px}.uvd-details-chevron{margin-left:auto;font-size:18px;color:var(--accent2);transition:transform .18s ease}.uvd-settings-details[open] .uvd-details-chevron{transform:rotate(180deg)}.uvd-settings-details-body{padding:0 8px 8px}.uvd-settings-details-body>.uvd-card{margin-bottom:0}
 
@@ -3889,6 +3897,7 @@ function hydrateVideoThumbnails(root) {
       if (preview.dataset.thumbState === 'demo') return;
       preview.dataset.thumbState = 'ready';
       __uvdUpdateCardFromMedia(card, media);
+      __uvdSaveHistoryMetadata(preview.getAttribute('data-thumb-url'), media, card);
       var status = card && card.querySelector('.uvd-card-status');
       if (status) { status.textContent = 'PREVIEW OK'; status.className = 'uvd-card-status uvd-status-ok'; }
       if (media.videoWidth && media.videoHeight) {
@@ -4289,8 +4298,28 @@ function buildToggleRow(id, label, checked) {
   '</div>';
 }
 
+function __uvdSaveHistoryMetadata(url, media, card) {
+  var entry = (data.history || []).find(function(item) { return item.url === url; });
+  if (!entry || !media) return;
+  entry.resolution = media.videoWidth && media.videoHeight ? media.videoWidth + '×' + media.videoHeight : entry.resolution || '';
+  entry.duration = isFinite(media.duration) && media.duration > 0 ? __uvdFormatDuration(media.duration) : entry.duration || '';
+  entry.quality = card && card.dataset.cardQuality ? card.dataset.cardQuality : (entry.quality || '');
+  try {
+    if (media.videoWidth && media.videoHeight && !entry.thumbnail) {
+      var canvas = document.createElement('canvas');
+      var width = Math.min(320, media.videoWidth);
+      var height = Math.max(1, Math.round(width * media.videoHeight / media.videoWidth));
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(media, 0, 0, width, height);
+      entry.thumbnail = canvas.toDataURL('image/jpeg', .58);
+    }
+  } catch(e) {}
+  storage.set(data);
+}
+
 // ========== RENDER HISTORY ==========
 function renderHistory(container) {
+  container.innerHTML = '';
   var entries = (data.history || []).slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
   if (!entries.length) {
     container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa có lịch sử xem</strong><span>Các link bạn bấm Xem sẽ được lưu tại đây.</span></div>';
@@ -4298,26 +4327,48 @@ function renderHistory(container) {
   }
   var wrap = document.createElement('div');
   wrap.className = 'uvd-history-list';
-  entries.forEach(function(item, index) {
-    var card = document.createElement('article');
-    card.className = 'uvd-history-card';
-    var date = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Không rõ thời gian';
-    var title = item.title || 'Video không có tên';
-    var type = item.type || 'MEDIA';
-    card.innerHTML =
-      '<div class="uvd-history-thumb"><span>▶</span><small>' + escapeHtml(type) + '</small></div>' +
-      '<div class="uvd-history-body"><strong>' + escapeHtml(title) + '</strong>' +
-      '<div class="uvd-history-meta">' + escapeHtml(item.host || '') + ' · ' + escapeHtml(date) + '</div>' +
-      '<div class="uvd-history-url">' + escapeHtml(item.url || '') + '</div>' +
-      '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">Xem lại</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button></div></div>';
-    card.querySelector('.history-play').onclick = function() {
-      if (String(type).toUpperCase() === 'IFRAME') __uvdSafeOpen(item.url);
-      else showVideoPlayer(item.url, type);
-    };
-    card.querySelector('.history-copy').onclick = function() { copy(item.url); toast('Đã sao chép link lịch sử'); };
-    wrap.appendChild(card);
-  });
+  var rendered = 0;
+  var batch = 12;
+  function renderMore() {
+    var end = Math.min(rendered + batch, entries.length);
+    for (var i = rendered; i < end; i++) {
+      var item = entries[i];
+      var card = document.createElement('article');
+      card.className = 'uvd-history-card';
+      var date = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Không rõ thời gian';
+      var type = item.type || 'MEDIA';
+      var thumb = item.thumbnail ? '<img src="' + escapeHtml(item.thumbnail) + '" alt="">' : '<span>▶</span>';
+      card.innerHTML = '<div class="uvd-history-thumb">' + thumb + '<small>' + escapeHtml(type) + '</small></div>' +
+        '<div class="uvd-history-body"><strong>' + escapeHtml(item.title || 'Video không có tên') + '</strong>' +
+        '<div class="uvd-history-meta">' + escapeHtml(item.host || '') + ' · ' + escapeHtml(date) + '</div>' +
+        '<div class="uvd-history-meta">' + escapeHtml([item.quality, item.resolution, item.duration].filter(Boolean).join(' · ')) + '</div>' +
+        '<div class="uvd-history-url">' + escapeHtml(item.url || '') + '</div>' +
+        '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">Xem lại</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button><button class="uvd-btn uvd-btn-sm history-delete">Xóa</button></div></div>';
+      card.querySelector('.history-play').onclick = function() { if (String(type).toUpperCase() === 'IFRAME') __uvdSafeOpen(item.url); else showVideoPlayer(item.url, type); };
+      card.querySelector('.history-copy').onclick = function() { copy(item.url); toast('Đã sao chép link lịch sử'); };
+      card.querySelector('.history-delete').onclick = function() { data.history = data.history.filter(function(x) { return x.url !== item.url; }); storage.set(data); renderHistory(container); };
+      wrap.appendChild(card);
+    }
+    rendered = end;
+    if (moreBtn) moreBtn.remove();
+    if (rendered < entries.length) {
+      moreBtn = document.createElement('button');
+      moreBtn.className = 'uvd-btn uvd-btn-sm';
+      moreBtn.style.cssText = 'width:100%;margin:4px 0 10px;';
+      moreBtn.textContent = 'Cảnh khác / Xem thêm lịch sử (' + (entries.length - rendered) + ')';
+      moreBtn.onclick = renderMore;
+      container.appendChild(moreBtn);
+    }
+  }
+  var moreBtn = null;
+  renderMore();
+  var clear = document.createElement('button');
+  clear.className = 'uvd-btn uvd-btn-sm';
+  clear.style.cssText = 'width:100%;margin-top:4px;background:var(--danger);';
+  clear.textContent = 'Xóa toàn bộ lịch sử';
+  clear.onclick = function() { if (confirm('Xóa toàn bộ lịch sử xem?')) { data.history = []; storage.set(data); renderHistory(container); } };
   container.appendChild(wrap);
+  container.appendChild(clear);
 }
 
 // ========== RENDER PLAYER SETTINGS ==========

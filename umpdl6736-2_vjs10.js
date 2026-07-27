@@ -4423,12 +4423,12 @@ function __uvdBuildConfigLink() {
   var payload = { version: 1, settings: safeSettings, siteProfiles: data.siteProfiles, filterlist: data.filterlist };
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   var scriptUrl = RENDER_PROXY_BASE + '/bookmarklet.js?cfg=' + encodeURIComponent(encoded) + '&v=' + Date.now();
-  return "javascript:(function(){var s=document.createElement('script');s.src='" + scriptUrl + "';document.head.appendChild(s);})();";
+  return "javascript:(function(){var u=document.createElement('script');u.src='" + scriptUrl + "';document.head.appendChild(u);})();";
 }
 
 function renderSettings(container) {
   var totalStreams = urls.size;
-  var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();var s=document.createElement('script');s.src=u;s.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(s);})();";
+  var bookmarkletCode = "javascript:(function(){var u='https://render-header-proxy.onrender.com/bookmarklet.js?force='+Date.now();var e=document.createElement('script');e.src=u;e.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(e);})();";
 
   container.innerHTML =
     '<div class="uvd-profile-card">' +

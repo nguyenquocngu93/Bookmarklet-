@@ -15,6 +15,8 @@ PROXY_KEY=choose-a-long-private-key
 ALLOWED_HOSTS=video.example.com,cdn.example.com
 DEFAULT_USER_AGENT=Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36
 ALLOW_INSECURE_TLS=false
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
 ```
 
 `ALLOWED_HOSTS` is optional, but strongly recommended. Do not leave a public unrestricted proxy online.

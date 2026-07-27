@@ -17,8 +17,11 @@ const ALLOWED_HOSTS = new Set(
 );
 const MAX_REDIRECTS = Number(process.env.MAX_REDIRECTS || 5);
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 app.disable('x-powered-by');
+app.use(express.json({ limit: '512kb' }));
 app.use((req, res, next) => {
   const started = Date.now();
   res.on('finish', () => {
@@ -195,6 +198,71 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
     } catch (_) { return line; }
   }).join('\n');
 }
+
+function validProfileId(id) {
+  return /^[A-Za-z0-9_-]{8,80}$/.test(id || '');
+}
+
+async function syncRequest(method, profileId, body) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    const error = new Error('Supabase chưa được cấu hình trên Render');
+    error.status = 503;
+    throw error;
+  }
+  const endpoint = `${SUPABASE_URL}/rest/v1/umpdl_profiles?profile_id=eq.${encodeURIComponent(profileId)}`;
+  const headers = {
+    apikey: SUPABASE_SERVICE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: method === 'PUT' ? 'resolution=merge-duplicates,return=representation' : 'return=representation'
+  };
+  const response = await fetch(endpoint, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const text = await response.text();
+  if (!response.ok) {
+    const error = new Error(`Supabase ${response.status}: ${text.slice(0, 300)}`);
+    error.status = 502;
+    throw error;
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+app.get('/sync/:profileId', async (req, res) => {
+  const { profileId } = req.params;
+  if (!validProfileId(profileId)) return res.status(400).json({ error: 'Profile ID không hợp lệ' });
+  try {
+    const rows = await syncRequest('GET', profileId);
+    res.json(rows && rows[0] ? rows[0] : { profile_id: profileId, payload: {}, updated_at: null });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message });
+  }
+});
+
+app.put('/sync/:profileId', async (req, res) => {
+  const { profileId } = req.params;
+  if (!validProfileId(profileId)) return res.status(400).json({ error: 'Profile ID không hợp lệ' });
+  if (!req.body || typeof req.body !== 'object') return res.status(400).json({ error: 'Payload không hợp lệ' });
+  try {
+    const rows = await syncRequest('PUT', profileId, {
+      profile_id: profileId,
+      payload: req.body,
+      updated_at: new Date().toISOString()
+    });
+    res.json(rows && rows[0] ? rows[0] : { ok: true });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message });
+  }
+});
+
+app.delete('/sync/:profileId', async (req, res) => {
+  const { profileId } = req.params;
+  if (!validProfileId(profileId)) return res.status(400).json({ error: 'Profile ID không hợp lệ' });
+  try {
+    await syncRequest('DELETE', profileId);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message });
+  }
+});
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'umpdl-header-proxy' }));
 

@@ -2222,7 +2222,7 @@ function findSourceVideoElement(url) {
 }
 
 // ========== SHOW VIDEO PLAYER ==========
-function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
+function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOverride) {
   // forceHlsJs is used only after native HLS has failed. It must be a real
   // parameter: an undeclared flag here would stop the player before hls.js
   // gets a chance to take over, leaving the loading spinner forever.
@@ -2338,9 +2338,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs) {
 
   var infoPanel = document.createElement('div');
   infoPanel.className = 'uvd-player-info-panel';
+  var playerTitle = titleOverride || pageInfo.title;
   var titleRow = document.createElement('div');
   titleRow.className = 'uvd-player-info-title';
-  titleRow.innerHTML = '<span class="uvd-player-info-icon">▶</span><span>' + escapeHtml(pageInfo.title) + '</span>';
+  titleRow.innerHTML = '<span class="uvd-player-info-icon">▶</span><span>' + escapeHtml(playerTitle) + '</span>';
   var infoRow = document.createElement('div');
   infoRow.id = '__uvd_player_info__';
   infoRow.className = 'uvd-player-info-meta';
@@ -4344,8 +4345,10 @@ function renderHistory(container) {
         '<div class="uvd-history-meta">' + escapeHtml(item.host || '') + ' · ' + escapeHtml(date) + '</div>' +
         '<div class="uvd-history-meta">' + escapeHtml([item.quality, item.resolution, item.duration].filter(Boolean).join(' · ')) + '</div>' +
         '<div class="uvd-history-url">' + escapeHtml(item.url || '') + '</div>' +
-        '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">' + (String(type).toUpperCase() === 'IFRAME' ? 'Mở nguồn' : 'Xem lại') + '</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button><button class="uvd-btn uvd-btn-sm history-delete">Xóa</button></div></div>';
-      card.querySelector('.history-play').onclick = function() { if (String(type).toUpperCase() === 'IFRAME') __uvdSafeOpen(item.url); else showVideoPlayer(item.url, type); };
+        '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">' + (String(type).toUpperCase() === 'IFRAME' ? 'Mở nguồn' : 'Xem lại') + '</button><button class="uvd-btn uvd-btn-sm history-source"' + (item.pageUrl ? '' : ' disabled') + '>Nguồn gốc</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button><button class="uvd-btn uvd-btn-sm history-delete">Xóa</button></div></div>';
+      card.querySelector('.history-play').onclick = function() { if (String(type).toUpperCase() === 'IFRAME') __uvdSafeOpen(item.url); else showVideoPlayer(item.url, type, false, false, false, item.title); };
+      var sourceBtn = card.querySelector('.history-source');
+      if (sourceBtn && item.pageUrl) sourceBtn.onclick = function() { __uvdSafeOpen(item.pageUrl); };
       card.querySelector('.history-copy').onclick = function() { copy(item.url); toast('Đã sao chép link lịch sử'); };
       card.querySelector('.history-delete').onclick = function() { data.history = data.history.filter(function(x) { return x.url !== item.url; }); storage.set(data); renderHistory(container); };
       wrap.appendChild(card);

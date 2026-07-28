@@ -2482,45 +2482,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   } else {
     playerState.vjsMountCancel = __uvdMountVjs10(videoWrapper, video, __uvdApplyPlayerLayout);
   }
-  function __uvdBindSeekThumbnail() {
-    var oldPreview = videoWrapper.querySelector('.uvd-seek-preview');
-    if (oldPreview) oldPreview.remove();
-    var preview = document.createElement('div');
-    preview.className = 'uvd-seek-preview';
-    preview.innerHTML = '<img alt="Seek preview"><span>00:00</span>';
-    videoWrapper.appendChild(preview);
-    var img = preview.querySelector('img');
-    var label = preview.querySelector('span');
-    var roots = [document.getElementById('__uvd_player_el__'), document.getElementById('__uvd_player_el__') && document.getElementById('__uvd_player_el__').shadowRoot];
-    var skin = document.getElementById('__uvd_player_el__') && document.getElementById('__uvd_player_el__').querySelector('video-skin');
-    if (skin) roots.push(skin, skin.shadowRoot);
-    function capture() {
-      if (!video.videoWidth || !video.videoHeight || !isFinite(video.currentTime)) return;
-      try {
-        var canvas = document.createElement('canvas');
-        var w = 240, h = Math.max(1, Math.round(w * video.videoHeight / video.videoWidth));
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
-        img.src = canvas.toDataURL('image/jpeg', .62);
-        label.textContent = formatTime(video.currentTime);
-        preview.classList.add('uvd-seek-preview-visible');
-      } catch(e) {}
-    }
-    roots.forEach(function(root) {
-      if (!root || !root.querySelectorAll) return;
-      root.querySelectorAll('input[type="range"],[role="slider"]').forEach(function(slider) {
-        if (slider.__uvdSeekBound) return;
-        slider.__uvdSeekBound = true;
-        var timer = null;
-        slider.addEventListener('input', function() { clearTimeout(timer); timer = setTimeout(capture, 80); }, true);
-        slider.addEventListener('pointerdown', function() { preview.classList.add('uvd-seek-preview-visible'); }, true);
-        slider.addEventListener('pointerup', function() { setTimeout(function() { preview.classList.remove('uvd-seek-preview-visible'); }, 300); }, true);
-      });
-    });
-  }
-  setTimeout(__uvdBindSeekThumbnail, 500);
-  setTimeout(__uvdBindSeekThumbnail, 1500);
-
   // Đóng
   backBtn.onclick = function() { closePlayer(); };
   overlay.addEventListener('click', function(e) {
@@ -3011,7 +2972,7 @@ style.textContent = `
 .uvd-settings-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 .uvd-settings-header .uvd-back-btn{background:var(--glass-hi);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .uvd-settings-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}.uvd-settings-title{font-weight:800;font-size:16px;color:var(--accent);text-shadow:0 0 12px rgba(255,47,200,0.5)}.uvd-settings-subtitle{font-size:10px;color:var(--text3);font-weight:600}.uvd-player-header-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1;justify-content:flex-start;margin-left:10px;color:var(--text)}.uvd-player-header-title strong{display:block;font-size:14px;font-weight:800;white-space:nowrap}.uvd-player-sheet .uvd-settings-header{min-height:84px;padding:18px 20px}.uvd-player-sheet .uvd-back-btn,.uvd-player-sheet .uvd-icon-btn{width:44px;height:44px;border-radius:16px}.uvd-settings-sheet.uvd-scroll-performance,.uvd-settings-sheet.uvd-scroll-performance .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.uvd-settings-sheet.uvd-scroll-performance .uvd-card{box-shadow:0 2px 10px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.12) inset}.uvd-settings-sheet.uvd-scroll-performance::before{display:none}.uvd-player-sheet .uvd-settings-header{background:linear-gradient(135deg,rgba(255,250,253,.94),rgba(248,235,255,.88))!important;backdrop-filter:blur(var(--uvd-blur)) saturate(140%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(140%);border-bottom:1px solid rgba(255,47,200,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 0 rgba(255,47,200,.08)}.uvd-player-sheet .uvd-player-header-title{color:var(--text)}.uvd-player-sheet .uvd-player-header-title small{color:var(--text2);font-weight:650}.uvd-player-header-title small{display:block;margin-top:2px;color:var(--text3);font-size:9px;text-align:center}.uvd-player-live-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,47,200,.12),0 0 12px rgba(255,47,200,.7);animation:uvdPulse 2s infinite}
-.uvd-seek-preview{position:absolute;z-index:15;left:50%;bottom:78px;display:none;width:140px;overflow:hidden;transform:translateX(-50%);border:1px solid rgba(255,255,255,.42);border-radius:12px;background:rgba(43,24,54,.82);box-shadow:0 8px 22px rgba(0,0,0,.3);pointer-events:none}.uvd-seek-preview img{display:block;width:100%;height:78px;object-fit:cover}.uvd-seek-preview span{display:block;padding:4px 7px;color:#fff;font-size:10px;font-weight:800;text-align:center}.uvd-seek-preview-visible{display:block}.uvd-player-video-area{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(255,47,200,.16),transparent 34%),radial-gradient(circle at 84% 76%,rgba(155,61,255,.14),transparent 40%),linear-gradient(135deg,rgba(255,238,249,.92),rgba(245,232,255,.94));}.uvd-player-video-area.uvd-player-pending>#__uvd_video_wrapper__{opacity:0;pointer-events:none}.uvd-player-video-area.uvd-player-pending::before{content:'Chuẩn bị trình phát…';position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);padding:9px 14px;border:1px solid var(--border);border-radius:999px;background:rgba(255,250,253,.62);backdrop-filter:blur(10px);color:var(--accent2);font-size:12px;font-weight:750;white-space:nowrap}
+.uvd-player-video-area{position:relative;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(255,47,200,.16),transparent 34%),radial-gradient(circle at 84% 76%,rgba(155,61,255,.14),transparent 40%),linear-gradient(135deg,rgba(255,238,249,.92),rgba(245,232,255,.94));}.uvd-player-video-area.uvd-player-pending>#__uvd_video_wrapper__{opacity:0;pointer-events:none}.uvd-player-video-area.uvd-player-pending::before{content:'Chuẩn bị trình phát…';position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);padding:9px 14px;border:1px solid var(--border);border-radius:999px;background:rgba(255,250,253,.62);backdrop-filter:blur(10px);color:var(--accent2);font-size:12px;font-weight:750;white-space:nowrap}
 .uvd-player-video-area::before{content:'';position:absolute;inset:-25%;pointer-events:none;background:conic-gradient(from 120deg at 50% 50%,transparent,rgba(255,47,200,.08),transparent 28%,rgba(155,61,255,.08),transparent 55%);filter:blur(22px);animation:uvdLiquidDrift 18s ease-in-out infinite}
 .uvd-player-video-area::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,transparent,black 25%,black 75%,transparent)}
 .uvd-player-video-area>#__uvd_video_wrapper__{position:relative;z-index:1}
@@ -3046,13 +3007,11 @@ style.textContent = `
 .uvd-meta-chip{border:1px solid var(--border);border-radius:999px;padding:6px 9px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.28);color:var(--accent2);font-size:10px;cursor:pointer}
 .uvd-meta-chip:hover{background:var(--btn-accent-bg)}
 .uvd-reduce-motion *{animation:none!important;transition:none!important}
-.uvd-reduce-motion .uvd-glass-panel,.uvd-reduce-motion .uvd-settings-sheet{backdrop-filter:blur(6px)!important;-webkit-backdrop-filter:blur(6px)!important;background:rgba(255,250,253,.94)!important;border-color:rgba(255,47,200,.2)}
+.uvd-glass-panel.uvd-reduce-motion,.uvd-reduce-motion .uvd-settings-sheet{backdrop-filter:blur(6px)!important;-webkit-backdrop-filter:blur(6px)!important;background:rgba(255,250,253,.94)!important;border-color:rgba(255,47,200,.2)}
 .uvd-reduce-motion .uvd-card,.uvd-reduce-motion .uvd-player-menu,.uvd-reduce-motion .uvd-action-list{backdrop-filter:blur(5px)!important;-webkit-backdrop-filter:blur(5px)!important;background:rgba(255,250,253,.9)!important;box-shadow:0 3px 12px rgba(112,45,126,.08),0 0 0 1px rgba(255,255,255,.5) inset!important}.uvd-reduce-motion .uvd-card{contain:layout paint style}.uvd-settings-body>.uvd-card,.uvd-settings-body>.uvd-section-title{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 180px}
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
-.uvd-reduce-motion .uvd-glass-panel .uvd-card{background:rgba(155,61,255,.06)}
-.uvd-reduce-motion .uvd-glass-panel .uvd-btn{background:rgba(155,61,255,.09)}
 .uvd-tabbar{display:flex;gap:2px;padding:6px 8px;background:rgba(155,61,255,.07);border:1px solid var(--border);border-radius:999px;margin-bottom:10px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
 .uvd-tabbar::-webkit-scrollbar{display:none}
 .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(255,47,200,.45);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}

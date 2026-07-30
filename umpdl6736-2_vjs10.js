@@ -2502,16 +2502,16 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var overlay2 = document.createElement('div');
     overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
     var panel = document.createElement('div');
-    applyEffectsPref(panel);
-    panel.style.cssText = 'background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid var(--border);box-shadow:0 20px 50px rgba(43,24,54,0.25);';
+    panel.style.cssText = 'background:#2b1836;border:1px solid rgba(255,120,220,.55);border-radius:var(--radius-md);box-shadow:0 12px 30px rgba(0,0,0,.55);padding:20px;min-width:250px;max-width:90%;';
     panel.innerHTML = '<div style="color:var(--text);font-weight:600;margin-bottom:12px;">' + escapeHtml(title) + '</div>';
     var content = document.createElement('div');
     content.style.cssText = 'max-height:60vh;overflow-y:auto;';
     options.forEach(function(opt) {
       var btn = document.createElement('button');
-      btn.className = 'uvd-btn uvd-btn-sm';
-      btn.style.cssText = 'width:100%;margin-bottom:6px;text-align:center;';
+      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer;margin-bottom:2px;';
       btn.textContent = opt.label;
+      btn.onmouseover = function() { btn.style.background = 'rgba(255,47,200,.2)'; };
+      btn.onmouseout = function() { btn.style.background = 'transparent'; };
       btn.onclick = function() {
         callback(opt.value);
         overlay2.remove();
@@ -2521,8 +2521,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     panel.appendChild(content);
     var closeBtn = document.createElement('button');
     closeBtn.textContent = 'Đóng';
-    closeBtn.className = 'uvd-btn uvd-btn-sm';
-    closeBtn.style.cssText = 'width:100%;margin-top:10px;background:var(--danger);';
+    closeBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:var(--btn-danger-bg);border:none;color:#fff;border-radius:var(--radius-md);cursor:pointer;';
     closeBtn.onclick = function() { overlay2.remove(); };
     panel.appendChild(closeBtn);
     overlay2.appendChild(panel);

@@ -2536,16 +2536,16 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     });
     createMenuPanel('Chọn chất lượng', opts, function(idx) {
       var q = qualities[idx];
-      // Tìm HLS instance trực tiếp từ video nếu playerState.hls bị null
       var hlsInstance = playerState.hls || (playerState.video && playerState.video.hls) || activeHls;
       
       if (!hlsInstance) {
-        toast('Lỗi: HLS instance = null');
+        // Fallback: Nếu không tìm thấy instance, mở lại trình phát với URL chất lượng đó
+        overlay2.remove();
+        window.__uvd_showPlayer(q.url, 'M3U8');
         return;
       }
 
       var levels = hlsInstance.levels;
-      var found = false;
       var targetRes = parseInt(q.resolution.split('x')[1]);
 
       for (var i = 0; i < levels.length; i++) {
@@ -2553,16 +2553,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
           hlsInstance.currentLevel = i;
           hlsInstance.nextLevel = i;
           hlsInstance.autoLevelEnabled = false;
-          found = true;
-          break;
+          toast('Đã khóa ở: ' + q.label);
+          return;
         }
       }
-
-      if (found) {
-        toast('Đã khóa ở: ' + q.label);
-      } else {
-        toast('Không tìm thấy level: ' + targetRes + 'p');
-      }
+      toast('Không tìm thấy level: ' + targetRes + 'p');
     });
   }
 

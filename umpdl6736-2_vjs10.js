@@ -2540,7 +2540,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     if (hls && hls.levels && hls.levels.length) {
       qualities = hls.levels.map(function(level, idx) {
         var height = level.height || 0;
-        return { label: height ? height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && height) ? level.width + 'x' + height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx };
+        return { label: height ? height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && height) ? level.width + 'x' + height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx, url: level.url || (level.urlSet && level.urlSet[0]) || '' };
       });
     }
     if (!qualities.length) { toast('Playlist này không có nhiều chất lượng'); return; }
@@ -2551,7 +2551,17 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     });
     createMenuPanel('Chọn chất lượng', opts, function(value) {
       var hlsInstance = playerState.hls || activeHls || (playerState.video && playerState.video.__uvdHls) || window.__uvdActiveHls;
-      if (!hlsInstance || !hlsInstance.levels) { toast('HLS chưa sẵn sàng'); return; }
+      // Nếu HLS instance bị mất do player wrapper tái khởi tạo, vẫn cho phép
+      // chuyển sang variant URL đã lấy từ master playlist thay vì báo lỗi.
+      if (!hlsInstance || !hlsInstance.levels) {
+        if (value && value.url) {
+          toast('Đang chuyển sang ' + value.label + '…');
+          window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
+        } else {
+          toast('HLS chưa sẵn sàng — playlist không cung cấp URL chất lượng');
+        }
+        return;
+      }
       if (value === -1) {
         hlsInstance.currentLevel = -1;
         hlsInstance.nextLevel = -1;
@@ -2803,7 +2813,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
         setTimeout(function() { lockOrientation(video); }, 100);
         // Lấy level từ playlist thật mà hls.js đang phát, kể cả nguồn proxy.
         playerState.qualities = (activeHls.levels || []).map(function(level, idx) {
-          return { label: level.height ? level.height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && level.height) ? level.width + 'x' + level.height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx };
+          return { label: level.height ? level.height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && level.height) ? level.width + 'x' + level.height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx, url: level.url || (level.urlSet && level.urlSet[0]) || '' };
         });
         updateInfoDisplay();
         if (!playerState.qualities.length) {

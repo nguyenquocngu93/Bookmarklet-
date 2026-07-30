@@ -2304,7 +2304,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = 'flex:1; padding:0 12px; display:flex; align-items:center; gap:8px;';
-  playerHeaderTitle.innerHTML = '<span class="uvd-player-live-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span><div style="line-height:1.2;"><strong style="font-size:14px; display:block; color:#fff;">Đang phát</strong><small style="font-size:11px; color:var(--text3);">' + escapeHtml(type || 'Media') + ' · Player</small></div>';
+  playerHeaderTitle.innerHTML = '<span class="uvd-player-live-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span><div style="line-height:1.2;"><strong style="font-size:14px; display:block; color:var(--accent);">Đang phát</strong><small style="font-size:11px; color:#f0f0f0;">' + escapeHtml(type || 'Media') + ' · Player</small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);

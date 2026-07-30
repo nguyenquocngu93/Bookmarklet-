@@ -2535,20 +2535,29 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       return { label: q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : ''), value: idx };
     });
     createMenuPanel('Chọn chất lượng', opts, function(idx) {
+      console.log('Quality selected, index:', idx);
       var q = qualities[idx];
+      console.log('Quality data:', q);
       if (q && playerState.hls) {
+        console.log('HLS object found');
         var levels = playerState.hls.levels;
         var found = false;
         for (var i = 0; i < levels.length; i++) {
+          console.log('Checking level', i, levels[i]);
           if (levels[i].height === parseInt(q.resolution.split('x')[1]) || levels[i].bitrate === q.bandwidth) {
             playerState.hls.currentLevel = i;
-            playerState.hls.loadLevel = i; // Force update
+            playerState.hls.nextLevel = i;
+            playerState.hls.autoLevelEnabled = false;
             found = true;
+            console.log('Level found and set to:', i);
             break;
           }
         }
-        if (found) toast('Chuyển sang ' + q.label);
-        else toast('Lỗi chuyển chất lượng');
+        if (found) toast('Đã khóa ở: ' + q.label);
+        else toast('Lỗi chuyển chất lượng (không tìm thấy level)');
+      } else {
+        console.log('HLS object not found, playerState.hls:', playerState.hls);
+        toast('Lỗi: Không tìm thấy trình điều khiển HLS');
       }
     });
   }

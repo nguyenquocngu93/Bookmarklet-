@@ -2499,65 +2499,76 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
 
   // Menu ⋮
   function createMenuPanel(title, options, callback) {
+    // Dùng cùng visual language với menu ⋮ của header player.
     var overlay2 = document.createElement('div');
-    overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
+    overlay2.className = 'uvd-quality-menu-layer';
+    overlay2.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:transparent;';
     var panel = document.createElement('div');
-    panel.style.cssText = 'background:#2b1836;border:1px solid rgba(255,120,220,.55);border-radius:var(--radius-md);box-shadow:0 12px 30px rgba(0,0,0,.55);padding:20px;min-width:250px;max-width:90%;color:#ffffff;';
-    panel.innerHTML = '<div style="color:#ffffff;font-weight:600;margin-bottom:12px;">' + escapeHtml(title) + '</div>';
-    var content = document.createElement('div');
-    content.style.cssText = 'max-height:60vh;overflow-y:auto;';
+    panel.className = 'uvd-player-menu uvd-quality-menu-panel';
+    panel.style.cssText = 'position:absolute;top:56px;right:12px;min-width:210px;max-width:min(90vw,300px);max-height:70vh;overflow:auto;';
+    var heading = document.createElement('div');
+    heading.className = 'uvd-quality-menu-title';
+    heading.textContent = title;
+    panel.appendChild(heading);
     options.forEach(function(opt) {
       var btn = document.createElement('button');
-      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:12px 14px;background:transparent;border:none;border-top:1px solid var(--border);color:#ffffff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;';
+      btn.type = 'button';
       btn.textContent = opt.label;
-      btn.onmouseover = function() { btn.style.background = 'rgba(255,47,200,.2)'; };
-      btn.onmouseout = function() { btn.style.background = 'transparent'; };
-      btn.onclick = function() {
+      if (opt.active) btn.className = 'uvd-quality-option-active';
+      btn.onclick = function(e) {
+        e.stopPropagation();
         callback(opt.value);
         overlay2.remove();
       };
-      content.appendChild(btn);
+      panel.appendChild(btn);
     });
-    panel.appendChild(content);
     var closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Đóng';
-    closeBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:var(--btn-danger-bg);border:none;color:#ffffff;border-radius:var(--radius-md);cursor:pointer;';
-    closeBtn.onclick = function() { overlay2.remove(); };
+    closeBtn.type = 'button';
+    closeBtn.textContent = '← Quay lại';
+    closeBtn.className = 'uvd-quality-menu-back';
+    closeBtn.onclick = function(e) { e.stopPropagation(); overlay2.remove(); };
     panel.appendChild(closeBtn);
     overlay2.appendChild(panel);
+    overlay2.addEventListener('click', function(e) { if (e.target === overlay2) overlay2.remove(); });
     __uvdAppendRoot(overlay2);
   }
 
   function showQualitySubMenu() {
-    var qualities = playerState.qualities;
-    if (!qualities.length) { toast('Không có chất lượng'); return; }
-    var opts = qualities.map(function(q, idx) {
-      return { label: q.label + (q.resolution !== 'unknown' ? ' (' + q.resolution + ')' : ''), value: idx };
+    var hls = playerState.hls || activeHls;
+    var qualities = playerState.qualities || [];
+    // Dùng level thật của hls.js, không phụ thuộc fetch master bị CORS/403.
+    if (hls && hls.levels && hls.levels.length) {
+      qualities = hls.levels.map(function(level, idx) {
+        var height = level.height || 0;
+        return { label: height ? height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && height) ? level.width + 'x' + height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx };
+      });
+    }
+    if (!qualities.length) { toast('Playlist này không có nhiều chất lượng'); return; }
+    var opts = [{ label: '✓ Tự động', value: -1, active: !hls || hls.currentLevel === -1 }];
+    qualities.forEach(function(q) {
+      var active = hls && hls.currentLevel >= 0 && q.levelIndex === hls.currentLevel;
+      opts.push({ label: (active ? '✓ ' : '') + q.label + (q.bandwidth ? ' · ' + Math.round(q.bandwidth / 1000) + 'kbps' : ''), value: q, active: active });
     });
-    createMenuPanel('Chọn chất lượng', opts, function(idx) {
-      var q = qualities[idx];
-      var hlsInstance = playerState.hls || (playerState.video && playerState.video.hls) || activeHls;
-      
-      if (!hlsInstance) {
-        // Fallback: Nếu không tìm thấy instance, mở lại trình phát với URL chất lượng đó
-        overlay2.remove();
-        window.__uvd_showPlayer(q.url, 'M3U8');
+    createMenuPanel('Chọn chất lượng', opts, function(value) {
+      var hlsInstance = playerState.hls || activeHls;
+      if (!hlsInstance) { toast('HLS chưa sẵn sàng'); return; }
+      if (value === -1) {
+        hlsInstance.currentLevel = -1;
+        hlsInstance.nextLevel = -1;
+        toast('Đã bật chất lượng tự động');
+        updateInfoDisplay();
         return;
       }
-
-      var levels = hlsInstance.levels;
-      var targetRes = parseInt(q.resolution.split('x')[1]);
-
-      for (var i = 0; i < levels.length; i++) {
-        if (levels[i].height === targetRes || levels[i].bitrate === q.bandwidth) {
-          hlsInstance.currentLevel = i;
-          hlsInstance.nextLevel = i;
-          hlsInstance.autoLevelEnabled = false;
-          toast('Đã khóa ở: ' + q.label);
-          return;
-        }
-      }
-      toast('Không tìm thấy level: ' + targetRes + 'p');
+      var target = value.levelIndex;
+      if (target === undefined) target = hlsInstance.levels.findIndex(function(level) { return (value.resolution !== 'unknown' && level.height === parseInt(value.resolution.split('x')[1])) || (value.bandwidth && level.bitrate === value.bandwidth); });
+      if (target >= 0) {
+        hlsInstance.currentLevel = target;
+        hlsInstance.nextLevel = target;
+        hlsInstance.autoLevelEnabled = false;
+        playerState.currentQuality = target;
+        toast('Đã khóa ở: ' + value.label);
+        updateInfoDisplay();
+      } else toast('Không tìm thấy level ' + value.label);
     });
   }
 
@@ -2784,12 +2795,16 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       activeHls.attachMedia(video);
       activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
         setTimeout(function() { lockOrientation(video); }, 100);
-        parseM3U8Master(url, function(qualities) {
-          if (qualities && qualities.length > 0) {
-            playerState.qualities = qualities;
-            updateInfoDisplay();
-          }
+        // Lấy level từ playlist thật mà hls.js đang phát, kể cả nguồn proxy.
+        playerState.qualities = (activeHls.levels || []).map(function(level, idx) {
+          return { label: level.height ? level.height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && level.height) ? level.width + 'x' + level.height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx };
         });
+        updateInfoDisplay();
+        if (!playerState.qualities.length) {
+          parseM3U8Master(url, function(qualities) {
+            if (qualities && qualities.length > 0) { playerState.qualities = qualities; updateInfoDisplay(); }
+          });
+        }
         applyDefaultQualityPreference();
       });
       activeHls.on(Hls.Events.ERROR, function(event, data) {
@@ -2972,6 +2987,7 @@ style.textContent = `
 .uvd-player-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer}
 .uvd-player-menu button:active{background:var(--btn-accent-bg)}
 .uvd-player-menu button+button{border-top:1px solid var(--border)}
+.uvd-quality-menu-layer{pointer-events:auto}.uvd-quality-menu-panel{padding:6px!important}.uvd-quality-menu-title{padding:8px 10px 7px;color:#fff;font-size:12px;font-weight:800;border-bottom:1px solid rgba(255,120,220,.28);margin-bottom:2px}.uvd-quality-menu-panel button{min-height:38px;padding:10px 12px!important;font-size:12px!important}.uvd-quality-menu-panel .uvd-quality-option-active{color:#ff8fdf!important;background:rgba(255,47,200,.16)!important}.uvd-quality-menu-panel .uvd-quality-menu-back{color:#ffd5f3!important;font-size:11px!important}
 .uvd-icon-btn-wide{width:auto;padding:0 10px;font-size:13px;font-weight:600;gap:4px}
 .uvd-liquid-bg{position:absolute;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(closest-side,rgba(255,47,200,0.14),transparent 70%) 20% 25%/60% 60% no-repeat;filter:blur(28px);animation:uvdLiquidDrift 16s ease-in-out infinite}
 .uvd-reduce-motion .uvd-liquid-bg{display:none}

@@ -2534,7 +2534,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   }
 
   function showQualitySubMenu() {
-    var hls = playerState.hls || activeHls;
+    var hls = playerState.hls || activeHls || (playerState.video && playerState.video.__uvdHls) || window.__uvdActiveHls;
     var qualities = playerState.qualities || [];
     // Dùng level thật của hls.js, không phụ thuộc fetch master bị CORS/403.
     if (hls && hls.levels && hls.levels.length) {
@@ -2550,8 +2550,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       opts.push({ label: (active ? '✓ ' : '') + q.label + (q.bandwidth ? ' · ' + Math.round(q.bandwidth / 1000) + 'kbps' : ''), value: q, active: active });
     });
     createMenuPanel('Chọn chất lượng', opts, function(value) {
-      var hlsInstance = playerState.hls || activeHls;
-      if (!hlsInstance) { toast('HLS chưa sẵn sàng'); return; }
+      var hlsInstance = playerState.hls || activeHls || (playerState.video && playerState.video.__uvdHls) || window.__uvdActiveHls;
+      if (!hlsInstance || !hlsInstance.levels) { toast('HLS chưa sẵn sàng'); return; }
       if (value === -1) {
         hlsInstance.currentLevel = -1;
         hlsInstance.nextLevel = -1;
@@ -2791,6 +2791,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       }, 8000);
     } else if (window.Hls && Hls.isSupported()) {
       activeHls = new Hls(__uvdMakeHlsConfig(Hls));
+      // Giữ instance ở state/video ngay khi tạo. Một số playlist phát được
+      // trước MANIFEST_PARSED nên callback menu không nên chỉ dựa vào biến
+      // local activeHls.
+      playerState.hls = activeHls;
+      video.__uvdHls = activeHls;
+      window.__uvdActiveHls = activeHls;
       activeHls.loadSource(url);
       activeHls.attachMedia(video);
       activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -2911,6 +2917,8 @@ function closePlayer() {
       playerState.vjsMountCancel = null;
     }
     if (playerState.hls) { playerState.hls.destroy(); playerState.hls = null; }
+    if (window.__uvdActiveHls) window.__uvdActiveHls = null;
+    if (playerState.video && playerState.video.__uvdHls) playerState.video.__uvdHls = null;
     if (playerState.video) {
       playerState.video.pause();
       if (playerState.reusedOriginalVideo && playerState.originalVideoParent) {

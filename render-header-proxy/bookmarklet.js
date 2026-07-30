@@ -2604,7 +2604,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     menuBtn.classList.add('uvd-menu-open');
     var menu = document.createElement('div');
     menu.id = '__uvd_player_menu__';
-    menu.className = 'uvd-player-menu';
+    menu.className = 'uvd-player-menu uvd-header-popover';
     var qBtn = document.createElement('button');
     qBtn.innerHTML = '🎚 Chất lượng';
     qBtn.onclick = function() { menu.remove(); menuBtn.classList.remove('uvd-menu-open'); if (playerState.qualities.length > 0) showQualitySubMenu(); else toast('Không có chất lượng để chọn'); };
@@ -3023,7 +3023,7 @@ style.textContent = `
 .uvd-player-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer}
 .uvd-player-menu button:active{background:var(--btn-accent-bg)}
 .uvd-player-menu button+button{border-top:1px solid var(--border)}
-.uvd-quality-menu-layer{pointer-events:auto}.uvd-quality-menu-panel{padding:6px!important}.uvd-quality-menu-title{padding:8px 10px 7px;color:#fff;font-size:12px;font-weight:800;border-bottom:1px solid rgba(255,120,220,.28);margin-bottom:2px}.uvd-quality-menu-panel button{min-height:38px;padding:10px 12px!important;font-size:12px!important}.uvd-quality-menu-panel .uvd-quality-option-active{color:#ff8fdf!important;background:rgba(255,47,200,.16)!important}.uvd-quality-menu-panel .uvd-quality-menu-back{color:#ffd5f3!important;font-size:11px!important}
+.uvd-header-popover{top:54px!important;right:12px!important;min-width:210px!important;border-radius:18px!important;overflow:visible!important}.uvd-header-popover::before{content:'';position:absolute;right:24px;top:-8px;width:15px;height:15px;background:#2b1836;border-left:1px solid rgba(255,120,220,.55);border-top:1px solid rgba(255,120,220,.55);transform:rotate(45deg);z-index:0}.uvd-header-popover::after{content:'';position:absolute;right:18px;top:-15px;width:30px;height:18px;background:rgba(255,47,200,.16);filter:blur(10px);pointer-events:none}.uvd-header-popover button:first-of-type{border-top:none!important}.uvd-quality-menu-layer{pointer-events:auto}.uvd-quality-menu-panel{padding:6px!important}.uvd-quality-menu-title{padding:8px 10px 7px;color:#fff;font-size:12px;font-weight:800;border-bottom:1px solid rgba(255,120,220,.28);margin-bottom:2px}.uvd-quality-menu-panel button{min-height:38px;padding:10px 12px!important;font-size:12px!important}.uvd-quality-menu-panel .uvd-quality-option-active{color:#ff8fdf!important;background:rgba(255,47,200,.16)!important}.uvd-quality-menu-panel .uvd-quality-menu-back{color:#ffd5f3!important;font-size:11px!important}
 .uvd-icon-btn-wide{width:auto;padding:0 10px;font-size:13px;font-weight:600;gap:4px}
 .uvd-liquid-bg{position:absolute;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(closest-side,rgba(255,47,200,0.14),transparent 70%) 20% 25%/60% 60% no-repeat;filter:blur(28px);animation:uvdLiquidDrift 16s ease-in-out infinite}
 .uvd-reduce-motion .uvd-liquid-bg{display:none}

@@ -2508,7 +2508,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     content.style.cssText = 'max-height:60vh;overflow-y:auto;';
     options.forEach(function(opt) {
       var btn = document.createElement('button');
-      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:12px 14px;background:transparent;border:none;color:#ffffff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;margin-bottom:2px;';
+      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:12px 14px;background:transparent;border:none;border-top:1px solid var(--border);color:#ffffff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;';
       btn.textContent = opt.label;
       btn.onmouseover = function() { btn.style.background = 'rgba(255,47,200,.2)'; };
       btn.onmouseout = function() { btn.style.background = 'transparent'; };
@@ -2538,13 +2538,17 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       var q = qualities[idx];
       if (q && playerState.hls) {
         var levels = playerState.hls.levels;
+        var found = false;
         for (var i = 0; i < levels.length; i++) {
           if (levels[i].height === parseInt(q.resolution.split('x')[1]) || levels[i].bitrate === q.bandwidth) {
             playerState.hls.currentLevel = i;
+            playerState.hls.loadLevel = i; // Force update
+            found = true;
             break;
           }
         }
-        toast('Chuyển sang ' + q.label);
+        if (found) toast('Chuyển sang ' + q.label);
+        else toast('Lỗi chuyển chất lượng');
       }
     });
   }

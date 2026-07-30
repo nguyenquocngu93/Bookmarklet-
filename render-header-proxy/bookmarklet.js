@@ -3159,6 +3159,18 @@ style.textContent = `
 .uvd-thumb-menu .uvd-action-list .uvd-btn{position:relative;z-index:1;min-height:36px;padding:9px 11px;border:0;border-radius:0;background:transparent!important;color:#fff!important;font-size:12px;line-height:1.15;text-align:left;box-shadow:none!important}
 .uvd-thumb-menu .uvd-action-list .uvd-btn+.uvd-btn{border-top:1px solid rgba(255,120,220,.2)}
 .uvd-thumb-menu .uvd-action-list .uvd-btn:hover{background:rgba(255,47,200,.2)!important;color:#fff!important}
+/* Light pink-purple popovers: đồng bộ với toàn bộ UMP UI */
+.uvd-player-menu,.uvd-quality-menu-panel{background:linear-gradient(145deg,rgba(255,250,253,.98),rgba(248,235,255,.98))!important;border-color:rgba(218,81,203,.38)!important;box-shadow:0 16px 34px rgba(130,57,145,.22),inset 0 1px 0 rgba(255,255,255,.9)!important;color:#482653!important}
+.uvd-player-menu button,.uvd-quality-menu-panel button{color:#63306f!important;background:transparent!important}
+.uvd-player-menu button:hover,.uvd-quality-menu-panel button:hover{background:rgba(255,47,200,.13)!important;color:#8e2bb1!important}
+.uvd-player-menu button:active,.uvd-quality-menu-panel button:active{background:rgba(191,61,224,.2)!important}
+.uvd-player-menu button+button{border-top-color:rgba(190,86,202,.2)!important}
+.uvd-quality-menu-title{color:#8f2eae!important;border-bottom-color:rgba(190,86,202,.22)!important}.uvd-quality-menu-panel .uvd-quality-option-active{color:#a02bc1!important;background:rgba(255,47,200,.14)!important}.uvd-quality-menu-panel .uvd-quality-menu-back{color:#8f3b9f!important}
+.uvd-header-popover::before,.uvd-quality-menu-panel::before{background:linear-gradient(135deg,#fffafd,#f8ebff)!important;border-color:rgba(218,81,203,.38)!important}
+.uvd-header-popover::after{background:rgba(218,81,203,.14)!important}
+.uvd-thumb-menu .uvd-action-list{background:linear-gradient(145deg,rgba(255,250,253,.99),rgba(248,235,255,.99))!important;border-color:rgba(218,81,203,.38)!important;box-shadow:0 16px 34px rgba(130,57,145,.22),inset 0 1px 0 rgba(255,255,255,.9)!important}
+.uvd-thumb-menu .uvd-action-list::before{background:linear-gradient(135deg,#fffafd,#f8ebff)!important;border-color:rgba(218,81,203,.38)!important}
+.uvd-thumb-menu .uvd-action-list .uvd-btn{color:#63306f!important}.uvd-thumb-menu .uvd-action-list .uvd-btn+.uvd-btn{border-top-color:rgba(190,86,202,.2)!important}.uvd-thumb-menu .uvd-action-list .uvd-btn:hover{background:rgba(255,47,200,.13)!important;color:#8e2bb1!important}
 .uvd-action-menu summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,47,200,.09);color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
 .uvd-action-menu summary::-webkit-details-marker{display:none}
 .uvd-action-menu[open] summary{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:rgba(255,47,200,.15)}

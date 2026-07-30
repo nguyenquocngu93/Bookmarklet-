@@ -3149,6 +3149,16 @@ style.textContent = `
 .uvd-thumb-menu summary:hover{background:rgba(43,24,54,.78)}
 .uvd-thumb-menu .uvd-action-list{position:absolute;top:38px;right:0;width:190px;z-index:8;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:6px;background:rgba(255,250,253,.97);border-radius:12px;box-shadow:0 12px 28px rgba(43,24,54,.24)}
 .uvd-thumb-menu .uvd-action-list .uvd-btn{min-height:30px;padding:6px 8px;border-radius:10px;font-size:11px;line-height:1.15}
+/* Thumbnail action menu: đồng bộ với popover của header player */
+.uvd-thumb-menu summary{width:38px;height:38px;min-height:38px;border-radius:14px;background:rgba(255,250,253,.88);backdrop-filter:blur(12px) saturate(135%);-webkit-backdrop-filter:blur(12px) saturate(135%);border:1px solid rgba(255,47,200,.28);color:#9b3dff;font-size:25px;letter-spacing:-3px;line-height:32px;box-shadow:0 5px 14px rgba(112,45,126,.18),inset 0 1px 0 rgba(255,255,255,.9);transition:transform .16s ease,background .16s ease,box-shadow .16s ease}
+.uvd-thumb-menu summary:hover{background:rgba(255,239,252,.98);box-shadow:0 8px 18px rgba(171,47,206,.2),inset 0 1px 0 rgba(255,255,255,.95);transform:translateY(-1px)}
+.uvd-thumb-menu summary:active{transform:scale(.9);background:rgba(255,47,200,.16)}
+.uvd-thumb-menu[open] summary{background:linear-gradient(145deg,rgba(255,47,200,.18),rgba(155,61,255,.14));border-color:rgba(191,55,232,.5);box-shadow:0 5px 14px rgba(171,47,206,.16)}
+.uvd-thumb-menu .uvd-action-list{top:48px;right:-2px;width:205px;display:grid;grid-template-columns:1fr;gap:0;padding:6px;background:#2b1836;border:1px solid rgba(255,120,220,.55);border-radius:18px;box-shadow:0 14px 32px rgba(43,24,54,.4);animation:uvdFadeIn .15s ease}
+.uvd-thumb-menu .uvd-action-list::before{content:'';position:absolute;right:15px;top:-8px;width:15px;height:15px;background:#2b1836;border-left:1px solid rgba(255,120,220,.55);border-top:1px solid rgba(255,120,220,.55);transform:rotate(45deg)}
+.uvd-thumb-menu .uvd-action-list .uvd-btn{position:relative;z-index:1;min-height:36px;padding:9px 11px;border:0;border-radius:0;background:transparent!important;color:#fff!important;font-size:12px;line-height:1.15;text-align:left;box-shadow:none!important}
+.uvd-thumb-menu .uvd-action-list .uvd-btn+.uvd-btn{border-top:1px solid rgba(255,120,220,.2)}
+.uvd-thumb-menu .uvd-action-list .uvd-btn:hover{background:rgba(255,47,200,.2)!important;color:#fff!important}
 .uvd-action-menu summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:rgba(255,47,200,.09);color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
 .uvd-action-menu summary::-webkit-details-marker{display:none}
 .uvd-action-menu[open] summary{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:rgba(255,47,200,.15)}

@@ -2502,6 +2502,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var overlay2 = document.createElement('div');
     overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
     var panel = document.createElement('div');
+    applyEffectsPref(panel);
     panel.style.cssText = 'background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);border-radius:16px;padding:20px;min-width:250px;max-width:90%;border:1px solid var(--border);box-shadow:0 20px 50px rgba(43,24,54,0.25);';
     panel.innerHTML = '<div style="color:var(--text);font-weight:600;margin-bottom:12px;">' + escapeHtml(title) + '</div>';
     var content = document.createElement('div');

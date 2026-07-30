@@ -2242,6 +2242,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;
   if (playerState.overlay) closePlayer();
+  // Khi đổi quality bằng URL variant, giữ lại catalog của master để menu
+  // vẫn có toàn bộ các mức ở player kế tiếp.
+  var preservedQualityCatalog = window.__uvdQualitySwitchCatalog || null;
+  window.__uvdQualitySwitchCatalog = null;
+  playerState.qualities = preservedQualityCatalog && preservedQualityCatalog.length ? preservedQualityCatalog : [];
   playerState.url = url;
   playerState.type = type;
   __uvdStopThumbnailHls();
@@ -2537,7 +2542,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var hls = playerState.hls || activeHls || (playerState.video && playerState.video.__uvdHls) || window.__uvdActiveHls;
     var qualities = playerState.qualities || [];
     // Dùng level thật của hls.js, không phụ thuộc fetch master bị CORS/403.
-    if (hls && hls.levels && hls.levels.length) {
+    if (hls && hls.levels && hls.levels.length > 1) {
       qualities = hls.levels.map(function(level, idx) {
         var height = level.height || 0;
         return { label: height ? height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && height) ? level.width + 'x' + height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx, url: level.url || (level.urlSet && level.urlSet[0]) || '' };
@@ -2556,6 +2561,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       if (!hlsInstance || !hlsInstance.levels) {
         if (value && value.url) {
           toast('Đang chuyển sang ' + value.label + '…');
+          window.__uvdQualitySwitchCatalog = (playerState.qualities || []).slice();
           window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
         } else {
           toast('HLS chưa sẵn sàng — playlist không cung cấp URL chất lượng');
@@ -2571,13 +2577,17 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       }
       var target = value.levelIndex;
       if (target === undefined) target = hlsInstance.levels.findIndex(function(level) { return (value.resolution !== 'unknown' && level.height === parseInt(value.resolution.split('x')[1])) || (value.bandwidth && level.bitrate === value.bandwidth); });
-      if (target >= 0) {
+      if (target >= 0 && target < hlsInstance.levels.length) {
         hlsInstance.currentLevel = target;
         hlsInstance.nextLevel = target;
         hlsInstance.autoLevelEnabled = false;
         playerState.currentQuality = target;
         toast('Đã khóa ở: ' + value.label);
         updateInfoDisplay();
+      } else if (value && value.url) {
+        window.__uvdQualitySwitchCatalog = (playerState.qualities || []).slice();
+        toast('Đang chuyển sang ' + value.label + '…');
+        window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
       } else toast('Không tìm thấy level ' + value.label);
     });
   }
@@ -2812,9 +2822,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
         setTimeout(function() { lockOrientation(video); }, 100);
         // Lấy level từ playlist thật mà hls.js đang phát, kể cả nguồn proxy.
-        playerState.qualities = (activeHls.levels || []).map(function(level, idx) {
+        var parsedHlsLevels = (activeHls.levels || []).map(function(level, idx) {
           return { label: level.height ? level.height + 'p' : (level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : 'Level ' + (idx + 1)), resolution: (level.width && level.height) ? level.width + 'x' + level.height : 'unknown', bandwidth: level.bitrate || 0, levelIndex: idx, url: level.url || (level.urlSet && level.urlSet[0]) || '' };
         });
+        // Một variant playlist chỉ có một level; đừng ghi đè catalog master
+        // đã giữ lại, nếu không lần chọn quality thứ hai sẽ mất danh sách.
+        if (parsedHlsLevels.length > 1 || !playerState.qualities.length) playerState.qualities = parsedHlsLevels;
         updateInfoDisplay();
         if (!playerState.qualities.length) {
           parseM3U8Master(url, function(qualities) {

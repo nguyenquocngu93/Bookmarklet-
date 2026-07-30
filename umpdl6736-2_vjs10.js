@@ -2502,13 +2502,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var overlay2 = document.createElement('div');
     overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
     var panel = document.createElement('div');
-    panel.style.cssText = 'background:#2b1836;border:1px solid rgba(255,120,220,.55);border-radius:var(--radius-md);box-shadow:0 12px 30px rgba(0,0,0,.55);padding:20px;min-width:250px;max-width:90%;';
-    panel.innerHTML = '<div style="color:var(--text);font-weight:600;margin-bottom:12px;">' + escapeHtml(title) + '</div>';
+    panel.style.cssText = 'background:#2b1836;border:1px solid rgba(255,120,220,.55);border-radius:var(--radius-md);box-shadow:0 12px 30px rgba(0,0,0,.55);padding:20px;min-width:250px;max-width:90%;color:#ffffff;';
+    panel.innerHTML = '<div style="color:#ffffff;font-weight:600;margin-bottom:12px;">' + escapeHtml(title) + '</div>';
     var content = document.createElement('div');
     content.style.cssText = 'max-height:60vh;overflow-y:auto;';
     options.forEach(function(opt) {
       var btn = document.createElement('button');
-      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;text-align:left;cursor:pointer;margin-bottom:2px;';
+      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:12px 14px;background:transparent;border:none;color:#ffffff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;margin-bottom:2px;';
       btn.textContent = opt.label;
       btn.onmouseover = function() { btn.style.background = 'rgba(255,47,200,.2)'; };
       btn.onmouseout = function() { btn.style.background = 'transparent'; };
@@ -2521,7 +2521,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     panel.appendChild(content);
     var closeBtn = document.createElement('button');
     closeBtn.textContent = 'Đóng';
-    closeBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:var(--btn-danger-bg);border:none;color:#fff;border-radius:var(--radius-md);cursor:pointer;';
+    closeBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:var(--btn-danger-bg);border:none;color:#ffffff;border-radius:var(--radius-md);cursor:pointer;';
     closeBtn.onclick = function() { overlay2.remove(); };
     panel.appendChild(closeBtn);
     overlay2.appendChild(panel);

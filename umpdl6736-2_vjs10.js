@@ -2284,25 +2284,22 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   overlay.appendChild(sheet);
 
   var sheetHeader = document.createElement('div');
-  sheetHeader.className = 'uvd-settings-header uvd-player-sheet-header';
+  sheetHeader.className = 'uvd-settings-header';
   sheetHeader.id = '__uvd_player_header__';
-  sheetHeader.style.cssText = 'flex-shrink:0; justify-content:space-between; align-items:center; gap:12px;';
-  
+  sheetHeader.style.cssText = 'flex-shrink:0; justify-content:space-between;';
   var backBtn = document.createElement('button');
-  backBtn.className = 'uvd-back-btn uvd-player-action-btn';
+  backBtn.className = 'uvd-back-btn';
   backBtn.id = '__uvd_player_close__';
-  backBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+  backBtn.textContent = '←';
   backBtn.title = 'Đóng player';
-
+  var menuBtn = document.createElement('button');
+  menuBtn.className = 'uvd-icon-btn uvd-icon-btn-wide';
+  menuBtn.textContent = '⋮';
+  menuBtn.title = 'Tuỳ chọn';
+  menuBtn.style.cssText = 'flex-shrink:0;';
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
-  playerHeaderTitle.innerHTML = '<div class="uvd-player-live-badge"><span class="uvd-player-live-dot"></span><span>LIVE PLAYER</span></div><div class="uvd-player-main-title">' + escapeHtml(playerTitle) + '</div><small>' + escapeHtml(type || 'Media') + ' · UMP DL PRO</small>';
-
-  var menuBtn = document.createElement('button');
-  menuBtn.className = 'uvd-icon-btn uvd-icon-btn-wide uvd-player-action-btn';
-  menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>';
-  menuBtn.title = 'Tuỳ chọn';
-
+  playerHeaderTitle.innerHTML = '<span class="uvd-player-live-dot"></span><div><strong>Đang phát video</strong><small>' + escapeHtml(type || 'Media') + ' · UMP DL Player</small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);
@@ -2996,16 +2993,6 @@ if (document.getElementById('__uvd_css__')) document.getElementById('__uvd_css__
 var style = document.createElement('style');
 style.id = '__uvd_css__';
 style.textContent = `
-
-.uvd-player-sheet-header{background:linear-gradient(135deg,rgba(255,252,254,0.96),rgba(246,235,255,0.92))!important;backdrop-filter:blur(16px) saturate(150%)!important;-webkit-backdrop-filter:blur(16px) saturate(150%)!important;border-bottom:1px solid rgba(255,47,200,0.22)!important;box-shadow:0 4px 20px rgba(112,45,126,0.08),inset 0 1px 0 rgba(255,255,255,0.8)!important;padding:12px 18px!important;min-height:76px!important}
-.uvd-player-action-btn{width:40px!important;height:40px!important;border-radius:14px!important;background:rgba(255,255,255,0.7)!important;border:1px solid rgba(255,47,200,0.25)!important;color:var(--accent2)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-shadow:0 3px 10px rgba(112,45,126,0.08),0 1px 0 rgba(255,255,255,0.9) inset!important;transition:all .2s ease!important}
-.uvd-player-action-btn:hover{background:rgba(255,47,200,0.15)!important;border-color:rgba(255,47,200,0.4)!important;transform:translateY(-1px)!important}
-.uvd-player-action-btn:active{transform:scale(0.94)!important}
-.uvd-player-header-title{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important;flex:1!important;margin:0 12px!important;text-align:left!important}
-.uvd-player-live-badge{display:inline-flex!important;align-items:center!important;gap:6px!important;font-size:9px!important;font-weight:800!important;letter-spacing:0.08em!important;color:var(--accent)!important;text-transform:uppercase!important}
-.uvd-player-main-title{font-size:14px!important;font-weight:800!important;color:var(--text)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.3!important}
-.uvd-player-sheet-header small{font-size:10px!important;color:var(--text2)!important;font-weight:700!important;letter-spacing:0.02em!important}
-
 :root{--uvd-blur:4px;--uvd-transition:0.18s ease}
 @keyframes uvdSlideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @keyframes uvdPulse{0%,100%{opacity:1;box-shadow:0 0 5px var(--accent)}50%{opacity:0.4;box-shadow:0 0 20px var(--accent)}}

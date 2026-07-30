@@ -2286,25 +2286,25 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var sheetHeader = document.createElement('div');
   sheetHeader.className = 'uvd-settings-header';
   sheetHeader.id = '__uvd_player_header__';
-  sheetHeader.style.cssText = 'flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:linear-gradient(180deg, rgba(43,24,54,0.95) 0%, rgba(43,24,54,0.85) 100%); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,47,200,0.25);';
+  sheetHeader.style.cssText = 'flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255, 255, 255, 0.95); backdrop-filter:blur(8px); border-bottom:1px solid rgba(0,0,0,0.1);';
   
   var backBtn = document.createElement('button');
   backBtn.className = 'uvd-back-btn';
   backBtn.id = '__uvd_player_close__';
-  backBtn.textContent = '✕'; // Changed to cross for a cleaner close
+  backBtn.textContent = '✕';
   backBtn.title = 'Đóng player';
-  backBtn.style.cssText = 'background:rgba(255,47,200,0.15); border:none; color:#fff; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer;';
+  backBtn.style.cssText = 'background:rgba(0,0,0,0.05); border:none; color:#2b1836; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer;';
 
   var menuBtn = document.createElement('button');
   menuBtn.className = 'uvd-icon-btn uvd-icon-btn-wide';
   menuBtn.textContent = '⋮';
   menuBtn.title = 'Tuỳ chọn';
-  menuBtn.style.cssText = 'flex-shrink:0; background:transparent; border:none; color:#fff; font-size:20px; cursor:pointer; padding:8px;';
+  menuBtn.style.cssText = 'flex-shrink:0; background:transparent; border:none; color:#2b1836; font-size:20px; cursor:pointer; padding:8px;';
   
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = 'flex:1; padding:0 12px; display:flex; align-items:center; gap:8px;';
-  playerHeaderTitle.innerHTML = '<span class="uvd-player-live-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span><div style="line-height:1.2;"><strong style="font-size:14px; display:block; color:var(--accent);">Đang phát</strong><small style="font-size:11px; color:#f0f0f0;">' + escapeHtml(type || 'Media') + ' · Player</small></div>';
+  playerHeaderTitle.innerHTML = '<span class="uvd-player-live-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span><div style="line-height:1.3;"><strong style="font-size:15px; display:block; color:#ff2fc8; font-weight:800; text-shadow: 0 0 8px rgba(255, 47, 200, 0.4);">Đang phát</strong><small style="font-size:12px; color:#555555; font-weight:500;">' + escapeHtml(type || 'Media') + ' · Player</small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);

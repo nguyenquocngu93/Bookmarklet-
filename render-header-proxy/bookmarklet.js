@@ -2536,7 +2536,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     });
     createMenuPanel('Chọn chất lượng', opts, function(idx) {
       var q = qualities[idx];
-      var hlsInstance = playerState.hls || activeHls;
+      // Tìm HLS instance trực tiếp từ video nếu playerState.hls bị null
+      var hlsInstance = playerState.hls || (playerState.video && playerState.video.hls) || activeHls;
       
       if (!hlsInstance) {
         toast('Lỗi: HLS instance = null');

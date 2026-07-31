@@ -2636,6 +2636,10 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       var source = buildHeaderProxyUrl(playerState.url, playerState.type) || playerState.url;
       var cfg = encodeURIComponent(JSON.stringify({ src: source, type: playerState.type || 'M3U8' }));
       tab.location.replace(RENDER_PROXY_BASE + '/player#' + cfg);
+      try { tab.focus(); } catch(e) {}
+      // Đã có tab player riêng thì dừng player overlay hiện tại để tránh
+      // hai HLS decoder cùng chạy và tranh compositor với UI trang gốc.
+      setTimeout(function() { if (playerState.overlay) closePlayer(); }, 120);
     };
     var powerBtn = document.createElement('button');
     powerBtn.innerHTML = __uvdLowPowerMode ? '☀️ Bật lại giám sát' : '🔋 Giảm tải nền';

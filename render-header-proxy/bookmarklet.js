@@ -2631,11 +2631,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       menu.remove(); menuBtn.classList.remove('uvd-menu-open');
       // window.open phải được gọi trực tiếp trong click handler để Chrome
       // Android không coi đây là popup tự động.
-      var tab = window.open('about:blank', '_blank');
-      if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return; }
       var source = buildHeaderProxyUrl(playerState.url, playerState.type) || playerState.url;
       var cfg = encodeURIComponent(JSON.stringify({ src: source, type: playerState.type || 'M3U8' }));
-      tab.location.replace(RENDER_PROXY_BASE + '/player#' + cfg);
+      var playerUrl = RENDER_PROXY_BASE + '/player#' + cfg;
+      // UMP có popup blocker riêng nên không gọi window.open trực tiếp:
+      // dùng native open đã lưu trước khi blocker cài hook.
+      var tab = window.__uvdSafeOpen ? window.__uvdSafeOpen(playerUrl) : window.open(playerUrl, '_blank');
+      if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return; }
       try { tab.focus(); } catch(e) {}
       // Đã có tab player riêng thì dừng player overlay hiện tại để tránh
       // hai HLS decoder cùng chạy và tranh compositor với UI trang gốc.

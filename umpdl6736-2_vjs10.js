@@ -2202,6 +2202,16 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
 }
 
+function __uvdOpenStandalonePlayer(sourceUrl, type) {
+  var source = buildHeaderProxyUrl(sourceUrl, type) || sourceUrl;
+  var cfg = encodeURIComponent(JSON.stringify({ src: source, type: type || 'M3U8' }));
+  var playerUrl = RENDER_PROXY_BASE + '/player#' + cfg;
+  var tab = window.__uvdSafeOpen ? window.__uvdSafeOpen(playerUrl) : window.open(playerUrl, '_blank');
+  if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return false; }
+  try { tab.focus(); } catch(e) {}
+  return true;
+}
+
 function retryThroughHeaderProxy(sourceUrl, type) {
   if (playerState.proxyRetried) return false;
   var proxyUrl = buildHeaderProxyUrl(sourceUrl, type);
@@ -3079,7 +3089,7 @@ style.textContent = `
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(20,184,166,0.4)}
 .uvd-player-info-meta{font-size:12px;font-weight:750;color:var(--accent2);background:rgba(20,184,166,.14);border:1px solid rgba(20,184,166,.28);display:inline-block;padding:6px 13px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;letter-spacing:.01em}.uvd-player-info-panel{backdrop-filter:blur(6px) saturate(120%);-webkit-backdrop-filter:blur(6px) saturate(120%)}.uvd-player-info-title{font-size:16px;font-weight:800} @media (max-width:420px){.uvd-player-sheet .uvd-settings-header{padding:14px 16px;min-height:72px}.uvd-player-sheet .uvd-back-btn,.uvd-player-sheet .uvd-icon-btn{width:38px;height:38px;border-radius:14px}.uvd-player-header-title{margin-left:6px}.uvd-player-header-title strong{font-size:13px}}
 .uvd-player-sheet.uvd-player-dimmed .uvd-settings-header,.uvd-player-sheet.uvd-player-dimmed .uvd-player-info-panel{opacity:.22;transition:opacity .35s ease}.uvd-player-sheet.uvd-player-dimmed .uvd-player-video-area::after{background-image:none;background:rgba(0,0,0,.12)}
-.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1}
+.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
 .uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
@@ -3915,11 +3925,13 @@ function buildStreamCardHTML(item, i) {
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="newtab" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">↗ Tab mới</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
   } else {
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="newtab" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">↗ Tab mới</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
@@ -4286,6 +4298,9 @@ function renderStreams(container, arr) {
       addToHistory(u2, t || 'IFRAME');
       if (action === 'share') shareUrl(u2);
       else if (action === 'copy') { copy(u2); toast('Đã sao chép!'); }
+      else if (action === 'newtab') {
+        if (__uvdOpenStandalonePlayer(u2, t || 'M3U8')) toast('Đã mở player ở tab mới');
+      }
       else if (action === 'quality') showQualityPicker(u2);
       else if (action === 'play') {
         var launchCard = actionBtn.closest('.uvd-card');

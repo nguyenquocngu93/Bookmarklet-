@@ -414,6 +414,14 @@ function __uvdStartMatthewGuard() {
   addCleanup(function() { document.removeEventListener('click', handler, true); });
 }
 
+function __uvdBroadcastStandaloneSource(url, type) {
+  if (!url || String(type || '').toUpperCase() !== 'M3U8') return;
+  var source = buildHeaderProxyUrl(url, type) || url;
+  (__uvdStandaloneTabs || []).forEach(function(entry) {
+    try { if (entry.win && !entry.win.closed) entry.win.postMessage({ type: 'umpdl-session-source', src: source, sourceType: type }, '*'); } catch(e) {}
+  });
+}
+
 function __uvdAddDetectedMediaUrl(url, type, source) {
   if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
   // Android browsers may expose AV1 download links before the H.264 variant.
@@ -430,6 +438,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
     urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
+    __uvdBroadcastStandaloneSource(url, type);
     return true;
   }
   return false;
@@ -2202,12 +2211,24 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
 }
 
+var __uvdStandaloneTabs = window.__uvdStandaloneTabs || [];
+if (!window.__uvdStandaloneBridgeInstalled) {
+  window.__uvdStandaloneBridgeInstalled = true;
+  window.addEventListener('message', function(e) {
+    if (!e.data || e.data.type !== 'umpdl-player-ready') return;
+    var entry = __uvdStandaloneTabs.find(function(item) { return item.win === e.source; });
+    if (!entry || !e.source || !e.source.postMessage) return;
+    try { e.source.postMessage({ type: 'umpdl-session-source', src: entry.source, sourceType: entry.sourceType }, '*'); } catch(ex) {}
+  });
+}
 function __uvdOpenStandalonePlayer(sourceUrl, type) {
   var source = buildHeaderProxyUrl(sourceUrl, type) || sourceUrl;
   var cfg = encodeURIComponent(JSON.stringify({ src: source, type: type || 'M3U8' }));
   var playerUrl = RENDER_PROXY_BASE + '/player#' + cfg;
   var tab = window.__uvdSafeOpen ? window.__uvdSafeOpen(playerUrl) : window.open(playerUrl, '_blank');
   if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return false; }
+  __uvdStandaloneTabs.push({ win: tab, source: source, sourceType: type || 'M3U8' });
+  if (__uvdStandaloneTabs.length > 6) __uvdStandaloneTabs.shift();
   try { tab.focus(); } catch(e) {}
   return true;
 }
@@ -2639,16 +2660,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     newTabBtn.innerHTML = '↗ Mở player ở tab mới';
     newTabBtn.onclick = function() {
       menu.remove(); menuBtn.classList.remove('uvd-menu-open');
-      // window.open phải được gọi trực tiếp trong click handler để Chrome
-      // Android không coi đây là popup tự động.
-      var source = buildHeaderProxyUrl(playerState.url, playerState.type) || playerState.url;
-      var cfg = encodeURIComponent(JSON.stringify({ src: source, type: playerState.type || 'M3U8' }));
-      var playerUrl = RENDER_PROXY_BASE + '/player#' + cfg;
-      // UMP có popup blocker riêng nên không gọi window.open trực tiếp:
-      // dùng native open đã lưu trước khi blocker cài hook.
-      var tab = window.__uvdSafeOpen ? window.__uvdSafeOpen(playerUrl) : window.open(playerUrl, '_blank');
-      if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return; }
-      try { tab.focus(); } catch(e) {}
+      if (!__uvdOpenStandalonePlayer(playerState.url, playerState.type)) return;
       // Đã có tab player riêng thì dừng player overlay hiện tại để tránh
       // hai HLS decoder cùng chạy và tranh compositor với UI trang gốc.
       setTimeout(function() { if (playerState.overlay) closePlayer(); }, 120);

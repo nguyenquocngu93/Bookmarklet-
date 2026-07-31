@@ -113,7 +113,7 @@ data.settings = Object.assign({
   blockAutoplay: true,
   autoClickPlay: false,
   glowEffects: true,
-  theme: 'light',             // 'dark' hoặc 'light' — giao diện kính tối/sáng
+  theme: 'light',             // tạm khóa Light; Dark Glass sẽ hoàn thiện sau
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
   subdlApiKey: '',
@@ -127,6 +127,10 @@ if (__uvdLinkConfig) {
   if (Array.isArray(__uvdLinkConfig.favorites)) data.favorites = __uvdLinkConfig.favorites.slice();
   storage.set(data);
 }
+// Tạm thời chỉ dùng Light Teal; Dark Glass sẽ quay lại sau khi hoàn thiện
+// contrast toàn bộ component.
+data.settings.theme = 'light';
+
 var __uvdSmoothDefaultsVersion = 1;
 if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
   data.settings.reduceMotion = true;
@@ -4724,8 +4728,7 @@ function renderSettings(container) {
     '<div class="uvd-card">' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🎨 Giao diện</div>' +
-      buildToggleRow('__uvd_toggle_theme__', 'Nền tối (Dark Glass)', data.settings.theme === 'dark') +
-      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Kính hai chế độ sáng/tối, màu nhấn xanh ngọc (teal).</div>' +
+      '<div class="uvd-callout" style="margin-top:0;"><span class="uvd-callout-icon">🎨</span><span>Giao diện hiện dùng <strong style="color:var(--accent-text);">Light Teal</strong> để ưu tiên độ tương phản và dễ đọc. Dark Glass sẽ được hoàn thiện riêng sau.</span></div>' +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -4856,17 +4859,6 @@ function renderSettings(container) {
     if (playerState.overlay) applyMotionPref(playerState.overlay);
     var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
     if (settingsOverlay) applyMotionPref(settingsOverlay);
-  };
-
-  document.getElementById('__uvd_toggle_theme__').onclick = function() {
-    var isOn = this.classList.toggle('uvd-toggle-on');
-    data.settings.theme = isOn ? 'dark' : 'light';
-    storage.set(data);
-    applyThemePref(document.getElementById('__uvd__'));
-    if (playerState.overlay) applyThemePref(playerState.overlay);
-    var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
-    if (settingsOverlay) applyThemePref(settingsOverlay);
-    toast(isOn ? 'Đã chuyển sang giao diện tối (Dark)' : 'Đã chuyển sang giao diện sáng (Light)');
   };
 
   document.getElementById('__uvd_toggle_glow__').onclick = function() {

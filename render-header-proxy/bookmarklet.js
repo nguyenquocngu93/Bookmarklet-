@@ -2625,11 +2625,24 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var sBtn = document.createElement('button');
     sBtn.innerHTML = '💬 Phụ đề';
     sBtn.onclick = function() { menu.remove(); menuBtn.classList.remove('uvd-menu-open'); showSubtitlePanel(playerState.video); };
+    var newTabBtn = document.createElement('button');
+    newTabBtn.innerHTML = '↗ Mở player ở tab mới';
+    newTabBtn.onclick = function() {
+      menu.remove(); menuBtn.classList.remove('uvd-menu-open');
+      // window.open phải được gọi trực tiếp trong click handler để Chrome
+      // Android không coi đây là popup tự động.
+      var tab = window.open('about:blank', '_blank');
+      if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return; }
+      var source = buildHeaderProxyUrl(playerState.url, playerState.type) || playerState.url;
+      var cfg = encodeURIComponent(JSON.stringify({ src: source, type: playerState.type || 'M3U8' }));
+      tab.location.replace(RENDER_PROXY_BASE + '/player#' + cfg);
+    };
     var powerBtn = document.createElement('button');
     powerBtn.innerHTML = __uvdLowPowerMode ? '☀️ Bật lại giám sát' : '🔋 Giảm tải nền';
     powerBtn.onclick = function() { menu.remove(); menuBtn.classList.remove('uvd-menu-open'); __uvdLowPowerMode ? __uvdExitLowPowerMode() : __uvdEnterLowPowerMode(); };
     menu.appendChild(qBtn);
     menu.appendChild(sBtn);
+    menu.appendChild(newTabBtn);
     menu.appendChild(powerBtn);
     sheet.appendChild(menu);
     setTimeout(function() {

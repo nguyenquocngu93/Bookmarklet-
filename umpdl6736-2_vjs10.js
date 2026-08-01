@@ -611,9 +611,11 @@ function scan(doc, src, light) {
     doc.querySelectorAll('iframe').forEach(function(i, idx) {
       if (i.src) {
         var iframeUrl = i.src;
-        if (!isAdUrl(iframeUrl)) {
+        // Không tự thêm mọi iframe vào Streams. Chỉ giữ iframe có tín hiệu
+        // player/video/embed; iframe quảng cáo hoặc iframe rỗng không tạo card.
+        if (!isAdUrl(iframeUrl) && typeof __uvdIsLikelyVideoIframe === 'function' && __uvdIsLikelyVideoIframe(iframeUrl)) {
           urls.set(iframeUrl, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now() });
-        } else {
+        } else if (isAdUrl(iframeUrl)) {
           __uvdAdBlockedCount++;
         }
       }
@@ -4094,7 +4096,7 @@ function buildStreamCardHTML(item, i) {
       '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">IFRAME EMBED</span><strong>Chưa phải direct media</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
       '<div class="uvd-card-stream-meta">Iframe được giữ riêng để tránh tạo thumbnail giả. Mở nó ở cửa sổ mới rồi chạy UMP trong iframe để bắt link thật.</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Nhấn giữ để chọn Open in new window / split screen">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '">Mở iframe</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
+      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Nhấn giữ để chọn Open in new window / split screen">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy iframe</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
       '</div>';
   }
   var actionsHtml;
@@ -4451,6 +4453,15 @@ function renderStreams(container, arr) {
 
   container.onclick = function(e) {
     if (!e.target.closest('.uvd-action-menu')) container.querySelectorAll('.uvd-action-menu[open]').forEach(function(menu) { menu.open = false; });
+    var iframeWindowLink = e.target.closest('.uvd-iframe-window-link');
+    if (iframeWindowLink) {
+      // Bấm thường: copy URL để ní có thể dán/chạy bookmarklet. Nhấn giữ
+      // vẫn giữ nguyên anchor thật để Chrome hiện "Open in new window".
+      e.preventDefault(); e.stopPropagation();
+      copy(iframeWindowLink.href);
+      toast('Đã copy iframe — nhấn giữ link để chọn Open in new window');
+      return;
+    }
     var urlBox = e.target.closest('.uvd-url-box');
     if (urlBox) {
       copy(urlBox.textContent || '');
@@ -4494,10 +4505,14 @@ function renderStreams(container, arr) {
         }, 260);
       }
       else if (action === 'cmd') showCommandPicker(u2, t);
+      else if (action === 'iframe-copy') {
+        copy(u2);
+        toast('Đã copy iframe — nhấn giữ link để chọn Open in new window');
+      }
       else if (action === 'iframe-window') {
         var opened = __uvdOpenIframeWindow(u2);
-        if (opened) toast('Đã mở iframe ở cửa sổ mới');
-        else toast('Chrome đã chặn cửa sổ mới — hãy cho phép popup');
+        if (opened) toast('Đã mở cửa sổ iframe');
+        else toast('Chrome đã chặn cửa sổ mới — nhấn giữ link iframe để dùng menu native');
       }
       else if (action === 'iframe') { copy(BOOKMARKLET_NAME); window.__uvdSafeOpen(u2); toast('Đã mở iframe tab và copy: ' + BOOKMARKLET_NAME); }
       else if (action === 'blobdl') downloadBlobUrl(u2);

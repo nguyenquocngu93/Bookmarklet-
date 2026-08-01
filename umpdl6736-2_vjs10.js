@@ -522,7 +522,6 @@ function findUrls(text, source) {
     __uvdDismissIframeWorkflowIfVideoFound();
     if (changed) {
       __uvdPausePageAfterMediaFound();
-      setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
     }
     return;
   }
@@ -567,7 +566,6 @@ function findUrls(text, source) {
   // seen URL was the source of the visible UI flash. Preload/Auto Play do a
   // single deliberate refresh after their capture window.
   __uvdDismissIframeWorkflowIfVideoFound();
-  if (changed) setTimeout(__uvdMaybeOfferIframeWorkflow, 250);
 }
 
 function scan(doc, src, light) {
@@ -1756,7 +1754,6 @@ function runPreloadCapture() {
           scheduleLiveUiRefresh();
         }
       } else {
-        __uvdMaybeOfferIframeWorkflow();
         scheduleLiveUiRefresh();
       }
     }, delay);
@@ -4096,7 +4093,7 @@ function buildStreamCardHTML(item, i) {
       '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">IFRAME EMBED</span><strong>Chưa phải direct media</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
       '<div class="uvd-card-stream-meta">Iframe được giữ riêng để tránh tạo thumbnail giả. Mở nó ở cửa sổ mới rồi chạy UMP trong iframe để bắt link thật.</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Nhấn giữ để chọn Open in new window / split screen">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy iframe</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
+      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Nhấn giữ để chọn Open in new window / split screen">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
       '</div>';
   }
   var actionsHtml;
@@ -4458,8 +4455,8 @@ function renderStreams(container, arr) {
       // Bấm thường: copy URL để ní có thể dán/chạy bookmarklet. Nhấn giữ
       // vẫn giữ nguyên anchor thật để Chrome hiện "Open in new window".
       e.preventDefault(); e.stopPropagation();
-      copy(iframeWindowLink.href);
-      toast('Đã copy iframe — nhấn giữ link để chọn Open in new window');
+      copy(BOOKMARKLET_NAME);
+      toast('Đã copy tên bookmarklet: ' + BOOKMARKLET_NAME + ' — nhấn giữ link để chọn Open in new window');
       return;
     }
     var urlBox = e.target.closest('.uvd-url-box');
@@ -4506,8 +4503,8 @@ function renderStreams(container, arr) {
       }
       else if (action === 'cmd') showCommandPicker(u2, t);
       else if (action === 'iframe-copy') {
-        copy(u2);
-        toast('Đã copy iframe — nhấn giữ link để chọn Open in new window');
+        copy(BOOKMARKLET_NAME);
+        toast('Đã copy tên bookmarklet: ' + BOOKMARKLET_NAME + ' — nhấn giữ link để chọn Open in new window');
       }
       else if (action === 'iframe-window') {
         var opened = __uvdOpenIframeWindow(u2);
@@ -5207,13 +5204,6 @@ try {
 window.__uvdBootPhase = 'build-ui';
 buildUI();
 setTimeout(__uvdSyncLoad, 350);
-setTimeout(__uvdMaybeOfferIframeWorkflow, 1800);
-setTimeout(__uvdMaybeOfferIframeWorkflow, 5000);
-var __uvdIframeWorkflowWatch = setInterval(function() {
-  __uvdMaybeOfferIframeWorkflow();
-  if (__uvdIframeWorkflowAsked) clearInterval(__uvdIframeWorkflowWatch);
-}, 1000);
-setTimeout(function() { clearInterval(__uvdIframeWorkflowWatch); }, 15000);
 console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
 } catch (bootError) {
   __uvdReportBootError(bootError);

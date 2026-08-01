@@ -1420,6 +1420,7 @@ function __uvdFinishOneShotCapture() {
   debouncedBuildUI();
 }
 function __uvdStartOneShotCapture(reason) {
+  __uvdStartHardEmbedBlocker();
   if (__uvdOneShotCaptureActive) return;
   __uvdOneShotCaptureActive = true;
   __uvdLiveCaptureMode = true;
@@ -1436,6 +1437,53 @@ function __uvdInstallOneShotClickCapture() {
   };
   document.addEventListener('click', handler, true);
   addCleanup(function() { document.removeEventListener('click', handler, true); });
+}
+
+// ========== HARD EMBED BLOCKER ==========
+var __uvdHardEmbedBlockerActive = false;
+var __uvdHardEmbedBlockerTimer = null;
+var __uvdHardEmbedHidden = [];
+function __uvdHardEmbedIsPage() {
+  return /videoplay|streamtape|mixdrop/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
+}
+function __uvdHardEmbedScan() {
+  var video = document.querySelector('video');
+  if (!video || !video.getBoundingClientRect) return;
+  var vr = video.getBoundingClientRect();
+  document.querySelectorAll('a,div').forEach(function(el) {
+    if (!el || el === video || el.contains(video) || video.contains(el) || __uvdIsOwnUI(el)) return;
+    var s = getComputedStyle(el), r = el.getBoundingClientRect();
+    var overlap = !(r.right < vr.left || r.left > vr.right || r.bottom < vr.top || r.top > vr.bottom);
+    var positioned = s.position === 'absolute' || s.position === 'fixed' || s.position === 'sticky';
+    if (!overlap || !positioned) return;
+    var z = parseInt(s.zIndex, 10) || 0;
+    var text = ((el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + (el.textContent || '')).toLowerCase();
+    var adLike = /ad|advert|popup|popunder|overlay|banner|click|redirect|traffic/.test(text);
+    if (el.tagName === 'A' && (adLike || z > 1)) {
+      el.style.setProperty('pointer-events', 'none', 'important');
+      el.style.setProperty('display', 'none', 'important');
+      el.removeAttribute('href');
+      __uvdHardEmbedHidden.push(el);
+    } else if (el.tagName === 'DIV' && z > 1 && adLike && !el.querySelector('video,iframe,button,input,select,textarea')) {
+      el.style.setProperty('pointer-events', 'none', 'important');
+      el.style.setProperty('opacity', '0', 'important');
+      __uvdHardEmbedHidden.push(el);
+    }
+  });
+}
+function __uvdStartHardEmbedBlocker() {
+  if (__uvdHardEmbedBlockerActive || !__uvdHardEmbedIsPage()) return;
+  __uvdHardEmbedBlockerActive = true;
+  installPopupBlock();
+  __uvdHardEmbedScan();
+  __uvdHardEmbedBlockerTimer = setInterval(__uvdHardEmbedScan, 700);
+  addCleanup(function() {
+    if (__uvdHardEmbedBlockerTimer) clearInterval(__uvdHardEmbedBlockerTimer);
+    __uvdHardEmbedBlockerTimer = null;
+    __uvdHardEmbedBlockerActive = false;
+    __uvdHardEmbedHidden.forEach(function(el) { if (el && el.isConnected) { el.style.pointerEvents = ''; el.style.display = ''; el.style.opacity = ''; } });
+    __uvdHardEmbedHidden = [];
+  });
 }
 
 // ========== JAVHUB AD/BANNER CLEANUP ==========
@@ -1620,6 +1668,7 @@ function runAutoClickAndRescan(silent) {
 }
 
 function runPreloadCapture() {
+  __uvdStartHardEmbedBlocker();
   installMonitor();
   installPopupBlock();
   __uvdLiveCaptureMode = true;
@@ -3431,6 +3480,7 @@ function __uvdSetHidden(hidden) {
     panel.classList.toggle('uvd-panel-collapsed', hidden);
   }
   if (hidden) {
+    __uvdStartHardEmbedBlocker();
     // Collapsed mode keeps the header in its original position while the
     // content below it folds upward. Popup blocking remains active.
     __uvdRemoveRestoreBtn();

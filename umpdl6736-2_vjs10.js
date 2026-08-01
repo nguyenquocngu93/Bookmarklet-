@@ -414,43 +414,6 @@ function __uvdStartMatthewGuard() {
   addCleanup(function() { document.removeEventListener('click', handler, true); });
 }
 
-function __uvdNormalizeStandaloneManifest(text, baseUrl) {
-  var lines = String(text || '').split(/\\r?\\n/);
-  return lines.map(function(line) {
-    var trimmed = line.trim();
-    if (!trimmed) return line;
-    if (trimmed.charAt(0) === '#') {
-      return line.replace(/(URI=)([\"'])([^\"']+)\\2/gi, function(_, key, quote, uri) {
-        try { return key + quote + new URL(uri, baseUrl).href + quote; } catch(e) { return _; }
-      });
-    }
-    try { return new URL(trimmed, baseUrl).href; } catch(e) { return line; }
-  }).join('\\n');
-}
-function __uvdSendStandaloneManifest(entry) {
-  if (!entry || !entry.source || entry.source.indexOf('blob:') === 0) return;
-  fetch(entry.source, { headers: { Referer: pageInfo.referer || location.href }, cache: 'no-store' })
-    .then(function(r) { if (!r.ok) throw new Error('manifest ' + r.status); return r.text(); })
-    .then(function(text) {
-      if (text.indexOf('#EXTM3U') === -1) return;
-      var normalized = __uvdNormalizeStandaloneManifest(text, entry.source);
-      if (entry.win && !entry.win.closed) entry.win.postMessage({ type: 'umpdl-manifest', text: normalized, base: entry.source }, '*');
-    }).catch(function() {});
-}
-function __uvdBroadcastStandaloneSource(url, type) {
-  if (!url || String(type || '').toUpperCase() !== 'M3U8') return;
-  var source = buildHeaderProxyUrl(url, type) || url;
-  (__uvdStandaloneTabs || []).forEach(function(entry) {
-    try {
-      if (entry.win && !entry.win.closed) {
-        entry.source = source;
-        entry.win.postMessage({ type: 'umpdl-session-source', src: source, sourceType: type }, '*');
-        __uvdSendStandaloneManifest(entry);
-      }
-    } catch(e) {}
-  });
-}
-
 function __uvdAddDetectedMediaUrl(url, type, source) {
   if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
   // Android browsers may expose AV1 download links before the H.264 variant.
@@ -467,7 +430,6 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
     urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
-    __uvdBroadcastStandaloneSource(url, type);
     return true;
   }
   return false;
@@ -2240,31 +2202,6 @@ function buildHeaderProxyUrl(sourceUrl, type) {
   return HEADER_PROXY_BASE.replace(/\/$/, '') + endpoint + '?' + params.toString();
 }
 
-var __uvdStandaloneTabs = window.__uvdStandaloneTabs || [];
-if (!window.__uvdStandaloneBridgeInstalled) {
-  window.__uvdStandaloneBridgeInstalled = true;
-  window.addEventListener('message', function(e) {
-    if (!e.data || e.data.type !== 'umpdl-player-ready') return;
-    var entry = __uvdStandaloneTabs.find(function(item) { return item.win === e.source; });
-    if (!entry || !e.source || !e.source.postMessage) return;
-    try {
-      e.source.postMessage({ type: 'umpdl-session-source', src: entry.source, sourceType: entry.sourceType }, '*');
-      __uvdSendStandaloneManifest(entry);
-    } catch(ex) {}
-  });
-}
-function __uvdOpenStandalonePlayer(sourceUrl, type) {
-  var source = buildHeaderProxyUrl(sourceUrl, type) || sourceUrl;
-  var cfg = encodeURIComponent(JSON.stringify({ src: source, type: type || 'M3U8' }));
-  var playerUrl = RENDER_PROXY_BASE + '/player#' + cfg;
-  var tab = window.__uvdSafeOpen ? window.__uvdSafeOpen(playerUrl) : window.open(playerUrl, '_blank');
-  if (!tab) { toast('Chrome đã chặn tab mới — hãy cho phép popup cho trang này'); return false; }
-  __uvdStandaloneTabs.push({ win: tab, source: source, sourceType: type || 'M3U8' });
-  if (__uvdStandaloneTabs.length > 6) __uvdStandaloneTabs.shift();
-  try { tab.focus(); } catch(e) {}
-  return true;
-}
-
 function retryThroughHeaderProxy(sourceUrl, type) {
   if (playerState.proxyRetried) return false;
   var proxyUrl = buildHeaderProxyUrl(sourceUrl, type);
@@ -2688,21 +2625,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var sBtn = document.createElement('button');
     sBtn.innerHTML = '💬 Phụ đề';
     sBtn.onclick = function() { menu.remove(); menuBtn.classList.remove('uvd-menu-open'); showSubtitlePanel(playerState.video); };
-    var newTabBtn = document.createElement('button');
-    newTabBtn.innerHTML = '↗ Mở player ở tab mới';
-    newTabBtn.onclick = function() {
-      menu.remove(); menuBtn.classList.remove('uvd-menu-open');
-      if (!__uvdOpenStandalonePlayer(playerState.url, playerState.type)) return;
-      // Đã có tab player riêng thì dừng player overlay hiện tại để tránh
-      // hai HLS decoder cùng chạy và tranh compositor với UI trang gốc.
-      setTimeout(function() { if (playerState.overlay) closePlayer(); }, 120);
-    };
     var powerBtn = document.createElement('button');
     powerBtn.innerHTML = __uvdLowPowerMode ? '☀️ Bật lại giám sát' : '🔋 Giảm tải nền';
     powerBtn.onclick = function() { menu.remove(); menuBtn.classList.remove('uvd-menu-open'); __uvdLowPowerMode ? __uvdExitLowPowerMode() : __uvdEnterLowPowerMode(); };
     menu.appendChild(qBtn);
     menu.appendChild(sBtn);
-    menu.appendChild(newTabBtn);
     menu.appendChild(powerBtn);
     sheet.appendChild(menu);
     setTimeout(function() {
@@ -3969,13 +3896,11 @@ function buildStreamCardHTML(item, i) {
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="newtab" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">↗ Tab mới</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
   } else {
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="newtab" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">↗ Tab mới</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
@@ -4342,9 +4267,6 @@ function renderStreams(container, arr) {
       addToHistory(u2, t || 'IFRAME');
       if (action === 'share') shareUrl(u2);
       else if (action === 'copy') { copy(u2); toast('Đã sao chép!'); }
-      else if (action === 'newtab') {
-        if (__uvdOpenStandalonePlayer(u2, t || 'M3U8')) toast('Đã mở player ở tab mới');
-      }
       else if (action === 'quality') showQualityPicker(u2);
       else if (action === 'play') {
         var launchCard = actionBtn.closest('.uvd-card');

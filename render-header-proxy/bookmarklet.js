@@ -414,11 +414,40 @@ function __uvdStartMatthewGuard() {
   addCleanup(function() { document.removeEventListener('click', handler, true); });
 }
 
+function __uvdNormalizeStandaloneManifest(text, baseUrl) {
+  var lines = String(text || '').split(/\\r?\\n/);
+  return lines.map(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) return line;
+    if (trimmed.charAt(0) === '#') {
+      return line.replace(/(URI=)([\"'])([^\"']+)\\2/gi, function(_, key, quote, uri) {
+        try { return key + quote + new URL(uri, baseUrl).href + quote; } catch(e) { return _; }
+      });
+    }
+    try { return new URL(trimmed, baseUrl).href; } catch(e) { return line; }
+  }).join('\\n');
+}
+function __uvdSendStandaloneManifest(entry) {
+  if (!entry || !entry.source || entry.source.indexOf('blob:') === 0) return;
+  fetch(entry.source, { headers: { Referer: pageInfo.referer || location.href }, cache: 'no-store' })
+    .then(function(r) { if (!r.ok) throw new Error('manifest ' + r.status); return r.text(); })
+    .then(function(text) {
+      if (text.indexOf('#EXTM3U') === -1) return;
+      var normalized = __uvdNormalizeStandaloneManifest(text, entry.source);
+      if (entry.win && !entry.win.closed) entry.win.postMessage({ type: 'umpdl-manifest', text: normalized, base: entry.source }, '*');
+    }).catch(function() {});
+}
 function __uvdBroadcastStandaloneSource(url, type) {
   if (!url || String(type || '').toUpperCase() !== 'M3U8') return;
   var source = buildHeaderProxyUrl(url, type) || url;
   (__uvdStandaloneTabs || []).forEach(function(entry) {
-    try { if (entry.win && !entry.win.closed) entry.win.postMessage({ type: 'umpdl-session-source', src: source, sourceType: type }, '*'); } catch(e) {}
+    try {
+      if (entry.win && !entry.win.closed) {
+        entry.source = source;
+        entry.win.postMessage({ type: 'umpdl-session-source', src: source, sourceType: type }, '*');
+        __uvdSendStandaloneManifest(entry);
+      }
+    } catch(e) {}
   });
 }
 
@@ -2218,7 +2247,10 @@ if (!window.__uvdStandaloneBridgeInstalled) {
     if (!e.data || e.data.type !== 'umpdl-player-ready') return;
     var entry = __uvdStandaloneTabs.find(function(item) { return item.win === e.source; });
     if (!entry || !e.source || !e.source.postMessage) return;
-    try { e.source.postMessage({ type: 'umpdl-session-source', src: entry.source, sourceType: entry.sourceType }, '*'); } catch(ex) {}
+    try {
+      e.source.postMessage({ type: 'umpdl-session-source', src: entry.source, sourceType: entry.sourceType }, '*');
+      __uvdSendStandaloneManifest(entry);
+    } catch(ex) {}
   });
 }
 function __uvdOpenStandalonePlayer(sourceUrl, type) {

@@ -284,7 +284,13 @@ app.get('/player', (_req, res) => {
 (function(){'use strict';var video=document.getElementById('video'),quality=document.getElementById('quality'),status=document.getElementById('status'),meta=document.getElementById('meta'),hls=null,source='';
 function setStatus(text,error){status.textContent=text;status.className='status'+(error?' error':'');}
 try{var raw=decodeURIComponent(location.hash.slice(1));var cfg=JSON.parse(raw);source=cfg.src||'';meta.textContent=(cfg.type||'M3U8')+' · tab riêng';}catch(e){setStatus('Không đọc được cấu hình player.',true);return;}
-window.addEventListener('message',function(e){if(e.data&&e.data.type==='umpdl-session-source'&&e.data.src){source=e.data.src;load();}});
+var bridgeBlobUrl='';
+window.addEventListener('message',function(e){
+  if(!e.data)return;
+  if(e.data.type==='umpdl-manifest'&&e.data.text){
+    try{if(bridgeBlobUrl)URL.revokeObjectURL(bridgeBlobUrl);bridgeBlobUrl=URL.createObjectURL(new Blob([e.data.text],{type:'application/vnd.apple.mpegurl'}));source=bridgeBlobUrl;load();setStatus('Đang phát manifest bridge từ trang mẹ…');}catch(err){setStatus('Không tạo được manifest Blob.',true);}
+  }else if(e.data.type==='umpdl-session-source'&&e.data.src){source=e.data.src;load();}
+});
 try{if(window.opener)window.opener.postMessage({type:'umpdl-player-ready'},'*');}catch(e){}
 if(!source){setStatus('Thiếu nguồn HLS.',true);return;}
 function load(){if(hls){hls.destroy();hls=null;}quality.innerHTML='<option value="-1">Tự động</option>';setStatus('Đang tải HLS…');if(window.Hls&&Hls.isSupported()){hls=new Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:30,maxBufferLength:30});hls.on(Hls.Events.MANIFEST_PARSED,function(){var levels=hls.levels||[];levels.forEach(function(l,i){var o=document.createElement('option');o.value=i;o.textContent=(l.height?l.height+'p':'Level '+(i+1))+(l.bitrate?' · '+Math.round(l.bitrate/1000)+'kbps':'');quality.appendChild(o);});setStatus('Đã tải '+levels.length+' mức chất lượng.');});hls.on(Hls.Events.ERROR,function(_,d){if(d&&d.fatal)setStatus('HLS lỗi: '+(d.details||d.type||'không xác định'),true);});hls.loadSource(source);hls.attachMedia(video);}else if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=source;setStatus('Đang dùng HLS native.');}else setStatus('Trình duyệt không hỗ trợ HLS.',true);}

@@ -111,7 +111,7 @@ data.settings = Object.assign({
   hideDelay: 5,
   maxStoredUrls: 200,
   blockAutoplay: true,
-  autoClickPlay: false,
+  autoClickPlay: true,
   glowEffects: true,
   theme: 'light',             // tạm khóa Light; Dark Glass sẽ hoàn thiện sau
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
@@ -130,6 +130,13 @@ if (__uvdLinkConfig) {
 // Tạm thời chỉ dùng Light Teal; Dark Glass sẽ quay lại sau khi hoàn thiện
 // contrast toàn bộ component.
 data.settings.theme = 'light';
+
+var __uvdAutoClickDefaultsVersion = 1;
+if (data.settings.__uvdAutoClickDefaultsVersion !== __uvdAutoClickDefaultsVersion) {
+  data.settings.autoClickPlay = true;
+  data.settings.__uvdAutoClickDefaultsVersion = __uvdAutoClickDefaultsVersion;
+  storage.set(data);
+}
 
 var __uvdSmoothDefaultsVersion = 1;
 if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
@@ -1624,6 +1631,7 @@ try {
   __uvdStartMatthewGuard();
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
+  if (data.settings.autoClickPlay) setTimeout(function() { runAutoClickAndRescan(true); }, 500);
   // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).
   // Try those server controls automatically after the initial scan; do not
   // auto-click generic Play buttons on this host because they trigger ads.

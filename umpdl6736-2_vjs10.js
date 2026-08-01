@@ -2673,9 +2673,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   __uvdApplyPlayerLayout();
   playerState.updatePlayerWidth = __uvdApplyPlayerLayout;
   var forceNativeBlobPlayer = reusedOriginalVideo && /(?:^|\.)api\.phimsrv\.com$/i.test(pageInfo.host);
-  if (forceNativeBlobPlayer) {
-    // Phimsrv/ArtPlayer owns a MediaSource blob; do not load Video.js into
-    // this document, because its CSP/player wrapper can hide the controls.
+  var forceNativeInteractivePlayer = __uvdIsProtectedInteractivePlayer();
+  if (forceNativeBlobPlayer || forceNativeInteractivePlayer) {
+    // Phimsrv/ArtPlayer owns a MediaSource blob; UPN also has its own
+    // verification/player controls. Do not wrap either one with Video.js,
+    // because the extra skin can hide the only usable Play control.
     video.setAttribute('controls', '');
     video.style.borderRadius = '24px';
     playerState.vjsMountCancel = null;

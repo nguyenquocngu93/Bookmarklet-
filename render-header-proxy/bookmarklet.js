@@ -1435,6 +1435,60 @@ function __uvdInstallOneShotClickCapture() {
   addCleanup(function() { document.removeEventListener('click', handler, true); });
 }
 
+// ========== JAVHUB AD/BANNER CLEANUP ==========
+var __uvdJavhubHidden = [];
+var __uvdJavhubAdObserver = null;
+function __uvdIsJavhubPage() { return /(?:^|\\.)javhub\\.net$/i.test(location.hostname); }
+function __uvdHideJavhubAds() {
+  if (!__uvdIsJavhubPage()) return;
+  var selectors = [
+    'iframe[src*="bluetrafficstream"]',
+    'a[href*="bluetrafficstream"]',
+    'a[href*="/membership"]',
+    '[id*="banner"]','[class*="banner"]',
+    '[id*="advert"]','[class*="advert"]',
+    '[id*="popunder"]','[class*="popunder"]',
+    '[id*="popup"]','[class*="popup"]'
+  ].join(',');
+  document.querySelectorAll(selectors).forEach(function(el) {
+    if (!el || el.closest('#__uvd__') || el.closest('#__uvd_player_overlay__')) return;
+    var target = el;
+    if (el.matches('a[href*="/membership"]') && el.parentElement && el.parentElement.querySelector('img')) target = el.parentElement;
+    if (target.dataset.uvdJavhubHidden) return;
+    target.dataset.uvdJavhubHidden = '1';
+    target.dataset.uvdJavhubDisplay = target.style.display || '';
+    target.style.setProperty('display', 'none', 'important');
+    __uvdJavhubHidden.push(target);
+  });
+}
+function __uvdStartJavhubAdGuard() {
+  if (!__uvdIsJavhubPage()) return;
+  __uvdHideJavhubAds();
+  __uvdJavhubAdObserver = new MutationObserver(function() { __uvdHideJavhubAds(); });
+  __uvdJavhubAdObserver.observe(document.documentElement, { childList: true, subtree: true });
+  var adClickHandler = function(e) {
+    var link = e.target && e.target.closest ? e.target.closest('a,button,[role="button"]') : null;
+    if (!link || link.closest('#__uvd__') || link.closest('#__uvd_player_overlay__')) return;
+    var href = link.href || link.getAttribute('data-href') || '';
+    if (/bluetrafficstream|popunder|popup|ad[s_-]?/i.test(href)) {
+      e.preventDefault(); e.stopPropagation(); __uvdBlockedCount++;
+    }
+  };
+  document.addEventListener('click', adClickHandler, true);
+  addCleanup(function() {
+    document.removeEventListener('click', adClickHandler, true);
+    if (__uvdJavhubAdObserver) { __uvdJavhubAdObserver.disconnect(); __uvdJavhubAdObserver = null; }
+    __uvdJavhubHidden.forEach(function(el) {
+      if (el && el.dataset.uvdJavhubHidden) {
+        el.style.display = el.dataset.uvdJavhubDisplay || '';
+        delete el.dataset.uvdJavhubHidden;
+        delete el.dataset.uvdJavhubDisplay;
+      }
+    });
+    __uvdJavhubHidden = [];
+  });
+}
+
 // ========== INIT ==========
 try {
   window.__uvdBootPhase = 'scan';
@@ -1443,6 +1497,7 @@ try {
   window.__uvdBootPhase = 'monitor';
   installMonitor();
   installPopupBlock();
+  __uvdStartJavhubAdGuard();
   installUniversalOverlayBlocker();
   __uvdStartAutoplayObserver();
   __uvdStartMatthewGuard();

@@ -345,7 +345,9 @@ function __uvdAppendAccessToken(url, token) {
 }
 var patterns = [
   { re: /https?:\/\/[^\s"'<>()\\]+\/v\d+\/miy\/[^\s"'<>()\\]+\.txt(?:\?[^\s"'<>()\\]*)?/gi, type: 'M3U8', priority: 1 },
-  { re: /https?:\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
+  { re: /(?:https?:)?\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
+  { re: /(?:https?:)?\/\/[^\s"'<>()\\]+(?:tapecontent\.net|mixdrop[^\s"'<>()\\]*)[^\s"'<>()\\]+\.mp4[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
+  { re: /(?:https?:)?\/\/streamtape\.com\/(?:get_video|gbt_video)\?[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mpd[^\s"'<>()\\]*/gi, type: 'MPD', priority: 2 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.mp4[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
   { re: /https?:\/\/[^\s"'<>()\\]+\.webm[^\s"'<>()\\]*/gi, type: 'WEBM', priority: 4 },
@@ -496,6 +498,7 @@ function findUrls(text, source) {
     if (matches) {
       matches.forEach(function(u) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
+        if (/^\/\//.test(u)) u = 'https:' + u;
         __uvdRememberAccessToken(u);
         // /dload/ links are explicit download buttons, not hidden playback sources.
         if (/\/dload\//i.test(u)) return;
@@ -1489,6 +1492,40 @@ function __uvdStartJavhubAdGuard() {
   });
 }
 
+// ========== EMBED DIRECT MEDIA CAPTURE ==========
+function __uvdStartEmbedDirectCapture() {
+  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$/i.test(location.hostname)) return;
+  var timer = null;
+  var scanMedia = function() {
+    try {
+      document.querySelectorAll('video,source,audio').forEach(function(el) {
+        var u = el.currentSrc || el.src || el.getAttribute('src') || el.getAttribute('data-src') || '';
+        if (u && !/^blob:/i.test(u)) __uvdAddDetectedMediaUrl(u, /m3u8/i.test(u) ? 'M3U8' : 'MP4', 'embed:media-event');
+      });
+      performance.getEntriesByType('resource').forEach(function(entry) {
+        if (entry && entry.name && /(?:tapecontent\\.net|mixdrop|streamtape)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
+      });
+      scan(document, 'embed:rescan', true);
+    } catch(e) {}
+  };
+  var onMediaEvent = function(e) {
+    if (!e.target || !/^(VIDEO|AUDIO|SOURCE)$/.test(e.target.tagName)) return;
+    scanMedia();
+    clearTimeout(timer);
+    timer = setTimeout(scanMedia, 500);
+  };
+  document.addEventListener('play', onMediaEvent, true);
+  document.addEventListener('loadedmetadata', onMediaEvent, true);
+  document.addEventListener('canplay', onMediaEvent, true);
+  addCleanup(function() {
+    clearTimeout(timer);
+    document.removeEventListener('play', onMediaEvent, true);
+    document.removeEventListener('loadedmetadata', onMediaEvent, true);
+    document.removeEventListener('canplay', onMediaEvent, true);
+  });
+  scanMedia();
+}
+
 // ========== INIT ==========
 try {
   window.__uvdBootPhase = 'scan';
@@ -1498,6 +1535,7 @@ try {
   installMonitor();
   installPopupBlock();
   __uvdStartJavhubAdGuard();
+  __uvdStartEmbedDirectCapture();
   installUniversalOverlayBlocker();
   __uvdStartAutoplayObserver();
   __uvdStartMatthewGuard();

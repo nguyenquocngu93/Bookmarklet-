@@ -1486,7 +1486,7 @@ function __uvdIsProtectedInteractivePlayer() {
 }
 function __uvdHardEmbedIsPage() {
   if (__uvdIsProtectedInteractivePlayer()) return false;
-  return /videoplay|streamtape|mixdrop/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
+  return /videoplay|streamtape|mixdrop|miixdrop|vinovo/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
 }
 function __uvdHardEmbedScan() {
   var video = document.querySelector('video');
@@ -1584,7 +1584,7 @@ function __uvdStartJavhubAdGuard() {
 
 // ========== EMBED DIRECT MEDIA CAPTURE ==========
 function __uvdStartEmbedDirectCapture() {
-  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$/i.test(location.hostname)) return;
+  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)miixdrop(?:\\.[a-z]+)?$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$|(?:^|\\.)vinovo(?:\\.[a-z]+)?$/i.test(location.hostname)) return;
   var timer = null;
   var scanMedia = function() {
     try {
@@ -1593,7 +1593,7 @@ function __uvdStartEmbedDirectCapture() {
         if (u && !/^blob:/i.test(u)) __uvdAddDetectedMediaUrl(u, /m3u8/i.test(u) ? 'M3U8' : 'MP4', 'embed:media-event');
       });
       performance.getEntriesByType('resource').forEach(function(entry) {
-        if (entry && entry.name && /(?:tapecontent\\.net|mixdrop|streamtape)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
+        if (entry && entry.name && /(?:tapecontent\\.net|mxcontent\\.net|vincdn\\.net|miixdrop|mixdrop|vinovo)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
       });
       scan(document, 'embed:rescan', true);
     } catch(e) {}

@@ -609,13 +609,9 @@ function scan(doc, src, light) {
     doc.querySelectorAll('iframe').forEach(function(i, idx) {
       if (i.src) {
         var iframeUrl = i.src;
-        // Không tự thêm mọi iframe vào Streams. Chỉ giữ iframe có tín hiệu
-        // player/video/embed; iframe quảng cáo hoặc iframe rỗng không tạo card.
-        if (!isAdUrl(iframeUrl) && typeof __uvdIsLikelyVideoIframe === 'function' && __uvdIsLikelyVideoIframe(iframeUrl)) {
-          urls.set(iframeUrl, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now() });
-        } else if (isAdUrl(iframeUrl)) {
-          __uvdAdBlockedCount++;
-        }
+        // Giữ mọi iframe có URL để ní tự quyết định chặn hay mở. Việc
+        // đoán iframe quảng cáo ở đây từng làm mất nhầm player hợp lệ.
+        urls.set(iframeUrl, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now() });
       }
       try { if (i.contentDocument) scan(i.contentDocument, 'iframe#' + idx); }
       catch(e) {}
@@ -1496,7 +1492,7 @@ function __uvdIsProtectedInteractivePlayer() {
 }
 function __uvdHardEmbedIsPage() {
   if (__uvdIsProtectedInteractivePlayer()) return false;
-  return /videoplay|streamtape|mixdrop|miixdrop|vinovo|javxxx/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
+  return /videoplay|streamtape|mixdrop|miixdrop|vinovo|javxxx|upload18/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
 }
 function __uvdHardEmbedScan() {
   var video = document.querySelector('video');
@@ -1594,7 +1590,7 @@ function __uvdStartJavhubAdGuard() {
 
 // ========== EMBED DIRECT MEDIA CAPTURE ==========
 function __uvdStartEmbedDirectCapture() {
-  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)miixdrop(?:\\.[a-z]+)?$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$|(?:^|\\.)vinovo(?:\\.[a-z]+)?$|(?:^|\\.)javxxx\\.me$/i.test(location.hostname)) return;
+  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)miixdrop(?:\\.[a-z]+)?$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$|(?:^|\\.)vinovo(?:\\.[a-z]+)?$|(?:^|\\.)javxxx\\.me$|(?:^|\\.)upload18\\.org$/i.test(location.hostname)) return;
   var timer = null;
   var poll = null;
   var scanMedia = function() {
@@ -1605,11 +1601,11 @@ function __uvdStartEmbedDirectCapture() {
       });
       performance.getEntriesByType('resource').forEach(function(entry) {
         if (!entry || !entry.name || isAdUrl(entry.name)) return;
-        if (/(?:tapecontent\\.net|mxcontent\\.net|vincdn\\.net|miixdrop|mixdrop|vinovo)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
-        // javxxx often hides the real playlist behind a blob/MediaSource. A
-        // resource URL with these playlist hints is still useful even without
-        // a .m3u8 suffix.
-        else if (/(?:m3u8|hls|manifest|playlist|master|media\\?)/i.test(entry.name)) {
+        if (/(?:tapecontent\\.net|mxcontent\\.net|vincdn\\.net|miixdrop|mixdrop|vinovo|upload18)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
+        // Some custom players hide the playlist behind a blob/MediaSource. A
+        // resource URL with these playlist hints is useful even without a
+        // .m3u8 suffix.
+        else if (/(?:m3u8|hls|manifest|playlist|master|media\\?|stream|segments?)/i.test(entry.name)) {
           __uvdAddDetectedMediaUrl(entry.name, 'M3U8', 'embed:resource:playlist');
         }
       });

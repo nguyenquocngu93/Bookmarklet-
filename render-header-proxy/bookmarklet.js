@@ -345,6 +345,7 @@ function __uvdAppendAccessToken(url, token) {
 }
 var patterns = [
   { re: /https?:\/\/[^\s"'<>()\\]+\/v\d+\/miy\/[^\s"'<>()\\]+\.txt(?:\?[^\s"'<>()\\]*)?/gi, type: 'M3U8', priority: 1 },
+  { re: /(?:https?:)?\/\/[^\s"'<>()\\]+\/m3u8\/[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /(?:https?:)?\/\/[^\s"'<>()\\]+\.m3u8[^\s"'<>()\\]*/gi, type: 'M3U8', priority: 1 },
   { re: /(?:https?:)?\/\/[^\s"'<>()\\]+(?:tapecontent\.net|mixdrop[^\s"'<>()\\]*)[^\s"'<>()\\]+\.mp4[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
   { re: /(?:https?:)?\/\/streamtape\.com\/(?:get_video|gbt_video)\?[^\s"'<>()\\]*/gi, type: 'MP4', priority: 3 },
@@ -474,6 +475,31 @@ function __uvdPausePageAfterMediaFound() {
     setTimeout(function() { try { pauseAllPlayingVideos(); } catch(e) {} }, 700);
   }, 80);
 }
+function __uvdIsJwTelemetryUrl(url) {
+  try {
+    var parsed = new URL(url, location.href);
+    return /(?:^|\.)jwpltx\.com$/i.test(parsed.hostname) && /(?:^|\/)ping\.gif$/i.test(parsed.pathname);
+  } catch(e) { return /jwpltx\.com/i.test(String(url || '')) && /ping\.gif/i.test(String(url || '')); }
+}
+function __uvdExtractJwMediaUrl(url, source) {
+  try {
+    var parsed = new URL(url, location.href);
+    var candidates = ['mu', 'file', 'src', 'source', 'url'];
+    for (var i = 0; i < candidates.length; i++) {
+      var raw = parsed.searchParams.get(candidates[i]);
+      if (!raw || !/^https?:/i.test(raw)) continue;
+      var mediaType = /\/m3u8\//i.test(raw) || /\.m3u8(?:[?#]|$)/i.test(raw) ? 'M3U8' : (__uvdLooksLikeHlsUrl(raw) ? 'M3U8' : 'MP4');
+      if (__uvdAddDetectedMediaUrl(raw, mediaType, source + ':jwplayer-param')) return true;
+    }
+  } catch(e) {}
+  return false;
+}
+function __uvdIsFalseMp4TelemetryUrl(url) {
+  try {
+    var parsed = new URL(url, location.href);
+    return /(?:ping\.gif|beacon|analytics)/i.test(parsed.pathname) || /(?:^|\.)jwpltx\.com$/i.test(parsed.hostname);
+  } catch(e) { return /(?:ping\\.gif|jwpltx\\.com)/i.test(String(url || '')); }
+}
 function findUrls(text, source) {
   if (!text || typeof text !== 'string' || text.length > 300000) return;
   if (text.length > 30000 && String(source || '').indexOf(':body') === -1 && String(source || '').indexOf(':playlist') === -1) return;
@@ -499,6 +525,11 @@ function findUrls(text, source) {
       matches.forEach(function(u) {
         u = u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&').replace(/\\"/g, '');
         if (/^\/\//.test(u)) u = 'https:' + u;
+        if (__uvdIsJwTelemetryUrl(u)) {
+          __uvdExtractJwMediaUrl(u, source);
+          return;
+        }
+        if (p.type === 'MP4' && __uvdIsFalseMp4TelemetryUrl(u)) return;
         __uvdRememberAccessToken(u);
         // /dload/ links are explicit download buttons, not hidden playback sources.
         if (/\/dload\//i.test(u)) return;

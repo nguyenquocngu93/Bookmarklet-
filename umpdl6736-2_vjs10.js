@@ -786,7 +786,7 @@ function __uvdBlockExternalLink(e) {
 function installUniversalOverlayBlocker() {
   // Jav Guru uses clickable JS server buttons; the overlay detector can
   // mistake their container for an ad layer and make the buttons inert.
-  if (pageInfo.host === 'jav.guru' || /(?:^|\.)morencius\.com$/i.test(pageInfo.host)) return;
+  if (pageInfo.host === 'jav.guru' || /(?:^|\.)morencius\.com$/i.test(pageInfo.host) || __uvdIsProtectedInteractivePlayer()) return;
   if (__uvdOverlayBlockState) return;
   var state = __uvdOverlayBlockState = { scanTimer: null, interval: null, observer: null, touched: new Map() };
   state.schedule = function() {
@@ -1474,7 +1474,11 @@ function __uvdInstallOneShotClickCapture() {
 var __uvdHardEmbedBlockerActive = false;
 var __uvdHardEmbedBlockerTimer = null;
 var __uvdHardEmbedHidden = [];
+function __uvdIsProtectedInteractivePlayer() {
+  return /(?:^|\.)player\.upn\.one$/i.test(location.hostname);
+}
 function __uvdHardEmbedIsPage() {
+  if (__uvdIsProtectedInteractivePlayer()) return false;
   return /videoplay|streamtape|mixdrop/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
 }
 function __uvdHardEmbedScan() {

@@ -1486,7 +1486,7 @@ function __uvdIsProtectedInteractivePlayer() {
 }
 function __uvdHardEmbedIsPage() {
   if (__uvdIsProtectedInteractivePlayer()) return false;
-  return /videoplay|streamtape|mixdrop|miixdrop|vinovo/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
+  return /videoplay|streamtape|mixdrop|miixdrop|vinovo|javxxx/i.test(location.hostname) || /\/e\//i.test(location.pathname) || !!document.querySelector('video');
 }
 function __uvdHardEmbedScan() {
   var video = document.querySelector('video');
@@ -1584,8 +1584,9 @@ function __uvdStartJavhubAdGuard() {
 
 // ========== EMBED DIRECT MEDIA CAPTURE ==========
 function __uvdStartEmbedDirectCapture() {
-  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)miixdrop(?:\\.[a-z]+)?$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$|(?:^|\\.)vinovo(?:\\.[a-z]+)?$/i.test(location.hostname)) return;
+  if (!/(?:^|\\.)streamtape\\.com$|(?:^|\\.)miixdrop(?:\\.[a-z]+)?$|(?:^|\\.)mixdrop(?:\\.[a-z]+)?$|(?:^|\\.)vinovo(?:\\.[a-z]+)?$|(?:^|\\.)javxxx\\.me$/i.test(location.hostname)) return;
   var timer = null;
+  var poll = null;
   var scanMedia = function() {
     try {
       document.querySelectorAll('video,source,audio').forEach(function(el) {
@@ -1593,7 +1594,14 @@ function __uvdStartEmbedDirectCapture() {
         if (u && !/^blob:/i.test(u)) __uvdAddDetectedMediaUrl(u, /m3u8/i.test(u) ? 'M3U8' : 'MP4', 'embed:media-event');
       });
       performance.getEntriesByType('resource').forEach(function(entry) {
-        if (entry && entry.name && /(?:tapecontent\\.net|mxcontent\\.net|vincdn\\.net|miixdrop|mixdrop|vinovo)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
+        if (!entry || !entry.name || isAdUrl(entry.name)) return;
+        if (/(?:tapecontent\\.net|mxcontent\\.net|vincdn\\.net|miixdrop|mixdrop|vinovo)/i.test(entry.name)) findUrls(entry.name, 'embed:resource');
+        // javxxx often hides the real playlist behind a blob/MediaSource. A
+        // resource URL with these playlist hints is still useful even without
+        // a .m3u8 suffix.
+        else if (/(?:m3u8|hls|manifest|playlist|master|media\\?)/i.test(entry.name)) {
+          __uvdAddDetectedMediaUrl(entry.name, 'M3U8', 'embed:resource:playlist');
+        }
       });
       scan(document, 'embed:rescan', true);
     } catch(e) {}
@@ -1607,8 +1615,10 @@ function __uvdStartEmbedDirectCapture() {
   document.addEventListener('play', onMediaEvent, true);
   document.addEventListener('loadedmetadata', onMediaEvent, true);
   document.addEventListener('canplay', onMediaEvent, true);
+  poll = setInterval(scanMedia, 1200);
   addCleanup(function() {
     clearTimeout(timer);
+    clearInterval(poll);
     document.removeEventListener('play', onMediaEvent, true);
     document.removeEventListener('loadedmetadata', onMediaEvent, true);
     document.removeEventListener('canplay', onMediaEvent, true);

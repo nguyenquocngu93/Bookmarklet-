@@ -593,4 +593,13 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   4. **Nút iframe trên header**: đổi 🎬 (emoji màu) sang glyph "▣" đơn sắc cho đồng bộ với các
      nút khác (▶ ◉ ↻ ⚙ ▾ ×).
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+### Patch #23 — Câu hướng dẫn theo từng loại link, khuyên đừng bấm link rác — 2026-08-03
 
+- **Mục tiêu:** thêm câu hướng dẫn ngắn cho từng loại link:
+  - **M3U8**: "Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha."
+  - **MP4/WEBM**: "Link video thật nè 📼 — bấm Xem để phát ngay nha."
+  - **BLOB**: "Blob MediaSource nè 🌀 — bấm Xem để phát trực tiếp."
+  - **IFRAME**: phân theo verdict — PLAYER khuyến khích mở; UNKNOWN bảo mở thử; **JUNK
+    (rác) khuyên "Đừng bấm nha" + ẩn nút "↗ mở"** thay bằng dòng "🚫 Không nên mở — đây là rác".
+  - Popup link cũng có dòng hướng dẫn theo loại.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js` = `bookmarkkk.js`; `git diff --check` sạch.

@@ -3482,6 +3482,8 @@ style.textContent = `
 .uvd-cute .uvd-card-status{font-size:8.5px!important}
 .uvd-cute .uvd-card-url-label{color:#d85c7a!important}
 .uvd-cute .uvd-card-stream-meta{background:rgba(255,214,228,.35)!important;border-color:rgba(255,159,180,.3)!important;color:#c95073!important;border-radius:12px!important}
+.uvd-card-guide{display:flex;align-items:center;gap:6px;padding:7px 11px;margin:0 0 9px;border-radius:12px;background:linear-gradient(135deg,rgba(255,214,228,.45),rgba(239,221,255,.4))!important;border:1px solid rgba(255,159,180,.3)!important;color:#a05668!important;font-size:11px;font-weight:700;line-height:1.45}
+.uvd-junk-advice{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:12px;background:rgba(255,93,114,.14);border:1px solid rgba(255,93,114,.34);color:#ff5d72;font-size:11px;font-weight:800}
 .uvd-cute-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .uvd-votechip{display:inline-flex;align-items:center;gap:3px;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:none;transition:transform .15s ease}
 .uvd-votechip:active{transform:scale(.88)}
@@ -3841,7 +3843,7 @@ style.textContent = `
 .uvd-plplain-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:8.5px;font-weight:800;color:#fff;background:#b385f2;white-space:nowrap}
 .uvd-plplain-q{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:8.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff9fb4,#f76c8c);white-space:nowrap}
 .uvd-plplain-url{font-size:11.5px;color:#7a5f9e;word-break:break-all;line-height:1.45}
-.uvd-plplain-note{font-size:11px;font-weight:800;color:#d85c7a}
+.uvd-plplain-note{font-size:11px;font-weight:800;color:#d85c7a;margin-top:2px}
 .uvd-plplain-quality .uvd-plrow-watch{background:linear-gradient(135deg,#d9b8ff,#b385f2);font-size:11px;padding:10px 14px}
 .uvd-player-sheet{border-radius:30px!important;border:1px solid rgba(255,159,180,.35)!important;box-shadow:0 24px 60px rgba(247,108,140,.3),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
 .uvd-player-sheet .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
@@ -4412,8 +4414,12 @@ function __uvdOpenMediaLinksPopup(streams) {
     var typeText = String(stream.type || 'MEDIA').toUpperCase();
     var badge = '<span class="uvd-plplain-badge">#' + (index + 1) + ' ' + typeText + '</span>';
     if (hasMeta) badge += ' <span class="uvd-plplain-q">✨ chất lượng cao</span>';
+    var popGuide = String(stream.type || '').toUpperCase() === 'M3U8'
+      ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.'
+      : '📼 Link video thật — bấm Xem để phát ngay nha.';
     body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
-      '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>';
+      '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>' +
+      '<div class="uvd-plplain-note">' + popGuide + '</div>';
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
     play.textContent = '▶ Xem';
@@ -5135,14 +5141,22 @@ function buildStreamCardHTML(item, i) {
       : (item.aiVerdict === 'JUNK'
         ? '<span class="uvd-ai-badge uvd-ai-junk">rác 💩</span>'
         : '<span class="uvd-ai-badge uvd-ai-unknown">chưa rõ ❔</span>');
+    var isJunk = item.aiVerdict === 'JUNK';
+    var iframeGuide = isJunk
+      ? '🚫 Link này bị đánh dấu là rác — đừng bấm nha, vote 💩 để chặn dần nè.'
+      : (item.aiVerdict === 'PLAYER'
+        ? 'Player thật đó nè ✨ — bấm "↗ mở" rồi chạy lại UMP để lấy link thật nha.'
+        : 'Chưa rõ lắm — mở thử ở tab mới rồi chạy lại UMP lấy link thật nha 🥺');
+    var iframeActions = isJunk
+      ? '<span class="uvd-junk-advice">🚫 Không nên mở — đây là rác</span>'
+      : '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
+        '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>';
     return '<div class="uvd-card uvd-iframe-card uvd-cute" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
-      '<div class="uvd-card-stream-meta">mở nó ở tab mới rồi chạy lại UMP để lấy link thật nha 🥺</div>' +
+      '<div class="uvd-card-guide">' + iframeGuide + '</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
       (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
-      '<div class="uvd-cute-actions">' +
-        '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
-        '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>' +
+      '<div class="uvd-cute-actions">' + iframeActions +
         '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>' +
       '</div>' +
       '</div>';
@@ -5169,6 +5183,11 @@ function buildStreamCardHTML(item, i) {
   var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
   var statusText = (type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview';
   var statusClass = (type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted';
+  var guideText;
+  if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
+  else if (type === 'MP4' || type === 'WEBM') guideText = 'Link video thật nè 📼 — bấm Xem để phát ngay nha.';
+  else if (type === 'BLOB') guideText = 'Blob MediaSource nè 🌀 — bấm Xem để phát trực tiếp.';
+  else guideText = 'Link media nè — bấm Xem để phát thử nha.';
   return (
     '<div class="uvd-card uvd-cute" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
@@ -5182,6 +5201,7 @@ function buildStreamCardHTML(item, i) {
         '<div class="uvd-card-badges"><span class="uvd-type-badge">' + emoji + ' #' + (i+1) + '</span><span class="uvd-card-status ' + statusClass + '">' + statusText + '</span></div>' +
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
+      '<div class="uvd-card-guide">' + guideText + '</div>' +
       '<div class="uvd-card-stream-meta" data-card-stream-meta>' + escapeHtml(item.type) + metaLabel + '</div>' +
       (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +

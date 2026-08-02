@@ -123,7 +123,9 @@ data.settings = Object.assign({
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
   subdlApiKey: '',
-  syncProfileId: ''
+  syncProfileId: '',
+  aiIframeFilter: true,
+  llmProxyUrl: ''
 }, data.settings || {});
 if (__uvdLinkConfig) {
   if (__uvdLinkConfig.settings) data.settings = Object.assign({}, data.settings, __uvdLinkConfig.settings);
@@ -404,6 +406,34 @@ function __uvdFreezeMatthewPage() {
   try { installPopupBlock(); } catch(e) {}
   toast('🧊 Đã khóa page sau khi bắt được video');
 }
+// ========== AI/HEURISTIC IFRAME CLASSIFIER — network evidence ==========
+// The bookmarklet cannot read inside a cross-origin iframe, but it CAN watch
+// every media URL that appears in the parent page (HTML, script text, fetch,
+// XHR, resource timing). We bucket those media hosts into __uvdMediaEvidence.
+// If a discovered iframe's host shows media evidence, that iframe very likely
+// contains the real player (the "standard file"), not an ad/tracker iframe.
+var __uvdMediaEvidence = {};
+function __uvdMediaHostOf(url) {
+  try { return new URL(url, location.href).hostname.replace(/^www\./, '').toLowerCase(); } catch(e) { return ''; }
+}
+function __uvdFeedMediaEvidence(url) {
+  var host = __uvdMediaHostOf(url);
+  if (!host || !__uvdIsLikelyMediaEvidenceUrl(url)) return;
+  __uvdMediaEvidence[host] = (__uvdMediaEvidence[host] || 0) + 1;
+  if (__uvdMediaEvidence[host] > 20) __uvdMediaEvidence[host] = 20;
+}
+function __uvdIsLikelyMediaEvidenceUrl(url) {
+  return /\.(?:m3u8|mp4|webm|mkv|mpd)(?:[?#]|$)|m3u8|manifest|playlist|master|media=hls|get_video|gbt_video|tapecontent|mxcontent|vincdn|miixdrop|mixdrop|upload18/i.test(String(url || ''));
+}
+// Common media-player hosts (embed servers) that are almost always the real player.
+var __uvdKnownPlayerHosts = [
+  'streamtape.com', 'mixdrop.co', 'mixdrop.com', 'miixdrop.com', 'doodstream.com',
+  'dood.re', 'dood.ws', 'vidplay.online', 'vidplay.site', 'filemoon.sx', 'streamsb.net',
+  'voe.sx', 'fembed.com', 'mp4upload.com', 'vidcloud9.com', 'abyssplayer.com', 'hydrax.net',
+  'streamwish.to', 'uptostream.com', 'ok.ru', 'videoplay.us', 'supjav.com', 'embtaku.com',
+  'videoplay.us', 'dood.yt', 'javxxx.me', 'vinovo.to', 'upload18.org', 'tapecontent.net',
+  'mxcontent.net', 'vincdn.net', 'stb.strp2p.com', 'player.upn.one'
+];
 function __uvdRefreshCapture() {
   if (__uvdIsMatthewHost()) __uvdMatthewFrozen = false;
   document.documentElement.classList.remove('uvd-page-frozen');
@@ -435,6 +465,9 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   // Android browsers may expose AV1 download links before the H.264 variant.
   // Prefer the browser-safe H.264 MP4 for direct playback.
   if (/\/dload\/.*(?:-av1|_av1)\.mp4(?:[?#]|$)/i.test(url) && /Android/i.test(navigator.userAgent)) return false;
+  // Bucket the media host so iframe classification can reward iframes whose
+  // origin actually serves media on this page.
+  __uvdFeedMediaEvidence(url);
   if (/master\.m3u8/i.test(url)) __uvdPinnedMasters.add(url);
   if (/^blob:/i.test(url)) type = 'BLOB';
   else if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
@@ -622,7 +655,10 @@ function scan(doc, src, light) {
         var iframeUrl = i.src;
         // Giữ mọi iframe có URL để ní tự quyết định chặn hay mở. Việc
         // đoán iframe quảng cáo ở đây từng làm mất nhầm player hợp lệ.
-        urls.set(iframeUrl, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now() });
+        // AI classifier chỉ gắn nhãn (PLAYER/JUNK/UNKNOWN) để ưu tiên hiển thị,
+        // không tự xóa iframe nào.
+        var cls = __uvdClassifyIframe(iframeUrl, i);
+        urls.set(iframeUrl, { type: 'IFRAME', source: 'iframe#' + idx, priority: 99, timestamp: Date.now(), aiVerdict: cls.verdict, aiScore: cls.score, aiReasons: cls.reasons });
       }
       try { if (i.contentDocument) scan(i.contentDocument, 'iframe#' + idx); }
       catch(e) {}
@@ -1694,6 +1730,9 @@ try {
   __uvdStartMatthewGuard();
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
+  // Schedule the AI iframe workflow after the earliest gate (8s) so we have
+  // time to gather network evidence before deciding which iframe is the player.
+  if (data.settings.aiIframeFilter) setTimeout(function() { __uvdMaybeOfferIframeWorkflow(); }, 10000);
   if (data.settings.autoClickPlay) setTimeout(function() { runAutoClickAndRescan(true); }, 500);
   // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).
   // Try those server controls automatically after the initial scan; do not
@@ -3309,7 +3348,7 @@ style.textContent = `
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(20,184,166,0.4)}
 .uvd-player-info-meta{font-size:12px;font-weight:750;color:var(--accent2);background:rgba(20,184,166,.14);border:1px solid rgba(20,184,166,.28);display:inline-block;padding:6px 13px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;letter-spacing:.01em}.uvd-player-info-panel{backdrop-filter:blur(6px) saturate(120%);-webkit-backdrop-filter:blur(6px) saturate(120%)}.uvd-player-info-title{font-size:16px;font-weight:800} @media (max-width:420px){.uvd-player-sheet .uvd-settings-header{padding:14px 16px;min-height:72px}.uvd-player-sheet .uvd-back-btn,.uvd-player-sheet .uvd-icon-btn{width:38px;height:38px;border-radius:14px}.uvd-player-header-title{margin-left:6px}.uvd-player-header-title strong{font-size:13px}}
 .uvd-player-sheet.uvd-player-dimmed .uvd-settings-header,.uvd-player-sheet.uvd-player-dimmed .uvd-player-info-panel{opacity:.22;transition:opacity .35s ease}.uvd-player-sheet.uvd-player-dimmed .uvd-player-video-area::after{background-image:none;background:rgba(0,0,0,.12)}
-.uvd-iframe-card{padding:16px!important;background:linear-gradient(145deg,rgba(248,253,252,.9),rgba(236,254,255,.7))!important}.uvd-iframe-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}.uvd-iframe-card-head>div{display:flex;flex-direction:column;gap:7px;min-width:0}.uvd-iframe-card-head strong{font-size:14px;color:var(--text)}.uvd-iframe-card .uvd-card-stream-meta{margin:0 0 12px;background:rgba(14,116,144,.07);color:var(--text2)}.uvd-iframe-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
+.uvd-iframe-card{padding:16px!important;background:linear-gradient(145deg,rgba(248,253,252,.9),rgba(236,254,255,.7))!important}.uvd-iframe-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}.uvd-iframe-card-head>div{display:flex;flex-direction:column;gap:7px;min-width:0}.uvd-iframe-card-head strong{font-size:14px;color:var(--text)}.uvd-iframe-card .uvd-card-stream-meta{margin:0 0 12px;background:rgba(14,116,144,.07);color:var(--text2)}.uvd-ai-badge{display:inline-block;width:max-content;padding:3px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.04em;color:#fff}.uvd-ai-badge.uvd-ai-player{background:#1fa97a}.uvd-ai-badge.uvd-ai-junk{background:#ff5d72}.uvd-ai-badge.uvd-ai-unknown{background:#a86200}.uvd-iframe-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
 .uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
@@ -3652,30 +3691,69 @@ function __uvdIsDemoVideoElement(video) {
   var hint = ((video.currentSrc || video.src || '') + ' ' + (video.getAttribute('poster') || '')).toLowerCase();
   return /preview|trailer|sample|teaser|demo/.test(hint);
 }
-function __uvdScoreIframeCandidate(url, element) {
+// AI-like weighted classifier for an opaque (cross-origin) iframe. We cannot
+// read inside the frame, so we combine many weak signals into a score:
+//  - URL host/path cues (known embed players, /e//embed/player/watch patterns)
+//  - known ad/tracker/popup marker lists
+//  - element geometry (size, aspect ratio, visibility, id/class hints)
+//  - network evidence: does this iframe's host serve media on this page?
+// Returns { score, verdict: 'PLAYER'|'JUNK'|'UNKNOWN', reasons:[...] }.
+var __uvdAiJunkMarkers = [
+  'doubleclick', 'googlesyndication', 'adservice', 'popunder', 'popads',
+  'clickadu', 'exoclick', 'propeller', 'betting', 'casino', 'adsterra',
+  'trafficjunky', 'onclickads', 'smartpop', 'go.mnaspm', 'go.mayzaent',
+  'bluetrafficstream', 'juicyads', 'adcash', 'pop.js', 'pop-', 'advert',
+  'ads?', '/ad/', '/ads', 'adserver', 'pubguru', 'prebid', 'criteo', 'taboola'
+];
+function __uvdClassifyIframe(url, element) {
   var lower = String(url || '').toLowerCase();
-  if (/doubleclick|googlesyndication|adservice|popunder|popads|clickadu|exoclick|propeller|betting|casino/.test(lower)) return -100;
+  var reasons = [];
   var score = 0;
-  if (__uvdIsEmbedMediaUrl(url)) score += 50;
-  if (/embed|player|video|stream|watch|\/e(?:\/|$)/i.test(lower)) score += 30;
-  if (/player|video|stream|play|hls|tape|cdn/i.test(lower)) score += 10;
+  // 1) Hard ad markers -> strongly negative.
+  for (var a = 0; a < __uvdAiJunkMarkers.length; a++) {
+    if (lower.indexOf(__uvdAiJunkMarkers[a]) !== -1) { score = -100; reasons.push('junk:' + __uvdAiJunkMarkers[a]); break; }
+  }
+  if (isAdUrl(url)) { score -= 80; reasons.push('filterlist'); }
+  // 2) Known player host or embed/path cues.
+  var host = __uvdMediaHostOf(url);
+  if (host && __uvdKnownPlayerHosts.indexOf(host) !== -1) { score += 55; reasons.push('known-player'); }
+  if (__uvdIsEmbedMediaUrl(url)) { score += 45; reasons.push('embed-url'); }
+  if (/embed|player|video|stream|watch|\/e(?:\/|$)|\/v(?:\/|$)/i.test(lower)) score += 25;
+  if (/player|video|stream|play|hls|tape|cdn|mixdrop|dood/i.test(lower)) score += 12;
+  // 3) Network evidence: iframe host also serves media on this page.
+  var ev = host ? (__uvdMediaEvidence[host] || 0) : 0;
+  if (ev > 0) { score += 40 + Math.min(30, ev * 6); reasons.push('media-evidence:' + ev); }
+  // 4) Geometry & DOM hints from the real iframe element.
   if (element) {
     try {
       var rect = element.getBoundingClientRect();
-      if (rect.width >= 240 && rect.height >= 120) score += 25;
+      if (rect.width >= 240 && rect.height >= 120) { score += 22; reasons.push('big'); }
+      if (rect.width > 0 && rect.height > 0) {
+        var ratio = rect.width / rect.height;
+        if (ratio >= 1.2 && ratio <= 2.5) { score += 10; reasons.push('ratio16x9'); }
+      }
+      if (rect.width < 80 || rect.height < 60) score -= 20;
       var hint = ((element.id || '') + ' ' + (typeof element.className === 'string' ? element.className : '')).toLowerCase();
-      if (/player|video|embed|stream|media/.test(hint)) score += 20;
+      if (/player|video|embed|stream|media/.test(hint)) { score += 18; reasons.push('elem-hint'); }
+      var cs = getComputedStyle(element);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') score -= 30;
     } catch(e) {}
   }
-  return score;
+  // 5) small file-type/static iframes are junk.
+  if (/\.(gif|png|jpe?g|css|js|woff2?|svg|ico)(?:[?#]|$)/i.test(lower)) score -= 25;
+  var verdict = score >= 50 ? 'PLAYER' : (score <= -15 ? 'JUNK' : 'UNKNOWN');
+  return { score: score, verdict: verdict, reasons: reasons };
+}
+function __uvdScoreIframeCandidate(url, element) {
+  return __uvdClassifyIframe(url, element).score;
 }
 function __uvdCollectWorkflowFrames() {
   var map = {};
   function add(url, element) {
     if (!url || isAdUrl(url)) return;
-    var score = __uvdScoreIframeCandidate(url, element);
-    if (score < -50) return;
-    if (!map[url] || score > map[url].score) map[url] = { url: url, score: score, element: element };
+    var cls = __uvdClassifyIframe(url, element);
+    if (cls.score < -50) return;
+    if (!map[url] || cls.score > map[url].score) map[url] = { url: url, score: cls.score, verdict: cls.verdict, reasons: cls.reasons, element: element };
   }
   [...urls.entries()].forEach(function(entry) {
     if (entry[1].type === 'IFRAME') add(entry[0], null);
@@ -3733,7 +3811,10 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:6px;text-align:left;';
     var label = document.createElement('div');
     label.style.cssText = 'flex:1;min-width:0;font-size:10px;color:var(--text2);word-break:break-all;';
-    label.textContent = '#' + (index + 1) + ' ' + candidate.url;
+    var badgeColor = candidate.verdict === 'PLAYER' ? '#1fa97a' : (candidate.verdict === 'JUNK' ? '#ff5d72' : '#a86200');
+    var badgeText = candidate.verdict === 'PLAYER' ? 'PLAYER ✓' : (candidate.verdict === 'JUNK' ? 'JUNK ✗' : 'UNKNOWN ?');
+    label.innerHTML = '<div><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:9px;font-weight:800;color:#fff;background:' + badgeColor + ';">' + badgeText + '</span> <span style="color:#fff;">#' + (index + 1) + '</span> ' + escapeHtml(candidate.url) + '</div>';
+    if (candidate.verdict === 'JUNK') row.style.opacity = '0.5';
     var open = document.createElement('button');
     open.className = 'uvd-btn uvd-btn-sm';
     open.textContent = 'Mở + Copy';
@@ -3780,17 +3861,65 @@ function installIframeWorkflowVideoWatcher() {
     });
   });
 }
+// Hybrid AI layer: if the user has configured an LLM proxy URL in Settings,
+// POST the shortlist of iframe candidates to POST /classify on that proxy so
+// an external LLM (keyed by OPENAI_API_KEY on the server side only) can give a
+// final PLAYER/JUNK/UNKNOWN verdict. If the proxy is missing, unreachable, or
+// returns configured:false, we keep the local heuristic ranking unchanged.
+function __uvdAskAiClassifyIframes(candidates, cb) {
+  var proxy = String(data.settings.llmProxyUrl || '').trim().replace(/\/$/, '');
+  if (!proxy || !data.settings.aiIframeFilter) { cb(candidates); return; }
+  var payload = {
+    pageUrl: location.href,
+    pageHost: pageInfo.host,
+    pageTitle: pageInfo.title,
+    candidates: candidates.map(function(c) { return { url: c.url, score: c.score, verdict: c.verdict, reasons: c.reasons || [] }; })
+  };
+  var done = false;
+  var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = setTimeout(function() { if (controller) controller.abort(); }, 9000);
+  function settle(updated) { if (done) return; done = true; clearTimeout(timer); cb(updated); }
+  fetch(proxy + '/classify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: controller ? controller.signal : undefined
+  })
+  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(json) {
+    if (!json || json.configured === false || !Array.isArray(json.results)) { settle(candidates); return; }
+    var byUrl = {};
+    json.results.forEach(function(r) { if (r && r.url) byUrl[r.url] = r; });
+    candidates.forEach(function(c) {
+      var ai = byUrl[c.url];
+      if (!ai || !ai.verdict) return;
+      if (ai.verdict === 'PLAYER') { c.score = Math.max(c.score, 90); c.verdict = 'PLAYER'; c.aiSource = 'LLM'; }
+      else if (ai.verdict === 'JUNK') { c.score = Math.min(c.score, -30); c.verdict = 'JUNK'; c.aiSource = 'LLM'; }
+    });
+    candidates.sort(function(a, b) { return b.score - a.score; });
+    settle(candidates);
+  })
+  .catch(function() { settle(candidates); });
+}
+
 function __uvdMaybeOfferIframeWorkflow() {
   __uvdDismissIframeWorkflowIfVideoFound();
   if (Date.now() < __uvdIframeWorkflowEarliest) return;
   if (__uvdIframeWorkflowAsked || playerState.overlay) return;
   if (!__uvdHasOnlyIframeOrDemo()) return;
+  if (!data.settings.aiIframeFilter) return;
   var allFrames = __uvdCollectWorkflowFrames();
+  // AI layer: prefer real players, drop hard junk unless nothing else exists.
   var candidates = allFrames.filter(function(candidate) { return candidate.score >= 20; });
+  if (!candidates.length) candidates = allFrames.filter(function(c) { return c.verdict !== 'JUNK'; });
   if (!candidates.length) candidates = allFrames.slice(0, 4);
   if (!candidates.length) return;
   __uvdIframeWorkflowAsked = true;
-  __uvdOpenIframeWorkflowPrompt(candidates);
+  __uvdAskAiClassifyIframes(candidates, function(ranked) {
+    if (playerState.overlay) return;
+    var good = ranked.filter(function(c) { return c.verdict !== 'JUNK' || ranked.filter(function(x) { return x.verdict === 'JUNK'; }).length === ranked.length; });
+    __uvdOpenIframeWorkflowPrompt(good.length ? good : ranked);
+  });
 }
 
 // ========== BUILD UI ==========
@@ -3815,7 +3944,7 @@ function __uvdStreamRank(item) {
 
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]) };
+    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]), aiVerdict: e[1].aiVerdict || '', aiScore: e[1].aiScore == null ? null : e[1].aiScore, aiReasons: e[1].aiReasons || [] };
   }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
@@ -4151,8 +4280,13 @@ var UVD_LAZY_BATCH = 20;
 
 function buildStreamCardHTML(item, i) {
   if (String(item.type || '').toUpperCase() === 'IFRAME') {
+    var verdictBadge = item.aiVerdict === 'PLAYER'
+      ? '<span class="uvd-ai-badge uvd-ai-player">PLAYER ✓</span>'
+      : (item.aiVerdict === 'JUNK'
+        ? '<span class="uvd-ai-badge uvd-ai-junk">JUNK ✗</span>'
+        : '<span class="uvd-ai-badge uvd-ai-unknown">UNKNOWN ?</span>');
     return '<div class="uvd-card uvd-iframe-card" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">IFRAME EMBED</span><strong>Chưa phải direct media</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
+      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">IFRAME EMBED</span>' + verdictBadge + '<strong>Chưa phải direct media</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
       '<div class="uvd-card-stream-meta">Iframe được giữ riêng để tránh tạo thumbnail giả. Mở nó ở cửa sổ mới rồi chạy UMP trong iframe để bắt link thật.</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
       '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
@@ -5043,6 +5177,14 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">🤖 AI lọc iframe rác</div>' +
+      buildToggleRow('__uvd_toggle_aiframe__', 'Bật AI/heuristic phân loại iframe (giữ player thật, gắn nhãn rác)', data.settings.aiIframeFilter) +
+      '<div style="font-size:12px;color:var(--text2);margin:10px 0 6px;">LLM proxy (tuỳ chọn, hybrid)</div>' +
+      '<input id="__uvd_llm_proxy__" type="url" autocomplete="off" placeholder="https://render-header-proxy.onrender.com (để trống = dùng heuristic offline)" value="' + escapeHtml(data.settings.llmProxyUrl || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:12px;">' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Dán URL proxy (vd Render của bạn) để bật tầng AI: UMP gửi danh sách iframe lên <b>/classify</b>, server dùng <b>GEMINI_API_KEY</b> (hoặc <b>OPENAI_API_KEY</b>) đặt ở env để chốt verdict PLAYER/JUNK. Không có key server thì tự dùng heuristic offline.</div>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🔗 Bookmarklet riêng</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tạo link chạy với các cài đặt hiện tại. Link không chứa Proxy key hoặc SubDL API key.</div>' +
       '<input id="__uvd_config_link__" readonly value="' + escapeHtml(__uvdBuildConfigLink()) + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:10px;">' +
@@ -5180,6 +5322,21 @@ function renderSettings(container) {
     data.settings.headerProxyKey = this.value.trim();
     storage.set(data);
     toast(data.settings.headerProxyKey ? 'Đã lưu proxy key' : 'Đã xóa proxy key');
+  };
+
+  var aiToggle = document.getElementById('__uvd_toggle_aiframe__');
+  if (aiToggle) aiToggle.onclick = function() {
+    var isOn = this.classList.toggle('uvd-toggle-on');
+    data.settings.aiIframeFilter = isOn;
+    storage.set(data);
+    toast(isOn ? 'Đã bật AI lọc iframe rác' : 'Đã tắt AI lọc iframe rác');
+  };
+
+  var llmProxyInput = document.getElementById('__uvd_llm_proxy__');
+  if (llmProxyInput) llmProxyInput.onchange = function() {
+    data.settings.llmProxyUrl = this.value.trim();
+    storage.set(data);
+    toast(data.settings.llmProxyUrl ? 'Đã lưu LLM proxy' : 'Đã xóa LLM proxy (dùng heuristic offline)');
   };
 
   var copyConfigBtn = document.getElementById('__uvd_copy_config_link__');

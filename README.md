@@ -24,6 +24,50 @@ Hai file hiện đã được đồng bộ.
 > thức: chỉ phát triển bookmarklet.** Các file userscript chỉ còn là tài liệu
 > tham khảo, không sửa nữa.
 
+## Nhật ký patch
+
+> Nhật ký các thay đổi theo từng phiên làm việc, ghi rõ nội dung để người sau
+> đọc lại hiểu được tiến trình mà không cần đoán từ commit. **Không tạo pull
+> request** — thay đổi được đẩy trực tiếp lên branch `arena/*` tương ứng.
+
+### Patch #1 — AI lọc iframe rác (hybrid: heuristic + Gemini/OpenAI) — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` (commit `a710faf` "patch update").
+- **Mục tiêu:** Trang phim nhúng nhiều iframe (quảng cáo, popup, tracker) cạnh
+  iframe player thật. M3U8/MP4 lọc theo đuôi dễ, nhưng iframe không biết trước
+  chứa gì do **cross-origin**. Cần phân loại iframe "chuẩn" vs iframe rác.
+- **Giải pháp hybrid:**
+  - **Tầng heuristic (offline, bật sẵn):** hàm `__uvdClassifyIframe` chấm điểm
+    từng iframe → nhãn `PLAYER / UNKNOWN / JUNK`, dựa trên: host player đã biết,
+    marker rác, kích thước/tỉ lệ/ẩn hiện, và **bằng chứng mạng** (`__uvdMediaEvidence`
+    — mọi media URL thấy ở trang mẹ được nhóm theo host; host iframe trùng host
+    media → gần chắc chắn là player thật).
+  - **Tầng LLM (hybrid, tuỳ chọn):** endpoint mới `POST /classify` trên
+    `render-header-proxy/server.js`. Server đọc key từ env, **không nhét key vào
+    source**: `GEMINI_API_KEY` (ưu tiên) + `GEMINI_MODEL` (mặc định
+    `gemini-2.0-flash`), hoặc `OPENAI_API_KEY` + `AI_BASE_URL` + `AI_MODEL`
+    (mặc định `gpt-4o-mini`). Không có key → trả `configured:false` → bookmarklet
+    tự dùng heuristic offline.
+- **File thay đổi:**
+  - `bookmark.js` và `render-header-proxy/bookmarklet.js` (đồng bộ):
+    - Thêm settings `aiIframeFilter` (mặc định `true`), `llmProxyUrl`.
+    - Thêm `__uvdMediaEvidence` + `__uvdFeedMediaEvidence` (bằng chứng mạng).
+    - Thêm `__uvdClassifyIframe` + marker rác `__uvdAiJunkMarkers` + host player
+      `__uvdKnownPlayerHosts`.
+    - Thêm `__uvdAskAiClassifyIframes` (gọi `/classify` khi có proxy).
+    - Kích hoạt `__uvdMaybeOfferIframeWorkflow` (trước đây định nghĩa nhưng
+      chưa từng được gọi) — lên lịch sau 10s khi boot.
+    - Badge AI trên thẻ iframe (`PLAYER ✓ / JUNK ✗ / UNKNOWN ?`), thẻ JUNK bị
+      làm mờ; **không tự xóa** iframe nào.
+    - Cài đặt mới: toggle "Bật AI/heuristic lọc iframe rác" + ô nhập "LLM proxy".
+  - `render-header-proxy/server.js`: thêm `POST /classify` (Gemini ưu tiên,
+    fallback OpenAI), cập nhật CORS cho phép `POST`.
+  - `README.md`: thêm mục này + mô tả tính năng.
+- **Kết quả kiểm tra:** `node --check` OK cả 2 file bookmarklet + server;
+  `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+- **Cách bật AI thật:** đặt `GEMINI_API_KEY` (và tuỳ chọn `GEMINI_MODEL`) làm
+  env trên Render, rồi dán URL proxy vào Cài đặt UMP → ô "LLM proxy".
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

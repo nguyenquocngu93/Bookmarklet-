@@ -3541,8 +3541,8 @@ style.textContent = `
 .uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 12px;flex-shrink:0;overflow:visible!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-tabbar::-webkit-scrollbar{display:none}
 .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);z-index:0;box-shadow:0 3px 10px rgba(247,108,140,.4);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
-/* Tab active chảy xuống dính liền vào body dưới (mũi nhọn) */
-.uvd-tab-indicator::after{content:'';position:absolute;left:50%;top:100%;width:18px;height:24px;margin-left:-9px;background:linear-gradient(180deg,#ff9fb4,#f76c8c);clip-path:polygon(0 0,100% 0,50% 100%);z-index:0}
+/* Tab active chảy xuống dính liền vào body dưới (mũi nhọn mềm dạng giọt) */
+.uvd-tab-indicator::after{content:'';position:absolute;left:50%;top:100%;width:20px;height:24px;margin-left:-10px;background:linear-gradient(180deg,#ff9fb4,#f76c8c);border-radius:50% 50% 50% 50% / 35% 35% 65% 65%;z-index:0}
 .uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:#c95073;font-weight:800;font-size:11.5px;padding:10px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;transition:transform .15s ease,color .2s ease}
 .uvd-tab.uvd-tab-active{color:#fff!important;text-shadow:none!important;background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;box-shadow:0 4px 12px rgba(247,108,140,.32)!important}
 .uvd-filter-bar{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;flex-shrink:0}
@@ -3930,7 +3930,9 @@ style.textContent = `
 .uvd-pop-qurl{margin-top:8px;font:10px monospace;color:#8a6ab0;word-break:break-all;line-height:1.4}
 .uvd-pop-xem{flex:0 0 auto;border:none;border-radius:12px;background:linear-gradient(135deg,#d9b8ff,#b385f2);color:#fff;font-weight:800;font-size:11px;padding:7px 13px;line-height:1;cursor:pointer;box-shadow:0 4px 10px rgba(150,90,220,.3);transition:transform .15s ease}
 .uvd-pop-xem:active{transform:scale(.9)}
-.uvd-pop-qcard.uvd-plplain-first::before{content:'';position:absolute;top:-9px;left:26px;width:16px;height:16px;background:#fff0f6;border-left:1px solid rgba(194,150,255,.4);border-top:1px solid rgba(194,150,255,.4);transform:rotate(45deg);z-index:3}
+.uvd-pop-qcard.uvd-plplain-first::before{content:'';position:absolute;bottom:-9px;left:26px;width:16px;height:16px;background:#fff0f6;border-right:1px solid rgba(194,150,255,.4);border-bottom:1px solid rgba(194,150,255,.4);transform:rotate(45deg);z-index:3}
+/* Link rác: khuyên đừng mở thay vì kêu mở */
+.uvd-junk-advice{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:12px;background:rgba(255,93,114,.12);border:1px solid rgba(255,93,114,.32);color:#ff5d72;font-size:11px;font-weight:800}
 `;
 
 
@@ -5170,14 +5172,20 @@ function buildStreamCardHTML(item, i) {
       : (item.aiVerdict === 'JUNK'
         ? '<span class="uvd-ai-badge uvd-ai-junk">rác 💩</span>'
         : '<span class="uvd-ai-badge uvd-ai-unknown">chưa rõ ❔</span>');
+    var isJunk = item.aiVerdict === 'JUNK';
+    var metaNote = isJunk
+      ? 'Đừng mở link này nha, UMP đoán là rác 💩 — bấm vote 💩 để chặn dần nha.'
+      : 'mở nó ở tab mới rồi chạy lại UMP để lấy link thật nha 🥺';
+    var actionHtml = isJunk
+      ? '<span class="uvd-junk-advice">🚫 Không nên mở — đây là rác</span>'
+      : '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
+        '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>';
     return '<div class="uvd-card uvd-iframe-card uvd-cute" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
-      '<div class="uvd-card-stream-meta">mở nó ở tab mới rồi chạy lại UMP để lấy link thật nha 🥺</div>' +
+      '<div class="uvd-card-stream-meta">' + metaNote + '</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
       (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
-      '<div class="uvd-cute-actions">' +
-        '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
-        '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>' +
+      '<div class="uvd-cute-actions">' + actionHtml +
         '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>' +
       '</div>' +
       '</div>';

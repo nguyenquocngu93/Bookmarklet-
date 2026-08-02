@@ -24,6 +24,70 @@ Hai file hiện đã được đồng bộ.
 > thức: chỉ phát triển bookmarklet.** Các file userscript chỉ còn là tài liệu
 > tham khảo, không sửa nữa.
 
+## Nhật ký patch
+
+> Nhật ký các thay đổi theo từng phiên làm việc, ghi rõ nội dung để người sau
+> đọc lại hiểu được tiến trình mà không cần đoán từ commit. **Không tạo pull
+> request** — thay đổi được đẩy trực tiếp lên branch `arena/*` tương ứng.
+
+### Patch #1 — AI lọc iframe rác (hybrid: heuristic + Gemini/OpenAI) — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` (commit `a710faf` "patch update").
+- **Mục tiêu:** Trang phim nhúng nhiều iframe (quảng cáo, popup, tracker) cạnh
+  iframe player thật. M3U8/MP4 lọc theo đuôi dễ, nhưng iframe không biết trước
+  chứa gì do **cross-origin**. Cần phân loại iframe "chuẩn" vs iframe rác.
+- **Giải pháp hybrid:**
+  - **Tầng heuristic (offline, bật sẵn):** hàm `__uvdClassifyIframe` chấm điểm
+    từng iframe → nhãn `PLAYER / UNKNOWN / JUNK`, dựa trên: host player đã biết,
+    marker rác, kích thước/tỉ lệ/ẩn hiện, và **bằng chứng mạng** (`__uvdMediaEvidence`
+    — mọi media URL thấy ở trang mẹ được nhóm theo host; host iframe trùng host
+    media → gần chắc chắn là player thật).
+  - **Tầng LLM (hybrid, tuỳ chọn):** endpoint mới `POST /classify` trên
+    `render-header-proxy/server.js`. Server đọc key từ env, **không nhét key vào
+    source**: `GEMINI_API_KEY` (ưu tiên) + `GEMINI_MODEL` (mặc định
+    `gemini-2.0-flash`), hoặc `OPENAI_API_KEY` + `AI_BASE_URL` + `AI_MODEL`
+    (mặc định `gpt-4o-mini`). Không có key → trả `configured:false` → bookmarklet
+    tự dùng heuristic offline.
+- **File thay đổi:**
+  - `bookmark.js` và `render-header-proxy/bookmarklet.js` (đồng bộ):
+    - Thêm settings `aiIframeFilter` (mặc định `true`), `llmProxyUrl`.
+    - Thêm `__uvdMediaEvidence` + `__uvdFeedMediaEvidence` (bằng chứng mạng).
+    - Thêm `__uvdClassifyIframe` + marker rác `__uvdAiJunkMarkers` + host player
+      `__uvdKnownPlayerHosts`.
+    - Thêm `__uvdAskAiClassifyIframes` (gọi `/classify` khi có proxy).
+    - Kích hoạt `__uvdMaybeOfferIframeWorkflow` (trước đây định nghĩa nhưng
+      chưa từng được gọi) — lên lịch sau 10s khi boot.
+    - Badge AI trên thẻ iframe (`PLAYER ✓ / JUNK ✗ / UNKNOWN ?`), thẻ JUNK bị
+      làm mờ; **không tự xóa** iframe nào.
+    - Cài đặt mới: toggle "Bật AI/heuristic lọc iframe rác" + ô nhập "LLM proxy".
+  - `render-header-proxy/server.js`: thêm `POST /classify` (Gemini ưu tiên,
+    fallback OpenAI), cập nhật CORS cho phép `POST`.
+  - `README.md`: thêm mục này + mô tả tính năng.
+- **Kết quả kiểm tra:** `node --check` OK cả 2 file bookmarklet + server;
+  `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+- **Cách bật AI thật:** đặt `GEMINI_API_KEY` (và tuỳ chọn `GEMINI_MODEL`) làm
+  env trên Render, rồi dán URL proxy vào Cài đặt UMP → ô "LLM proxy".
+
+### Patch #2 — Popup iframe cute + làm tối web nổi bật — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** Khi trang chỉ có iframe (chưa thấy link video trực tiếp), thay
+  popup cũ bằng một popup **cute, dễ thương, làm tối/blur toàn bộ web xung quanh**
+  để thông báo nổi bật, có **ảnh minh hoạ** và hướng dẫn người dùng.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - Hàm `__uvdOpenIframeWorkflowPrompt` được thiết kế lại:
+    - Overlay làm tối + blur nền (`rgba(12,8,20,.74)` + `backdrop-filter:blur(8px)`).
+    - Panel gradient hồng nhạt, bo góc 26px, đổ bóng nổi, có nút ✕ đóng.
+    - **Ảnh minh hoạ** kawaii mèo cầm kính lúp tìm kiếm (SVG inline, không cần
+      file ngoài, không tốn request).
+    - Thông báo rõ: **"Không có link video — chỉ có iframe 🥺"**, hướng dẫn
+      "bấm vào iframe bên dưới, đợi nó phát, rồi chạy UMP DL lại một lần nữa để
+      lấy link video thật."
+    - Giữ danh sách iframe (kèm badge PLAYER/JUNK/UNKNOWN + nút "Mở + Copy"),
+      thẻ JUNK mờ đi. Không tự xóa iframe.
+  - Có thêm biến `__uvdIframeCuteArt` (SVG kawaii).
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

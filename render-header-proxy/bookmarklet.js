@@ -3789,35 +3789,75 @@ function __uvdHasOnlyIframeOrDemo() {
   if (verifiedLongVideo) return false;
   return true;
 }
+// Cute illustration for the "only iframe, no video link yet" popup.
+// A soft kawaii cat searching with a magnifying glass (inline SVG, no external file).
+var __uvdIframeCuteArt =
+  '<svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="120" cy="150" rx="88" ry="16" fill="#f3d8e3" opacity="0.6"/>' +
+    '<ellipse cx="120" cy="92" rx="66" ry="58" fill="#ffe0ea"/>' +
+    '<path d="M60 62 L42 20 L92 50 Z" fill="#ffb6c6"/>' +
+    '<path d="M180 62 L198 20 L148 50 Z" fill="#ffb6c6"/>' +
+    '<path d="M60 62 L50 28 L82 52 Z" fill="#ff9fb4"/>' +
+    '<path d="M180 62 L190 28 L158 52 Z" fill="#ff9fb4"/>' +
+    '<circle cx="96" cy="88" r="10" fill="#5b3a40"/>' +
+    '<circle cx="144" cy="88" r="10" fill="#5b3a40"/>' +
+    '<circle cx="99" cy="85" r="3.4" fill="#fff"/>' +
+    '<circle cx="147" cy="85" r="3.4" fill="#fff"/>' +
+    '<ellipse cx="80" cy="102" rx="8" ry="5" fill="#ff8fa3" opacity="0.85"/>' +
+    '<ellipse cx="160" cy="102" rx="8" ry="5" fill="#ff8fa3" opacity="0.85"/>' +
+    '<ellipse cx="120" cy="103" rx="6" ry="7" fill="#5b3a40"/>' +
+    '<ellipse cx="120" cy="101" rx="3.2" ry="3" fill="#e8788f"/>' +
+    '<circle cx="176" cy="120" r="16" fill="#fff" stroke="#ff8fa3" stroke-width="4.5"/>' +
+    '<line x1="188" y1="132" x2="202" y2="148" stroke="#ff8fa3" stroke-width="5" stroke-linecap="round"/>' +
+    '<circle cx="170" cy="114" r="4" fill="#ffc2d1"/>' +
+    '<text x="120" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="#e8788f" font-family="Segoe UI, Arial, sans-serif">\uD83D\uDCAD  link video \u0111\u00E2u r\u1ED3i nh\u1EC9?</text>' +
+  '</svg>';
+
 function __uvdOpenIframeWorkflowPrompt(candidates) {
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
   if (old) old.remove();
   var overlay = document.createElement('div');
   overlay.id = '__uvd_iframe_workflow_prompt__';
-  overlay.className = 'uvd-overlay';
+  // Dim the whole page behind so the cute notice stands out.
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
+    'background:rgba(12,8,20,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel';
-  panel.style.cssText = 'max-width:460px;margin:auto;text-align:center;';
+  panel.style.cssText = 'width:100%;max-width:420px;margin:auto;text-align:center;border-radius:26px;overflow:hidden;' +
+    'background:linear-gradient(160deg,#fff6fa 0%,#fff0f5 45%,#fdf3ff 100%);border:1px solid rgba(255,159,180,.45);' +
+    'box-shadow:0 24px 60px rgba(232,120,143,.35),0 0 0 6px rgba(255,255,255,.35) inset;' +
+    'animation:uvdScaleIn .32s cubic-bezier(.22,1,.36,1) both;';
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
-  panel.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">↗</div>' +
-    '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">' + (hasIntermediateServer ? 'Server trung gian cần mở' : 'Chỉ tìm thấy iframe') + '</div>' +
-    '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:12px;">' + (hasIntermediateServer ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm bookmarklet UMP DL lại trên tab đó để lấy link thật.' : 'Chọn iframe muốn mở. Các iframe quảng cáo thường đã bị loại khỏi danh sách.') + '</div>' +
-    '<div id="__uvd_iframe_workflow_list__" style="max-height:45vh;overflow-y:auto;margin-bottom:10px;"></div>' +
-    '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;">Để sau</button>';
+  panel.innerHTML =
+    '<div style="padding:18px 18px 4px;position:relative;">' +
+      '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<div style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
+    '</div>' +
+    '<div style="padding:0 20px 18px;">' +
+      '<div style="font-size:18px;font-weight:800;color:#d85c7a;margin-bottom:6px;">' + (hasIntermediateServer ? 'Server trung gian cần mở 🥺' : 'Không có link video — chỉ có iframe 🥺') + '</div>' +
+      '<div style="font-size:12.5px;color:#a05668;line-height:1.6;margin-bottom:14px;">' +
+        (hasIntermediateServer
+          ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm UMP DL lại trên tab đó để lấy link thật.'
+          : 'Trang này chưa để lộ link video trực tiếp, chỉ có iframe embed. 👉 Bạn hãy <b style="color:#d85c7a;">bấm vào iframe</b> bên dưới, đợi nó phát, rồi <b style="color:#d85c7a;">chạy UMP DL lại một lần nữa</b> để lấy link video thật.') +
+      '</div>' +
+      '<div id="__uvd_iframe_workflow_list__" style="max-height:42vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);border:none;color:#fff;font-weight:700;">Để sau</button>' +
+    '</div>';
   var list = panel.querySelector('#__uvd_iframe_workflow_list__');
   candidates.slice(0, 6).forEach(function(candidate, index) {
     var row = document.createElement('div');
     row.className = 'uvd-card';
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:6px;text-align:left;';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:7px;text-align:left;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid rgba(255,159,180,.28);';
     var label = document.createElement('div');
-    label.style.cssText = 'flex:1;min-width:0;font-size:10px;color:var(--text2);word-break:break-all;';
-    var badgeColor = candidate.verdict === 'PLAYER' ? '#1fa97a' : (candidate.verdict === 'JUNK' ? '#ff5d72' : '#a86200');
+    label.style.cssText = 'flex:1;min-width:0;font-size:9.5px;color:#a05668;word-break:break-all;line-height:1.4;';
+    var badgeColor = candidate.verdict === 'PLAYER' ? '#3aa97f' : (candidate.verdict === 'JUNK' ? '#ff5d72' : '#c9862a');
     var badgeText = candidate.verdict === 'PLAYER' ? 'PLAYER ✓' : (candidate.verdict === 'JUNK' ? 'JUNK ✗' : 'UNKNOWN ?');
-    label.innerHTML = '<div><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:9px;font-weight:800;color:#fff;background:' + badgeColor + ';">' + badgeText + '</span> <span style="color:#fff;">#' + (index + 1) + '</span> ' + escapeHtml(candidate.url) + '</div>';
-    if (candidate.verdict === 'JUNK') row.style.opacity = '0.5';
+    label.innerHTML = '<div style="margin-bottom:2px;"><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:' + badgeColor + ';">' + badgeText + '</span> <span style="color:#c95073;font-weight:700;">#' + (index + 1) + '</span></div>' + escapeHtml(candidate.url);
+    if (candidate.verdict === 'JUNK') row.style.opacity = '0.55';
     var open = document.createElement('button');
     open.className = 'uvd-btn uvd-btn-sm';
     open.textContent = 'Mở + Copy';
+    open.style.cssText = 'border-radius:12px;background:#ffb6c6;border:none;color:#fff;font-weight:700;';
     open.onclick = function() {
       copy(BOOKMARKLET_NAME);
       window.__uvdSafeOpen(candidate.url);
@@ -3828,12 +3868,14 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     row.appendChild(open);
     list.appendChild(row);
   });
-  panel.querySelector('#__uvd_iframe_workflow_cancel__').onclick = function() { overlay.remove(); };
+  var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
+  if (cancel) cancel.onclick = function() { overlay.remove(); };
+  var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
+  if (closeX) closeX.onclick = function() { overlay.remove(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
-
 function __uvdHasRealVideoCandidate() {
   var direct = [...urls.entries()].filter(function(entry) {
     return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;

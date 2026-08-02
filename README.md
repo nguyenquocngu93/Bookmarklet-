@@ -535,3 +535,11 @@ arena/019f7b7f-bookmarklet  →  dừng ở 7e5297c (phiên trước)
 arena/019fc268-bookmarklet  →  tạo từ 7e5297c, là phiên hiện tại
 main                        →  425b066 (nhánh chính, có thể cũ hơn)
 ```
+### Patch #17 — Quét sạch màu xanh trong Cài đặt, gấu cuối trang to hơn đứng giữa — 2026-08-03
+
+- **Mục tiêu:** loại bỏ màu xanh teal còn sót trong Cài đặt, chuyển hết sang tông hồng/tím
+  (card, callout, code block, step number, toggle, profile, stat, tag, url box...).
+- Con gấu cuối trang: **to hơn**, **không nằm trong khung**, **đứng giữa trang**, dòng nhắn
+  nhủ nằm **ở dưới**.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+

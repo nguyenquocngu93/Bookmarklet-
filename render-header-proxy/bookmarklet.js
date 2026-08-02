@@ -3779,12 +3779,14 @@ style.textContent = `
 .uvd-thumb-menu>summary,.uvd-thumb-menu[open]>summary{display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;min-height:34px!important;padding:0!important;border-radius:12px!important;background:linear-gradient(150deg,#fff,#fff0f5)!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;font-size:20px!important;line-height:34px!important;box-shadow:0 4px 12px rgba(247,108,140,.2),inset 0 1px 0 rgba(255,255,255,.9)!important;overflow:hidden!important}
 .uvd-thumb-menu>summary:hover,.uvd-thumb-menu[open]>summary{background:#fff!important;border-color:rgba(247,108,140,.6)!important;box-shadow:0 6px 16px rgba(247,108,140,.3)!important}
 .uvd-player-mascot{width:40px;height:40px;flex:0 0 40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(150deg,#ffe0ea,#ffd6e4);border:1px solid rgba(255,159,180,.4);box-shadow:0 4px 12px rgba(247,108,140,.25)}
-.uvd-plcard{background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(240,253,248,.93))!important;border:1px solid rgba(94,194,160,.4)!important;border-radius:20px!important;padding:10px;margin-bottom:9px;box-shadow:0 8px 20px rgba(94,194,160,.16),inset 0 0 0 1px rgba(255,255,255,.7)!important}
+.uvd-plcard{background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(240,253,248,.93))!important;border:1px solid rgba(94,194,160,.4)!important;border-radius:20px!important;padding:10px;margin-bottom:10px;box-shadow:0 8px 20px rgba(94,194,160,.16),inset 0 0 0 1px rgba(255,255,255,.7)!important}
 .uvd-plcard-preview{position:relative;height:150px;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#d7f7ea,#b9f0dc);border:1px solid rgba(94,194,160,.3);margin-bottom:8px}
 .uvd-plcard-preview .uvd-thumb-sheen{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,transparent,rgba(20,60,50,.25));pointer-events:none}
 .uvd-plcard-preview .uvd-plrow-watch{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);border:none;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92);color:#e84a72;font-size:20px;cursor:pointer;box-shadow:0 6px 16px rgba(247,108,140,.35);border:2px solid rgba(255,159,180,.6)}
+.uvd-plcard-badge{position:absolute;z-index:2;top:8px;left:8px;font-size:9px;font-weight:800;color:#fff;background:linear-gradient(135deg,#5ec2a0,#3aa97f);border-radius:999px;padding:3px 9px;box-shadow:0 3px 8px rgba(58,169,127,.35)}
 .uvd-plcard-head{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
-.uvd-plcard-url{font-size:10px;color:#2c8c6a;word-break:break-all;line-height:1.4}
+.uvd-plcard-note{font-size:12px;font-weight:800;color:#2c8c6a;margin-bottom:5px}
+.uvd-plcard-url{font-size:12px;color:#1f7a5c;word-break:break-all;line-height:1.45;background:rgba(94,194,160,.12);border:1px solid rgba(94,194,160,.25);border-radius:10px;padding:6px 8px}
 .uvd-plcard-strip{display:flex;align-items:center;gap:6px;padding:4px 2px 0;overflow-x:auto;scrollbar-width:none;margin-bottom:2px}
 .uvd-plcard-strip::-webkit-scrollbar{display:none}
 .uvd-plcard-strip-label{flex:0 0 auto;color:#3aa97f;font-size:8px;font-weight:800;letter-spacing:.06em;writing-mode:vertical-rl;transform:rotate(180deg)}
@@ -3793,12 +3795,22 @@ style.textContent = `
 .uvd-plcard-ext img{display:block;width:100%;height:100%;object-fit:cover}
 .uvd-plcard-ext span{position:absolute;right:4px;bottom:2px;color:#fff;font-size:8px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .uvd-plplain{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;border-radius:12px;background:rgba(255,255,255,.75);border:1px solid rgba(194,150,255,.22)}
-.uvd-plplain-url{flex:1;min-width:0;font-size:9.5px;color:#8a6ab0;word-break:break-all;line-height:1.4}
+.uvd-plplain-url{flex:1;min-width:0;font-size:11.5px;color:#7a5f9e;word-break:break-all;line-height:1.45}
 .uvd-player-sheet{border-radius:30px!important;border:1px solid rgba(255,159,180,.35)!important;box-shadow:0 24px 60px rgba(247,108,140,.3),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
 .uvd-player-sheet .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
 .uvd-player-video-area{padding:14px!important;background:linear-gradient(150deg,#fff0f5,#f8e6ff)!important}
 .uvd-player-video-area #__uvd_video_wrapper__{background:#fff!important;border-radius:22px!important;border:1px solid rgba(255,159,180,.3)!important;box-shadow:0 14px 34px rgba(247,108,140,.25),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
 .uvd-player-info-panel{background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;border-top:1px solid rgba(194,150,255,.25)!important;border-radius:0 0 30px 30px}
+.uvd-player-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(28,14,40,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.uvd-player-overlay .uvd-player-sheet{width:100%;max-width:440px;height:auto!important;max-height:92dvh!important;border-radius:26px!important;border:1px solid rgba(194,150,255,.4)!important;background:linear-gradient(160deg,#f8f4ff,#f3ecff,#fff0f8)!important;box-shadow:0 24px 60px rgba(150,90,220,.35),0 0 0 6px rgba(255,255,255,.35) inset!important;overflow:hidden!important;margin:auto}
+.uvd-player-overlay .uvd-player-sheet .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-back-btn,.uvd-player-overlay .uvd-player-sheet .uvd-icon-btn{background:#fff!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;border-radius:14px!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-player-title-copy strong{background:linear-gradient(110deg,#e84a72,#f76c8c,#c95cb8)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-player-type-badge{background:rgba(255,182,198,.25)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-player-video-area{background:linear-gradient(150deg,#fff0f5,#f8e6ff)!important;padding:12px!important}
+.uvd-player-overlay .uvd-player-sheet #__uvd_video_wrapper__{background:#fff!important;border-radius:18px!important;border:1px solid rgba(255,159,180,.3)!important;box-shadow:0 14px 34px rgba(247,108,140,.28),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-player-info-panel{background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;border-top:1px solid rgba(194,150,255,.25)!important;border-radius:0 0 26px 26px}
+.uvd-player-overlay.uvd-open{background:rgba(28,14,40,.78)!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 `;
 
 
@@ -4178,7 +4190,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   streams.slice(0, 8).forEach(function(stream, index) {
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
     if (hasMeta) {
-      // Link chất lượng cao: thiết kế như card stream (thumbnail to + cảnh khác + metadata)
+      // Link chất lượng cao: bê nguyên cục card stream (thumbnail to + cảnh khác + metadata)
       var card = document.createElement('div');
       card.className = 'uvd-plcard uvd-cute';
       var metaLine = '<span class="uvd-plrow-badge">✨ chất lượng</span>';
@@ -4188,9 +4200,11 @@ function __uvdOpenMediaLinksPopup(streams) {
         '<div class="uvd-plcard-preview" data-thumb-url="' + escapeHtml(stream.url) + '">' +
           '<div class="uvd-thumb-image"></div>' +
           '<div class="uvd-thumb-sheen"></div>' +
+          '<span class="uvd-plcard-badge">✨ chất lượng</span>' +
           '<button class="uvd-plrow-watch" title="Xem">▶</button>' +
         '</div>' +
         '<div class="uvd-plcard-head">' + metaLine + '</div>' +
+        '<div class="uvd-plcard-note">link này chất lượng nè, xem ngay đi 🎬</div>' +
         '<div class="uvd-plcard-url">' + escapeHtml(stream.url) + '</div>';
       // Xem
       var playBtn = card.querySelector('.uvd-plrow-watch');

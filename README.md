@@ -88,6 +88,28 @@ Hai file hiện đã được đồng bộ.
   - Có thêm biến `__uvdIframeCuteArt` (SVG kawaii).
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #3 — Header cute + popup tự hiện lại khi quay lại trang — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:**
+  1. Thiết kế lại **header** của panel UMP DL theo phong cách **cute/kawaii** giống
+     popup (mascot mèo, gradient pastel hồng, nút hồng).
+  2. Sửa lỗi popup "chỉ có iframe" **dễ bị mất** khi người dùng mở iframe ở tab
+     mới rồi quay lại trang cũ → giờ **tự hiện lại** khi quay về tab.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - **Header cute:** thêm mascot SVG kawaii (`__uvdHeaderMascot` — mèo tròn hồng),
+    tiêu đề "UMP DL ♡", phụ đề "v{x} ✦ cute player · universal media 🎀", nút action
+    đổi sang gradient hồng pastel. CSS mới khối `.uvd-brand-mark`, `.uvd-brand-name`,
+    `.uvd-header-actions .uvd-btn-icon`.
+  - **Popup tự hiện lại:** trong `installIframeWorkflowVideoWatcher` thêm listener
+    `visibilitychange` → khi quay lại tab mà vẫn chỉ có iframe (chưa có video) thì
+    gọi lại `__uvdMaybeOfferIframeWorkflow(true)` sau ~0.9s; thêm interval dự phòng
+    45s. `__uvdMaybeOfferIframeWorkflow(force)` bỏ qua cờ "đã hỏi" khi `force`.
+  - **Không làm phiền:** thêm `__uvdIframeWorkflowDismissedAt` — khi người dùng bấm
+    "Để sau" / ✕ / bấm ra ngoài thì không hiện lại trong 60s. Nút "Mở + Copy"
+    (mở iframe tab mới) KHÔNG tính là dismissed → quay lại sẽ hiện lại popup.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

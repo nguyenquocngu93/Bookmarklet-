@@ -3366,6 +3366,16 @@ style.textContent = `
 .uvd-header-actions .uvd-btn-icon:active{transform:scale(.9)}
 #__uvd_preload__{color:var(--accent2);border-color:rgba(6,182,212,.32)}
 .uvd-header-actions .uvd-close-action{color:var(--danger)}
+/* ===== CUTE HEADER (kawaii pastel) ===== */
+.uvd-brand-mark{background:linear-gradient(150deg,#ffd6e4 0%,#ffb6c6 55%,#f6c8ff 100%)!important;box-shadow:0 8px 20px rgba(247,108,140,.30),0 0 0 4px rgba(255,255,255,.5) inset!important;border:1px solid rgba(255,159,180,.4)}.uvd-brand-mark svg{display:block;width:100%;height:100%;border-radius:18px}
+.uvd-brand-name{background:linear-gradient(120deg,#e84a72,#f76c8c,#c95cb8);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:22px}
+.uvd-brand-heart{color:#f76c8c;-webkit-text-fill-color:#f76c8c;font-size:17px}
+.uvd-brand-version{background:linear-gradient(120deg,#f76c8c,#c95cb8);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:3px;font-size:13px;font-weight:800}
+.uvd-brand-sub{color:#c95073!important;font-size:9px}
+.uvd-header-actions .uvd-btn-icon{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important;box-shadow:0 4px 12px rgba(247,108,140,.16),0 0 0 1px rgba(255,255,255,.7) inset!important}
+.uvd-header-actions .uvd-btn-icon:hover{background:linear-gradient(150deg,#ffd6e4,#ffb6c6)!important;color:#fff!important;box-shadow:0 6px 16px rgba(247,108,140,.30)!important}
+.uvd-header-actions .uvd-btn-icon:active{transform:scale(.88)}
+.uvd-header-actions .uvd-close-action{color:#ff5d72!important}
 .uvd-context-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:14px 15px;margin-bottom:14px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(135deg,rgba(20,184,166,.09),rgba(6,182,212,.06));flex-shrink:0}
 .uvd-context-main{min-width:0;display:flex;flex-direction:column;gap:5px}
 .uvd-context-kicker{font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--accent-text);opacity:.8}
@@ -3674,6 +3684,7 @@ function __uvdIsolateLayer(el) {
 
 // ========== IFRAME WORKFLOW ==========
 var __uvdIframeWorkflowAsked = false;
+var __uvdIframeWorkflowDismissedAt = 0;
 var __uvdIframeWorkflowEarliest = Date.now() + 8000;
 var __uvdDemoPreviewMaxSeconds = 90;
 function __uvdIsLikelyVideoIframe(url) {
@@ -3813,6 +3824,25 @@ var __uvdIframeCuteArt =
     '<text x="120" y="178" text-anchor="middle" font-size="13" font-weight="700" fill="#e8788f" font-family="Segoe UI, Arial, sans-serif">\uD83D\uDCAD  link video \u0111\u00E2u r\u1ED3i nh\u1EC9?</text>' +
   '</svg>';
 
+// Cute header mascot — a round kawaii cat/film character (inline SVG).
+var __uvdHeaderMascot =
+  '<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<circle cx="32" cy="34" r="24" fill="#ffe0ea"/>' +
+    '<circle cx="20" cy="20" r="11" fill="#ffb6c6"/>' +
+    '<circle cx="44" cy="20" r="11" fill="#ffb6c6"/>' +
+    '<path d="M20 20 L12 6 L28 14 Z" fill="#ff9fb4"/>' +
+    '<path d="M44 20 L52 6 L36 14 Z" fill="#ff9fb4"/>' +
+    '<circle cx="26" cy="34" r="3.6" fill="#5b3a40"/>' +
+    '<circle cx="38" cy="34" r="3.6" fill="#5b3a40"/>' +
+    '<circle cx="27" cy="33" r="1.2" fill="#fff"/>' +
+    '<circle cx="39" cy="33" r="1.2" fill="#fff"/>' +
+    '<ellipse cx="32" cy="41" rx="3.4" ry="4.4" fill="#5b3a40"/>' +
+    '<ellipse cx="32" cy="39.5" rx="1.7" ry="1.8" fill="#e8788f"/>' +
+    '<circle cx="20" cy="43" r="4" fill="#ffb6c6" opacity="0.9"/>' +
+    '<circle cx="44" cy="43" r="4" fill="#ffb6c6" opacity="0.9"/>' +
+    '<path d="M32 48 q2 4 0 6" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+  '</svg>';
+
 function __uvdOpenIframeWorkflowPrompt(candidates) {
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
   if (old) old.remove();
@@ -3869,12 +3899,12 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     list.appendChild(row);
   });
   var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
-  if (cancel) cancel.onclick = function() { overlay.remove(); };
+  if (cancel) cancel.onclick = function() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); };
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
-  if (closeX) closeX.onclick = function() { overlay.remove(); };
+  if (closeX) closeX.onclick = function() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); } });
 }
 function __uvdHasRealVideoCandidate() {
   var direct = [...urls.entries()].filter(function(entry) {
@@ -3901,6 +3931,37 @@ function installIframeWorkflowVideoWatcher() {
     ['loadedmetadata', 'loadeddata', 'durationchange', 'playing'].forEach(function(type) {
       document.removeEventListener(type, __uvdDismissIframeWorkflowIfVideoFound, true);
     });
+  });
+  // Re-offer the "only iframe" popup whenever the user comes back to this tab.
+  // Otherwise opening the iframe in a new tab and returning loses the notice.
+  var __uvdReofferTimer = null;
+  function __uvdCanReoffer() {
+    // Re-offer only when there is no visible popup, the page is still
+    // iframe-only (no real video yet), and the user has not explicitly
+    // dismissed it within the last 60s.
+    if (document.getElementById('__uvd_iframe_workflow_prompt__')) return false;
+    if (!__uvdHasOnlyIframeOrDemo()) return false;
+    if (Date.now() - (__uvdIframeWorkflowDismissedAt || 0) < 60000) return false;
+    return true;
+  }
+  var onVisible = function() {
+    if (document.visibilityState !== 'visible') return;
+    clearTimeout(__uvdReofferTimer);
+    __uvdReofferTimer = setTimeout(function() {
+      if (__uvdCanReoffer()) __uvdMaybeOfferIframeWorkflow(true);
+    }, 900);
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  // Also re-check once a while later (covers pages that never fire the change
+  // but still allow the user to come back and find the notice gone).
+  var __uvdReofferInterval = setInterval(function() {
+    if (document.visibilityState !== 'visible') return;
+    if (__uvdCanReoffer()) __uvdMaybeOfferIframeWorkflow(true);
+  }, 45000);
+  addCleanup(function() {
+    document.removeEventListener('visibilitychange', onVisible);
+    clearTimeout(__uvdReofferTimer);
+    clearInterval(__uvdReofferInterval);
   });
 }
 // Hybrid AI layer: if the user has configured an LLM proxy URL in Settings,
@@ -3944,10 +4005,11 @@ function __uvdAskAiClassifyIframes(candidates, cb) {
   .catch(function() { settle(candidates); });
 }
 
-function __uvdMaybeOfferIframeWorkflow() {
+function __uvdMaybeOfferIframeWorkflow(force) {
   __uvdDismissIframeWorkflowIfVideoFound();
   if (Date.now() < __uvdIframeWorkflowEarliest) return;
-  if (__uvdIframeWorkflowAsked || playerState.overlay) return;
+  if (playerState.overlay) return;
+  if (__uvdIframeWorkflowAsked && !force) return;
   if (!__uvdHasOnlyIframeOrDemo()) return;
   if (!data.settings.aiIframeFilter) return;
   var allFrames = __uvdCollectWorkflowFrames();
@@ -4017,9 +4079,12 @@ function buildUI() {
   header.style.cssText = 'flex-shrink:0;';
   header.innerHTML =
     '<div class="uvd-brand">' +
-      '<span class="uvd-brand-mark"><span class="uvd-logo-ring"><span>▶</span></span></span>' +
-      '<div><div class="uvd-brand-name">UMP DL</div><div class="uvd-brand-version">V' + VERSION + '</div>' +
-      '<div class="uvd-brand-sub">Universal media workspace</div></div>' +
+      '<span class="uvd-brand-mark">' + __uvdHeaderMascot + '</span>' +
+      '<div class="uvd-brand-text">' +
+        '<div class="uvd-brand-name">UMP DL <span class="uvd-brand-heart">♡</span></div>' +
+        '<div class="uvd-brand-version">v' + VERSION + ' ✦ cute player</div>' +
+        '<div class="uvd-brand-sub">universal media · d\u1EC5 th\u01B0\u01A1ng 🎀</div>' +
+      '</div>' +
     '</div>' +
     '<div class="uvd-header-actions">' +
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +

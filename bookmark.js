@@ -3437,7 +3437,20 @@ style.textContent = `
 .uvd-player-info-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(20,184,166,0.4)}
 .uvd-player-info-meta{font-size:12px;font-weight:750;color:var(--accent2);background:rgba(20,184,166,.14);border:1px solid rgba(20,184,166,.28);display:inline-block;padding:6px 13px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;letter-spacing:.01em}.uvd-player-info-panel{backdrop-filter:blur(6px) saturate(120%);-webkit-backdrop-filter:blur(6px) saturate(120%)}.uvd-player-info-title{font-size:16px;font-weight:800} @media (max-width:420px){.uvd-player-sheet .uvd-settings-header{padding:14px 16px;min-height:72px}.uvd-player-sheet .uvd-back-btn,.uvd-player-sheet .uvd-icon-btn{width:38px;height:38px;border-radius:14px}.uvd-player-header-title{margin-left:6px}.uvd-player-header-title strong{font-size:13px}}
 .uvd-player-sheet.uvd-player-dimmed .uvd-settings-header,.uvd-player-sheet.uvd-player-dimmed .uvd-player-info-panel{opacity:.22;transition:opacity .35s ease}.uvd-player-sheet.uvd-player-dimmed .uvd-player-video-area::after{background-image:none;background:rgba(0,0,0,.12)}
-.uvd-iframe-card{padding:16px!important;background:linear-gradient(145deg,rgba(248,253,252,.9),rgba(236,254,255,.7))!important}.uvd-iframe-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}.uvd-iframe-card-head>div{display:flex;flex-direction:column;gap:7px;min-width:0}.uvd-iframe-card-head strong{font-size:14px;color:var(--text)}.uvd-iframe-card .uvd-card-stream-meta{margin:0 0 12px;background:rgba(14,116,144,.07);color:var(--text2)}.uvd-ai-badge{display:inline-block;width:max-content;padding:3px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.04em;color:#fff}.uvd-ai-badge.uvd-ai-player{background:#1fa97a}.uvd-ai-badge.uvd-ai-junk{background:#ff5d72}.uvd-ai-badge.uvd-ai-unknown{background:#a86200}.uvd-iframe-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
+.uvd-iframe-card{padding:16px!important;background:linear-gradient(145deg,rgba(248,253,252,.9),rgba(236,254,255,.7))!important}.uvd-iframe-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}.uvd-iframe-card-head>div{display:flex;flex-direction:column;gap:7px;min-width:0}.uvd-iframe-card-head strong{font-size:14px;color:var(--text)}.uvd-iframe-card .uvd-card-stream-meta{margin:0 0 12px;background:rgba(14,116,144,.07);color:var(--text2)}.uvd-ai-badge{display:inline-block;width:max-content;padding:3px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.04em;color:#fff}.uvd-ai-badge.uvd-ai-player{background:#1fa97a}.uvd-ai-badge.uvd-ai-junk{background:#ff5d72}.uvd-ai-badge.uvd-ai-unknown{background:#c9862a}.uvd-iframe-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+/* ===== CUTE STREAM CARDS ===== */
+.uvd-card.uvd-cute{background:linear-gradient(150deg,rgba(255,255,255,.9),rgba(255,240,247,.85))!important;border:1px solid rgba(255,159,180,.3)!important;border-radius:22px!important;box-shadow:0 8px 22px rgba(247,108,140,.12),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-card.uvd-cute:hover{border-color:rgba(247,108,140,.5)!important;box-shadow:0 14px 30px rgba(247,108,140,.22)!important}
+.uvd-cute .uvd-type-badge{background:linear-gradient(135deg,rgba(255,214,228,.6),rgba(255,182,198,.5))!important;color:#d85c7a!important;border:1px solid rgba(255,159,180,.35)!important;border-radius:10px!important}
+.uvd-cute .uvd-card-status{font-size:8.5px!important}
+.uvd-cute .uvd-card-url-label{color:#d85c7a!important}
+.uvd-cute .uvd-card-stream-meta{background:rgba(255,214,228,.35)!important;border-color:rgba(255,159,180,.3)!important;color:#c95073!important;border-radius:12px!important}
+.uvd-cute-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.uvd-votechip{display:inline-flex;align-items:center;gap:3px;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:none;transition:transform .15s ease}
+.uvd-votechip:active{transform:scale(.88)}
+.uvd-votechip-up{background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#e84a72;border:1px solid rgba(232,74,114,.25)}
+.uvd-votechip-down{background:linear-gradient(135deg,#ffe9e9,#ffdede);color:#ff5d72;border:1px solid rgba(255,93,114,.25)}
+.uvd-cute .uvd-card-preview{border-radius:18px;border:1px solid rgba(255,159,180,.25)}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
 .uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
@@ -3760,6 +3773,47 @@ function __uvdSetHidden(hidden) {
     } catch(e) {}
   } else __uvdRemoveRestoreBtn();
 }
+// ========== POPUP OVERLAY: HIDE UI + REOPEN BUTTON ==========
+// When a popup (media links or iframe) is shown, hide the main UMP panel so the
+// popup is never covered. Show a floating cute button to recall the popup and a
+// restore button to bring the panel back.
+var __uvdPopupReopenBtn = null;
+function __uvdRemovePopupReopenBtn() {
+  var old = document.getElementById('__uvd_popup_reopen__');
+  if (old) old.remove();
+  __uvdPopupReopenBtn = null;
+}
+function __uvdShowPopupReopenBtn(kind) {
+  __uvdRemovePopupReopenBtn();
+  var b = document.createElement('button');
+  b.id = '__uvd_popup_reopen__';
+  b.className = 'uvd-scope';
+  b.innerHTML = kind === 'iframe' ? '🎬' : '🐰';
+  b.title = kind === 'iframe' ? 'Mở lại popup iframe' : 'Mở lại popup video';
+  b.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483646;width:54px;height:54px;border-radius:50%;' +
+    'border:2px solid #fff;background:linear-gradient(135deg,#ffd6e4,#ffb6c6);color:#fff;font-size:24px;line-height:1;' +
+    'box-shadow:0 8px 24px rgba(247,108,140,.45);cursor:pointer;display:flex;align-items:center;justify-content:center;' +
+    'animation:uvdScaleIn .25s ease both;';
+  b.onclick = function() {
+    if (kind === 'iframe') __uvdMaybeOfferIframeWorkflow(true);
+    else __uvdMaybeOfferMediaPopup(true);
+  };
+  __uvdAppendRoot(b);
+  __uvdPopupReopenBtn = b;
+}
+// Hide the whole UMP panel (cute popup takes priority and must not be covered).
+function __uvdHideUiForPopup() {
+  var p = document.getElementById('__uvd__');
+  if (p) { p.style.display = 'none'; p.__uvdPopupHidden = true; }
+}
+function __uvdRestoreUiAfterPopup() {
+  var p = document.getElementById('__uvd__');
+  if (p && p.__uvdPopupHidden) { p.__uvdPopupHidden = false; p.style.display = ''; }
+  __uvdRemovePopupReopenBtn();
+}
+function __uvdPopupDismiss() {
+  __uvdRestoreUiAfterPopup();
+}
 
 // ========== FIX LAYER ==========
 function __uvdSyncViewport() {}
@@ -3964,6 +4018,9 @@ var __uvdMediaPopupDismissedAt = 0;
 function __uvdOpenMediaLinksPopup(streams) {
   var old = document.getElementById('__uvd_media_links_prompt__');
   if (old) old.remove();
+  // Hide the UMP panel so this popup is never covered by the UI.
+  __uvdHideUiForPopup();
+  __uvdShowPopupReopenBtn('media');
   var overlay = document.createElement('div');
   overlay.id = '__uvd_media_links_prompt__';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
@@ -4021,6 +4078,7 @@ function __uvdOpenMediaLinksPopup(streams) {
     play.onclick = function() {
       var url = stream.url, type = stream.type || 'MP4';
       overlay.remove();
+      __uvdPopupDismiss();
       setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
     };
     row.appendChild(label);
@@ -4028,17 +4086,17 @@ function __uvdOpenMediaLinksPopup(streams) {
     row.appendChild(play);
     list.appendChild(row);
   });
+  function closeMedia() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
-  if (cancel) cancel.onclick = function() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); };
+  if (cancel) cancel.onclick = closeMedia;
   var closeX = panel.querySelector('#__uvd_media_links_close__');
-  if (closeX) closeX.onclick = function() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); };
+  if (closeX) closeX.onclick = closeMedia;
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
-  // Make sure the popup sits above everything (including the main UMP panel)
-  // so it is never covered. Move it to the very end of <body>.
+  // Make sure the popup sits above everything (including the main UMP panel).
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   overlay.style.zIndex = '2147483647';
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); } });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) closeMedia(); });
 }
 function __uvdHasRealDirectStreams() {
   var direct = [...urls.entries()].filter(function(entry) {
@@ -4059,6 +4117,9 @@ function __uvdMaybeOfferMediaPopup(force) {
 function __uvdOpenIframeWorkflowPrompt(candidates) {
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
   if (old) old.remove();
+  // Hide the UMP panel so this popup is never covered by the UI.
+  __uvdHideUiForPopup();
+  __uvdShowPopupReopenBtn('iframe');
   var overlay = document.createElement('div');
   overlay.id = '__uvd_iframe_workflow_prompt__';
   // Dim the whole page behind so the cute notice stands out.
@@ -4132,16 +4193,17 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     row.appendChild(open);
     list.appendChild(row);
   });
+  function closeIframe() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
   var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
-  if (cancel) cancel.onclick = function() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); };
+  if (cancel) cancel.onclick = closeIframe;
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
-  if (closeX) closeX.onclick = function() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); };
+  if (closeX) closeX.onclick = closeIframe;
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Keep iframe popup above the main panel too.
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   overlay.style.zIndex = '2147483647';
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); } });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) closeIframe(); });
 }
 function __uvdHasRealVideoCandidate() {
   var direct = [...urls.entries()].filter(function(entry) {
@@ -4624,57 +4686,74 @@ function __uvdDescribeHlsLevels(card, levels, media) {
 // ========== RENDER STREAMS ==========
 var UVD_LAZY_BATCH = 20;
 
+function __uvdTypeEmoji(type) {
+  var t = String(type || '').toUpperCase();
+  if (t === 'M3U8' || t === 'MPD') return '🎬';
+  if (t === 'MP4' || t === 'WEBM') return '📼';
+  if (t === 'IFRAME') return '🖼️';
+  if (t === 'BLOB') return '🌀';
+  if (t === 'TS') return '📦';
+  return '📎';
+}
+function __uvdVoteChips(url) {
+  var v = __uvdVote(url);
+  return '<span class="uvd-votechip uvd-votechip-up" data-vote-up="' + encodeURIComponent(url) + '">♥ ' + (v.up || 0) + '</span>' +
+         '<span class="uvd-votechip uvd-votechip-down" data-vote-down="' + encodeURIComponent(url) + '">💩 ' + (v.down || 0) + '</span>';
+}
 function buildStreamCardHTML(item, i) {
-  if (String(item.type || '').toUpperCase() === 'IFRAME') {
+  var type = String(item.type || '').toUpperCase();
+  var emoji = __uvdTypeEmoji(type);
+  var voteChips = __uvdVoteChips(item.url);
+  if (type === 'IFRAME') {
     var verdictBadge = item.aiVerdict === 'PLAYER'
-      ? '<span class="uvd-ai-badge uvd-ai-player">PLAYER ✓</span>'
+      ? '<span class="uvd-ai-badge uvd-ai-player">player thật ✨</span>'
       : (item.aiVerdict === 'JUNK'
-        ? '<span class="uvd-ai-badge uvd-ai-junk">JUNK ✗</span>'
-        : '<span class="uvd-ai-badge uvd-ai-unknown">UNKNOWN ?</span>');
-    return '<div class="uvd-card uvd-iframe-card" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">IFRAME EMBED</span>' + verdictBadge + '<strong>Chưa phải direct media</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
-      '<div class="uvd-card-stream-meta">Iframe được giữ riêng để tránh tạo thumbnail giả. Mở nó ở cửa sổ mới rồi chạy UMP trong iframe để bắt link thật.</div>' +
+        ? '<span class="uvd-ai-badge uvd-ai-junk">rác 💩</span>'
+        : '<span class="uvd-ai-badge uvd-ai-unknown">chưa rõ ❔</span>');
+    return '<div class="uvd-card uvd-iframe-card uvd-cute" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
+      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">🖼️ iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
+      '<div class="uvd-card-stream-meta">mở nó ở tab mới rồi chạy lại UMP để lấy link thật nha 🥺</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
+      '<div class="uvd-cute-actions">' + voteChips + '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button></div>' +
       '</div>';
   }
   var actionsHtml;
-  if (item.type === 'BLOB') {
+  if (type === 'BLOB') {
     actionsHtml =
-      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="blobdl" data-url="' + encodeURIComponent(item.url) + '" style="background:rgba(52,211,153,0.22);">⬇ Tải Blob</button>' +
-      '<div style="grid-column:1/3;font-size:11px;color:var(--text3);line-height:1.4;">Blob chỉ tải được nếu là file gốc (không áp dụng cho stream HLS/DASH qua MediaSource).</div>';
-  } else if (item.type === 'IFRAME') {
+      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">▶ xem</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="blobdl" data-url="' + encodeURIComponent(item.url) + '">⬇ tải blob</button>' +
+      '<div style="grid-column:1/3;font-size:11px;color:var(--text3);line-height:1.4;">blob chỉ tải được nếu là file gốc (không áp dụng cho stream HLS/DASH qua MediaSource).</div>';
+  } else if (type === 'M3U8') {
     actionsHtml =
-      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="iframe" data-url="' + encodeURIComponent(item.url) + '">Mở iframe tab</button>';
-  } else if (item.type === 'M3U8') {
-    actionsHtml =
-      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">Chất lượng</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
+      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">▶ xem</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="quality" data-url="' + encodeURIComponent(item.url) + '">🎚 chất lượng</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">⬇ lệnh tải</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>';
   } else {
     actionsHtml =
-      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" style="background:rgba(20,184,166,0.25);">Xem</button>' +
-      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">Lệnh tải</button>';
+      '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">▶ xem</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="cmd" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">⬇ lệnh tải</button>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>';
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
+  var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
+  var statusText = (type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview';
+  var statusClass = (type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted';
   return (
-    '<div class="uvd-card" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
+    '<div class="uvd-card uvd-cute" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
         '<div class="uvd-thumb-image"></div>' +
         '<div class="uvd-thumb-sheen"></div>' +
-        '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
+        '<span class="uvd-thumb-type">' + emoji + ' ' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
         actionMenuHtml +
       '</div>' +
       '<div class="uvd-card-head">' +
-        '<div class="uvd-card-badges"><span class="uvd-type-badge">#' + (i+1) + ' ' + escapeHtml(item.type) + '</span><span class="uvd-card-status ' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted') + '">' + ((item.type === 'MP4' || item.type === 'M3U8') ? 'PREVIEW…' : 'NO PREVIEW') + '</span></div>' +
+        '<div class="uvd-card-badges"><span class="uvd-type-badge">' + emoji + ' #' + (i+1) + '</span><span class="uvd-card-status ' + statusClass + '">' + statusText + '</span></div>' +
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
-      '<div class="uvd-card-stream-meta" data-card-stream-meta>Đang lấy thời lượng và độ phân giải…</div>' +
+      '<div class="uvd-card-stream-meta" data-card-stream-meta>' + escapeHtml(item.type) + metaLabel + '</div>' +
+      '<div class="uvd-cute-actions" style="margin-bottom:8px;">' + voteChips + '</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
       '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
     '</div>'
@@ -4992,6 +5071,23 @@ function renderStreams(container, arr) {
 
   container.onclick = function(e) {
     if (!e.target.closest('.uvd-action-menu')) container.querySelectorAll('.uvd-action-menu[open]').forEach(function(menu) { menu.open = false; });
+    // Cute vote chips (♥ / 💩) on stream cards.
+    var voteUp = e.target.closest('[data-vote-up]');
+    if (voteUp) {
+      var vUrl = decodeURIComponent(voteUp.getAttribute('data-vote-up'));
+      __uvdCastVote(vUrl, 'up');
+      toast('Cảm ơn cưng! Link này đáng yêu quá ♥');
+      debouncedBuildUI();
+      return;
+    }
+    var voteDown = e.target.closest('[data-vote-down]');
+    if (voteDown) {
+      var vdUrl = decodeURIComponent(voteDown.getAttribute('data-vote-down'));
+      __uvdCastVote(vdUrl, 'down');
+      toast('Cảm ơn cưng! Sẽ loại bỏ link rác 💩');
+      debouncedBuildUI();
+      return;
+    }
     var urlBox = e.target.closest('.uvd-url-box');
     if (urlBox) {
       copy(urlBox.textContent || '');

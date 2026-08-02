@@ -68,6 +68,26 @@ Hai file hiện đã được đồng bộ.
 - **Cách bật AI thật:** đặt `GEMINI_API_KEY` (và tuỳ chọn `GEMINI_MODEL`) làm
   env trên Render, rồi dán URL proxy vào Cài đặt UMP → ô "LLM proxy".
 
+### Patch #2 — Popup iframe cute + làm tối web nổi bật — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** Khi trang chỉ có iframe (chưa thấy link video trực tiếp), thay
+  popup cũ bằng một popup **cute, dễ thương, làm tối/blur toàn bộ web xung quanh**
+  để thông báo nổi bật, có **ảnh minh hoạ** và hướng dẫn người dùng.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - Hàm `__uvdOpenIframeWorkflowPrompt` được thiết kế lại:
+    - Overlay làm tối + blur nền (`rgba(12,8,20,.74)` + `backdrop-filter:blur(8px)`).
+    - Panel gradient hồng nhạt, bo góc 26px, đổ bóng nổi, có nút ✕ đóng.
+    - **Ảnh minh hoạ** kawaii mèo cầm kính lúp tìm kiếm (SVG inline, không cần
+      file ngoài, không tốn request).
+    - Thông báo rõ: **"Không có link video — chỉ có iframe 🥺"**, hướng dẫn
+      "bấm vào iframe bên dưới, đợi nó phát, rồi chạy UMP DL lại một lần nữa để
+      lấy link video thật."
+    - Giữ danh sách iframe (kèm badge PLAYER/JUNK/UNKNOWN + nút "Mở + Copy"),
+      thẻ JUNK mờ đi. Không tự xóa iframe.
+  - Có thêm biến `__uvdIframeCuteArt` (SVG kawaii).
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

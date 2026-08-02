@@ -281,6 +281,19 @@ Hai file hiện đã được đồng bộ.
   4. **Xoá con thỏ 🐰** trang trí phía dưới trình phát video.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #12 — Tách 3 nút iframe khỏi link, thêm dòng "Đang chuẩn bị link", ẩn script bằng cuộn lên — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Link iframe ở Streams**: 3 nút (↗ mở / copy UMP / sao chép) bị dính vào link —
+     thêm khoảng cách `margin-top:10px` + `padding-top` + đường phân cách nhỏ giữa
+     link và hàng nút.
+  2. **Intro thỏ ôm bắp rang**: thêm lại dòng "Đang chuẩn bị link cho mấy cưng..."
+     (vẫn giữ dòng "Đợi vài giây hoặc bấm Mở ngay" + nút ▶ Mở ngay).
+  3. **Ẩn script**: bỏ nút nổi đáy phải (trùng vị trí nút gọi lại pop-up) — thay bằng
+     **cơ chế cuộn**: khi ẩn kiểu floating, **cuộn lên** là hiện lại panel. Toast đổi
+     thành "Đã thu gọn UMP DL — cuộn lên để hiện lại".
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

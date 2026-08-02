@@ -1837,6 +1837,7 @@ try {
   __uvdStartMatthewGuard();
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
+  __uvdInstallScrollHide();
   // Schedule the AI iframe workflow after the earliest gate (8s) so we have
   // time to gather network evidence before deciding which iframe is the player.
   if (data.settings.aiIframeFilter) setTimeout(function() { __uvdMaybeOfferIframeWorkflow(); }, 10000);
@@ -3472,6 +3473,7 @@ style.textContent = `
 .uvd-votechip-up{background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#e84a72;border:1px solid rgba(232,74,114,.25)}
 .uvd-votechip-down{background:linear-gradient(135deg,#ffe9e9,#ffdede);color:#ff5d72;border:1px solid rgba(255,93,114,.25)}
 .uvd-cute .uvd-card-preview{border-radius:18px;border:1px solid rgba(255,159,180,.25)}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}
+.uvd-iframe-card .uvd-cute-actions{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(194,150,255,.25)}
 /* ===== CUTE LAYOUT: header pill, context pill, body pill ===== */
 .uvd-context-bar.uvd-context-cute{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:14px;border:1px solid rgba(194,150,255,.35)!important;border-radius:22px!important;background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;box-shadow:0 6px 18px rgba(150,90,220,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-context-emoji{flex:0 0 auto;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(150deg,#ffe0ea,#ffd6e4);border-radius:50%;box-shadow:0 4px 10px rgba(247,108,140,.18)}
@@ -3892,6 +3894,25 @@ function __uvdShowRestoreBtn() {
   btn.addEventListener('pointerup', function() { dragging = false; });
   __uvdAppendRoot(btn);
 }
+var __uvdScrollHide = false;
+var __uvdScrollHideInstalled = false;
+var __uvdScrollHideLastY = 0;
+function __uvdInstallScrollHide() {
+  if (__uvdScrollHideInstalled) return;
+  __uvdScrollHideInstalled = true;
+  __uvdScrollHideLastY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  var handler = function() {
+    if (!__uvdScrollHide) return;
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var delta = y - __uvdScrollHideLastY;
+    __uvdScrollHideLastY = y;
+    var panel = document.getElementById('__uvd__');
+    if (!panel || panel.__uvdPopupHidden) return;
+    if (delta < -8 || y <= 4) __uvdSetHidden(false);
+  };
+  window.addEventListener('scroll', handler, { passive: true });
+  addCleanup(function() { window.removeEventListener('scroll', handler); });
+}
 function __uvdSetHidden(hidden) {
   __uvdScriptHidden = hidden;
   var panel = document.getElementById('__uvd__');
@@ -3900,12 +3921,12 @@ function __uvdSetHidden(hidden) {
     panel.style.display = hidden && hideMode === 'floating' ? 'none' : '';
     panel.classList.toggle('uvd-panel-collapsed', hidden && hideMode === 'header');
   }
+  // Không dùng nút nổi đáy phải nữa (tránh trùng nút gọi lại pop-up);
+  // khi ẩn kiểu floating thì cuộn lên là hiện lại.
+  __uvdRemoveRestoreBtn();
   if (hidden) {
     __uvdStartHardEmbedBlocker();
-    // Collapsed mode keeps the header in its original position while the
-    // content below it folds upward. Popup blocking remains active.
-    if (hideMode === 'floating') __uvdShowRestoreBtn();
-    else __uvdRemoveRestoreBtn();
+    if (hideMode === 'floating') __uvdScrollHide = true;
     // Resume only media that UMP itself paused during its initial scan.
     try {
       document.querySelectorAll('video,audio').forEach(function(media) {
@@ -3916,7 +3937,9 @@ function __uvdSetHidden(hidden) {
         }
       });
     } catch(e) {}
-  } else __uvdRemoveRestoreBtn();
+  } else {
+    __uvdScrollHide = false;
+  }
 }
 // ========== POPUP OVERLAY: HIDE UI + REOPEN BUTTON ==========
 // When a popup (media links or iframe) is shown, hide the main UMP panel so the
@@ -4218,7 +4241,8 @@ function __uvdShowPlayIntro(url, type) {
   box.innerHTML =
     '<div style="line-height:0;transform:scale(1.1);">' + __uvdPlayIntroArt + '</div>' +
     '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
-    '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
+    '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị link cho mấy cưng...</div>' +
+    '<div style="font-size:12.5px;color:#8a6ab0;margin-top:2px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
     '<button id="__uvd_play_intro_open__" class="uvd-btn uvd-btn-sm" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:800;font-size:14px;padding:11px;">▶ Mở ngay</button>';
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
@@ -4745,7 +4769,7 @@ function buildUI() {
   __uvdIsolateLayer(panel);
   applyEffectsPref(panel);
   applyMotionPref(panel);
-  if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdShowRestoreBtn(); }
+  if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdRemoveRestoreBtn(); }
   else { __uvdRemoveRestoreBtn(); }
 
   panel.querySelectorAll('.uvd-btn, .uvd-btn-icon, .uvd-tab').forEach(function(btn) {
@@ -4824,7 +4848,7 @@ function buildUI() {
     __uvdSetHidden(!isCollapsed);
     this.textContent = isCollapsed ? '▾' : '▴';
     this.title = isCollapsed ? 'Thu gọn UMP DL' : 'Mở rộng UMP DL';
-    toast(isCollapsed ? 'Đã mở rộng UMP DL' : 'Đã thu gọn UMP DL — bấm lại để mở');
+    toast(isCollapsed ? 'Đã mở rộng UMP DL' : 'Đã thu gọn UMP DL — cuộn lên để hiện lại');
   };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false, true);

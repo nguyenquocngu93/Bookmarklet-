@@ -543,3 +543,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   nhủ nằm **ở dưới**.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #18 — Card Streams cute hơn (giữ bố cục) — 2026-08-03
+
+- **Mục tiêu:** giữ nguyên bố cục card stream, làm cute hơn về **màu + bóng**: gradient
+  trắng→hồng→tím, bo góc to hơn, bóng đổ hồng mềm, highlight trắng trên đỉnh, hover nhẹ nhàng
+  nhấc lên. Preview thumbnail chuyển sang nền hồng/tím mềm.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+

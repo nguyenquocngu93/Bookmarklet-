@@ -6,6 +6,8 @@
 // @match        *://*/*
 // @run-at       document-start
 // @grant        none
+// @updateURL    https://render-header-proxy.onrender.com/userscript.js
+// @downloadURL  https://render-header-proxy.onrender.com/userscript.js
 // ==/UserScript==
 // Generated from umpdl6736-2_vjs10.js. Do not edit this output directly.
 window.__uvdUserscriptMode = true;

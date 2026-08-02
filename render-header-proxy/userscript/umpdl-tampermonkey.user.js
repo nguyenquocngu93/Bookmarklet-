@@ -1,13 +1,13 @@
 // ==UserScript==
-// @name         Universal Media Player & Downloader
+// @name         UMP DL - Tampermonkey
 // @namespace    umpdl
-// @version      6.7.26
-// @description  UMP DL chạy trực tiếp trên trang mẹ và iframe để bắt media.
+// @version      6.7.26-tm.1
+// @description  UMP DL chạy trong tất cả iframe phù hợp để bắt M3U8/MP4.
 // @match        *://*/*
 // @run-at       document-start
 // @grant        none
-// @updateURL    https://render-header-proxy.onrender.com/userscript.js
-// @downloadURL  https://render-header-proxy.onrender.com/userscript.js
+// @updateURL    https://render-header-proxy.onrender.com/tampermonkey.user.js
+// @downloadURL  https://render-header-proxy.onrender.com/tampermonkey.user.js
 // ==/UserScript==
 // Generated from umpdl6736-2_vjs10.js. Do not edit this output directly.
 window.__uvdUserscriptMode = true;

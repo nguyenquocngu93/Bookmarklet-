@@ -110,6 +110,30 @@ Hai file hiện đã được đồng bộ.
     (mở iframe tab mới) KHÔNG tính là dismissed → quay lại sẽ hiện lại popup.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #4 — Tự học iframe UNKNOWN + popup link video real (bunny 🐰) — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:**
+  1. **Tự học** cho iframe class `UNKNOWN`: ghi nhớ verdict theo host qua nhiều phiên,
+     thay vì luôn đoán mò.
+  2. **Popup link video real:** khi đã lọc bỏ link rác và tìm thấy link video thật
+     (M3U8/MP4/MPD/WEBM/BLOB/TS), hiện popup cute liệt kê các link để người dùng
+     bấm "Xem" trực tiếp. Đổi mascot con vật mới (thỏ 🐰) cho mới mẻ.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - **Tự học:** thêm `data.learnedHosts` + `__uvdLearnIframe(host, verdict)` +
+    `__uvdLearnedVerdict(host)` (cần ≥2 tín hiệu cùng loại mới khóa). Trong
+    `__uvdClassifyIframe` check verdict đã học (`learned-player`/`learned-junk`)
+    và ghi đè heuristic. Khi người dùng bấm "Mở + Copy" iframe → tự học `PLAYER`.
+  - **Popup media:** thêm `__uvdMediaCuteArt` (thỏ kawaii cầm nút play), hàm
+    `__uvdOpenMediaLinksPopup(streams)` liệt kê top-8 link với nút "▶ Xem"
+    (gọi `window.__uvd_showPlayer`), cờ `__uvdMediaPopupShown`/`DismissedAt`.
+    `__uvdMaybeOfferMediaPopup(force)` hiện popup khi có link thật.
+  - **Kích hoạt:** gọi `__uvdMaybeOfferMediaPopup(false)` sau boot ~3.5s; khi quay
+    lại tab (`visibilitychange`) nếu không còn iframe-only thì hiện media popup.
+  - Popup media không mở chồng khi player đang mở; tôn trọng cooldown 60s khi bị
+    đóng thủ công.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

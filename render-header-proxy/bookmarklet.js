@@ -434,6 +434,28 @@ var __uvdKnownPlayerHosts = [
   'videoplay.us', 'dood.yt', 'javxxx.me', 'vinovo.to', 'upload18.org', 'tapecontent.net',
   'mxcontent.net', 'vincdn.net', 'stb.strp2p.com', 'player.upn.one'
 ];
+// ========== SELF-LEARNING for UNKNOWN iframes ==========
+// Persist learned verdicts per host so an UNKNOWN iframe that turns out to be
+// the real player (user opens it / it serves media) is recognized next time.
+data.learnedHosts = data.learnedHosts || {};
+var __uvdLearnedHosts = data.learnedHosts;
+function __uvdLearnIframe(host, verdict) {
+  if (!host) return;
+  var rec = __uvdLearnedHosts[host] = __uvdLearnedHosts[host] || { player: 0, junk: 0, updatedAt: 0 };
+  if (verdict === 'PLAYER') rec.player = (rec.player || 0) + 1;
+  else if (verdict === 'JUNK') rec.junk = (rec.junk || 0) + 1;
+  rec.updatedAt = Date.now();
+  data.learnedHosts = __uvdLearnedHosts;
+  storage.set(data);
+}
+function __uvdLearnedVerdict(host) {
+  var rec = host && __uvdLearnedHosts[host];
+  if (!rec) return null;
+  // Require 2 signals of the same kind to lock a verdict (avoid noise).
+  if ((rec.player || 0) >= 2 && (rec.player || 0) > (rec.junk || 0)) return 'PLAYER';
+  if ((rec.junk || 0) >= 2 && (rec.junk || 0) > (rec.player || 0)) return 'JUNK';
+  return null;
+}
 function __uvdRefreshCapture() {
   if (__uvdIsMatthewHost()) __uvdMatthewFrozen = false;
   document.documentElement.classList.remove('uvd-page-frozen');
@@ -1733,6 +1755,9 @@ try {
   // Schedule the AI iframe workflow after the earliest gate (8s) so we have
   // time to gather network evidence before deciding which iframe is the player.
   if (data.settings.aiIframeFilter) setTimeout(function() { __uvdMaybeOfferIframeWorkflow(); }, 10000);
+  // If real (non-junk) video links were captured, offer a cute popup listing
+  // them so the user can tap to watch directly.
+  setTimeout(function() { __uvdMaybeOfferMediaPopup(false); }, 3500);
   if (data.settings.autoClickPlay) setTimeout(function() { runAutoClickAndRescan(true); }, 500);
   // SupJAV exposes its real servers behind short labels (RG/SUBY/etc.).
   // Try those server controls automatically after the initial scan; do not
@@ -3728,6 +3753,10 @@ function __uvdClassifyIframe(url, element) {
   // 2) Known player host or embed/path cues.
   var host = __uvdMediaHostOf(url);
   if (host && __uvdKnownPlayerHosts.indexOf(host) !== -1) { score += 55; reasons.push('known-player'); }
+  // 2b) Self-learned verdict (from previous sessions) beats static guessing.
+  var learned = __uvdLearnedVerdict(host);
+  if (learned === 'PLAYER') { score += 65; reasons.push('learned-player'); }
+  else if (learned === 'JUNK') { score -= 95; reasons.push('learned-junk'); }
   if (__uvdIsEmbedMediaUrl(url)) { score += 45; reasons.push('embed-url'); }
   if (/embed|player|video|stream|watch|\/e(?:\/|$)|\/v(?:\/|$)/i.test(lower)) score += 25;
   if (/player|video|stream|play|hls|tape|cdn|mixdrop|dood/i.test(lower)) score += 12;
@@ -3843,6 +3872,100 @@ var __uvdHeaderMascot =
     '<path d="M32 48 q2 4 0 6" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
   '</svg>';
 
+// Cute rabbit mascot for the "found real video links" popup (inline SVG).
+var __uvdMediaCuteArt =
+  '<svg width="250" height="180" viewBox="0 0 250 180" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="125" cy="158" rx="92" ry="14" fill="#e7dcff" opacity="0.6"/>' +
+    '<ellipse cx="125" cy="120" rx="60" ry="50" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<path d="M78 120 Q60 40 96 58 Q90 90 96 112 Z" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<path d="M172 120 Q190 40 154 58 Q160 90 154 112 Z" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<path d="M80 52 Q72 44 74 40 Q86 40 92 50 Z" fill="#ffc9de"/>' +
+    '<path d="M170 52 Q178 44 176 40 Q164 40 158 50 Z" fill="#ffc9de"/>' +
+    '<circle cx="106" cy="112" r="7" fill="#4a3550"/>' +
+    '<circle cx="144" cy="112" r="7" fill="#4a3550"/>' +
+    '<circle cx="108.5" cy="110" r="2.4" fill="#fff"/>' +
+    '<circle cx="146.5" cy="110" r="2.4" fill="#fff"/>' +
+    '<ellipse cx="125" cy="122" rx="4.5" ry="5.5" fill="#ff9fb4"/>' +
+    '<ellipse cx="125" cy="120.5" rx="2" ry="2" fill="#d85c7a"/>' +
+    '<ellipse cx="95" cy="128" rx="6" ry="4" fill="#ffc9de" opacity="0.85"/>' +
+    '<ellipse cx="155" cy="128" rx="6" ry="4" fill="#ffc9de" opacity="0.85"/>' +
+    '<circle cx="125" cy="142" r="16" fill="#f0a5ff" opacity="0.85"/>' +
+    '<path d="M120 138 L120 146 L130 142 Z" fill="#ffffff"/>' +
+    '<circle cx="42" cy="60" r="7" fill="#ffd9e8" opacity="0.7"/>' +
+    '<circle cx="208" cy="60" r="7" fill="#ffd9e8" opacity="0.7"/>' +
+  '</svg>';
+
+var __uvdMediaPopupShown = false;
+var __uvdMediaPopupDismissedAt = 0;
+function __uvdOpenMediaLinksPopup(streams) {
+  var old = document.getElementById('__uvd_media_links_prompt__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_media_links_prompt__';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
+    'background:rgba(28,14,40,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+  var panel = document.createElement('div');
+  panel.className = 'uvd-glass-panel';
+  panel.style.cssText = 'width:100%;max-width:430px;margin:auto;text-align:center;border-radius:26px;overflow:hidden;' +
+    'background:linear-gradient(160deg,#f8f4ff 0%,#f3ecff 45%,#fff0f8 100%);border:1px solid rgba(194,150,255,.4);' +
+    'box-shadow:0 24px 60px rgba(150,90,220,.32),0 0 0 6px rgba(255,255,255,.35) inset;' +
+    'animation:uvdScaleIn .32s cubic-bezier(.22,1,.36,1) both;';
+  panel.innerHTML =
+    '<div style="padding:16px 16px 2px;position:relative;">' +
+      '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<div style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
+    '</div>' +
+    '<div style="padding:0 20px 18px;">' +
+      '<div style="font-size:18px;font-weight:800;color:#9a6ce0;margin-bottom:4px;">Tìm thấy ' + streams.length + ' link video rồi nè 🐰</div>' +
+      '<div style="font-size:12px;color:#8a6ab0;margin-bottom:14px;">Đã lọc bỏ link rác. Bấm <b style="color:#9a6ce0;">Xem</b> để mở video thật.</div>' +
+      '<div id="__uvd_media_links_list__" style="max-height:44vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
+      '<button class="uvd-btn uvd-btn-sm" id="__uvd_media_links_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:700;">Để sau</button>' +
+    '</div>';
+  var list = panel.querySelector('#__uvd_media_links_list__');
+  streams.slice(0, 8).forEach(function(stream, index) {
+    var row = document.createElement('div');
+    row.className = 'uvd-card';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:7px;text-align:left;border-radius:14px;background:rgba(255,255,255,.78);border:1px solid rgba(194,150,255,.28);';
+    var label = document.createElement('div');
+    label.style.cssText = 'flex:1;min-width:0;font-size:9.5px;color:#8a6ab0;word-break:break-all;line-height:1.4;';
+    label.innerHTML = '<div style="margin-bottom:2px;"><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:#b385f2;">#' + (index + 1) + ' ' + (stream.type || 'MEDIA') + '</span></div>' + escapeHtml(stream.url);
+    var play = document.createElement('button');
+    play.className = 'uvd-btn uvd-btn-sm';
+    play.textContent = '▶ Xem';
+    play.style.cssText = 'border-radius:12px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:700;';
+    play.onclick = function() {
+      var url = stream.url, type = stream.type || 'MP4';
+      overlay.remove();
+      setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
+    };
+    row.appendChild(label);
+    row.appendChild(play);
+    list.appendChild(row);
+  });
+  var cancel = panel.querySelector('#__uvd_media_links_cancel__');
+  if (cancel) cancel.onclick = function() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); };
+  var closeX = panel.querySelector('#__uvd_media_links_close__');
+  if (closeX) closeX.onclick = function() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); };
+  overlay.appendChild(panel);
+  __uvdAppendRoot(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); } });
+}
+function __uvdHasRealDirectStreams() {
+  var direct = [...urls.entries()].filter(function(entry) {
+    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
+  });
+  return direct;
+}
+function __uvdMaybeOfferMediaPopup(force) {
+  if (!__uvdHasRealDirectStreams().length) return;
+  if (playerState.overlay) return;
+  if (!force && __uvdMediaPopupShown) return;
+  if (Date.now() - (__uvdMediaPopupDismissedAt || 0) < 60000) return;
+  __uvdMediaPopupShown = true;
+  var direct = __uvdHasRealDirectStreams().map(function(e) { return { url: e[0], type: e[1].type }; });
+  __uvdOpenMediaLinksPopup(direct);
+}
+
 function __uvdOpenIframeWorkflowPrompt(candidates) {
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
   if (old) old.remove();
@@ -3890,6 +4013,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     open.style.cssText = 'border-radius:12px;background:#ffb6c6;border:none;color:#fff;font-weight:700;';
     open.onclick = function() {
       copy(BOOKMARKLET_NAME);
+      // Self-learn: the user opened this iframe believing it is the player.
+      __uvdLearnIframe(__uvdMediaHostOf(candidate.url), 'PLAYER');
       window.__uvdSafeOpen(candidate.url);
       overlay.remove();
       toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
@@ -3948,7 +4073,9 @@ function installIframeWorkflowVideoWatcher() {
     if (document.visibilityState !== 'visible') return;
     clearTimeout(__uvdReofferTimer);
     __uvdReofferTimer = setTimeout(function() {
+      // Re-offer the iframe-only popup, or the found-media popup, on return.
       if (__uvdCanReoffer()) __uvdMaybeOfferIframeWorkflow(true);
+      else __uvdMaybeOfferMediaPopup(true);
     }, 900);
   };
   document.addEventListener('visibilitychange', onVisible);

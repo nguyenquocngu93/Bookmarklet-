@@ -321,6 +321,17 @@ Hai file hiện đã được đồng bộ.
      reload (↻)** trên header: bấm reload → quét lại → **popup xuất hiện**.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #15 — Cách tab với body, nút iframe trên header (tự hiện), redesign Cài đặt cute — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Tab cách body ra xíu**: thêm `margin-bottom:10px` cho tabbar.
+  2. **Nút iframe trên header (🎬)**: tự hiện khi trang chỉ có iframe/demo (chưa có video
+     thật); bấm vào thì **gọi popup iframe**. Khi đã có video thật thì ẩn (bấm sẽ nhắc nhẹ).
+  3. **Redesign Cài đặt theo hướng cute**: giữ nguyên **kiểu trượt lên** (slide-in) của sheet,
+     thêm **con mèo to** làm hero ở đầu + dòng chữ dễ thương; header, các card và phần
+     **hướng dẫn** (details) được làm pastel/bo tròn cute.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

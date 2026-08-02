@@ -1282,6 +1282,13 @@ function openSettingsOverlay() {
   ov.className = 'uvd-settings-overlay';
   ov.innerHTML =
     '<div class="uvd-settings-sheet">' +
+      '<div class="uvd-settings-hero">' +
+        '<span class="uvd-settings-hero-mascot">' + __uvdHeaderMascot + '</span>' +
+        '<div class="uvd-settings-hero-text">' +
+          '<div class="uvd-settings-hero-title">Cài đặt UMP DL ♡</div>' +
+          '<div class="uvd-settings-hero-sub">Chỉnh cho cưng xinh xắn nè 🎀 Mèo gợi ý: cứ bấm thoải mái, phần hướng dẫn ở dưới cùng nha!</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="uvd-settings-header">' +
         '<button class="uvd-back-btn" id="__uvd_settings_back__" title="Đóng">←</button>' +
         '<div class="uvd-settings-title-wrap"><span class="uvd-settings-title">⚙ Cài đặt</span><span class="uvd-settings-subtitle">Tùy chỉnh workspace</span></div>' +
@@ -3522,7 +3529,7 @@ style.textContent = `
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
-.uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 0;flex-shrink:0;overflow:hidden!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 10px;flex-shrink:0;overflow:hidden!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-tabbar::-webkit-scrollbar{display:none}
 .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);z-index:0;box-shadow:0 3px 10px rgba(247,108,140,.4);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
 .uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:#c95073;font-weight:800;font-size:11.5px;padding:10px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;transition:transform .15s ease,color .2s ease}
@@ -3856,6 +3863,18 @@ style.textContent = `
 .uvd-player-deco-icon{font-size:34px;line-height:1;animation:uvdPulse 2s infinite}
 .uvd-player-deco-text{font-size:13px;font-weight:800;color:#d85c7a}
 .uvd-player-deco-sub{font-size:10px;color:#a0729a}
+/* ===== Settings cute: hero mascot + hướng dẫn cute ===== */
+.uvd-settings-overlay .uvd-settings-sheet{background:linear-gradient(180deg,#fff6fb 0%,#f6f0ff 100%)!important;border-radius:34px 34px 0 0!important}
+.uvd-settings-overlay .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
+.uvd-settings-hero{display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(150deg,#ffe9f3,#f3e6ff);border-bottom:1px solid rgba(255,159,180,.22)}
+.uvd-settings-hero-mascot{flex:0 0 auto;width:92px;height:92px;display:flex;align-items:center;justify-content:center;transform:scale(1.2);filter:drop-shadow(0 8px 16px rgba(247,108,140,.28))}
+.uvd-settings-hero-text{min-width:0}
+.uvd-settings-hero-title{font-size:20px;font-weight:800;color:#d85c7a}
+.uvd-settings-hero-sub{font-size:12.5px;color:#a0729a;margin-top:3px;line-height:1.5}
+.uvd-settings-overlay .uvd-settings-details{background:rgba(255,255,255,.72)!important;border:1px solid rgba(255,159,180,.3)!important;border-radius:20px!important}
+.uvd-settings-overlay .uvd-settings-details>summary{color:#d85c7a!important;font-size:14px!important}
+.uvd-settings-overlay .uvd-settings-details-body>.uvd-card{background:rgba(255,244,249,.6)!important}
+.uvd-settings-overlay .uvd-settings-title{background:linear-gradient(110deg,#f76c8c,#b385f2);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:none!important}
 `;
 
 
@@ -4673,6 +4692,7 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_iframe_btn__" title="Mở popup iframe">🎬</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng UMP DL">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
@@ -4861,6 +4881,16 @@ function buildUI() {
     }, 2600);
   };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
+
+  var iframeBtn = document.getElementById('__uvd_iframe_btn__');
+  if (iframeBtn) {
+    // Tự hiện khi trang chỉ có iframe/demo (chưa có video thật), ẩn khi đã có video.
+    iframeBtn.style.display = __uvdHasOnlyIframeOrDemo() ? '' : 'none';
+    iframeBtn.onclick = function() {
+      if (__uvdHasOnlyIframeOrDemo()) __uvdMaybeOfferIframeWorkflow(true);
+      else toast('Đã có video thật rồi, không cần mở iframe nha 🐰');
+    };
+  }
 
   document.getElementById('__uvd_title__').onclick = function() {
     var newTitle = prompt('Tên file:', pageInfo.title);

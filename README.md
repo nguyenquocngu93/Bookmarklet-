@@ -253,6 +253,21 @@ Hai file hiện đã được đồng bộ.
   - Bỏ icon trên tên tab (chỉ giữ chữ).
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #10 — Bỏ mũi tên tab, play nhỏ + ẩn ⋮, popup link chất lượng, intro thỏ bắp rang khi bấm Play — 2026-08-03
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** làm theo đúng ý ní:
+  1. **Bỏ mũi tên chĩa xuống** dưới tab (`uvd-tab-indicator::after` triangle) và bớt khoảng
+     đệm đáy tabbar.
+  2. **Nút play giữa thumbnail nhỏ lại** (52px → 34px, chữ 20 → 14).
+  3. **Ẩn nút ⋮ (3 chấm)** trên thumbnail cùng các tính năng trong đó (tạm thời bỏ qua).
+  4. **Link chất lượng cao**: card rộng hơn link thường (dùng card stream thật + thumbnail)
+     và **luôn đứng đầu** (sort ưu tiên metadata / đa chất lượng / resolution lên trước).
+  5. **Khi bấm Play**: hiện popup **con thỏ to ôm bắp rang + chữ "Giờ mở video nè ♡"**
+     khoảng 2.4 giây rồi mới mở video player. Áp dụng cho cả nút play thumbnail,
+     popup link (cả card chất lượng lẫn link thường) và "cảnh khác".
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

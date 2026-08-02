@@ -529,7 +529,14 @@ function __uvdVideoScore(url, type) {
   return score;
 }
 function __uvdSortStreamsForPopup(direct) {
+  // Link chất lượng cao (có metadata / đa chất lượng / resolution) luôn đứng đầu.
+  function isQuality(stream) {
+    var m = stream.item || {};
+    return !!(m.qualityCount || m.isMaster || m.resolution);
+  }
   return direct.slice().sort(function(a, b) {
+    var qa = isQuality(a), qb = isQuality(b);
+    if (qa !== qb) return qb - qa;
     var sa = __uvdVideoScore(a.url, a.type), sb = __uvdVideoScore(b.url, b.type);
     return (sb - sa) || ((urls.get(b.url) ? (urls.get(b.url).timestamp || 0) : 0) - (urls.get(a.url) ? (urls.get(a.url).timestamp || 0) : 0));
   });
@@ -3521,10 +3528,9 @@ style.textContent = `
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
-.uvd-tabbar{display:flex;gap:3px;padding:5px 5px 9px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 0;flex-shrink:0;overflow:visible!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 0;flex-shrink:0;overflow:hidden!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-tabbar::-webkit-scrollbar{display:none}
 .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);z-index:0;box-shadow:0 3px 10px rgba(247,108,140,.4);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
-.uvd-tab-indicator::after{content:'';position:absolute;left:50%;bottom:-16px;width:16px;height:16px;margin-left:-8px;background:#ff9fb4;clip-path:polygon(0 0,100% 0,50% 100%);z-index:2}
 .uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:#c95073;font-weight:800;font-size:11.5px;padding:10px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;transition:transform .15s ease,color .2s ease}
 .uvd-tab.uvd-tab-active{color:#fff!important;text-shadow:none!important;background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;box-shadow:0 4px 12px rgba(247,108,140,.32)!important}
 .uvd-filter-bar{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;flex-shrink:0}
@@ -3742,7 +3748,9 @@ style.textContent = `
 /* Card video + scrollbar cute (sửa gốc layout đã xong ở trên) */
 .uvd-card.uvd-cute{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(255,240,247,.88))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:24px!important;padding:14px!important;box-shadow:0 10px 26px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.7) inset!important}
 .uvd-cute .uvd-card-preview{border-radius:18px!important;overflow:hidden!important;background:linear-gradient(135deg,#ffe0ea,#ffd6e4)!important;border:1px solid rgba(255,159,180,.28)!important}
-.uvd-cute .uvd-thumb-play{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:20px;box-shadow:0 6px 16px rgba(247,108,140,.3)!important}
+.uvd-cute .uvd-thumb-play{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:14px;box-shadow:0 4px 12px rgba(247,108,140,.28)!important}
+/* Ẩn nút ⋮ (3 chấm) trên thumbnail cùng các tính năng bên trong (tạm thời) */
+.uvd-thumb-menu{display:none!important}
 .uvd-cute .uvd-thumb-type{background:rgba(255,255,255,.7)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important;border-radius:999px!important}
 .uvd-cute .uvd-url-box{background:rgba(255,214,228,.28)!important;border:1px solid rgba(255,159,180,.28)!important;color:#c95073!important;border-radius:14px!important}
 .uvd-cute .uvd-btn{background:rgba(255,214,228,.4)!important;border:1px solid rgba(255,159,180,.3)!important;color:#c95073!important;border-radius:14px!important}
@@ -4154,8 +4162,76 @@ var __uvdMediaCuteArt =
     '<circle cx="208" cy="60" r="7" fill="#ffd9e8" opacity="0.7"/>' +
   '</svg>';
 
+// Cute "Khi bấm Play" intro: con thỏ to ôm bắp rang + chữ "Giờ mở video nè" (inline SVG).
+var __uvdPlayIntroArt =
+  '<svg width="300" height="250" viewBox="0 0 300 250" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<circle cx="50" cy="56" r="12" fill="#ffd9e8" opacity="0.7"/>' +
+    '<circle cx="252" cy="50" r="10" fill="#ffe0ea" opacity="0.8"/>' +
+    '<path d="M36 196 q-11 10 -8 22 q13 3 17 -13 Z" fill="#ffd9e8" opacity="0.6"/>' +
+    '<ellipse cx="150" cy="216" rx="118" ry="16" fill="#e7dcff" opacity="0.6"/>' +
+    '<ellipse cx="150" cy="176" rx="70" ry="56" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<path d="M88 168 Q60 56 110 84 Q104 126 110 158 Z" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<path d="M212 168 Q240 56 190 84 Q196 126 190 158 Z" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<path d="M96 150 Q82 76 108 92 Q104 120 106 150 Z" fill="#ffc9de"/>' +
+    '<path d="M204 150 Q218 76 192 92 Q196 120 194 150 Z" fill="#ffc9de"/>' +
+    '<ellipse cx="150" cy="156" rx="60" ry="52" fill="#ffffff" stroke="#e4d5ff" stroke-width="2"/>' +
+    '<circle cx="126" cy="148" r="8" fill="#4a3550"/>' +
+    '<circle cx="174" cy="148" r="8" fill="#4a3550"/>' +
+    '<circle cx="129" cy="145.5" r="2.6" fill="#fff"/>' +
+    '<circle cx="177" cy="145.5" r="2.6" fill="#fff"/>' +
+    '<ellipse cx="150" cy="161" rx="5" ry="6" fill="#ff9fb4"/>' +
+    '<ellipse cx="150" cy="159.5" rx="2.2" ry="2.2" fill="#d85c7a"/>' +
+    '<ellipse cx="106" cy="164" rx="9" ry="5.5" fill="#ffc9de" opacity="0.9"/>' +
+    '<ellipse cx="194" cy="164" rx="9" ry="5.5" fill="#ffc9de" opacity="0.9"/>' +
+    '<path d="M134 170 Q150 182 166 170" stroke="#4a3550" stroke-width="2.4" stroke-linecap="round" fill="none"/>' +
+    '<path d="M112 210 L116 182 L184 182 L188 210 Z" fill="#f76c8c"/>' +
+    '<ellipse cx="150" cy="182" rx="34" ry="10" fill="#ff8fa3"/>' +
+    '<circle cx="136" cy="177" r="7" fill="#fff7d6"/>' +
+    '<circle cx="152" cy="174" r="8" fill="#fff7d6"/>' +
+    '<circle cx="168" cy="177" r="7" fill="#fff7d6"/>' +
+    '<circle cx="143" cy="168" r="6" fill="#ffe9a8"/>' +
+    '<circle cx="160" cy="167" r="6" fill="#ffe9a8"/>' +
+    '<path d="M240 112 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 Z" fill="#ffd6e4"/>' +
+    '<path d="M52 142 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#e4d5ff"/>' +
+    '<path d="M246 176 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#ffd6e4"/>' +
+  '</svg>';
+
 var __uvdMediaPopupShown = false;
 var __uvdMediaPopupDismissedAt = 0;
+// Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
+function __uvdShowPlayIntro(url, type) {
+  var anyPopup = document.getElementById('__uvd_media_links_prompt__');
+  if (anyPopup) { anyPopup.remove(); __uvdPopupDismiss(); }
+  var old = document.getElementById('__uvd_play_intro__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_play_intro__';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
+    'background:rgba(28,14,40,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:uvdFadeIn .3s ease both;';
+  var box = document.createElement('div');
+  box.style.cssText = 'text-align:center;padding:22px 26px;border-radius:34px;' +
+    'background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 100%);border:1px solid rgba(194,150,255,.45);' +
+    'box-shadow:0 24px 60px rgba(150,90,220,.38),0 0 0 6px rgba(255,255,255,.35) inset;' +
+    'animation:uvdScaleIn .35s cubic-bezier(.22,1,.36,1) both;';
+  box.innerHTML =
+    '<div style="line-height:0;transform:scale(1.1);">' + __uvdPlayIntroArt + '</div>' +
+    '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
+    '<div style="font-size:12px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị player cho cưng...</div>';
+  overlay.appendChild(box);
+  __uvdAppendRoot(overlay);
+  try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
+  overlay.style.zIndex = '2147483647';
+  var opened = false;
+  function openIt() {
+    if (opened || !overlay.isConnected) return;
+    opened = true;
+    overlay.remove();
+    playerState.launchFromThumbnail = true;
+    try { window.__uvd_showPlayer(url, type || 'MP4'); } catch(e) {}
+  }
+  setTimeout(openIt, 2400);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) openIt(); });
+}
 // Load a real video thumbnail (muted, capture first frame) for quality links.
 function __uvdPopupThumb(thumbEl, url, type) {
   if (!thumbEl || !url) return;
@@ -4253,7 +4329,7 @@ function __uvdOpenMediaLinksPopup(streams) {
       play.onclick = function() {
         var url = stream.url, type = stream.type || 'MP4';
         overlay.remove(); __uvdPopupDismiss();
-        setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
+        setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
       };
       row.appendChild(rowUrl);
       row.appendChild(play);
@@ -4273,7 +4349,7 @@ function __uvdOpenMediaLinksPopup(streams) {
       btn.onclick = function() {
         var url = cardUrl, type = card.getAttribute('data-type') || 'MP4';
         overlay.remove(); __uvdPopupDismiss();
-        setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
+        setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
       };
     });
   });
@@ -5026,8 +5102,9 @@ function loadExtraVideoThumbnails(preview) {
         item.querySelector('img').src = canvas.toDataURL('image/jpeg', .72);
         item.onclick = function() {
           try { media.currentTime = time; } catch(e) {}
-          var play = card.querySelector('.uvd-thumb-play');
-          if (play) play.click();
+          if (card.dataset.url) {
+            __uvdShowPlayIntro(card.dataset.url, card.dataset.type || 'MP4');
+          }
         };
         strip.appendChild(item);
       } catch(e) {
@@ -5342,8 +5419,7 @@ function renderStreams(container, arr) {
         if (launchCard) launchCard.classList.add('uvd-thumb-launch');
         setTimeout(function() {
           if (launchCard) launchCard.classList.remove('uvd-thumb-launch');
-          playerState.launchFromThumbnail = true;
-          window.__uvd_showPlayer(u2, t || 'MP4');
+          __uvdShowPlayIntro(u2, t || 'MP4');
         }, 260);
       }
       else if (action === 'cmd') showCommandPicker(u2, t);

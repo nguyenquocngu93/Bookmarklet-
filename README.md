@@ -134,6 +134,28 @@ Hai file hiện đã được đồng bộ.
     đóng thủ công.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #5 — Vote người dùng + tự học video + sync + fix popup bị đè — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:**
+  1. **Hệ thống vote** cho iframe và video để cùng loại bỏ rác (nút cute ♥ / 💩).
+  2. **Tự học video** theo host (tương tự iframe) để nhớ link tốt/rác.
+  3. **Popup video ưu tiên** link có metadata & preview (chất lượng) lên đầu.
+  4. **Fix popup bị UI đè** — popup giờ luôn nằm trên cùng.
+  5. **Self-learning (iframe + video) được đồng bộ qua Supabase** (không chỉ localStorage).
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - **Vote:** thêm `data.userVotes` + `__uvdVote`, `__uvdCastVote(url, 'up'|'down')`.
+    Nút vote cute (♥ đáng yêu / 💩 rác) xuất hiện trong cả popup iframe và popup
+    video. Vote đẩy vào `__uvdLearnIframe` + `learnedVideos`.
+  - **Tự học video:** `data.learnedVideos` theo host; `__uvdVideoScore` chấm link
+    (vote + metadata + master HLS). Popup video sort theo score → link có chất
+    lượng/preview lên trước, kèm badge "✨ chất lượng" và dòng resolution.
+  - **Fix bị đè:** cả 2 popup được append vào cuối `<body>` + `z-index:2147483647`
+    → luôn nổi trên panel UMP.
+  - **Sync:** `__uvdSyncPayload`/`__uvdSyncLoad` giờ gồm `userVotes`, `learnedHosts`,
+    `learnedVideos` → tự học lan truyền qua bookmarklet riêng (Supabase).
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

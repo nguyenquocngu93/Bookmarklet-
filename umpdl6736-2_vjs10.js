@@ -8,6 +8,7 @@
 (function() {
 'use strict';
 
+var __uvdUserscriptMode = window.__uvdUserscriptMode === true;
 var __uvdUserscriptFrameMode = window.__uvdUserscriptFrameMode === true && window.top !== window.self;
 var __uvdBooting = true;
 window.__uvdBootPhase = 'start';
@@ -5236,11 +5237,30 @@ function renderSettings(container) {
 }
 
 // ========== START ==========
+function __uvdUserscriptPageHasTarget() {
+  try { return !!document.querySelector('video,audio,source,iframe'); } catch(e) { return false; }
+}
+function __uvdStartUserscriptUi() {
+  if (document.getElementById('__uvd__')) return;
+  window.__uvdBootPhase = 'build-ui';
+  buildUI();
+  setTimeout(__uvdSyncLoad, 350);
+  if (__uvdUserscriptMode) setTimeout(function() { __uvdSetHidden(true); }, 0);
+}
 try {
   if (!__uvdUserscriptFrameMode) {
-    window.__uvdBootPhase = 'build-ui';
-    buildUI();
-    setTimeout(__uvdSyncLoad, 350);
+    if (!__uvdUserscriptMode || __uvdUserscriptPageHasTarget()) {
+      __uvdStartUserscriptUi();
+    } else {
+      var __uvdUserscriptUiWatch = new MutationObserver(function() {
+        if (__uvdUserscriptPageHasTarget()) {
+          __uvdUserscriptUiWatch.disconnect();
+          __uvdStartUserscriptUi();
+        }
+      });
+      __uvdUserscriptUiWatch.observe(document.documentElement || document, { childList: true, subtree: true });
+      setTimeout(function() { try { __uvdUserscriptUiWatch.disconnect(); } catch(e) {} }, 120000);
+    }
   } else {
     console.log('[UMP DL] iframe capture mode active');
   }

@@ -13,6 +13,7 @@ const header = `// ==UserScript==
 // @grant        none
 // ==/UserScript==
 // Generated from umpdl6736-2_vjs10.js. Do not edit this output directly.
+window.__uvdUserscriptMode = true;
 window.__uvdUserscriptFrameMode = window.top !== window.self;
 `;
 const output = header + core;

@@ -99,6 +99,8 @@ data.history = data.history || [];
 data.filterlist = data.filterlist || [];
 data.playbackPositions = data.playbackPositions || {};
 data.clickedButtons = data.clickedButtons || {};
+data.userVotes = data.userVotes || {};        // { host|url: { up: n, down: n } } cute votes
+data.learnedVideos = data.learnedVideos || {}; // { host: { player, junk, up, down, updatedAt } }
 data.settings = Object.assign({
   defaultSpeed: 1,
   defaultQuality: 'auto',
@@ -163,7 +165,16 @@ function __uvdSyncPayload() {
   var settings = Object.assign({}, data.settings);
   delete settings.headerProxyKey;
   delete settings.subdlApiKey;
-  return { settings: settings, siteProfiles: data.siteProfiles, filterlist: data.filterlist, history: data.history, favorites: data.favorites };
+  return {
+    settings: settings,
+    siteProfiles: data.siteProfiles,
+    filterlist: data.filterlist,
+    history: data.history,
+    favorites: data.favorites,
+    userVotes: data.userVotes,
+    learnedHosts: data.learnedHosts,
+    learnedVideos: data.learnedVideos
+  };
 }
 function __uvdSyncSchedule() {
   if (!data || !data.settings || !data.settings.syncProfileId) return;
@@ -186,6 +197,10 @@ function __uvdSyncLoad() {
       if (Array.isArray(payload.filterlist)) data.filterlist = payload.filterlist.slice();
       if (Array.isArray(payload.history)) data.history = payload.history;
       if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
+      if (payload.userVotes) data.userVotes = Object.assign({}, data.userVotes, payload.userVotes);
+      if (payload.learnedHosts) data.learnedHosts = Object.assign({}, data.learnedHosts || {}, payload.learnedHosts);
+      if (payload.learnedVideos) data.learnedVideos = Object.assign({}, data.learnedVideos || {}, payload.learnedVideos);
+      __uvdLearnedHosts = data.learnedHosts || {};
       compileAdFilters();
       storage.set(data);
       if (document.getElementById('__uvd__')) debouncedBuildUI();
@@ -455,6 +470,55 @@ function __uvdLearnedVerdict(host) {
   if ((rec.player || 0) >= 2 && (rec.player || 0) > (rec.junk || 0)) return 'PLAYER';
   if ((rec.junk || 0) >= 2 && (rec.junk || 0) > (rec.player || 0)) return 'JUNK';
   return null;
+}
+// ========== CUTE USER VOTING ==========
+// Users can upvote (♥ đáng yêu) or downvote (💩 rác) any iframe host or video
+// host. Votes feed the self-learning counters and are synced via Supabase.
+function __uvdVoteKeyFor(host) { return host ? 'h:' + host : ''; }
+function __uvdVote(url) {
+  if (!url) return { up: 0, down: 0 };
+  var rec = data.userVotes[url];
+  return rec ? { up: rec.up || 0, down: rec.down || 0 } : { up: 0, down: 0 };
+}
+function __uvdCastVote(url, kind) {
+  var rec = data.userVotes[url] = data.userVotes[url] || { up: 0, down: 0, updatedAt: 0 };
+  if (kind === 'up') rec.up = (rec.up || 0) + 1;
+  else if (kind === 'down') rec.down = (rec.down || 0) + 1;
+  rec.updatedAt = Date.now();
+  // A voteKey of the form 'h:host' refers to an iframe host (not a real URL).
+  var host = String(url || '').indexOf('h:') === 0 ? String(url).slice(2) : __uvdMediaHostOf(url);
+  if (host) __uvdLearnIframe(host, kind === 'up' ? 'PLAYER' : 'JUNK');
+  // Feed into video host learning (separate counters).
+  if (host) {
+    var v = data.learnedVideos[host] = data.learnedVideos[host] || { player: 0, junk: 0, up: 0, down: 0, updatedAt: 0 };
+    if (kind === 'up') { v.player = (v.player || 0) + 1; v.up = (v.up || 0) + 1; }
+    else { v.junk = (v.junk || 0) + 1; v.down = (v.down || 0) + 1; }
+    v.updatedAt = Date.now();
+  }
+  data.learnedVideos = data.learnedVideos || {};
+  storage.set(data);
+}
+function __uvdVideoScore(url, type) {
+  var host = __uvdMediaHostOf(url);
+  var v = host && (data.learnedVideos || {})[host];
+  var score = 0;
+  if (v) score += ((v.up || 0) * 8) - ((v.down || 0) * 12);
+  // Metadata & preview bonus: a link that already has resolution/quality or a
+  // thumbnail is treated as more "real" than a bare URL.
+  var item = urls.get(url);
+  if (item) {
+    if (item.qualityCount || item.isMaster) score += 25;
+    if (item.resolution) score += 15;
+    if (item.demo === false) score += 10;
+  }
+  if (String(type || '').toUpperCase() === 'M3U8' && /master\.m3u8/i.test(url)) score += 20;
+  return score;
+}
+function __uvdSortStreamsForPopup(direct) {
+  return direct.slice().sort(function(a, b) {
+    var sa = __uvdVideoScore(a.url, a.type), sb = __uvdVideoScore(b.url, b.type);
+    return (sb - sa) || ((urls.get(b.url) ? (urls.get(b.url).timestamp || 0) : 0) - (urls.get(a.url) ? (urls.get(a.url).timestamp || 0) : 0));
+  });
 }
 function __uvdRefreshCapture() {
   if (__uvdIsMatthewHost()) __uvdMatthewFrozen = false;
@@ -3925,10 +3989,31 @@ function __uvdOpenMediaLinksPopup(streams) {
   streams.slice(0, 8).forEach(function(stream, index) {
     var row = document.createElement('div');
     row.className = 'uvd-card';
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:7px;text-align:left;border-radius:14px;background:rgba(255,255,255,.78);border:1px solid rgba(194,150,255,.28);';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:7px;text-align:left;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(194,150,255,.28);';
+    var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
     var label = document.createElement('div');
     label.style.cssText = 'flex:1;min-width:0;font-size:9.5px;color:#8a6ab0;word-break:break-all;line-height:1.4;';
-    label.innerHTML = '<div style="margin-bottom:2px;"><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:#b385f2;">#' + (index + 1) + ' ' + (stream.type || 'MEDIA') + '</span></div>' + escapeHtml(stream.url);
+    var badge = '<span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:#b385f2;">#' + (index + 1) + ' ' + (stream.type || 'MEDIA') + '</span>';
+    if (hasMeta) badge += ' <span title="Có metadata & chất lượng" style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:8px;font-weight:800;color:#fff;background:#5ec2a0;">✨ chất lượng</span>';
+    var metaText = '';
+    if (stream.item && stream.item.resolution) metaText = '<div style="margin-top:2px;font-size:8px;color:#c07fae;">' + escapeHtml(stream.item.resolution) + '</div>';
+    label.innerHTML = '<div style="margin-bottom:2px;">' + badge + '</div>' + escapeHtml(stream.url) + metaText;
+    // Cute vote buttons.
+    var votes = __uvdVote(stream.url);
+    var voteWrap = document.createElement('div');
+    voteWrap.style.cssText = 'display:flex;align-items:center;gap:4px;flex:0 0 auto;';
+    var upBtn = document.createElement('button');
+    upBtn.textContent = '♥ ' + (votes.up || 0);
+    upBtn.title = 'Đáng yêu, link tốt';
+    upBtn.style.cssText = 'border:none;background:#ffe3ec;color:#e84a72;border-radius:10px;padding:5px 7px;font-size:10px;font-weight:800;cursor:pointer;';
+    upBtn.onclick = function() { __uvdCastVote(stream.url, 'up'); upBtn.textContent = '♥ ' + (data.userVotes[stream.url] ? (data.userVotes[stream.url].up || 0) : 1); toast('Cảm ơn cưng! Link này đáng yêu quá ♥'); };
+    var downBtn = document.createElement('button');
+    downBtn.textContent = '💩 ' + (votes.down || 0);
+    downBtn.title = 'Rác, link xấu';
+    downBtn.style.cssText = 'border:none;background:#ffe9e9;color:#ff5d72;border-radius:10px;padding:5px 7px;font-size:10px;font-weight:800;cursor:pointer;';
+    downBtn.onclick = function() { __uvdCastVote(stream.url, 'down'); downBtn.textContent = '💩 ' + (data.userVotes[stream.url] ? (data.userVotes[stream.url].down || 0) : 1); toast('Cảm ơn cưng! Sẽ loại bỏ link rác 💩'); };
+    voteWrap.appendChild(upBtn);
+    voteWrap.appendChild(downBtn);
     var play = document.createElement('button');
     play.className = 'uvd-btn uvd-btn-sm';
     play.textContent = '▶ Xem';
@@ -3939,6 +4024,7 @@ function __uvdOpenMediaLinksPopup(streams) {
       setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
     };
     row.appendChild(label);
+    row.appendChild(voteWrap);
     row.appendChild(play);
     list.appendChild(row);
   });
@@ -3948,6 +4034,10 @@ function __uvdOpenMediaLinksPopup(streams) {
   if (closeX) closeX.onclick = function() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
+  // Make sure the popup sits above everything (including the main UMP panel)
+  // so it is never covered. Move it to the very end of <body>.
+  try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
+  overlay.style.zIndex = '2147483647';
   overlay.addEventListener('click', function(e) { if (e.target === overlay) { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); } });
 }
 function __uvdHasRealDirectStreams() {
@@ -3962,8 +4052,8 @@ function __uvdMaybeOfferMediaPopup(force) {
   if (!force && __uvdMediaPopupShown) return;
   if (Date.now() - (__uvdMediaPopupDismissedAt || 0) < 60000) return;
   __uvdMediaPopupShown = true;
-  var direct = __uvdHasRealDirectStreams().map(function(e) { return { url: e[0], type: e[1].type }; });
-  __uvdOpenMediaLinksPopup(direct);
+  var direct = __uvdHasRealDirectStreams().map(function(e) { return { url: e[0], type: e[1].type, item: e[1] }; });
+  __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(direct));
 }
 
 function __uvdOpenIframeWorkflowPrompt(candidates) {
@@ -4019,7 +4109,26 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       overlay.remove();
       toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
     };
+    // Cute vote buttons for this iframe host (helps kill junk forever).
+    var host = __uvdMediaHostOf(candidate.url);
+    var voteKey = host ? ('h:' + host) : candidate.url;
+    var ivotes = __uvdVote(voteKey);
+    var voteWrap = document.createElement('div');
+    voteWrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex:0 0 auto;';
+    var upBtn = document.createElement('button');
+    upBtn.textContent = '♥ ' + (ivotes.up || 0);
+    upBtn.title = 'Đáng yêu, đây là player thật';
+    upBtn.style.cssText = 'border:none;background:#ffe3ec;color:#e84a72;border-radius:9px;padding:4px 6px;font-size:9px;font-weight:800;cursor:pointer;';
+    upBtn.onclick = function() { __uvdCastVote(voteKey, 'up'); upBtn.textContent = '♥ ' + (data.userVotes[voteKey] ? (data.userVotes[voteKey].up || 0) : 1); toast('Cảm ơn cưng! Nhớ lại player này rồi ♥'); };
+    var downBtn = document.createElement('button');
+    downBtn.textContent = '💩 ' + (ivotes.down || 0);
+    downBtn.title = 'Rác, iframe quảng cáo';
+    downBtn.style.cssText = 'border:none;background:#ffe9e9;color:#ff5d72;border-radius:9px;padding:4px 6px;font-size:9px;font-weight:800;cursor:pointer;';
+    downBtn.onclick = function() { __uvdCastVote(voteKey, 'down'); downBtn.textContent = '💩 ' + (data.userVotes[voteKey] ? (data.userVotes[voteKey].down || 0) : 1); toast('Cảm ơn cưng! Loại rác này ngay 💩'); };
+    voteWrap.appendChild(upBtn);
+    voteWrap.appendChild(downBtn);
     row.appendChild(label);
+    row.appendChild(voteWrap);
     row.appendChild(open);
     list.appendChild(row);
   });
@@ -4029,6 +4138,9 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   if (closeX) closeX.onclick = function() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
+  // Keep iframe popup above the main panel too.
+  try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
+  overlay.style.zIndex = '2147483647';
   overlay.addEventListener('click', function(e) { if (e.target === overlay) { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); } });
 }
 function __uvdHasRealVideoCandidate() {

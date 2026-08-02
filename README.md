@@ -156,6 +156,29 @@ Hai file hiện đã được đồng bộ.
     `learnedVideos` → tự học lan truyền qua bookmarklet riêng (Supabase).
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #6 — Fix popup bị UI che + bắt đầu UI cute (tab Streams) — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:**
+  1. **Fix popup video/iframe bị che hoàn toàn** bởi UI: khi hiện popup thì **ẩn luôn
+     UI panel** + hiện **nút gọi lại popup** (🐰/🎬). Áp dụng cho cả popup media và
+     popup iframe.
+  2. **Bắt đầu làm lại UI theo hướng cute**, bắt đầu từ **tab Streams**.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - **Fix popup:** thêm `__uvdHideUiForPopup()`, `__uvdRestoreUiAfterPopup()`,
+    `__uvdPopupDismiss()`, `__uvdShowPopupReopenBtn(kind)` + `__uvdRemovePopupReopenBtn()`.
+    Khi mở popup media/iframe → ẩn panel `#__uvd__` + hiện nút floating gọi lại.
+    Khi đóng popup (✕ / Để sau / bấm ngoài) → khôi phục UI. Khi bấm "▶ Xem" →
+    đóng popup, khôi phục UI, mở player.
+  - **Tab Streams cute:** viết lại `buildStreamCardHTML` — card nền pastel hồng,
+    badge emoji theo loại (🎬📼🖼️🌀📦), nhãn dễ thương ("chưa phải video trực tiếp",
+    "mở nó ở tab mới rồi chạy lại UMP nha 🥺"), **nút vote ♥/💩 ngay trên card**
+    (`__uvdVoteChips`, xử lý trong `renderStreams` onclick). Thêm CSS khối
+    `.uvd-card.uvd-cute`, `.uvd-votechip`.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+- **Ghi chú:** đây là bước đầu của đợt "làm lại toàn bộ UI cute". Các tab khác
+  (History, Settings...) sẽ được chuyển dần.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

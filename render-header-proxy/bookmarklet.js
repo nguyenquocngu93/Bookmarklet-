@@ -8,6 +8,7 @@
 (function() {
 'use strict';
 
+var __uvdUserscriptFrameMode = window.__uvdUserscriptFrameMode === true && window.top !== window.self;
 var __uvdBooting = true;
 window.__uvdBootPhase = 'start';
 function __uvdReportBootError(reason) {
@@ -440,6 +441,9 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
     urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
+    if (__uvdUserscriptFrameMode) {
+      try { window.top.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: type, source: source || 'userscript-core', pageUrl: location.href }, '*'); } catch(e) {}
+    }
     return true;
   }
   return false;
@@ -5233,10 +5237,14 @@ function renderSettings(container) {
 
 // ========== START ==========
 try {
-window.__uvdBootPhase = 'build-ui';
-buildUI();
-setTimeout(__uvdSyncLoad, 350);
-console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
+  if (!__uvdUserscriptFrameMode) {
+    window.__uvdBootPhase = 'build-ui';
+    buildUI();
+    setTimeout(__uvdSyncLoad, 350);
+  } else {
+    console.log('[UMP DL] iframe capture mode active');
+  }
+  console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
 } catch (bootError) {
   __uvdReportBootError(bootError);
 }

@@ -6,6 +6,7 @@
 // @match        *://*/*
 // @run-at       document-start
 // @grant        GM_addElement
+// @grant        unsafeWindow
 // ==/UserScript==
 // Generated from umpdl6736-2_vjs10.js. Do not edit this output directly.
 (function () {

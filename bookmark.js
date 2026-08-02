@@ -3728,6 +3728,19 @@ style.textContent = `
 .uvd-cute .uvd-btn[data-action="play"]{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;border:none!important;color:#fff!important}
 .uvd-cute .uvd-block-btn{background:rgba(255,93,114,.12)!important;border:1px solid rgba(255,93,114,.3)!important}
 .uvd-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#ff9fb4,#f76c8c)!important;border-radius:999px!important}
+/* ===== BONG BÓNG COMIC (contentWrapper mới) ===== */
+.uvd-bubble-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;padding-top:12px}
+.uvd-bubble-tail{position:absolute;top:0;left:20px;width:22px;height:14px;z-index:3;transition:left .3s cubic-bezier(.4,0,.2,1)}
+.uvd-bubble-tail::before{content:'';position:absolute;top:0;left:0;width:22px;height:14px;background:#fff;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.uvd-bubble-tail::after{content:'';position:absolute;top:0;left:0;width:22px;height:14px;background:#ff9fb4;clip-path:polygon(50% 1px,100% 100%,0 100%)}
+.uvd-bubble{background:#ffffff!important;border:2px solid #ff9fb4!important;border-radius:26px!important;box-shadow:0 14px 34px rgba(247,108,140,.22),inset 0 0 0 1px rgba(255,255,255,.7)!important;padding:12px;flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.uvd-bubble-title{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-shrink:0}
+.uvd-bubble-tmascot{width:42px;height:42px;flex:0 0 42px;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(247,108,140,.22)}
+.uvd-bubble-tmascot svg{width:100%;height:100%;border-radius:14px;display:block}
+.uvd-bubble-tname{font-size:16px;font-weight:850;color:#e84a72;line-height:1.1}
+.uvd-bubble-tsub{font-size:9px;color:#c9862a;font-weight:700}
+.uvd-bubble #__uvd_stream_list__{border-radius:20px}
+
 
 
 `;
@@ -4345,7 +4358,44 @@ function __uvdMaybeOfferIframeWorkflow(force) {
   });
 }
 
+// ========== BONG BÓNG COMIC: mascot từng tab ==========
+var __uvdTabMascotCat =
+  '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<circle cx="32" cy="36" r="22" fill="#ffe0ea"/><circle cx="21" cy="23" r="10" fill="#ffb6c6"/><circle cx="43" cy="23" r="10" fill="#ffb6c6"/>' +
+    '<path d="M21 23 L13 9 L29 17 Z" fill="#ff9fb4"/><path d="M43 23 L51 9 L35 17 Z" fill="#ff9fb4"/>' +
+    '<circle cx="27" cy="37" r="3.4" fill="#5b3a40"/><circle cx="37" cy="37" r="3.4" fill="#5b3a40"/>' +
+    '<circle cx="28" cy="36" r="1.2" fill="#fff"/><circle cx="38" cy="36" r="1.2" fill="#fff"/>' +
+    '<ellipse cx="32" cy="43" rx="3" ry="4" fill="#5b3a40"/><ellipse cx="32" cy="41.5" rx="1.5" ry="1.6" fill="#e8788f"/>' +
+    '<path d="M12 12 q-3 -4 0 -6" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+    '<path d="M52 12 q3 -4 0 -6" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+  '</svg>';
+var __uvdTabMascotBear =
+  '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="32" cy="40" rx="20" ry="19" fill="#ffe0c4"/><circle cx="20" cy="20" r="11" fill="#ffd0b0"/><circle cx="44" cy="20" r="11" fill="#ffd0b0"/>' +
+    '<circle cx="20" cy="18" r="4" fill="#ffb894"/><circle cx="44" cy="18" r="4" fill="#ffb894"/>' +
+    '<circle cx="26" cy="38" r="3.6" fill="#4a2c20"/><circle cx="38" cy="38" r="3.6" fill="#4a2c20"/>' +
+    '<circle cx="27" cy="37" r="1.2" fill="#fff"/><circle cx="39" cy="37" r="1.2" fill="#fff"/>' +
+    '<ellipse cx="32" cy="45" rx="4" ry="3.2" fill="#4a2c20"/><ellipse cx="32" cy="44" rx="2" ry="1.6" fill="#ff9fb4"/>' +
+  '</svg>';
+var __uvdTabMascotRabbit =
+  '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="32" cy="42" rx="18" ry="20" fill="#fff" stroke="#e4d5ff" stroke-width="1.6"/>' +
+    '<path d="M16 42 Q4 10 22 22 Q17 32 18 40 Z" fill="#fff" stroke="#e4d5ff" stroke-width="1.6"/>' +
+    '<path d="M48 42 Q60 10 42 22 Q47 32 46 40 Z" fill="#fff" stroke="#e4d5ff" stroke-width="1.6"/>' +
+    '<path d="M16 16 q-3 -2 -3 -5 q0 -3 3 -2 q2 -2 4 1 z" fill="#ffc9de"/>' +
+    '<path d="M48 16 q3 -2 3 -5 q0 -3 -3 -2 q-2 -2 -4 1 z" fill="#ffc9de"/>' +
+    '<circle cx="26" cy="40" r="3.2" fill="#4a3550"/><circle cx="38" cy="40" r="3.2" fill="#4a3550"/>' +
+    '<circle cx="27" cy="39" r="1.1" fill="#fff"/><circle cx="39" cy="39" r="1.1" fill="#fff"/>' +
+    '<ellipse cx="32" cy="45" rx="2.4" ry="3.4" fill="#ff9fb4"/>' +
+  '</svg>';
+var __uvdTabMeta = {
+  streams: { mascot: __uvdTabMascotCat, bg: 'linear-gradient(150deg,#ffe0ea,#ffb6c6)', name: 'Streams', sub: 'link video 🎬' },
+  clicked: { mascot: __uvdTabMascotBear, bg: 'linear-gradient(150deg,#ffe9d6,#ffd0b0)', name: 'Nút đã click', sub: 'nút đã bấm 🖱️' },
+  history: { mascot: __uvdTabMascotRabbit, bg: 'linear-gradient(150deg,#e7dcff,#f0c8ff)', name: 'Lịch sử', sub: 'phim đã xem 🕘' }
+};
+
 // ========== BUILD UI ==========
+
 function __uvdGetUrlResolution(url) {
   var match = String(url || '').match(/(?:^|[-_/,])((?:2160|1440|1080|720|480|360|240))p(?:\b|[-_.,])/i);
   if (match) return match[1] + 'p';
@@ -4466,18 +4516,41 @@ function buildUI() {
     indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
     if (btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
+  // Mũi tên bong bóng: chĩa vào giữa tab đang chọn
+  function moveTailTo(btn) {
+    var tail = document.getElementById('__uvd_bubble_tail__');
+    if (!tail || !btn || !tabbar) return;
+    var barRect = tabbar.getBoundingClientRect();
+    var rect = btn.getBoundingClientRect();
+    var center = rect.left - barRect.left + rect.width / 2;
+    tail.style.left = Math.max(8, Math.min(tabbar.clientWidth - 22, center - 11)) + 'px';
+  }
+
+  // Bong bóng comic: mũi tên chĩa lên tab active, nội dung tab nằm trong bong bóng
+  var bubbleWrap = document.createElement('div');
+  bubbleWrap.className = 'uvd-bubble-wrap';
+  var bubbleTail = document.createElement('div');
+  bubbleTail.className = 'uvd-bubble-tail';
+  bubbleTail.id = '__uvd_bubble_tail__';
+  bubbleWrap.appendChild(bubbleTail);
 
   var contentWrapper = document.createElement('div');
-  contentWrapper.className = 'uvd-scroll uvd-body-cute';
-  contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;';
+  contentWrapper.className = 'uvd-scroll uvd-bubble';
+  contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;display:flex;flex-direction:column;';
+
+  var bubbleTitle = document.createElement('div');
+  bubbleTitle.className = 'uvd-bubble-title';
+  bubbleTitle.id = '__uvd_bubble_title__';
+  contentWrapper.appendChild(bubbleTitle);
 
   var streamList = document.createElement('div');
   streamList.id = '__uvd_stream_list__';
   streamList.className = 'uvd-scroll';
-  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;height:100%;padding:12px;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
+  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;padding:12px;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
   contentWrapper.appendChild(streamList);
 
-  content.appendChild(contentWrapper);
+  bubbleWrap.appendChild(contentWrapper);
+  content.appendChild(bubbleWrap);
 
   var footer = document.createElement('div');
   footer.className = 'uvd-profile-footer';
@@ -4498,14 +4571,27 @@ function buildUI() {
   var currentTab = 'streams';
   function renderTab(tabId) {
     currentTab = tabId;
+    var activeBtn = null;
     document.querySelectorAll('[data-tab]').forEach(function(t) {
       if (t.dataset.tab === tabId) {
         t.classList.add('uvd-tab-active');
         moveIndicatorTo(t);
+        activeBtn = t;
       } else {
         t.classList.remove('uvd-tab-active');
       }
     });
+    moveTailTo(activeBtn);
+    // Cập nhật tiêu đề bong bóng (con vật + tên tab)
+    var bubbleTitleEl = document.getElementById('__uvd_bubble_title__');
+    var tabMeta = __uvdTabMeta[tabId] || __uvdTabMeta.streams;
+    var cnt = tabId === 'streams' ? arr.length
+      : (tabId === 'history' ? (data.history || []).length
+        : Object.keys(data.clickedButtons[pageInfo.host] || {}).length);
+    if (bubbleTitleEl) {
+      bubbleTitleEl.innerHTML = '<div class="uvd-bubble-tmascot" style="background:' + tabMeta.bg + '">' + tabMeta.mascot + '</div>' +
+        '<div class="uvd-bubble-ttext"><div class="uvd-bubble-tname">' + tabMeta.name + '</div><div class="uvd-bubble-tsub">' + cnt + ' ' + tabMeta.sub + '</div></div>';
+    }
 
     streamList.style.display = 'block';
     streamList.innerHTML = '';

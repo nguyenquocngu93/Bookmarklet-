@@ -573,3 +573,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
      nào thì tab đó chảy (indicator trượt + mũi nhọn theo tab).
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #21 — Hiệu ứng nước chảy mềm hơn, mũi chĩa popup xoay đúng hướng, link rác khuyên đừng mở — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Hiệu ứng "nước chảy"** của tab làm **mềm hơn** (dạng giọt bo tròn thay vì tam giác sắc).
+  2. **First class trong popup**: xoay **mũi chĩa đúng hướng** (không còn ngược).
+  3. **Link đã có nhãn rác (JUNK)**: **không kêu "↗ mở"** nữa, thay bằng lời **khuyên đừng mở**
+     ("🚫 Không nên mở — đây là rác") kèm vote/chặn.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+

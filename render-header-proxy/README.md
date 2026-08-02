@@ -57,4 +57,7 @@ The deployed service also serves the current bookmarklet without browser/proxy c
 https://YOUR-APP.onrender.com/bookmarklet.js
 ```
 
-After changing the source bookmarklet, copy the new `umpdl6736-2_vjs10.js` to `render-header-proxy/bookmarklet.js` before deploying.
+After changing the source bookmarklet, copy the new `bookmark.js` (from the repository root) to `render-header-proxy/bookmarklet.js` before deploying. The two files must stay identical.
+
+> Note: the `/userscript.js` and `/tampermonkey.user.js` endpoints are legacy.
+> The userscript direction is officially dropped (2026-08-02) — bookmarklet only.

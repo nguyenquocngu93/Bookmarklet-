@@ -1837,7 +1837,6 @@ try {
   __uvdStartMatthewGuard();
   installPlaySelectorLearning();
   installIframeWorkflowVideoWatcher();
-  __uvdInstallScrollHide();
   // Schedule the AI iframe workflow after the earliest gate (8s) so we have
   // time to gather network evidence before deciding which iframe is the player.
   if (data.settings.aiIframeFilter) setTimeout(function() { __uvdMaybeOfferIframeWorkflow(); }, 10000);
@@ -3485,7 +3484,7 @@ style.textContent = `
 .uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
-.uvd-app-shell{padding:0!important;border-radius:32px!important;background:linear-gradient(165deg,rgba(255,247,250,.85),rgba(255,233,244,.8))!important;border:1px solid rgba(255,159,180,.3)!important;box-shadow:0 24px 60px rgba(247,108,140,.2),0 0 0 1px rgba(255,255,255,.5) inset!important;overflow:visible!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
+.uvd-app-shell{padding:0!important;border-radius:32px!important;background:linear-gradient(165deg,rgba(255,247,250,.85),rgba(255,233,244,.8))!important;border:1px solid rgba(255,159,180,.3)!important;box-shadow:0 24px 60px rgba(247,108,140,.2),0 0 0 1px rgba(255,255,255,.5) inset!important;overflow:visible!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-28px);pointer-events:none!important;transition:max-height .65s cubic-bezier(.22,1,.36,1),opacity .5s ease,transform .65s cubic-bezier(.22,1,.36,1),margin .65s cubic-bezier(.22,1,.36,1),padding .65s cubic-bezier(.22,1,.36,1)}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
 .uvd-app-shell::after{display:none!important}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
 .uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:10px 14px;margin:0 0 12px;border-bottom:0!important;flex-shrink:0;overflow:visible;background:linear-gradient(150deg,rgba(255,244,248,.95),rgba(255,236,246,.9))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:26px!important;box-shadow:0 5px 16px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
@@ -3894,39 +3893,17 @@ function __uvdShowRestoreBtn() {
   btn.addEventListener('pointerup', function() { dragging = false; });
   __uvdAppendRoot(btn);
 }
-var __uvdScrollHide = false;
-var __uvdScrollHideInstalled = false;
-var __uvdScrollHideLastY = 0;
-function __uvdInstallScrollHide() {
-  if (__uvdScrollHideInstalled) return;
-  __uvdScrollHideInstalled = true;
-  __uvdScrollHideLastY = window.pageYOffset || document.documentElement.scrollTop || 0;
-  var handler = function() {
-    if (!__uvdScrollHide) return;
-    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    var delta = y - __uvdScrollHideLastY;
-    __uvdScrollHideLastY = y;
-    var panel = document.getElementById('__uvd__');
-    if (!panel || panel.__uvdPopupHidden) return;
-    if (delta < -8 || y <= 4) __uvdSetHidden(false);
-  };
-  window.addEventListener('scroll', handler, { passive: true });
-  addCleanup(function() { window.removeEventListener('scroll', handler); });
-}
 function __uvdSetHidden(hidden) {
   __uvdScriptHidden = hidden;
   var panel = document.getElementById('__uvd__');
-  var hideMode = data.settings.hideMode === 'header' ? 'header' : 'floating';
   if (panel) {
-    panel.style.display = hidden && hideMode === 'floating' ? 'none' : '';
-    panel.classList.toggle('uvd-panel-collapsed', hidden && hideMode === 'header');
+    // Ẩn = thu hết body cuộn lên, chỉ còn lại header (không ẩn hẳn, không nút đáy).
+    panel.style.display = '';
+    panel.classList.toggle('uvd-panel-collapsed', hidden);
   }
-  // Không dùng nút nổi đáy phải nữa (tránh trùng nút gọi lại pop-up);
-  // khi ẩn kiểu floating thì cuộn lên là hiện lại.
   __uvdRemoveRestoreBtn();
   if (hidden) {
     __uvdStartHardEmbedBlocker();
-    if (hideMode === 'floating') __uvdScrollHide = true;
     // Resume only media that UMP itself paused during its initial scan.
     try {
       document.querySelectorAll('video,audio').forEach(function(media) {
@@ -3937,8 +3914,6 @@ function __uvdSetHidden(hidden) {
         }
       });
     } catch(e) {}
-  } else {
-    __uvdScrollHide = false;
   }
 }
 // ========== POPUP OVERLAY: HIDE UI + REOPEN BUTTON ==========
@@ -4374,15 +4349,32 @@ function __uvdHasRealDirectStreams() {
   });
   return direct;
 }
+function __uvdIsDemoStream(entry) {
+  var item = (entry && entry[1]) || {};
+  if (item.demo === true) return true;
+  if (/preview|trailer|sample|teaser|demo/i.test(String((entry && entry[0]) || ''))) return true;
+  return false;
+}
 function __uvdMaybeOfferMediaPopup(force) {
-  if (!__uvdHasRealDirectStreams().length) return;
+  var direct = __uvdHasRealDirectStreams();
+  if (!direct.length) return;
   if (playerState.overlay) return;
   if (!force && __uvdMediaPopupShown) return;
   if (force) __uvdMediaPopupDismissedAt = 0;
   if (Date.now() - (__uvdMediaPopupDismissedAt || 0) < 60000) return;
+  // Hạn chế mở auto: chỉ mở khi có ít nhất 1 video thật (không phải demo) có
+  // get được preview/metadata (đa chất lượng / master / resolution).
+  if (!force) {
+    var hasReal = direct.some(function(entry) {
+      if (__uvdIsDemoStream(entry)) return false;
+      var item = entry[1] || {};
+      return !!(item.qualityCount || item.isMaster || item.resolution);
+    });
+    if (!hasReal) return;
+  }
   __uvdMediaPopupShown = true;
-  var direct = __uvdHasRealDirectStreams().map(function(e) { return { url: e[0], type: e[1].type, item: e[1] }; });
-  __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(direct));
+  var mapped = direct.map(function(e) { return { url: e[0], type: e[1].type, item: e[1] }; });
+  __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
 }
 
 function __uvdOpenIframeWorkflowPrompt(candidates) {
@@ -4570,8 +4562,9 @@ function __uvdMaybeOfferIframeWorkflow(force) {
   // AI layer: prefer real players, drop hard junk unless nothing else exists.
   var candidates = allFrames.filter(function(candidate) { return candidate.score >= 20; });
   if (!candidates.length) candidates = allFrames.filter(function(c) { return c.verdict !== 'JUNK'; });
-  if (!candidates.length) candidates = allFrames.slice(0, 4);
-  if (!candidates.length) return;
+  // Chỉ hiện popup nếu có iframe thật (PLAYER) hoặc ít nhất là UNKNOWN.
+  var hasUsable = candidates.some(function(c) { return c.verdict === 'PLAYER' || c.verdict === 'UNKNOWN'; });
+  if (!candidates.length || !hasUsable) return;
   __uvdIframeWorkflowAsked = true;
   __uvdAskAiClassifyIframes(candidates, function(ranked) {
     if (playerState.overlay) return;
@@ -4848,7 +4841,7 @@ function buildUI() {
     __uvdSetHidden(!isCollapsed);
     this.textContent = isCollapsed ? '▾' : '▴';
     this.title = isCollapsed ? 'Thu gọn UMP DL' : 'Mở rộng UMP DL';
-    toast(isCollapsed ? 'Đã mở rộng UMP DL' : 'Đã thu gọn UMP DL — cuộn lên để hiện lại');
+    toast(isCollapsed ? 'Đã mở rộng UMP DL' : 'Đã thu gọn UMP DL — bấm lại để mở');
   };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false, true);

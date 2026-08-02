@@ -294,6 +294,21 @@ Hai file hiện đã được đồng bộ.
      thành "Đã thu gọn UMP DL — cuộn lên để hiện lại".
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #13 — Cơ chế đợi (giới hạn auto popup) + ẩn script = thu body lên còn header (cuộn chậm đẹp) — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Cơ chế đợi (hạn chế mở auto):**
+     - Popup iframe chỉ hiện khi có iframe **PLAYER** hoặc ít nhất **UNKNOWN** (không hiện khi
+       toàn rác JUNK).
+     - Popup video chỉ **auto-mở** khi có ít nhất 1 link video thật (không phải demo/preview)
+       và get được **preview/metadata** (đa chất lượng / master / resolution). Mở tay (nút gọi
+       lại popup) vẫn hiện bình thường.
+  2. **Cơ chế cuộn (đúng ý ní):** ẩn script = **thu hết body cuộn lên**, chỉ còn lại header
+     (kiểu ngăn kéo); bấm lại là **cuộn xuống** mở ra. Hiệu ứng **chậm đẹp** (`.65s
+     cubic-bezier(.22,1,.36,1)`). Bỏ luôn window-scroll listener cũ (sai ý) và không còn nút
+     nổi đáy phải trùng nút gọi lại pop-up.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

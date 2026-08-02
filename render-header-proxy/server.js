@@ -276,7 +276,7 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'umpdl-header-pr
 app.get('/userscript.js', (_req, res) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-  res.sendFile(path.join(__dirname, 'userscript', 'umpdl-iframe-bridge.user.js'));
+  res.sendFile(path.join(__dirname, 'userscript', 'umpdl.user.js'));
 });
 
 app.get('/bookmarklet.js', (_req, res) => {

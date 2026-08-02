@@ -332,6 +332,18 @@ Hai file hiện đã được đồng bộ.
      **hướng dẫn** (details) được làm pastel/bo tròn cute.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #16 — Bỏ mèo session, settings hồng tím + footer gấu, hướng dẫn cute, nút play như badge, X/Để sau popup khác nhau — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Bỏ con mèo 🐱** ở thanh session (thấy hơi lạc quẻ).
+  2. **Card Cài đặt theo tông hồng tím**; cuối trang thêm **con gấu xinh xắn + lời nhắn nhủ**.
+  3. **Viết lại phần hướng dẫn** (Cài đặt Bookmarklet / Sử dụng / Tải yt-dlp) bằng **ngôn ngữ
+     dễ thương** nhưng vẫn đầy đủ nội dung.
+  4. **Nút play**: CSS giống **badge ở góc thumbnail** (nền mờ + blur + viền hồng) nhưng **tròn**.
+  5. **Popup**: bấm **X** → đóng hẳn, mất luôn; bấm **"Để sau"** → ẩn popup thành **nút nổi kéo
+     được** (giống nút ẩn script) để gọi lại.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

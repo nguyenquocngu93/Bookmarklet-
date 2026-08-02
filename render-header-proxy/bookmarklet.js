@@ -3749,7 +3749,7 @@ style.textContent = `
 /* Card video + scrollbar cute (sửa gốc layout đã xong ở trên) */
 .uvd-card.uvd-cute{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(255,240,247,.88))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:24px!important;padding:14px!important;box-shadow:0 10px 26px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.7) inset!important}
 .uvd-cute .uvd-card-preview{border-radius:18px!important;overflow:hidden!important;background:linear-gradient(135deg,#ffe0ea,#ffd6e4)!important;border:1px solid rgba(255,159,180,.28)!important}
-.uvd-cute .uvd-thumb-play{width:34px;height:34px;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;box-sizing:border-box!important;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:14px;box-shadow:0 4px 12px rgba(247,108,140,.28)!important}
+.uvd-cute .uvd-thumb-play{width:36px;height:36px;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;box-sizing:border-box!important;border-radius:50%;background:rgba(255,255,255,.72)!important;border:1px solid rgba(255,159,180,.42)!important;color:#d85c7a!important;font-size:14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 12px rgba(247,108,140,.22)!important}
 /* Ẩn nút ⋮ (3 chấm) trên thumbnail cùng các tính năng bên trong (tạm thời) */
 .uvd-thumb-menu{display:none!important}
 .uvd-cute .uvd-thumb-type{background:rgba(255,255,255,.7)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important;border-radius:999px!important}
@@ -3875,6 +3875,16 @@ style.textContent = `
 .uvd-settings-overlay .uvd-settings-details>summary{color:#d85c7a!important;font-size:14px!important}
 .uvd-settings-overlay .uvd-settings-details-body>.uvd-card{background:rgba(255,244,249,.6)!important}
 .uvd-settings-overlay .uvd-settings-title{background:linear-gradient(110deg,#f76c8c,#b385f2);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:none!important}
+/* Nút nổi gọi lại popup (kéo được, như nút ẩn script) */
+.uvd-popup-reopen{position:fixed;right:16px;bottom:16px;z-index:2147483646;display:flex;align-items:center;justify-content:center;width:54px;height:54px;padding:0;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,#ffd6e4,#f4c8ff);color:#fff;font-size:24px;line-height:1;cursor:grab;box-shadow:0 8px 24px rgba(247,108,140,.45);animation:uvdScaleIn .25s ease both;touch-action:none}
+.uvd-popup-reopen:active{transform:scale(.94);cursor:grabbing}
+/* Settings cards hồng tím + footer nhắn nhủ cute */
+.uvd-settings-overlay .uvd-card{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(250,240,255,.9))!important;border:1px solid rgba(194,150,255,.3)!important;border-radius:18px!important}
+.uvd-settings-overlay .uvd-step-text{color:#6b4d85!important}
+.uvd-settings-footer-cute{display:flex;align-items:center;gap:14px;margin:16px 4px 10px;padding:16px 18px;background:linear-gradient(150deg,#ffe9f3,#e9d9ff);border:1px solid rgba(247,108,140,.3);border-radius:24px;box-shadow:0 10px 24px rgba(150,90,220,.16),inset 0 0 0 1px rgba(255,255,255,.6)!important}
+.uvd-settings-footer-mascot{flex:0 0 auto;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 6px 12px rgba(247,108,140,.3))}
+.uvd-settings-footer-title{font-size:15px;font-weight:800;color:#c95073}
+.uvd-settings-footer-sub{font-size:11.5px;color:#8a6ab0;margin-top:3px;line-height:1.5}
 `;
 
 
@@ -3953,17 +3963,33 @@ function __uvdShowPopupReopenBtn(kind) {
   __uvdRemovePopupReopenBtn();
   var b = document.createElement('button');
   b.id = '__uvd_popup_reopen__';
-  b.className = 'uvd-scope';
-  b.innerHTML = kind === 'iframe' ? '🎬' : '🐰';
+  b.className = 'uvd-popup-reopen uvd-scope';
+  b.textContent = kind === 'iframe' ? '🎬' : '🐰';
   b.title = kind === 'iframe' ? 'Mở lại popup iframe' : 'Mở lại popup video';
-  b.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483646;width:54px;height:54px;border-radius:50%;' +
-    'border:2px solid #fff;background:linear-gradient(135deg,#ffd6e4,#ffb6c6);color:#fff;font-size:24px;line-height:1;' +
-    'box-shadow:0 8px 24px rgba(247,108,140,.45);cursor:pointer;display:flex;align-items:center;justify-content:center;' +
-    'animation:uvdScaleIn .25s ease both;';
+  b.style.touchAction = 'none';
   b.onclick = function() {
+    if (b.__uvdDragged) { b.__uvdDragged = false; return; }
+    __uvdRemovePopupReopenBtn();
     if (kind === 'iframe') __uvdMaybeOfferIframeWorkflow(true);
     else __uvdMaybeOfferMediaPopup(true);
   };
+  // Kéo đi được như nút ẩn script.
+  var dragging = false, sx = 0, sy = 0, sl = 0, st = 0;
+  b.addEventListener('pointerdown', function(e) {
+    dragging = true; b.__uvdDragged = false; sx = e.clientX; sy = e.clientY;
+    var r = b.getBoundingClientRect(); sl = r.left; st = r.top;
+    try { b.setPointerCapture(e.pointerId); } catch(ex) {}
+    e.preventDefault();
+  });
+  b.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) + Math.abs(dy) > 5) b.__uvdDragged = true;
+    b.style.left = Math.max(4, Math.min(window.innerWidth - b.offsetWidth - 4, sl + dx)) + 'px';
+    b.style.top = Math.max(4, Math.min(window.innerHeight - b.offsetHeight - 4, st + dy)) + 'px';
+    b.style.right = 'auto'; b.style.bottom = 'auto';
+  });
+  b.addEventListener('pointerup', function() { dragging = false; });
   __uvdAppendRoot(b);
   __uvdPopupReopenBtn = b;
 }
@@ -4154,6 +4180,22 @@ var __uvdHeaderMascot =
     '<circle cx="20" cy="43" r="4" fill="#ffb6c6" opacity="0.9"/>' +
     '<circle cx="44" cy="43" r="4" fill="#ffb6c6" opacity="0.9"/>' +
     '<path d="M32 48 q2 4 0 6" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+  '</svg>';
+
+// Cute bear mascot for the settings footer (inline SVG).
+var __uvdFooterMascot =
+  '<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<circle cx="22" cy="22" r="13" fill="#f5d0b8"/>' +
+    '<circle cx="50" cy="22" r="13" fill="#f5d0b8"/>' +
+    '<circle cx="36" cy="38" r="24" fill="#fbe3d0"/>' +
+    '<circle cx="27" cy="36" r="3.6" fill="#4a3550"/>' +
+    '<circle cx="45" cy="36" r="3.6" fill="#4a3550"/>' +
+    '<circle cx="28" cy="34.8" r="1.2" fill="#fff"/>' +
+    '<circle cx="46" cy="34.8" r="1.2" fill="#fff"/>' +
+    '<ellipse cx="36" cy="43" rx="3.4" ry="4" fill="#4a3550"/>' +
+    '<ellipse cx="36" cy="41.8" rx="1.6" ry="1.8" fill="#e8788f"/>' +
+    '<ellipse cx="25" cy="44" rx="5" ry="3.5" fill="#f8c8ac" opacity="0.9"/>' +
+    '<ellipse cx="47" cy="44" rx="5" ry="3.5" fill="#f8c8ac" opacity="0.9"/>' +
   '</svg>';
 
 // Cute rabbit mascot for the "found real video links" popup (inline SVG).
@@ -4350,8 +4392,15 @@ function __uvdOpenMediaLinksPopup(streams) {
     list.appendChild(row);
   });
   function closeMedia() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
+  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
-  if (cancel) cancel.onclick = closeMedia;
+  if (cancel) cancel.onclick = function() {
+    __uvdMediaPopupDismissedAt = Date.now();
+    overlay.remove();
+    __uvdRestoreUiAfterPopup();
+    __uvdShowPopupReopenBtn('media');
+  };
+  // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
   if (closeX) closeX.onclick = closeMedia;
   overlay.appendChild(panel);
@@ -4456,8 +4505,15 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     list.appendChild(row);
   });
   function closeIframe() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
+  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
   var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
-  if (cancel) cancel.onclick = closeIframe;
+  if (cancel) cancel.onclick = function() {
+    __uvdIframeWorkflowDismissedAt = Date.now();
+    overlay.remove();
+    __uvdRestoreUiAfterPopup();
+    __uvdShowPopupReopenBtn('iframe');
+  };
+  // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
   if (closeX) closeX.onclick = closeIframe;
   overlay.appendChild(panel);
@@ -4704,7 +4760,6 @@ function buildUI() {
   var savedPlaySel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
   info.className = 'uvd-context-bar uvd-context-cute';
   info.innerHTML =
-    '<span class="uvd-context-emoji">🐱</span>' +
     '<div class="uvd-context-main">' +
       '<span class="uvd-context-kicker">current session ✨</span>' +
       '<button id="__uvd_title__" class="uvd-context-title">' + escapeHtml(pageInfo.title) + '</button>' +
@@ -5994,38 +6049,45 @@ function renderSettings(container) {
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
     '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
-      '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ.</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit).</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ nhớ, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text"><strong>Xóa toàn bộ địa chỉ</strong> trong ô URL, dán đoạn code sau vào:</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ nhé.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit) nha.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ thương, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text"><strong>Xóa toàn bộ địa chỉ</strong> trong ô URL rồi dán đoạn code sau vào nha:</span></div>' +
       '<div class="uvd-code-block"><textarea readonly rows="3">' + escapeHtml(bookmarkletCode) + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save).</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, bạn chỉ cần gõ tên bookmark (<strong style="color:var(--accent-text);">UMP DL</strong>) vào thanh địa chỉ rồi chọn nó để kích hoạt. Script luôn tự động cập nhật phiên bản mới nhất.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save) là xong gọn nè.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, cưng chỉ cần gõ tên bookmark (<strong style="color:var(--accent-text);">UMP DL</strong>) vào thanh địa chỉ rồi chọn nó là chạy ngay. Script tự cập nhật bản mới nhất mỗi lần nha!</span></div>' +
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
     '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ và chọn nó</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream và bấm <strong style="color:var(--accent-text);">Xem</strong> để mở player overlay</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: chọn <strong style="color:var(--accent-text);">Chất lượng</strong>, <strong style="color:var(--accent-text);">Toàn màn hình</strong> và <strong style="color:var(--accent-text);">Phụ đề</strong> trong menu. Player hỗ trợ HLS qua hls.js và tự thử proxy header khi nguồn trực tiếp lỗi.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video nha</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ rồi chọn nó</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream rồi bấm <strong style="color:var(--accent-text);">Xem</strong> để mở player dễ thương</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: chọn <strong style="color:var(--accent-text);">Chất lượng</strong>, <strong style="color:var(--accent-text);">Toàn màn hình</strong> và <strong style="color:var(--accent-text);">Phụ đề</strong> trong menu. Player hỗ trợ HLS qua hls.js và tự thử proxy khi nguồn trực tiếp lỗi nha.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chạm đúp 2 lần vào nửa trái/phải video để tua lùi/tiến (số giây tùy chỉnh trong tab Trình phát)</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Video ngắn dưới 90 giây được đánh dấu <strong>DEMO · NO PREVIEW</strong> để tránh tốn request thumbnail.</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">⏺</span><span>Nút <strong style="color:var(--accent-text);">⏺</strong> bật bắt link realtime. Bấm nút này trước, sau đó bấm Play thật để UMP bắt fetch/XHR/playlist mà không rebuild UI liên tục.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Video ngắn dưới 90 giây được đánh dấu <strong>DEMO · NO PREVIEW</strong> để đỡ tốn request thumbnail nè.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">⏺</span><span>Nút <strong style="color:var(--accent-text);">⏺</strong> bật bắt link realtime. Bấm nút này trước, rồi bấm Play thật để UMP bắt fetch/XHR/playlist mà không dựng lại UI liên tục nha!</span></div>' +
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
     '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
-      '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài đặt yt-dlp trên Termux:</strong></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài yt-dlp trên Termux nha:</strong></span></div>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg update && pkg upgrade -y</code>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg install python ffmpeg -y</code>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0 10px;">pip install yt-dlp</code>' +
-      '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Mở tab <strong style="color:var(--accent-text);">Streams</strong>, chọn stream cần tải</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text">Bấm <strong style="color:var(--accent-text);">Lệnh tải</strong> → chọn lệnh phù hợp, sao chép</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text">Mở Termux, dán lệnh vào và bấm Enter để tải</span></div>' +
-      '<div class="uvd-callout uvd-callout-warn"><span class="uvd-callout-icon">⚠️</span><span><strong style="color:var(--text);">Lưu ý:</strong> Nhớ cấp quyền lưu file cho Termux (Android 11+): <code class="uvd-inline-code">termux-setup-storage</code></span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Mở tab <strong style="color:var(--accent-text);">Streams</strong>, chọn stream cưng muốn tải nha</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text">Bấm <strong style="color:var(--accent-text);">Lệnh tải</strong> → chọn lệnh phù hợp rồi sao chép nha</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text">Mở Termux, dán lệnh vào rồi bấm Enter để tải nha</span></div>' +
+      '<div class="uvd-callout uvd-callout-warn"><span class="uvd-callout-icon">⚠️</span><span><strong style="color:var(--text);">Lưu ý nhỏ:</strong> nhớ cấp quyền lưu file cho Termux (Android 11+) nha: <code class="uvd-inline-code">termux-setup-storage</code></span></div>' +
     '</div></div></details>' +
 
+    '<div class="uvd-settings-footer-cute">' +
+      '<span class="uvd-settings-footer-mascot">' + __uvdFooterMascot + '</span>' +
+      '<div class="uvd-settings-footer-text">' +
+        '<div class="uvd-settings-footer-title">Cảm ơn cưng đã dùng UMP DL nè ♡</div>' +
+        '<div class="uvd-settings-footer-sub">Xem phim vui vẻ, có gì cần cứ bấm thoải mái nha 🍿✨ Còn nhiều mẹo hay phía trên đó!</div>' +
+      '</div>' +
+    '</div>' +
     '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · UMP DL v' + VERSION + ' · Made for Chrome Android</div>';
 
   container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });

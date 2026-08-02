@@ -3450,7 +3450,19 @@ style.textContent = `
 .uvd-votechip:active{transform:scale(.88)}
 .uvd-votechip-up{background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#e84a72;border:1px solid rgba(232,74,114,.25)}
 .uvd-votechip-down{background:linear-gradient(135deg,#ffe9e9,#ffdede);color:#ff5d72;border:1px solid rgba(255,93,114,.25)}
-.uvd-cute .uvd-card-preview{border-radius:18px;border:1px solid rgba(255,159,180,.25)}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
+.uvd-cute .uvd-card-preview{border-radius:18px;border:1px solid rgba(255,159,180,.25)}.uvd-iframe-actions .uvd-btn{flex:1 1 120px;min-height:38px}
+/* ===== CUTE LAYOUT: header pill, context pill, body pill ===== */
+.uvd-app-shell #__uvd_header__{border-bottom:0!important;margin:0 0 14px!important;padding:10px 14px!important;background:linear-gradient(150deg,rgba(255,244,248,.92),rgba(255,236,246,.85))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:26px!important;box-shadow:0 6px 18px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-context-bar.uvd-context-cute{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:14px;border:1px solid rgba(194,150,255,.35)!important;border-radius:22px!important;background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;box-shadow:0 6px 18px rgba(150,90,220,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-context-emoji{flex:0 0 auto;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(150deg,#ffe0ea,#ffd6e4);border-radius:50%;box-shadow:0 4px 10px rgba(247,108,140,.18)}
+.uvd-context-cute .uvd-context-kicker{color:#9a6ce0!important;font-weight:800;letter-spacing:.04em;font-size:9px}
+.uvd-context-cute .uvd-context-title{color:#7a4fb0!important;font-weight:800;font-size:14px}
+.uvd-context-cute .uvd-meta-chip{background:rgba(255,255,255,.7)!important;border:1px solid rgba(194,150,255,.3)!important;color:#8a6ab0!important;border-radius:999px!important;font-size:10px!important}
+.uvd-body-cute{background:rgba(255,240,247,.5)!important;border:1px solid rgba(255,159,180,.22)!important;border-radius:26px!important;padding:6px!important;box-shadow:0 4px 14px rgba(247,108,140,.08),0 0 0 1px rgba(255,255,255,.5) inset!important}
+.uvd-body-cute #__uvd_stream_list__{padding:8px!important}
+.uvd-tabbar{background:linear-gradient(150deg,#fff0f5,#ffe9f2)!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:999px!important}
+.uvd-tab{color:#d85c7a!important;font-weight:800!important;font-size:11.5px!important;border-radius:999px!important}
+.uvd-tab.uvd-tab-active{background:linear-gradient(135deg,#ffb6c6,#f76c8c)!important;color:#fff!important;box-shadow:0 4px 12px rgba(247,108,140,.3)!important}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
 .uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
@@ -4420,34 +4432,10 @@ function buildUI() {
   });
   content.appendChild(tabbar);
 
+  // Filter bar tạm gỡ bỏ (đã có tính năng vote để lọc rác). Giữ biến để không vỡ.
   var streamFilter = 'ALL';
   var streamResolution = 'ALL';
   var streamOrder = 'captured';
-  var filterBar = document.createElement('div');
-  filterBar.className = 'uvd-filter-bar';
-  ['ALL','MP4','M3U8','IFRAME','BLOB'].forEach(function(filter) {
-    var filterBtn = document.createElement('button');
-    filterBtn.className = 'uvd-filter-btn' + (filter === 'ALL' ? ' uvd-filter-active' : '');
-    filterBtn.dataset.filter = filter;
-    filterBtn.textContent = filter === 'ALL' ? 'Tất cả' : filter;
-    filterBtn.onclick = function() {
-      streamFilter = filter;
-      filterBar.querySelectorAll('.uvd-filter-btn').forEach(function(b) { b.classList.toggle('uvd-filter-active', b.dataset.filter === filter); });
-      renderTab('streams');
-    };
-    filterBar.appendChild(filterBtn);
-  });
-  var resolutionSelect = document.createElement('select');
-  resolutionSelect.className = 'uvd-filter-select';
-  resolutionSelect.innerHTML = '<option value="ALL">Độ phân giải</option><option value="2160p">2160p</option><option value="1440p">1440p</option><option value="1080p">1080p</option><option value="720p">720p</option><option value="480p">480p</option><option value="360p">360p</option><option value="240p">240p</option>';
-  resolutionSelect.onchange = function() { streamResolution = this.value; renderTab('streams'); };
-  filterBar.appendChild(resolutionSelect);
-  var orderSelect = document.createElement('select');
-  orderSelect.className = 'uvd-filter-select';
-  orderSelect.innerHTML = '<option value="captured">Theo thứ tự bắt được</option><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option>';
-  orderSelect.onchange = function() { streamOrder = this.value; renderTab('streams'); };
-  filterBar.appendChild(orderSelect);
-  content.appendChild(filterBar);
 
   function moveIndicatorTo(btn) {
     if (!btn) return;
@@ -4460,10 +4448,11 @@ function buildUI() {
   var info = document.createElement('div');
   info.style.cssText = 'flex-shrink:0;';
   var savedPlaySel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
-  info.className = 'uvd-context-bar';
+  info.className = 'uvd-context-bar uvd-context-cute';
   info.innerHTML =
+    '<span class="uvd-context-emoji">🐱</span>' +
     '<div class="uvd-context-main">' +
-      '<span class="uvd-context-kicker">CURRENT SESSION</span>' +
+      '<span class="uvd-context-kicker">current session ✨</span>' +
       '<button id="__uvd_title__" class="uvd-context-title">' + escapeHtml(pageInfo.title) + '</button>' +
     '</div>' +
     '<div class="uvd-context-meta">' +
@@ -4473,13 +4462,13 @@ function buildUI() {
   content.appendChild(info);
 
   var contentWrapper = document.createElement('div');
-  contentWrapper.className = 'uvd-scroll';
+  contentWrapper.className = 'uvd-scroll uvd-body-cute';
   contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;';
 
   var streamList = document.createElement('div');
   streamList.id = '__uvd_stream_list__';
   streamList.className = 'uvd-scroll';
-  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;height:100%;padding:0;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
+  streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;height:100%;padding:12px;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
   contentWrapper.appendChild(streamList);
 
   content.appendChild(contentWrapper);
@@ -4688,7 +4677,7 @@ var UVD_LAZY_BATCH = 20;
 
 function __uvdTypeEmoji(type) {
   var t = String(type || '').toUpperCase();
-  if (t === 'M3U8' || t === 'MPD') return '🎬';
+  if (t === 'M3U8' || t === 'MPD') return '📺';   // TV: cute, ít phần đen
   if (t === 'MP4' || t === 'WEBM') return '📼';
   if (t === 'IFRAME') return '🖼️';
   if (t === 'BLOB') return '🌀';

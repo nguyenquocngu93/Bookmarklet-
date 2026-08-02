@@ -179,6 +179,24 @@ Hai file hiện đã được đồng bộ.
 - **Ghi chú:** đây là bước đầu của đợt "làm lại toàn bộ UI cute". Các tab khác
   (History, Settings...) sẽ được chuyển dần.
 
+### Patch #7 — Layout cute: header pill, context pill, body pill, bỏ filter bar — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** chỉnh dần UI sang tông cute, từng cục một (không đổi 1 lần quá tải):
+  1. **Header** tách thành **1 cục bo tròn** (pill hồng pastel, bo 26px, bỏ border-bottom).
+  2. **Phần thân 3 tab** (tabbar) thành pill bo tròn, tab active hồng.
+  3. **Current session** thành **1 cục bo tròn có minh hoạ** (emoji mèo 🐱 trong
+     khung tròn + nền tím pastel).
+  4. **Xoá row lọc theo ngày/định dạng** (filter bar) vì đã có tính năng vote.
+  5. **Body 3 tab** bọc thành **1 cục bo tròn** như popup (nền hồng nhạt, bo 26px).
+  6. Đổi **icon m3u8** sang **📺 (TV)** — hạn chế icon có phần đen (trước là 🎬).
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - `buildUI`: gỡ khối tạo `filterBar`; thêm `.uvd-context-emoji` 🐱 vào context bar;
+    thêm class `uvd-body-cute` cho contentWrapper; `streamList` padding 12px.
+  - `__uvdTypeEmoji`: M3U8/MPD → `📺`.
+  - CSS khối "CUTE LAYOUT": header pill, context cute, body cute, tabbar/tab cute.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

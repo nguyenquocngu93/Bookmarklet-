@@ -268,6 +268,19 @@ Hai file hiện đã được đồng bộ.
      popup link (cả card chất lượng lẫn link thường) và "cảnh khác".
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #11 — Sửa play lệch, intro thỏ bắp rang lâu hơn + nút "Mở ngay", popup video đơn giản không thumbnail, xoá thỏ trong player — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Nút play bị lệch một bên**: reset padding của `.uvd-btn` (đang đẩy ▶ lệch) và dùng
+     flex căn giữa cho nút play thumbnail + nền nút, không còn lệch.
+  2. **Intro thỏ ôm bắp rang**: hiện lâu hơn (3.2s), **ẩn panel UMP** khi đang hiện nên
+     không bị UI đè; thêm dòng "Đợi vài giây hoặc bấm Mở ngay" và nút **▶ Mở ngay**.
+  3. **Popup video đơn giản lại như lúc đầu**: bỏ thumbnail. Link chất lượng cao gắn nhãn
+     "✨ chất lượng cao" + ghi "Link này chất lượng cao nè" và nút "▶ Xem ngay"; link
+     thường chỉ là dòng text + nút "▶ Xem".
+  4. **Xoá con thỏ 🐰** trang trí phía dưới trình phát video.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

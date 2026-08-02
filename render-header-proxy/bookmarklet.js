@@ -1632,8 +1632,31 @@ function __uvdStartEmbedDirectCapture() {
   scanMedia();
 }
 
+// ========== USERSCRIPT IFRAME BRIDGE ==========
+function __uvdInstallIframeBridgeReceiver() {
+  if (window.__uvdIframeBridgeReceiverInstalled) return;
+  window.__uvdIframeBridgeReceiverInstalled = true;
+  window.addEventListener('message', function (event) {
+    var data = event && event.data;
+    if (!data || (data.type !== 'umpdl-iframe-media-found' && data.type !== 'umpdl-iframe-bridge-ready')) return;
+    if (data.pageUrl) {
+      try {
+        var pageOrigin = new URL(data.pageUrl).origin;
+        if (event.origin !== pageOrigin) return;
+      } catch (e) { return; }
+    }
+    if (data.type === 'umpdl-iframe-media-found' && data.url) {
+      if (__uvdAddDetectedMediaUrl(data.url, data.mediaType || 'MP4', 'userscript:' + (data.source || 'iframe'))) {
+        debouncedBuildUI();
+        toast('🔗 Userscript đã bắt được ' + (data.mediaType || 'media') + ' trong iframe');
+      }
+    }
+  });
+}
+
 // ========== INIT ==========
 try {
+  __uvdInstallIframeBridgeReceiver();
   window.__uvdBootPhase = 'scan';
   scan(document, 'main');
   try { performance.getEntriesByType('resource').forEach(function(e) { if (!e || !e.name || isAdUrl(e.name)) return; if (/\.m3u8(?:[?#]|$)/i.test(e.name)) __uvdAddDetectedMediaUrl(e.name, 'M3U8', 'network:perf:manifest'); else findUrls(e.name, 'network:perf'); }); } catch(e) {}

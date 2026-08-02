@@ -2768,13 +2768,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   infoPanel.appendChild(titleRow);
   infoPanel.appendChild(infoRow);
   sheetBody.appendChild(infoPanel);
-  // Trang trí phía dưới player
-  var deco = document.createElement('div');
-  deco.className = 'uvd-player-deco';
-  deco.innerHTML = '<span class="uvd-player-deco-icon">🐰</span>' +
-    '<div class="uvd-player-deco-text">Chúc bạn xem phim vui vẻ nha 🍿✨</div>' +
-    '<div class="uvd-player-deco-sub">bấm ⋮ để chọn chất lượng & phụ đề</div>';
-  sheetBody.appendChild(deco);
   sheet.appendChild(sheetBody);
 
   playerState.overlay = overlay;
@@ -3576,7 +3569,7 @@ style.textContent = `
 .uvd-thumb-fallback{filter:saturate(1.15) brightness(1.03)}
 .uvd-thumb-sheen{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(20,8,30,.04),rgba(20,8,30,.42));pointer-events:none}
 .uvd-thumb-type{position:absolute;z-index:2;top:10px;left:11px;padding:5px 9px;border:1px solid rgba(255,255,255,.34);border-radius:999px;background:rgba(15,58,56,.3);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em}
-.uvd-thumb-play{position:absolute;z-index:3;left:50%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(255,255,255,.88);color:var(--accent-text);font-size:20px;cursor:pointer;box-shadow:0 8px 20px rgba(15,58,56,.22);transition:transform .18s ease,background .18s ease}
+.uvd-thumb-play{position:absolute;z-index:3;left:50%;top:50%;width:48px;height:48px;padding:0;display:flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(255,255,255,.88);color:var(--accent-text);font-size:20px;cursor:pointer;box-shadow:0 8px 20px rgba(15,58,56,.22);transition:transform .18s ease,background .18s ease}
 .uvd-thumb-play:hover{transform:translate(-50%,-50%) scale(1.08);background:#fff}
 .uvd-thumb-strip{display:flex;align-items:center;gap:7px;padding:0 0 10px;overflow-x:auto;scrollbar-width:none}
 .uvd-thumb-strip::-webkit-scrollbar{display:none}
@@ -3748,7 +3741,7 @@ style.textContent = `
 /* Card video + scrollbar cute (sửa gốc layout đã xong ở trên) */
 .uvd-card.uvd-cute{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(255,240,247,.88))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:24px!important;padding:14px!important;box-shadow:0 10px 26px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.7) inset!important}
 .uvd-cute .uvd-card-preview{border-radius:18px!important;overflow:hidden!important;background:linear-gradient(135deg,#ffe0ea,#ffd6e4)!important;border:1px solid rgba(255,159,180,.28)!important}
-.uvd-cute .uvd-thumb-play{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:14px;box-shadow:0 4px 12px rgba(247,108,140,.28)!important}
+.uvd-cute .uvd-thumb-play{width:34px;height:34px;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;box-sizing:border-box!important;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:14px;box-shadow:0 4px 12px rgba(247,108,140,.28)!important}
 /* Ẩn nút ⋮ (3 chấm) trên thumbnail cùng các tính năng bên trong (tạm thời) */
 .uvd-thumb-menu{display:none!important}
 .uvd-cute .uvd-thumb-type{background:rgba(255,255,255,.7)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important;border-radius:999px!important}
@@ -3804,7 +3797,7 @@ style.textContent = `
 .uvd-plvote{font-size:9px;font-weight:800;padding:3px 8px;border-radius:999px;cursor:pointer;border:1px solid}
 .uvd-plvote.up{background:#ffe3ec;color:#e84a72;border-color:rgba(232,74,114,.25)}
 .uvd-plvote.down{background:#ffe9e9;color:#ff5d72;border-color:rgba(255,93,114,.25)}
-.uvd-plrow-watch{flex:0 0 auto;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-size:10px;font-weight:800;border-radius:12px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.3)}
+.uvd-plrow-watch{flex:0 0 auto;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-size:10px;font-weight:800;border-radius:12px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.3);white-space:nowrap}
 .uvd-thumb-menu>summary,.uvd-thumb-menu[open]>summary{display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;min-height:34px!important;padding:0!important;border-radius:12px!important;background:linear-gradient(150deg,#fff,#fff0f5)!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;font-size:20px!important;line-height:34px!important;box-shadow:0 4px 12px rgba(247,108,140,.2),inset 0 1px 0 rgba(255,255,255,.9)!important;overflow:hidden!important}
 .uvd-thumb-menu>summary:hover,.uvd-thumb-menu[open]>summary{background:#fff!important;border-color:rgba(247,108,140,.6)!important;box-shadow:0 6px 16px rgba(247,108,140,.3)!important}
 .uvd-player-mascot{width:40px;height:40px;flex:0 0 40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(150deg,#ffe0ea,#ffd6e4);border:1px solid rgba(255,159,180,.4);box-shadow:0 4px 12px rgba(247,108,140,.25)}
@@ -3823,8 +3816,15 @@ style.textContent = `
 .uvd-plcard-ext{position:relative;flex:0 0 70px;height:44px;overflow:hidden;border:1px solid rgba(94,194,160,.3);border-radius:9px;background:linear-gradient(135deg,#d7f7ea,#b9f0dc)}
 .uvd-plcard-ext img{display:block;width:100%;height:100%;object-fit:cover}
 .uvd-plcard-ext span{position:absolute;right:4px;bottom:2px;color:#fff;font-size:8px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
-.uvd-plplain{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;border-radius:12px;background:rgba(255,255,255,.75);border:1px solid rgba(194,150,255,.22)}
-.uvd-plplain-url{flex:1;min-width:0;font-size:11.5px;color:#7a5f9e;word-break:break-all;line-height:1.45}
+.uvd-plplain{display:flex;align-items:center;gap:10px;padding:9px 11px;margin-bottom:7px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(194,150,255,.25)}
+.uvd-plplain-quality{border-color:rgba(179,133,242,.5)!important;background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(247,235,255,.92))!important}
+.uvd-plplain-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.uvd-plplain-top{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.uvd-plplain-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:8.5px;font-weight:800;color:#fff;background:#b385f2;white-space:nowrap}
+.uvd-plplain-q{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:8.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff9fb4,#f76c8c);white-space:nowrap}
+.uvd-plplain-url{font-size:11.5px;color:#7a5f9e;word-break:break-all;line-height:1.45}
+.uvd-plplain-note{font-size:11px;font-weight:800;color:#d85c7a}
+.uvd-plplain-quality .uvd-plrow-watch{background:linear-gradient(135deg,#d9b8ff,#b385f2);font-size:11px;padding:10px 14px}
 .uvd-player-sheet{border-radius:30px!important;border:1px solid rgba(255,159,180,.35)!important;box-shadow:0 24px 60px rgba(247,108,140,.3),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
 .uvd-player-sheet .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
 .uvd-player-video-area{padding:14px!important;background:linear-gradient(150deg,#fff0f5,#f8e6ff)!important}
@@ -4204,19 +4204,22 @@ function __uvdShowPlayIntro(url, type) {
   if (anyPopup) { anyPopup.remove(); __uvdPopupDismiss(); }
   var old = document.getElementById('__uvd_play_intro__');
   if (old) old.remove();
+  // Ẩn panel UMP để intro luôn nổi trên cùng (không bị UI đè).
+  __uvdHideUiForPopup();
   var overlay = document.createElement('div');
   overlay.id = '__uvd_play_intro__';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
-    'background:rgba(28,14,40,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:uvdFadeIn .3s ease both;';
+    'background:rgba(28,14,40,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:uvdFadeIn .3s ease both;';
   var box = document.createElement('div');
   box.style.cssText = 'text-align:center;padding:22px 26px;border-radius:34px;' +
     'background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 100%);border:1px solid rgba(194,150,255,.45);' +
-    'box-shadow:0 24px 60px rgba(150,90,220,.38),0 0 0 6px rgba(255,255,255,.35) inset;' +
+    'box-shadow:0 24px 60px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.4) inset;' +
     'animation:uvdScaleIn .35s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
     '<div style="line-height:0;transform:scale(1.1);">' + __uvdPlayIntroArt + '</div>' +
     '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
-    '<div style="font-size:12px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị player cho cưng...</div>';
+    '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
+    '<button id="__uvd_play_intro_open__" class="uvd-btn uvd-btn-sm" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:800;font-size:14px;padding:11px;">▶ Mở ngay</button>';
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
@@ -4226,10 +4229,13 @@ function __uvdShowPlayIntro(url, type) {
     if (opened || !overlay.isConnected) return;
     opened = true;
     overlay.remove();
+    __uvdRestoreUiAfterPopup();
     playerState.launchFromThumbnail = true;
     try { window.__uvd_showPlayer(url, type || 'MP4'); } catch(e) {}
   }
-  setTimeout(openIt, 2400);
+  var openBtn = box.querySelector('#__uvd_play_intro_open__');
+  if (openBtn) openBtn.onclick = function(e) { e.stopPropagation(); openIt(); };
+  setTimeout(openIt, 3200);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) openIt(); });
 }
 // Load a real video thumbnail (muted, capture first frame) for quality links.
@@ -4299,59 +4305,32 @@ function __uvdOpenMediaLinksPopup(streams) {
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
   __uvdRenderVotes = false;
-  // Link chất lượng dùng đúng card stream (thumbnail + cảnh khác thật); link thường đơn giản.
-  var __plCardFrag = document.createElement('div');
-  var __plIndex = 0;
+  // Đơn giản như lúc đầu: không thumbnail. Link chất lượng cao gắn nhãn + ghi chú.
   streams.slice(0, 8).forEach(function(stream, index) {
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
+    var row = document.createElement('div');
+    row.className = 'uvd-plplain' + (hasMeta ? ' uvd-plplain-quality' : '');
+    var body = document.createElement('div');
+    body.className = 'uvd-plplain-body';
+    var typeText = String(stream.type || 'MEDIA').toUpperCase();
+    var badge = '<span class="uvd-plplain-badge">#' + (index + 1) + ' ' + typeText + '</span>';
     if (hasMeta) {
-      // Dựng lại item đầy đủ cho buildStreamCardHTML
-      var streamItem = {
-        url: stream.url,
-        type: stream.type || 'MP4',
-        resolution: (stream.item && stream.item.resolution) || '',
-        qualityCount: (stream.item && stream.item.qualityCount) || 0,
-        isMaster: !!(stream.item && stream.item.isMaster),
-        aiVerdict: (stream.item && stream.item.aiVerdict) || ''
-      };
-      __plCardFrag.innerHTML += buildStreamCardHTML(streamItem, __plIndex);
-      __plIndex++;
-    } else {
-      // Link thường: chỉ hiện URL đơn giản
-      var row = document.createElement('div');
-      row.className = 'uvd-plplain';
-      var rowUrl = document.createElement('span');
-      rowUrl.className = 'uvd-plplain-url';
-      rowUrl.textContent = stream.url;
-      var play = document.createElement('button');
-      play.className = 'uvd-plrow-watch';
-      play.textContent = '▶';
-      play.onclick = function() {
-        var url = stream.url, type = stream.type || 'MP4';
-        overlay.remove(); __uvdPopupDismiss();
-        setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
-      };
-      row.appendChild(rowUrl);
-      row.appendChild(play);
-      list.appendChild(row);
+      badge += ' <span class="uvd-plplain-q">✨ chất lượng cao</span>';
     }
-  });
-  // Chèn card stream đã dựng + hydrate thumbnail thật (gồm cả 'cảnh khác')
-  while (__plCardFrag.firstChild) {
-    var c = __plCardFrag.firstChild;
-    list.appendChild(c);
-  }
-  hydrateVideoThumbnails(list);
-  // Xử lý nút play trong card stream dựng lại
-  list.querySelectorAll('.uvd-card[data-url]').forEach(function(card) {
-    var cardUrl = card.getAttribute('data-url');
-    card.querySelectorAll('[data-action="play"]').forEach(function(btn) {
-      btn.onclick = function() {
-        var url = cardUrl, type = card.getAttribute('data-type') || 'MP4';
-        overlay.remove(); __uvdPopupDismiss();
-        setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
-      };
-    });
+    body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
+      '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>' +
+      (hasMeta ? '<div class="uvd-plplain-note">Link này chất lượng cao nè ✨ — bấm Xem ngay nha!</div>' : '');
+    var play = document.createElement('button');
+    play.className = 'uvd-plrow-watch';
+    play.textContent = hasMeta ? '▶ Xem ngay' : '▶ Xem';
+    play.onclick = function() {
+      var url = stream.url, type = stream.type || 'MP4';
+      overlay.remove(); __uvdPopupDismiss();
+      setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
+    };
+    row.appendChild(body);
+    row.appendChild(play);
+    list.appendChild(row);
   });
   function closeMedia() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');

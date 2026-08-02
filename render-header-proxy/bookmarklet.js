@@ -1633,6 +1633,13 @@ function __uvdStartEmbedDirectCapture() {
 }
 
 // ========== USERSCRIPT IFRAME BRIDGE ==========
+function __uvdRequestIframeBridgeReplay() {
+  try {
+    document.querySelectorAll('iframe').forEach(function(frame) {
+      if (frame.contentWindow) frame.contentWindow.postMessage({ type: 'umpdl-iframe-bridge-request' }, '*');
+    });
+  } catch(e) {}
+}
 function __uvdInstallIframeBridgeReceiver() {
   if (window.__uvdIframeBridgeReceiverInstalled) return;
   window.__uvdIframeBridgeReceiverInstalled = true;
@@ -1661,6 +1668,8 @@ function __uvdInstallIframeBridgeReceiver() {
 // ========== INIT ==========
 try {
   __uvdInstallIframeBridgeReceiver();
+  setTimeout(__uvdRequestIframeBridgeReplay, 100);
+  setTimeout(__uvdRequestIframeBridgeReplay, 1200);
   window.__uvdBootPhase = 'scan';
   scan(document, 'main');
   try { performance.getEntriesByType('resource').forEach(function(e) { if (!e || !e.name || isAdUrl(e.name)) return; if (/\.m3u8(?:[?#]|$)/i.test(e.name)) __uvdAddDetectedMediaUrl(e.name, 'M3U8', 'network:perf:manifest'); else findUrls(e.name, 'network:perf'); }); } catch(e) {}

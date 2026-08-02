@@ -70,7 +70,8 @@
   document.addEventListener('loadedmetadata', onMediaEvent, true);
   document.addEventListener('canplay', onMediaEvent, true);
   var observer = new MutationObserver(scanMedia);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  var observeRoot = document.documentElement || document;
+  observer.observe(observeRoot, { childList: true, subtree: true });
   var timer = setInterval(scanMedia, 1500);
   scanMedia();
 

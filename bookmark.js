@@ -2022,13 +2022,22 @@ function copy(text) {
 }
 
 function toast(msg, color) {
+  // Toast nằm dưới đáy, xếp chồng không đè lên nhau (tránh trùng vị trí header/UI).
+  var wrap = document.getElementById('__uvd_toast_wrap__');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = '__uvd_toast_wrap__';
+    wrap.style.cssText = 'position:fixed;left:12px;right:12px;bottom:22px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:2147483647;pointer-events:none;';
+    __uvdAppendRoot(wrap);
+  }
   var el = document.createElement('div');
   el.textContent = msg;
-  el.style.cssText = 'position:fixed;top:22px;left:50%;transform:translateX(-50%);background:' + (color || 'linear-gradient(135deg,#ff9fb4,#f76c8c)') + ';color:#fff;padding:12px 22px;border-radius:999px;z-index:2147483647;font:700 13px Segoe UI;box-shadow:0 6px 20px rgba(247,108,140,.4),inset 0 1px 0 rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.5);animation:uvdSlideIn 0.3s cubic-bezier(.22,1,.36,1) both;transition:opacity .22s ease,transform .22s ease;';
-  __uvdAppendRoot(el);
+  el.style.cssText = 'max-width:86vw;background:' + (color || 'linear-gradient(135deg,#ff9fb4,#f76c8c)') + ';color:#fff;padding:12px 20px;border-radius:999px;font:700 13px Segoe UI;box-shadow:0 6px 20px rgba(247,108,140,.4),inset 0 1px 0 rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.5);text-align:center;animation:uvdSlideIn 0.3s cubic-bezier(.22,1,.36,1) both;transition:opacity .22s ease,transform .22s ease;';
+  wrap.appendChild(el);
+  while (wrap.children.length > 3) wrap.removeChild(wrap.firstChild);
   setTimeout(function() {
     el.style.opacity = '0';
-    el.style.transform = 'translate(-50%,-10px)';
+    el.style.transform = 'translateY(-10px)';
     setTimeout(function() { el.remove(); }, 220);
   }, 2500);
 }
@@ -3494,7 +3503,7 @@ style.textContent = `
 .uvd-app-shell{padding:0!important;border-radius:32px!important;background:linear-gradient(165deg,rgba(255,247,250,.85),rgba(255,233,244,.8))!important;border:1px solid rgba(255,159,180,.3)!important;box-shadow:0 24px 60px rgba(247,108,140,.2),0 0 0 1px rgba(255,255,255,.5) inset!important;overflow:visible!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-28px);pointer-events:none!important;transition:max-height .65s cubic-bezier(.22,1,.36,1),opacity .5s ease,transform .65s cubic-bezier(.22,1,.36,1),margin .65s cubic-bezier(.22,1,.36,1),padding .65s cubic-bezier(.22,1,.36,1)}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
 .uvd-app-shell::after{display:none!important}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
-.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:10px 14px;margin:0 0 12px;border-bottom:0!important;flex-shrink:0;overflow:visible;background:linear-gradient(150deg,rgba(255,244,248,.95),rgba(255,236,246,.9))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:26px!important;box-shadow:0 5px 16px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:10px 14px;margin:0 0 12px;border-bottom:0!important;flex-shrink:0;overflow:visible;background:linear-gradient(150deg,rgba(255,244,248,.72),rgba(255,236,246,.66))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:26px!important;box-shadow:0 5px 16px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important;backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%)}
 .uvd-brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto}
 .uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 52px;border-radius:18px;background:var(--grad-liquid);color:#fff;font-size:23px;box-shadow:0 7px 18px rgba(20,184,166,.28);position:relative;overflow:hidden}.uvd-brand-mark::after{content:'';position:absolute;inset:-30%;background:linear-gradient(120deg,transparent 35%,rgba(255,255,255,.42) 50%,transparent 65%);transform:translateX(-60%) rotate(12deg);animation:uvdLogoShine 4.5s ease-in-out infinite}@keyframes uvdLogoShine{0%,65%{transform:translateX(-70%) rotate(12deg)}85%,100%{transform:translateX(70%) rotate(12deg)}}.uvd-logo-ring{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2px solid rgba(255,255,255,.78);border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,.13),0 0 14px rgba(255,255,255,.28)}.uvd-logo-ring span{font-size:14px;transform:translateX(1px)}
 .uvd-brand-name{font-size:21px;font-weight:850;line-height:1.05;letter-spacing:-.025em;color:var(--text)}
@@ -3905,6 +3914,12 @@ style.textContent = `
 .uvd-settings-overlay .uvd-stat-num{color:#d85c7a!important}
 .uvd-settings-overlay .uvd-url-box{color:#9a6ce0!important;background:rgba(255,214,228,.28)!important;border-color:rgba(255,159,180,.3)!important}
 .uvd-settings-overlay .uvd-section-num{background:linear-gradient(135deg,#ff9fb4,#b385f2)!important}
+/* Cục link đầu tiên chĩa lên current tab (giống mũi chĩa menu player) */
+#__uvd_stream_list__ .uvd-card.uvd-stream-first{position:relative}
+#__uvd_stream_list__ .uvd-card.uvd-stream-first::before{content:'';position:absolute;top:-9px;left:26px;width:16px;height:16px;background:#ffffff;border-left:1px solid rgba(255,159,180,.4);border-top:1px solid rgba(255,159,180,.4);transform:rotate(45deg);z-index:3}
+/* Cuộn xuống ẩn header để rộng chỗ, cuộn lên hiện lại (mượt) */
+.uvd-panel-content #__uvd_header__{transition:max-height .5s cubic-bezier(.22,1,.36,1),opacity .4s ease,transform .5s cubic-bezier(.22,1,.36,1),margin .5s ease,padding .5s ease}
+.uvd-scroll-hide-header #__uvd_header__{max-height:0!important;min-height:0!important;opacity:0!important;overflow:hidden!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;border-width:0!important;pointer-events:none!important;transform:translateY(-24px)}
 `;
 
 
@@ -4843,6 +4858,14 @@ function buildUI() {
   streamList.className = 'uvd-scroll';
   streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;padding:12px;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
   contentWrapper.appendChild(streamList);
+  // Cuộn xuống ẩn header để rộng chỗ; cuộn lên hiện lại (mượt).
+  var __uvdStreamListScroll = { last: 0 };
+  streamList.addEventListener('scroll', function() {
+    var st = this.scrollTop;
+    if (st > __uvdStreamListScroll.last && st > 70) content.classList.add('uvd-scroll-hide-header');
+    else if (st < __uvdStreamListScroll.last || st <= 40) content.classList.remove('uvd-scroll-hide-header');
+    __uvdStreamListScroll.last = st;
+  }, { passive: true });
 
   bubbleWrap.appendChild(contentWrapper);
   content.appendChild(bubbleWrap);
@@ -5455,6 +5478,10 @@ function renderStreams(container, arr) {
     var frag = document.createElement('div');
     frag.innerHTML = html;
     while (frag.firstChild) listWrap.appendChild(frag.firstChild);
+    if (rendered === 0) {
+      var firstCard = listWrap.querySelector('.uvd-card');
+      if (firstCard) firstCard.classList.add('uvd-stream-first');
+    }
     hydrateVideoThumbnails(listWrap);
     rendered = end;
 
@@ -6060,13 +6087,6 @@ function renderSettings(container) {
       '<div style="margin-top:6px;font-size:11px;color:var(--text3);">Đã chặn <span id="__uvd_blocked_ads__">' + __uvdAdBlockedCount + '</span> URL quảng cáo trong phiên này.</div>' +
     '</div>' +
 
-    '<div class="uvd-card">' +
-      '<div style="font-weight:600;margin-bottom:8px;">Sao lưu & Khôi phục</div>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_backup__" style="width:100%;margin-bottom:6px;">Xuất dữ liệu</button>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_restore__" style="width:100%;margin-bottom:6px;">Nhập dữ liệu</button>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_reset__" style="width:100%;background:var(--danger);">Đặt lại tất cả</button>' +
-    '</div>' +
-
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
     '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ nhé.</span></div>' +
@@ -6212,33 +6232,6 @@ function renderSettings(container) {
     storage.set(data);
     if (isOn) { try { document.querySelectorAll('video,audio').forEach(__uvdNeutralizeMedia); } catch(e) {} }
     toast(isOn ? 'Đã bật chặn tự phát (mạnh)' : 'Đã tắt chặn tự phát');
-  };
-
-  document.getElementById('__uvd_backup__').onclick = function() {
-    var blob = new Blob([JSON.stringify(data)],{type:'application/json'});
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'uvd_backup.json'; a.click();
-  };
-
-  document.getElementById('__uvd_restore__').onclick = function() {
-    var inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
-    inp.onchange = function(e) {
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        try { data = Object.assign(data, JSON.parse(ev.target.result)); storage.set(data); toast('Đã nhập!'); debouncedBuildUI(); }
-        catch(ex) { toast('File không hợp lệ','var(--danger)'); }
-      };
-      reader.readAsText(e.target.files[0]);
-    };
-    inp.click();
-  };
-
-  document.getElementById('__uvd_reset__').onclick = function() {
-    if (confirm('Xóa toàn bộ dữ liệu?')) {
-      localStorage.removeItem(STORAGE_KEY);
-      data = { favorites: [], siteProfiles: {}, history: [], filterlist: [], playbackPositions: {}, clickedButtons: {}, settings: Object.assign({}, data.settings) };
-      compileAdFilters();
-      debouncedBuildUI();
-    }
   };
 
   document.getElementById('__uvd_save_filter__').onclick = function() {

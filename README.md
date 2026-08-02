@@ -550,3 +550,15 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   nhấc lên. Preview thumbnail chuyển sang nền hồng/tím mềm.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #19 — Bỏ sao lưu thủ công, toast dưới đáy không chồng nhau, blur header, cục đầu chĩa tab, cuộn xuống ẩn header — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Bỏ phần "Sao lưu & Khôi phục" thủ công** trong Cài đặt (đã dùng đồng bộ cấp cao).
+  2. **Toast**: chuyển xuống **dưới đáy**, xếp chồng theo cột **không đè nhau** (tối đa 3),
+     không nằm ở header nữa.
+  3. **Thêm blur (frosted glass)** cho header.
+  4. **Body tab**: mỗi link là 1 cục/card; **cục đầu tiên có mũi chĩa lên current tab**
+     (giống mũi chĩa menu player).
+  5. **Thử nghiệm cuộn xuống ẩn header** để rộng chỗ, cuộn lên hiện lại, **mượt**.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+

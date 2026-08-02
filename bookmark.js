@@ -17,15 +17,15 @@ function __uvdReportBootError(reason) {
   try {
     var message = reason && (reason.message || reason.reason || reason) || 'unknown error';
     var phase = window.__uvdBootPhase || 'unknown';
-    console.error('[UMP DL] Boot error at ' + phase + ':', reason);
+    console.error('[Mèo cào media] Boot error at ' + phase + ':', reason);
     if (document.getElementById('__uvd_boot_error__')) return;
     var box = document.createElement('div');
     box.id = '__uvd_boot_error__';
-    box.textContent = 'UMP DL không khởi động được ở bước ' + phase + ': ' + String(message);
+    box.textContent = 'Mèo cào media không khởi động được ở bước ' + phase + ': ' + String(message);
     box.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;z-index:2147483647;padding:14px 16px;border-radius:14px;background:#134e4a;color:#fff;font:600 13px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45);';
     (document.body || document.documentElement).appendChild(box);
     setTimeout(function() { if (box.parentNode) box.remove(); }, 12000);
-  } catch(e) { console.error('[UMP DL] Boot error reporter failed', e); }
+  } catch(e) { console.error('[Mèo cào media] Boot error reporter failed', e); }
 }
 window.addEventListener('error', function(event) {
   // Ignore generic cross-origin page errors (Chrome reports these as the
@@ -41,8 +41,8 @@ window.addEventListener('unhandledrejection', function(event) {
   }
 });
 
-var VERSION = '6.7.26';
-var BOOKMARKLET_NAME = 'universal media full';
+var VERSION = '6.7.27';
+var BOOKMARKLET_NAME = 'mèo cào media';
 var HEADER_PROXY_BASE = 'https://saunhung-saunhung.hf.space';
 var RENDER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
 
@@ -1060,7 +1060,7 @@ function __uvdLearnPlaySelector(e) {
   if (data.siteProfiles[pageInfo.host].playSelector === selector) return;
   data.siteProfiles[pageInfo.host].playSelector = selector;
   storage.set(data);
-  console.info('[UMP DL] Đã học Play selector cho ' + pageInfo.host + ': ' + selector);
+  console.info('[Mèo cào media] Đã học Play selector cho ' + pageInfo.host + ': ' + selector);
 }
 function installPlaySelectorLearning() {
   document.addEventListener('click', __uvdLearnPlaySelector, true);
@@ -1285,7 +1285,7 @@ function openSettingsOverlay() {
       '<div class="uvd-settings-hero">' +
         '<span class="uvd-settings-hero-mascot">' + __uvdHeaderMascot + '</span>' +
         '<div class="uvd-settings-hero-text">' +
-          '<div class="uvd-settings-hero-title">Cài đặt UMP DL ♡</div>' +
+          '<div class="uvd-settings-hero-title">Cài đặt Mèo cào media ♡</div>' +
           '<div class="uvd-settings-hero-sub">Chỉnh cho cưng xinh xắn nè 🎀 Mèo gợi ý: cứ bấm thoải mái, phần hướng dẫn ở dưới cùng nha!</div>' +
         '</div>' +
       '</div>' +
@@ -2224,7 +2224,7 @@ function searchSubDL(query, cb) {
   function finish(fn) { if (settled) return; settled = true; clearTimeout(hardTimeoutId); fn(); }
   var hardTimeoutId = setTimeout(function() {
     finish(function() {
-      console.error('[UMP DL] SubDL: hết 15s không phản hồi');
+      console.error('[Mèo cào media] SubDL: hết 15s không phản hồi');
       toast('SubDL không phản hồi sau 15s — có thể do CORS hoặc trang chặn kết nối');
       cb([]);
     });
@@ -2243,7 +2243,7 @@ function searchSubDL(query, cb) {
   .then(function(json) {
     finish(function() {
       if (json && json.status === false) {
-        console.warn('[UMP DL] SubDL lỗi:', json.message || json);
+        console.warn('[Mèo cào media] SubDL lỗi:', json.message || json);
         toast('SubDL: ' + (json.message || 'yêu cầu bị từ chối (kiểm tra API key)'));
         cb([]); return;
       }
@@ -2266,7 +2266,7 @@ function searchSubDL(query, cb) {
   })
   .catch(function(err) {
     finish(function() {
-      console.error('[UMP DL] Lỗi SubDL search:', err);
+      console.error('[Mèo cào media] Lỗi SubDL search:', err);
       toast('Lỗi kết nối SubDL: ' + (err && err.message ? err.message : 'CORS/mạng'));
       cb([]);
     });
@@ -2473,7 +2473,7 @@ function __uvdMountVjs10(wrapper, video, onMount) {
       wrapper.appendChild(player);
       if (onMount) onMount();
     } catch (e) {
-      console.error('[UMP DL] Video.js v10 mount lỗi, dùng controls gốc:', e);
+      console.error('[Mèo cào media] Video.js v10 mount lỗi, dùng controls gốc:', e);
       done = false;
       fallbackToNative();
     }
@@ -2486,7 +2486,7 @@ function __uvdMountVjs10(wrapper, video, onMount) {
     var s = document.createElement('script');
     s.type = 'module';
     s.src = 'https://cdn.jsdelivr.net/npm/@videojs/html/cdn/video.js?v=' + Date.now();
-    s.onerror = function() { window.__uvdVjs10Loading = false; console.error('[UMP DL] Không tải được Video.js v10'); };
+    s.onerror = function() { window.__uvdVjs10Loading = false; console.error('[Mèo cào media] Không tải được Video.js v10'); };
     document.head.appendChild(s);
   }
   if (!customElements.get('video-player')) requestVjs10Script();
@@ -2502,7 +2502,7 @@ function __uvdMountVjs10(wrapper, video, onMount) {
         checkStart = Date.now();
       } else {
         clearInterval(iv); iv = null;
-        console.warn('[UMP DL] Video.js v10 chưa sẵn sàng, dùng controls gốc');
+        console.warn('[Mèo cào media] Video.js v10 chưa sẵn sàng, dùng controls gốc');
         fallbackToNative();
       }
     }
@@ -2729,7 +2729,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = '';
-  playerHeaderTitle.innerHTML = '<div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>UMP DL · dễ thương</span></small></div>';
+  playerHeaderTitle.innerHTML = '<div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>Mèo cào media · dễ thương</span></small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);
@@ -3538,9 +3538,11 @@ style.textContent = `
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
-.uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 10px;flex-shrink:0;overflow:hidden!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
+.uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 12px;flex-shrink:0;overflow:visible!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-tabbar::-webkit-scrollbar{display:none}
 .uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);z-index:0;box-shadow:0 3px 10px rgba(247,108,140,.4);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
+/* Tab active chảy xuống dính liền vào body dưới (mũi nhọn) */
+.uvd-tab-indicator::after{content:'';position:absolute;left:50%;top:100%;width:18px;height:24px;margin-left:-9px;background:linear-gradient(180deg,#ff9fb4,#f76c8c);clip-path:polygon(0 0,100% 0,50% 100%);z-index:0}
 .uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:#c95073;font-weight:800;font-size:11.5px;padding:10px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;transition:transform .15s ease,color .2s ease}
 .uvd-tab.uvd-tab-active{color:#fff!important;text-shadow:none!important;background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;box-shadow:0 4px 12px rgba(247,108,140,.32)!important}
 .uvd-filter-bar{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;flex-shrink:0}
@@ -3920,6 +3922,15 @@ style.textContent = `
 /* Cuộn xuống ẩn header để rộng chỗ, cuộn lên hiện lại (mượt) */
 .uvd-panel-content #__uvd_header__{transition:max-height .5s cubic-bezier(.22,1,.36,1),opacity .4s ease,transform .5s cubic-bezier(.22,1,.36,1),margin .5s ease,padding .5s ease}
 .uvd-scroll-hide-header #__uvd_header__{max-height:0!important;min-height:0!important;opacity:0!important;overflow:hidden!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;border-width:0!important;pointer-events:none!important;transform:translateY(-24px)}
+/* Popup: cục chất lượng cao + mũi chĩa */
+.uvd-pop-qcard{border-radius:20px!important;padding:12px!important;position:relative}
+.uvd-pop-qhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.uvd-pop-qbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#9a6ce0;background:linear-gradient(135deg,#f3e8ff,#fde3ef);border:1px solid rgba(194,150,255,.4);padding:4px 10px;border-radius:999px}
+.uvd-pop-qpreview{border-radius:14px!important;overflow:hidden!important;background:linear-gradient(135deg,#f3e8ff,#fde3ef)!important;border:1px solid rgba(194,150,255,.3)!important}
+.uvd-pop-qurl{margin-top:8px;font:10px monospace;color:#8a6ab0;word-break:break-all;line-height:1.4}
+.uvd-pop-xem{flex:0 0 auto;border:none;border-radius:12px;background:linear-gradient(135deg,#d9b8ff,#b385f2);color:#fff;font-weight:800;font-size:11px;padding:7px 13px;line-height:1;cursor:pointer;box-shadow:0 4px 10px rgba(150,90,220,.3);transition:transform .15s ease}
+.uvd-pop-xem:active{transform:scale(.9)}
+.uvd-pop-qcard.uvd-plplain-first::before{content:'';position:absolute;top:-9px;left:26px;width:16px;height:16px;background:#fff0f6;border-left:1px solid rgba(194,150,255,.4);border-top:1px solid rgba(194,150,255,.4);transform:rotate(45deg);z-index:3}
 `;
 
 
@@ -3936,7 +3947,7 @@ function __uvdShowRestoreBtn() {
   btn.id = '__uvd_restore_btn__';
   btn.className = 'uvd-restore-btn uvd-scope';
   btn.innerHTML = '<span class="uvd-restore-dot"></span>';
-  btn.title = 'Kéo để di chuyển · bấm để hiện UMP DL';
+  btn.title = 'Kéo để di chuyển · bấm để hiện Mèo cào media';
   btn.style.touchAction = 'none';
   btn.onclick = function() { if (!btn.__uvdDragged) __uvdSetHidden(false); btn.__uvdDragged = false; };
   var dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
@@ -4399,33 +4410,64 @@ function __uvdOpenMediaLinksPopup(streams) {
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
   __uvdRenderVotes = false;
-  // Đơn giản như lúc đầu: không thumbnail. Link chất lượng cao gắn nhãn + ghi chú.
+  // Link chất lượng cao = cục card có 1 thumbnail + mũi chĩa; link thường = text gọn.
   streams.slice(0, 8).forEach(function(stream, index) {
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
-    var row = document.createElement('div');
-    row.className = 'uvd-plplain' + (hasMeta ? ' uvd-plplain-quality' : '');
-    var body = document.createElement('div');
-    body.className = 'uvd-plplain-body';
-    var typeText = String(stream.type || 'MEDIA').toUpperCase();
-    var badge = '<span class="uvd-plplain-badge">#' + (index + 1) + ' ' + typeText + '</span>';
     if (hasMeta) {
-      badge += ' <span class="uvd-plplain-q">✨ chất lượng cao</span>';
+      var type = String(stream.type || '').toUpperCase();
+      var emoji = __uvdTypeEmoji(type);
+      var row = document.createElement('div');
+      row.className = 'uvd-card uvd-cute uvd-pop-qcard uvd-plplain-first';
+      row.dataset.type = stream.type || 'MP4';
+      row.dataset.url = stream.url;
+      row.style.cssText = 'margin-bottom:10px;text-align:left;';
+      var qualityLine = '✨ Chất lượng cao';
+      if (stream.item.qualityCount > 1) qualityLine = '✨ ' + stream.item.qualityCount + ' chất lượng';
+      else if (stream.item.resolution) qualityLine = '✨ Chất lượng cao · ' + stream.item.resolution;
+      row.innerHTML =
+        '<div class="uvd-pop-qhead">' +
+          '<span class="uvd-pop-qbadge">' + qualityLine + '</span>' +
+          '<button class="uvd-pop-xem" data-url="' + encodeURIComponent(stream.url) + '" data-type="' + escapeHtml(stream.type || 'MP4') + '">▶ Xem ngay</button>' +
+        '</div>' +
+        '<div class="uvd-card-preview uvd-pop-qpreview" data-thumb-url="' + escapeHtml(stream.url) + '">' +
+          '<div class="uvd-thumb-image"></div>' +
+          '<div class="uvd-thumb-sheen"></div>' +
+          '<span class="uvd-thumb-type">' + emoji + ' ' + escapeHtml(stream.type) + '</span>' +
+        '</div>' +
+        '<div class="uvd-pop-qurl">' + escapeHtml(stream.url) + '</div>';
+      list.appendChild(row);
+    } else {
+      var row = document.createElement('div');
+      row.className = 'uvd-plplain';
+      var body = document.createElement('div');
+      body.className = 'uvd-plplain-body';
+      var typeText = String(stream.type || 'MEDIA').toUpperCase();
+      body.innerHTML = '<div class="uvd-plplain-top"><span class="uvd-plplain-badge">#' + (index + 1) + ' ' + typeText + '</span></div>' +
+        '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>';
+      var play = document.createElement('button');
+      play.className = 'uvd-plrow-watch';
+      play.textContent = '▶ Xem';
+      play.onclick = function() {
+        var url = stream.url, type = stream.type || 'MP4';
+        overlay.remove(); __uvdPopupDismiss();
+        setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
+      };
+      row.appendChild(body);
+      row.appendChild(play);
+      list.appendChild(row);
     }
-    body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
-      '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>' +
-      (hasMeta ? '<div class="uvd-plplain-note">Link này chất lượng cao nè ✨ — bấm Xem ngay nha!</div>' : '');
-    var play = document.createElement('button');
-    play.className = 'uvd-plrow-watch';
-    play.textContent = hasMeta ? '▶ Xem ngay' : '▶ Xem';
-    play.onclick = function() {
-      var url = stream.url, type = stream.type || 'MP4';
+  });
+  // Nút Xem ngay cho cục chất lượng cao.
+  list.querySelectorAll('.uvd-pop-xem').forEach(function(btn) {
+    btn.onclick = function() {
+      var url = decodeURIComponent(btn.dataset.url);
+      var type = btn.dataset.type || 'MP4';
       overlay.remove(); __uvdPopupDismiss();
       setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
     };
-    row.appendChild(body);
-    row.appendChild(play);
-    list.appendChild(row);
   });
+  // Tải 1 thumbnail cho cục chất lượng cao.
+  hydrateVideoThumbnails(list);
   function closeMedia() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
   // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
@@ -4506,8 +4548,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       '<div style="font-size:18px;font-weight:800;color:#d85c7a;margin-bottom:6px;">' + (hasIntermediateServer ? 'Server trung gian cần mở 🥺' : 'Không có link video — chỉ có iframe 🥺') + '</div>' +
       '<div style="font-size:12.5px;color:#a05668;line-height:1.6;margin-bottom:14px;">' +
         (hasIntermediateServer
-          ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm UMP DL lại trên tab đó để lấy link thật.'
-          : 'Trang này chưa để lộ link video trực tiếp, chỉ có iframe embed. 👉 Bạn hãy <b style="color:#d85c7a;">bấm vào iframe</b> bên dưới, đợi nó phát, rồi <b style="color:#d85c7a;">chạy UMP DL lại một lần nữa</b> để lấy link video thật.') +
+          ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm Mèo cào media lại trên tab đó để lấy link thật.'
+          : 'Trang này chưa để lộ link video trực tiếp, chỉ có iframe embed. 👉 Bạn hãy <b style="color:#d85c7a;">bấm vào iframe</b> bên dưới, đợi nó phát, rồi <b style="color:#d85c7a;">chạy Mèo cào media lại một lần nữa</b> để lấy link video thật.') +
       '</div>' +
       '<div id="__uvd_iframe_workflow_list__" style="max-height:42vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
       '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);border:none;color:#fff;font-weight:700;">Để sau</button>' +
@@ -4774,9 +4816,9 @@ function buildUI() {
     '<div class="uvd-brand">' +
       '<span class="uvd-brand-mark">' + __uvdHeaderMascot + '</span>' +
       '<div class="uvd-brand-text">' +
-        '<div class="uvd-brand-name">UMP DL <span class="uvd-brand-heart">♡</span></div>' +
+        '<div class="uvd-brand-name">Mèo cào media <span class="uvd-brand-heart">♡</span></div>' +
         '<div class="uvd-brand-version">v' + VERSION + ' ✦ cute player</div>' +
-        '<div class="uvd-brand-sub">universal media · d\u1EC5 th\u01B0\u01A1ng 🎀</div>' +
+        '<div class="uvd-brand-sub">mèo cào media · d\u1EC5 th\u01B0\u01A1ng 🎀</div>' +
       '</div>' +
     '</div>' +
     '<div class="uvd-header-actions">' +
@@ -4785,7 +4827,7 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_iframe_btn__" title="Mở popup iframe">🎬</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng UMP DL">▾</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng Mèo cào media">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
     '</div>';
   content.appendChild(header);
@@ -4872,7 +4914,7 @@ function buildUI() {
 
   var footer = document.createElement('div');
   footer.className = 'uvd-profile-footer';
-  footer.textContent = '© ' + new Date().getFullYear() + ' nguyenquocngu91 · UMP DL v' + VERSION + ' · Made for Chrome Android';
+  footer.textContent = '© ' + new Date().getFullYear() + ' nguyenquocngu91 · Mèo cào media v' + VERSION + ' · Made for Chrome Android';
   content.appendChild(footer);
 
   __uvdAppendRoot(panel);
@@ -4957,8 +4999,8 @@ function buildUI() {
     var isCollapsed = panel.classList.contains('uvd-panel-collapsed');
     __uvdSetHidden(!isCollapsed);
     this.textContent = isCollapsed ? '▾' : '▴';
-    this.title = isCollapsed ? 'Thu gọn UMP DL' : 'Mở rộng UMP DL';
-    toast(isCollapsed ? 'Đã mở rộng UMP DL' : 'Đã thu gọn UMP DL — bấm lại để mở');
+    this.title = isCollapsed ? 'Thu gọn Mèo cào media' : 'Mở rộng Mèo cào media';
+    toast(isCollapsed ? 'Đã mở rộng Mèo cào media' : 'Đã thu gọn Mèo cào media — bấm lại để mở');
   };
   document.getElementById('__uvd_autoplay__').onclick = function() {
     var n = autoClickPlayButtons(document, 0, false, true);
@@ -5852,7 +5894,7 @@ function renderPlayerSettings(container) {
       buildToggleRow('__uvd_toggle_datasaver__', 'Chế độ tiết kiệm data (ép chất lượng thấp)', s.dataSaver) +
       buildToggleRow('__uvd_toggle_autohide__', 'Tự động ẩn thanh điều khiển', s.autoHideControls) +
       buildToggleRow('__uvd_toggle_showremaining__', 'Hiển thị thời gian còn lại', s.showRemainingTime) +
-      '<div style="font-size:12px;color:var(--text2);margin:12px 0 6px;">Kiểu ẩn UMP DL</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin:12px 0 6px;">Kiểu ẩn Mèo cào media</div>' +
       '<select id="__uvd_hide_mode__" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
         '<option value="floating"' + (s.hideMode === 'floating' ? ' selected' : '') + '>Icon floating di chuyển được (mặc định)</option>' +
         '<option value="header"' + (s.hideMode === 'header' ? ' selected' : '') + '>Thu nhỏ còn header</option>' +
@@ -5998,7 +6040,7 @@ function renderSettings(container) {
         '<div class="uvd-profile-name">nguyenquocngu91</div>' +
         '<div class="uvd-profile-role">Bookmarklet Developer · Universal Media Tools</div>' +
         '<div class="uvd-profile-tags">' +
-          '<span class="uvd-tag">UMP DL v' + VERSION + ' PRO</span>' +
+          '<span class="uvd-tag">Mèo cào media v' + VERSION + ' PRO</span>' +
           '<span class="uvd-tag">Vanilla JS</span>' +
           '<span class="uvd-tag">HLS · M3U8</span>' +
           '<span class="uvd-tag">Adblock</span>' +
@@ -6071,7 +6113,7 @@ function renderSettings(container) {
       '<div style="font-weight:600;margin-bottom:8px;">⛔ Chặn tự phát</div>' +
       buildToggleRow('__uvd_toggle_blockautoplay__', 'Chặn mạnh web tự mở/phát video sau khi chạy script', data.settings.blockAutoplay) +
       buildToggleRow('__uvd_toggle_autoclick__', 'Tự động quét và bấm Play sau khi chạy script', data.settings.autoClickPlay) +
-      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Video/audio do chính trang web tự bật (quảng cáo, autoplay ẩn...) sẽ luôn bị tạm dừng ngay. Video mở qua UMP DL Player không bị ảnh hưởng.</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Video/audio do chính trang web tự bật (quảng cáo, autoplay ẩn...) sẽ luôn bị tạm dừng ngay. Video mở qua Mèo cào media Player không bị ảnh hưởng.</div>' +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -6095,7 +6137,7 @@ function renderSettings(container) {
       '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text"><strong>Xóa toàn bộ địa chỉ</strong> trong ô URL rồi dán đoạn code sau vào nha:</span></div>' +
       '<div class="uvd-code-block"><textarea readonly rows="3">' + escapeHtml(bookmarkletCode) + '</textarea><button class="uvd-code-copy" data-copy-target="bookmarklet" title="Sao chép">📋</button></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">5</span><span class="uvd-step-text">Bấm <strong>Lưu</strong> (Save) là xong gọn nè.</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, cưng chỉ cần gõ tên bookmark (<strong style="color:var(--accent-text);">UMP DL</strong>) vào thanh địa chỉ rồi chọn nó là chạy ngay. Script tự cập nhật bản mới nhất mỗi lần nha!</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, cưng chỉ cần gõ tên bookmark (<strong style="color:var(--accent-text);">Mèo cào media</strong>) vào thanh địa chỉ rồi chọn nó là chạy ngay. Script tự cập nhật bản mới nhất mỗi lần nha!</span></div>' +
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
@@ -6124,11 +6166,11 @@ function renderSettings(container) {
     '<div class="uvd-settings-footer-cute">' +
       '<span class="uvd-settings-footer-mascot">' + __uvdFooterMascot + '</span>' +
       '<div class="uvd-settings-footer-text">' +
-        '<div class="uvd-settings-footer-title">Cảm ơn cưng đã dùng UMP DL nè ♡</div>' +
+        '<div class="uvd-settings-footer-title">Cảm ơn cưng đã dùng Mèo cào media nè ♡</div>' +
         '<div class="uvd-settings-footer-sub">Xem phim vui vẻ, có gì cần cứ bấm thoải mái nha 🍿✨ Còn nhiều mẹo hay phía trên đó!</div>' +
       '</div>' +
     '</div>' +
-    '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · UMP DL v' + VERSION + ' · Made for Chrome Android</div>';
+    '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · Mèo cào media v' + VERSION + ' · Made for Chrome Android</div>';
 
   container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
 
@@ -6287,9 +6329,9 @@ try {
       setTimeout(function() { try { __uvdUserscriptUiWatch.disconnect(); } catch(e) {} }, 120000);
     }
   } else {
-    console.log('[UMP DL] iframe capture mode active');
+    console.log('[Mèo cào media] iframe capture mode active');
   }
-  console.log('V' + VERSION + ' UMP DL PRO - tối ưu hiệu năng');
+  console.log('V' + VERSION + ' Mèo cào media PRO - tối ưu hiệu năng');
 } catch (bootError) {
   __uvdReportBootError(bootError);
 }

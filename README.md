@@ -177,3 +177,14 @@ Branch làm việc cố định (phiên hiện tại):
 ```text
 arena/019fc268-bookmarklet
 ```
+
+## Lịch sử branch (2026-08-02)
+
+Mỗi phiên chat trên Arena được gắn một branch `arena/*` riêng. Các branch cũ
+không có commit riêng ngoài điểm xuất phát, nên **không cần merge**:
+
+```text
+arena/019f7b7f-bookmarklet  →  dừng ở 7e5297c (phiên trước)
+arena/019fc268-bookmarklet  →  tạo từ 7e5297c, là phiên hiện tại
+main                        →  425b066 (nhánh chính, có thể cũ hơn)
+```

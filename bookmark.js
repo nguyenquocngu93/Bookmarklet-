@@ -3743,7 +3743,45 @@ style.textContent = `
 
 
 
+.uvd-cute-votes{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px}
+.uvd-thumb-menu>summary,.uvd-thumb-menu[open]>summary{width:34px!important;height:34px!important;min-height:34px!important;border-radius:12px!important;background:rgba(255,255,255,.85)!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;font-size:20px!important;letter-spacing:0!important;line-height:34px!important;box-shadow:0 4px 12px rgba(247,108,140,.2),inset 0 1px 0 rgba(255,255,255,.9)!important}
+.uvd-thumb-menu>summary:hover{background:#fff!important;border-color:rgba(247,108,140,.6)!important;box-shadow:0 6px 16px rgba(247,108,140,.28)!important}
+.uvd-thumb-menu .uvd-action-list{top:42px!important;right:0!important;width:auto!important;min-width:170px!important;display:flex!important;flex-direction:column!important;gap:0!important;padding:6px!important;background:linear-gradient(160deg,#fff6fa,#fff0f5)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:16px!important;box-shadow:0 12px 30px rgba(247,108,140,.28)!important;grid-template-columns:none!important}
+.uvd-thumb-menu .uvd-action-list::before{display:none!important}
+.uvd-thumb-menu .uvd-action-list .uvd-btn{min-height:32px!important;padding:8px 12px!important;border-radius:10px!important;background:transparent!important;color:#d85c7a!important;font-size:11px!important;text-align:left!important;box-shadow:none!important}
+.uvd-thumb-menu .uvd-action-list .uvd-btn+.uvd-btn{border-top:1px solid rgba(255,159,180,.18)!important}
+.uvd-thumb-menu .uvd-action-list .uvd-btn:hover{background:rgba(255,182,198,.25)!important;color:#f76c8c!important}
+.uvd-player-sheet{border-radius:30px!important;border:1px solid rgba(255,159,180,.35)!important;box-shadow:0 24px 60px rgba(247,108,140,.28),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
+.uvd-player-sheet .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
+.uvd-player-sheet .uvd-back-btn,.uvd-player-sheet .uvd-icon-btn{background:#fff!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;border-radius:14px!important;box-shadow:0 4px 12px rgba(247,108,140,.16)!important}
+.uvd-player-title-copy strong{background:linear-gradient(110deg,#e84a72,#f76c8c,#c95cb8)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;text-shadow:none!important}
+.uvd-player-type-badge{background:rgba(255,182,198,.25)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important}
+.uvd-player-video-area{background:linear-gradient(150deg,#fff0f5,#f8e6ff)!important}
+.uvd-player-video-area::before,.uvd-player-video-area::after{display:none!important}
+.uvd-player-info-panel{background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;border-top:1px solid rgba(194,150,255,.25)!important}
+.uvd-player-info-title{color:#7a4fb0!important}
+.uvd-player-info-meta{color:#a0729a!important}
+.uvd-plrow{display:flex;align-items:center;gap:9px;padding:9px;margin-bottom:7px;border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.95),rgba(250,240,255,.9));border:1px solid rgba(194,150,255,.3);box-shadow:0 4px 12px rgba(150,90,220,.12);}
+.uvd-plrow-meta{border-color:rgba(94,194,160,.45)!important;background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(236,253,247,.92))!important}
+.uvd-plrow-thumb{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:14px;background:linear-gradient(150deg,#ffe0ea,#ffd6e4);border:1px solid rgba(255,159,180,.35);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.uvd-plrow-meta .uvd-plrow-thumb{background:linear-gradient(150deg,#d7f7ea,#b9f0dc);border-color:rgba(94,194,160,.4)}
+.uvd-plrow-play{position:absolute;inset:0;border:none;background:rgba(0,0,0,.18);color:#fff;font-size:16px;opacity:0;cursor:pointer;transition:opacity .15s}
+.uvd-plrow:hover .uvd-plrow-play{opacity:1}
+.uvd-plrow-body{flex:1;min-width:0}
+.uvd-plrow-head{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap}
+.uvd-plrow-badge{font-size:8px;font-weight:800;color:#fff;background:linear-gradient(135deg,#b385f2,#9a6ce0);border-radius:999px;padding:2px 7px;letter-spacing:.03em}
+.uvd-plrow-meta .uvd-plrow-badge{background:linear-gradient(135deg,#5ec2a0,#3aa97f)}
+.uvd-plrow-res{font-size:8px;font-weight:800;color:#c07fae;background:rgba(255,182,198,.2);border-radius:999px;padding:2px 7px}
+.uvd-plrow-meta .uvd-plrow-res{color:#2c8c6a;background:rgba(94,194,160,.16)}
+.uvd-plrow-url{font-size:9px;color:#8a6ab0;word-break:break-all;line-height:1.4}
+.uvd-plrow-votes{display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
+.uvd-plvote{font-size:9px;font-weight:800;padding:3px 8px;border-radius:999px;cursor:pointer;border:1px solid}
+.uvd-plvote.up{background:#ffe3ec;color:#e84a72;border-color:rgba(232,74,114,.25)}
+.uvd-plvote.down{background:#ffe9e9;color:#ff5d72;border-color:rgba(255,93,114,.25)}
+.uvd-plrow-watch{flex:0 0 auto;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-size:10px;font-weight:800;border-radius:12px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.3)}
 `;
+
+
 document.head.appendChild(style);
 
 // ========== ẨN / HIỆN SCRIPT (giữ popup blocker chạy nền) ==========
@@ -4075,44 +4113,51 @@ function __uvdOpenMediaLinksPopup(streams) {
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
   streams.slice(0, 8).forEach(function(stream, index) {
-    var row = document.createElement('div');
-    row.className = 'uvd-card';
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:7px;text-align:left;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(194,150,255,.28);';
+    var typeEmoji = __uvdTypeEmoji(stream.type);
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
-    var label = document.createElement('div');
-    label.style.cssText = 'flex:1;min-width:0;font-size:9.5px;color:#8a6ab0;word-break:break-all;line-height:1.4;';
-    var badge = '<span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:#b385f2;">#' + (index + 1) + ' ' + (stream.type || 'MEDIA') + '</span>';
-    if (hasMeta) badge += ' <span title="Có metadata & chất lượng" style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:8px;font-weight:800;color:#fff;background:#5ec2a0;">✨ chất lượng</span>';
-    var metaText = '';
-    if (stream.item && stream.item.resolution) metaText = '<div style="margin-top:2px;font-size:8px;color:#c07fae;">' + escapeHtml(stream.item.resolution) + '</div>';
-    label.innerHTML = '<div style="margin-bottom:2px;">' + badge + '</div>' + escapeHtml(stream.url) + metaText;
-    // Cute vote buttons.
+    var row = document.createElement('div');
+    row.className = 'uvd-plrow' + (hasMeta ? ' uvd-plrow-meta' : '');
+    // Thumbnail (tone pastel theo loại) + nút ▶
+    var thumb = document.createElement('div');
+    thumb.className = 'uvd-plrow-thumb';
+    thumb.innerHTML = '<span>' + typeEmoji + '</span><button class="uvd-plrow-play" title="Xem">▶</button>';
+    // Body: badge loại + url + metadata (nếu có)
+    var body = document.createElement('div');
+    body.className = 'uvd-plrow-body';
+    var badge = '<span class="uvd-plrow-badge">' + (hasMeta ? '✨ chất lượng' : (stream.type || 'MEDIA')) + '</span>';
+    var resLine = '';
+    if (stream.item && stream.item.resolution) resLine = '<span class="uvd-plrow-res">' + escapeHtml(stream.item.resolution) + '</span>';
+    else if (stream.item && stream.item.qualityCount) resLine = '<span class="uvd-plrow-res">' + stream.item.qualityCount + ' mức chất lượng</span>';
+    body.innerHTML = '<div class="uvd-plrow-head">' + badge + resLine + '</div>' +
+      '<div class="uvd-plrow-url">' + escapeHtml(stream.url) + '</div>';
+    // Vote
     var votes = __uvdVote(stream.url);
     var voteWrap = document.createElement('div');
-    voteWrap.style.cssText = 'display:flex;align-items:center;gap:4px;flex:0 0 auto;';
+    voteWrap.className = 'uvd-plrow-votes';
     var upBtn = document.createElement('button');
     upBtn.textContent = '♥ ' + (votes.up || 0);
     upBtn.title = 'Đáng yêu, link tốt';
-    upBtn.style.cssText = 'border:none;background:#ffe3ec;color:#e84a72;border-radius:10px;padding:5px 7px;font-size:10px;font-weight:800;cursor:pointer;';
+    upBtn.className = 'uvd-plvote up';
     upBtn.onclick = function() { __uvdCastVote(stream.url, 'up'); upBtn.textContent = '♥ ' + (data.userVotes[stream.url] ? (data.userVotes[stream.url].up || 0) : 1); toast('Cảm ơn cưng! Link này đáng yêu quá ♥'); };
     var downBtn = document.createElement('button');
     downBtn.textContent = '💩 ' + (votes.down || 0);
     downBtn.title = 'Rác, link xấu';
-    downBtn.style.cssText = 'border:none;background:#ffe9e9;color:#ff5d72;border-radius:10px;padding:5px 7px;font-size:10px;font-weight:800;cursor:pointer;';
+    downBtn.className = 'uvd-plvote down';
     downBtn.onclick = function() { __uvdCastVote(stream.url, 'down'); downBtn.textContent = '💩 ' + (data.userVotes[stream.url] ? (data.userVotes[stream.url].down || 0) : 1); toast('Cảm ơn cưng! Sẽ loại bỏ link rác 💩'); };
     voteWrap.appendChild(upBtn);
     voteWrap.appendChild(downBtn);
+    // Xem
     var play = document.createElement('button');
-    play.className = 'uvd-btn uvd-btn-sm';
+    play.className = 'uvd-plrow-watch';
     play.textContent = '▶ Xem';
-    play.style.cssText = 'border-radius:12px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:700;';
     play.onclick = function() {
       var url = stream.url, type = stream.type || 'MP4';
       overlay.remove();
       __uvdPopupDismiss();
       setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
     };
-    row.appendChild(label);
+    row.appendChild(thumb);
+    row.appendChild(body);
     row.appendChild(voteWrap);
     row.appendChild(play);
     list.appendChild(row);
@@ -4792,10 +4837,15 @@ function buildStreamCardHTML(item, i) {
         ? '<span class="uvd-ai-badge uvd-ai-junk">rác 💩</span>'
         : '<span class="uvd-ai-badge uvd-ai-unknown">chưa rõ ❔</span>');
     return '<div class="uvd-card uvd-iframe-card uvd-cute" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">🖼️ iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
+      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
       '<div class="uvd-card-stream-meta">mở nó ở tab mới rồi chạy lại UMP để lấy link thật nha 🥺</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-cute-actions">' + voteChips + '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button></div>' +
+      '<div class="uvd-cute-votes">' + voteChips + '</div>' +
+      '<div class="uvd-cute-actions">' +
+        '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
+        '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>' +
+        '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>' +
+      '</div>' +
       '</div>';
   }
   var actionsHtml;
@@ -4825,7 +4875,7 @@ function buildStreamCardHTML(item, i) {
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
         '<div class="uvd-thumb-image"></div>' +
         '<div class="uvd-thumb-sheen"></div>' +
-        '<span class="uvd-thumb-type">' + emoji + ' ' + escapeHtml(item.type) + '</span>' +
+        '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
         actionMenuHtml +
       '</div>' +
@@ -4834,7 +4884,7 @@ function buildStreamCardHTML(item, i) {
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
       '<div class="uvd-card-stream-meta" data-card-stream-meta>' + escapeHtml(item.type) + metaLabel + '</div>' +
-      '<div class="uvd-cute-actions" style="margin-bottom:8px;">' + voteChips + '</div>' +
+      '<div class="uvd-cute-votes">' + voteChips + '</div>' +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
       '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
     '</div>'

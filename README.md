@@ -90,6 +90,32 @@ javascript:(function(){var u=document.createElement('script');u.src='https://ren
 - HF/Render header proxy.
 - Hide mode: icon floating tròn kéo được hoặc thu gọn còn header (commit `7e5297c`).
 
+## AI lọc iframe rác (hybrid) — thêm 2026-08-02
+
+Trang phim thường nhúng nhiều iframe (quảng cáo, popup, tracker) bên cạnh iframe
+player thật. M3U8/MP4 lọc bằng đuôi file thì dễ, nhưng iframe thì không biết
+trước nó chứa gì vì **cross-origin**. Đã bổ sung bộ phân loại hybrid:
+
+**Tầng 1 — heuristic (offline, bật sẵn):** mỗi iframe được chấm điểm và gắn nhãn
+`PLAYER / UNKNOWN / JUNK` dựa trên nhiều tín hiệu yếu gộp lại:
+- Host/path đã biết (streamtape, mixdrop, doodstream, fembed, /e/embed/player...)
+- Danh sách marker rác (doubleclick, popunder, popads, casino, adsterra...)
+- Hình học/ẩn hiện của phần tử (kích thước ≥240×120, tỉ lệ 16:9, hiện thị)
+- **Bằng chứng mạng (quan trọng nhất):** mọi media URL thấy ở trang mẹ (HTML,
+  script, fetch, XHR, resource timing) được nhóm theo host. Nếu host của iframe
+  trùng host đang phục vụ media trên trang đó → gần chắc chắn là player thật.
+
+**Tầng 2 — LLM (hybrid, tuỳ chọn):** nếu dán URL proxy vào Cài đặt → AI lọc
+iframe, UMP gửi danh sách ngắn lên `POST /classify` trên proxy để AI chốt
+verdict cuối. Server đọc key từ env (không nhét vào source):
+- `GEMINI_API_KEY` (ưu tiên) + `GEMINI_MODEL` (mặc định `gemini-2.0-flash`)
+- hoặc `OPENAI_API_KEY` + `AI_BASE_URL` + `AI_MODEL` (mặc định `gpt-4o-mini`)
+Không có key nào/không cấu hình → tự quay về heuristic offline.
+
+**Tác dụng:** thẻ iframe hiển thị badge `PLAYER ✓ / JUNK ✗ / UNKNOWN ?`, thẻ rác
+bị làm mờ, gợi ý mở iframe xếp player thật lên đầu và loại iframe rác — nhưng
+**không tự xóa** iframe nào để tránh mất player hợp lệ.
+
 ## Quyết định giao diện hiện tại
 
 - Ưu tiên Light Teal.

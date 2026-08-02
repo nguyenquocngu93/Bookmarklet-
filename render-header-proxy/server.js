@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, X-Proxy-Key');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Length, Content-Range, Content-Type');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -272,6 +272,126 @@ app.delete('/sync/:profileId', async (req, res) => {
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'umpdl-header-proxy' }));
+
+// ========== HYBRID AI IFRAME CLASSIFIER ==========
+// The bookmarklet never ships an LLM key. Instead it POSTs the shortlist of
+// iframe URLs to POST /classify on this server. The server reads its own env
+// vars. Supported providers (priority order):
+//   1. Google Gemini  -> GEMINI_API_KEY (GEMINI_MODEL default gemini-2.0-flash)
+//   2. OpenAI-compatible -> OPENAI_API_KEY (AI_BASE_URL, AI_MODEL default gpt-4o-mini)
+// If neither key is configured, the server returns { configured:false } and the
+// bookmarklet keeps its local heuristic ranking.
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const AI_BASE_URL = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+const AI_MODEL = process.env.AI_MODEL || 'gpt-4o-mini';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GEMINI_BASE_URL = (process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/+$/, '');
+
+function classifySystemPrompt() {
+  return [
+    'Bạn là bộ phân loại iframe cho tool tải video. Đầu vào là một trang phim phát media qua iframe embed.',
+    'Phân loại TỪNG iframe thành đúng MỘT nhãn: "PLAYER" (khả năng cao là iframe embed player video thật),',
+    '"JUNK" (iframe quảng cáo, popup, tracker, casino/betting, analytics, pixel), hoặc "UNKNOWN".',
+    'Dựa vào host, path, query, tên tham số (e/embed/player/stream/watch) và từ khóa.',
+    'Chỉ trả về JSON thuần, dạng: {"results":[{"url":"...","verdict":"PLAYER|JUNK|UNKNOWN","reason":"ngắn gọn"}]}.'
+  ].join(' ');
+}
+
+function parseResults(content) {
+  const match = String(content || '').match(/\[\s*\{[\s\S]*\}\s*\]/);
+  let results = [];
+  if (match) {
+    try { results = JSON.parse(match[0]); } catch (_) { results = []; }
+  } else {
+    try { results = JSON.parse(content); } catch (_) { results = []; }
+  }
+  return Array.isArray(results) ? results : [];
+}
+
+async function callGemini(userPrompt) {
+  const resp = await fetch(
+    `${GEMINI_BASE_URL}/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: `${classifySystemPrompt()}\n\n${userPrompt}` }] }
+        ],
+        generationConfig: { temperature: 0 }
+      }),
+      signal: AbortSignal.timeout(25000)
+    }
+  );
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    const err = new Error(`Gemini ${resp.status}: ${text.slice(0, 200)}`);
+    err.status = resp.status;
+    throw err;
+  }
+  const data = await resp.json();
+  const content = (data && data.candidates && data.candidates[0] && data.candidates[0].content &&
+    data.candidates[0].content.parts && data.candidates[0].content.parts.map((p) => p.text || '').join('')) || '';
+  return parseResults(content);
+}
+
+async function callOpenAI(userPrompt) {
+  const resp = await fetch(`${AI_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      temperature: 0,
+      messages: [
+        { role: 'system', content: classifySystemPrompt() },
+        { role: 'user', content: userPrompt }
+      ]
+    }),
+    signal: AbortSignal.timeout(25000)
+  });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    const err = new Error(`AI ${resp.status}: ${text.slice(0, 200)}`);
+    err.status = resp.status;
+    throw err;
+  }
+  const data = await resp.json();
+  const content = (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+  return parseResults(content);
+}
+
+app.post('/classify', async (req, res) => {
+  if (!OPENAI_API_KEY && !GEMINI_API_KEY) return res.json({ configured: false, results: null });
+  const body = req.body || {};
+  const candidates = Array.isArray(body.candidates) ? body.candidates.slice(0, 25) : [];
+  if (!candidates.length) return res.json({ configured: true, results: [] });
+  const pageLine = `Trang: ${body.pageHost || ''} "${body.pageTitle || ''}" (${body.pageUrl || ''})`;
+  const listText = candidates.map((c, i) => `${i + 1}. ${c.url} (heuristic score ${c.score}, ${c.verdict || 'UNKNOWN'})`).join('\n');
+  const userPrompt = `${pageLine}\n\nDanh sách iframe:\n${listText}\n\nHãy trả verdict cho từng URL.`;
+
+  try {
+    // Gemini takes priority when configured (user's primary provider).
+    const results = GEMINI_API_KEY ? await callGemini(userPrompt) : await callOpenAI(userPrompt);
+    res.json({ configured: true, provider: GEMINI_API_KEY ? 'gemini' : 'openai', results });
+  } catch (error) {
+    console.error('[classify error]', error.message);
+    // Fall back to the other provider if available.
+    if (GEMINI_API_KEY && OPENAI_API_KEY) {
+      try {
+        const results = await callOpenAI(userPrompt);
+        return res.json({ configured: true, provider: 'openai', results });
+      } catch (e) {
+        console.error('[classify fallback error]', e.message);
+        return res.status(502).json({ configured: true, results: [], error: e.message });
+      }
+    }
+    res.status(502).json({ configured: true, results: [], error: error.message });
+  }
+});
 
 app.get('/userscript.js', (_req, res) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');

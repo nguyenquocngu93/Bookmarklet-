@@ -71,6 +71,13 @@
   var timer = setInterval(scanMedia, 1500);
   scanMedia();
 
+  window.addEventListener('message', function (event) {
+    if (!event.data || event.data.type !== 'umpdl-iframe-bridge-request') return;
+    seen.forEach(function (url) {
+      try { window.top.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: /(?:m3u8|\\/m3u8\\/|hls)/i.test(url) ? 'M3U8' : 'MP4', source: 'userscript-replay', pageUrl: location.href }, '*'); } catch (e) {}
+    });
+    scanMedia();
+  });
   window.top.postMessage({ type: 'umpdl-iframe-bridge-ready', pageUrl: location.href }, '*');
   window.addEventListener('pagehide', function () {
     clearInterval(timer);

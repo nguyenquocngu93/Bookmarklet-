@@ -1645,6 +1645,10 @@ function __uvdInstallIframeBridgeReceiver() {
         if (event.origin !== pageOrigin) return;
       } catch (e) { return; }
     }
+    if (data.type === 'umpdl-iframe-bridge-ready') {
+      try { event.source.postMessage({ type: 'umpdl-iframe-bridge-request' }, event.origin); } catch (e) {}
+      return;
+    }
     if (data.type === 'umpdl-iframe-media-found' && data.url) {
       if (__uvdAddDetectedMediaUrl(data.url, data.mediaType || 'MP4', 'userscript:' + (data.source || 'iframe'))) {
         debouncedBuildUI();

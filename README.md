@@ -218,6 +218,22 @@ Hai file hiện đã được đồng bộ.
     - Scrollbar hồng.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #9 — Sửa trực tiếp CSS gốc (xoá hẳn nền tổng, dính header/tab/body, fix góc vuông) — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** bỏ kiểu "ghi đè" gây lỗi, **sửa trực tiếp các rule CSS gốc**:
+  1. **Xoá hẳn background tổng** app-shell trong CSS gốc (không chỉ ghi đè trong suốt).
+  2. **Header + tab row + body dính nhau** (giảm khoảng cách, bỏ khoảng trống lớn).
+  3. **Fix góc vuông khi cuộn** lên/xuống (body pill bo góc thật, không lòi vuông).
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - Sửa trực tiếp rule gốc `.uvd-app-shell` (transparent, bỏ padding/border/radius tổng),
+    `.uvd-app-shell::after` (ẩn), `.uvd-app-shell #__uvd_header__` (pill hồng, margin dưới 8px),
+    `.uvd-tabbar` (pill hồng, margin dưới 8px), `.uvd-context-bar` (pill tím, margin dưới 8px),
+    `.uvd-tab-indicator` + `.uvd-tab-active` (hồng), `.uvd-body-cute` (bo góc + overflow hidden + mask),
+    `.uvd-app-shell #__uvd_stream_list__` (bo góc + scroll).
+  - Xoá block override "CUTE REDESIGN PATCH 8" (layout cũ gây chồng lấn), chỉ giữ card cute + scrollbar.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

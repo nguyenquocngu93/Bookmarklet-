@@ -3458,17 +3458,17 @@ style.textContent = `
 .uvd-context-cute .uvd-context-kicker{color:#9a6ce0!important;font-weight:800;letter-spacing:.04em;font-size:9px}
 .uvd-context-cute .uvd-context-title{color:#7a4fb0!important;font-weight:800;font-size:14px}
 .uvd-context-cute .uvd-meta-chip{background:rgba(255,255,255,.7)!important;border:1px solid rgba(194,150,255,.3)!important;color:#8a6ab0!important;border-radius:999px!important;font-size:10px!important}
-.uvd-body-cute{background:rgba(255,240,247,.5)!important;border:1px solid rgba(255,159,180,.22)!important;border-radius:26px!important;padding:6px!important;box-shadow:0 4px 14px rgba(247,108,140,.08),0 0 0 1px rgba(255,255,255,.5) inset!important}
+.uvd-body-cute{background:rgba(255,240,247,.55)!important;border:1px solid rgba(255,159,180,.25)!important;border-radius:28px!important;padding:0!important;overflow:hidden!important;-webkit-mask-image:-webkit-radial-gradient(white,black)!important;mask-image:radial-gradient(white,black)!important;box-shadow:0 5px 16px rgba(247,108,140,.1),0 0 0 1px rgba(255,255,255,.55) inset!important}
 .uvd-body-cute #__uvd_stream_list__{padding:8px!important}
 .uvd-tabbar{background:linear-gradient(150deg,#fff0f5,#ffe9f2)!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:999px!important}
 .uvd-tab{color:#d85c7a!important;font-weight:800!important;font-size:11.5px!important;border-radius:999px!important}
 .uvd-tab.uvd-tab-active{background:linear-gradient(135deg,#ffb6c6,#f76c8c)!important;color:#fff!important;box-shadow:0 4px 12px rgba(247,108,140,.3)!important}.uvd-iframe-window-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.uvd-settings-body{overflow-y:auto;padding:14px 16px;flex:1;contain:layout style;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 4px 14px rgba(15,118,110,.07),0 0 0 1px rgba(255,255,255,.5) inset!important;transition:none!important;animation:none!important}.uvd-settings-sheet:not(.uvd-player-sheet) .uvd-settings-body>.uvd-card{content-visibility:auto;contain:layout paint style;contain-intrinsic-size:0 170px}.uvd-settings-sheet:not(.uvd-player-sheet).uvd-scroll-performance{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,253,252,.98)!important}
 .uvd-tab-hidden .uvd-liquid-bg{animation-play-state:paused}
 .uvd-panel-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0}
-.uvd-app-shell{padding:18px 18px 14px!important;border-radius:30px!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
-.uvd-app-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%);z-index:0}
+.uvd-app-shell{padding:0!important;border-radius:0!important;background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible!important}.uvd-app-shell.uvd-panel-collapsed{top:15px!important;bottom:auto!important;height:auto!important;max-height:none!important;padding:10px 14px!important}.uvd-app-shell.uvd-panel-collapsed .uvd-panel-content>*:not(#__uvd_header__){max-height:0!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important;opacity:0!important;overflow:hidden!important;transform:translateY(-18px);pointer-events:none!important;transition:max-height .3s ease,opacity .2s ease,transform .3s ease,margin .3s ease,padding .3s ease}.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;margin:0!important;border-bottom:0!important}
+.uvd-app-shell::after{display:none!important}
 .uvd-app-shell>.uvd-panel-content{z-index:1}
-.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:0;padding:10px 0 16px;margin:0 0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:visible}
+.uvd-app-shell #__uvd_header__{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:10px 12px;margin:0 0 8px;border-bottom:0!important;flex-shrink:0;overflow:visible;background:linear-gradient(150deg,rgba(255,244,248,.95),rgba(255,236,246,.9))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:24px!important;box-shadow:0 5px 16px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto}
 .uvd-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;flex:0 0 52px;border-radius:18px;background:var(--grad-liquid);color:#fff;font-size:23px;box-shadow:0 7px 18px rgba(20,184,166,.28);position:relative;overflow:hidden}.uvd-brand-mark::after{content:'';position:absolute;inset:-30%;background:linear-gradient(120deg,transparent 35%,rgba(255,255,255,.42) 50%,transparent 65%);transform:translateX(-60%) rotate(12deg);animation:uvdLogoShine 4.5s ease-in-out infinite}@keyframes uvdLogoShine{0%,65%{transform:translateX(-70%) rotate(12deg)}85%,100%{transform:translateX(70%) rotate(12deg)}}.uvd-logo-ring{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:2px solid rgba(255,255,255,.78);border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,.13),0 0 14px rgba(255,255,255,.28)}.uvd-logo-ring span{font-size:14px;transform:translateX(1px)}
 .uvd-brand-name{font-size:21px;font-weight:850;line-height:1.05;letter-spacing:-.025em;color:var(--text)}
@@ -3490,7 +3490,7 @@ style.textContent = `
 .uvd-header-actions .uvd-btn-icon:hover{background:linear-gradient(150deg,#ffd6e4,#ffb6c6)!important;color:#fff!important;box-shadow:0 6px 16px rgba(247,108,140,.30)!important}
 .uvd-header-actions .uvd-btn-icon:active{transform:scale(.88)}
 .uvd-header-actions .uvd-close-action{color:#ff5d72!important}
-.uvd-context-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:14px 15px;margin-bottom:14px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(135deg,rgba(20,184,166,.09),rgba(6,182,212,.06));flex-shrink:0}
+.uvd-context-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(194,150,255,.35)!important;border-radius:22px!important;background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;flex-shrink:0;box-shadow:0 5px 16px rgba(150,90,220,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-context-main{min-width:0;display:flex;flex-direction:column;gap:5px}
 .uvd-context-kicker{font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--accent-text);opacity:.8}
 .uvd-context-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;padding:0;background:transparent;color:var(--text);font:700 15px inherit;text-align:left;cursor:pointer}
@@ -3503,11 +3503,11 @@ style.textContent = `
 .uvd-reduce-motion .uvd-glass-panel .uvd-panel-content{color:var(--text)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab{color:var(--text2)}
 .uvd-reduce-motion .uvd-glass-panel .uvd-tab.uvd-tab-active{color:#fff}
-.uvd-tabbar{display:flex;gap:2px;padding:6px 8px;background:rgba(6,182,212,.07);border:1px solid var(--border);border-radius:999px;margin-bottom:10px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
+.uvd-tabbar{display:flex;gap:3px;padding:5px;background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px;margin:0 0 8px;flex-shrink:0;overflow:hidden!important;scrollbar-width:none;position:relative;box-shadow:0 5px 14px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.6) inset!important}
 .uvd-tabbar::-webkit-scrollbar{display:none}
-.uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:var(--grad-liquid);z-index:0;box-shadow:0 3px 12px rgba(20,184,166,.45);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
-.uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:var(--text2);font-weight:600;font-size:var(--fs-sm);padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center}
-.uvd-tab.uvd-tab-active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.uvd-tab-indicator{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);z-index:0;box-shadow:0 3px 10px rgba(247,108,140,.4);transition:transform .4s cubic-bezier(.4,0,.2,1),width .4s cubic-bezier(.4,0,.2,1)}
+.uvd-tab{position:relative;z-index:1;flex:1 1 0%;min-width:max-content;background:transparent;border:none;color:#c95073;font-weight:800;font-size:11.5px;padding:10px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;text-align:center;transition:transform .15s ease}
+.uvd-tab.uvd-tab-active{color:#fff!important;text-shadow:none!important;background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;box-shadow:0 4px 12px rgba(247,108,140,.32)!important}
 .uvd-filter-bar{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;flex-shrink:0}
 .uvd-filter-bar::-webkit-scrollbar{display:none}
 .uvd-filter-btn{flex:0 0 auto;border:1px solid var(--border);border-radius:999px;padding:6px 12px;background:rgba(255,255,255,.24);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer}
@@ -3540,7 +3540,7 @@ style.textContent = `
 .uvd-btn-icon:active{transform:scale(.92)}
 .uvd-card{position:relative;width:100%;max-width:100%;min-width:0;border-radius:var(--radius-md);padding:14px;margin:0 0 10px;font-size:var(--fs-base);animation:uvdCardEnter .28s cubic-bezier(.22,1,.36,1) both;will-change:transform}
 .uvd-app-shell .uvd-scroll{min-width:0;max-width:100%;overflow-x:hidden}
-.uvd-app-shell #__uvd_stream_list__{padding-left:0!important;padding-right:0!important}
+.uvd-app-shell #__uvd_stream_list__{padding:10px!important;border-radius:28px!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:none!important}
 
 .uvd-card:hover{transform:translateY(-3px);border-color:rgba(20,184,166,.38);box-shadow:0 16px 34px rgba(15,118,110,.18),0 0 0 1px rgba(20,184,166,.16) inset,0 1px 0 rgba(255,255,255,.7) inset}
 .uvd-card-preview{position:relative;width:100%;height:140px;margin:0 0 13px;overflow:visible;border-radius:16px;background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(6,182,212,.2));isolation:isolate;transition:height .24s ease,aspect-ratio .24s ease}.uvd-card-preview.uvd-thumb-portrait{height:220px}.uvd-card-preview.uvd-thumb-landscape{height:140px}.uvd-card-preview>.uvd-thumb-image,.uvd-card-preview>.uvd-thumb-sheen{border-radius:inherit}
@@ -3659,7 +3659,7 @@ style.textContent = `
 .uvd-code-copy:active{background:rgba(6,182,212,.22)}
 
 /* ========== NORMAL UI POLISH ========== */
-.uvd-app-shell{background:rgba(255,255,255,.9)!important;border-color:rgba(20,184,166,.16)!important;box-shadow:0 14px 34px rgba(15,118,110,.10),0 0 0 1px rgba(255,255,255,.55) inset!important}
+.uvd-app-shell{background:transparent!important;border:none!important;box-shadow:none!important}
 .uvd-app-shell .uvd-card{background:rgba(255,255,255,.76)!important;border-color:rgba(20,184,166,.16);box-shadow:0 7px 20px rgba(15,118,110,.08),0 0 0 1px rgba(255,255,255,.45) inset}
 .uvd-app-shell .uvd-card:hover{transform:translateY(-2px);box-shadow:0 11px 24px rgba(15,118,110,.13),0 0 0 1px rgba(20,184,166,.12) inset}
 .uvd-app-shell .uvd-tabbar{background:rgba(245,240,250,.82)!important;border-color:rgba(6,182,212,.16)!important}
@@ -3723,22 +3723,7 @@ style.textContent = `
 .uvd-extra-thumb:nth-child(2){animation-delay:.02s}.uvd-extra-thumb:nth-child(3){animation-delay:.04s}.uvd-extra-thumb:nth-child(4){animation-delay:.06s}.uvd-extra-thumb:nth-child(5){animation-delay:.08s}
 .uvd-settings-body>.uvd-card:nth-child(1){animation-delay:0s}.uvd-settings-body>.uvd-card:nth-child(2){animation-delay:.02s}.uvd-settings-body>.uvd-card:nth-child(3){animation-delay:.04s}.uvd-settings-body>.uvd-card:nth-child(4){animation-delay:.06s}.uvd-settings-body>.uvd-card:nth-child(5){animation-delay:.08s}
 @media (prefers-reduced-motion:reduce){.uvd-filter-btn,.uvd-meta-chip,.uvd-block-btn,.uvd-extra-thumb,.uvd-extra-thumb img,.uvd-tag,.uvd-stat,.uvd-history-card,.uvd-history-thumb img,.uvd-context-title::after,.uvd-toggle-switch{transition:none!important}.uvd-type-badge,.uvd-card-status,.uvd-thumb-type,.uvd-meta-chip,.uvd-history-card,.uvd-empty-state,.uvd-empty-state strong,.uvd-extra-thumb{animation:none!important}}
-/* ===== CUTE REDESIGN PATCH 8: bỏ nền tổng, tab mới, fix góc vuông, card popup ===== */
-.uvd-app-shell{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
-.uvd-app-shell::after{display:none!important}
-.uvd-app-shell .uvd-liquid-bg{display:none!important}
-.uvd-panel-content{padding:0 6px!important;gap:12px!important;display:flex;flex-direction:column}
-.uvd-app-shell.uvd-panel-collapsed{background:transparent!important;border:none!important;box-shadow:none!important}
-/* Fix góc vuông khi cuộn trong body pill */
-.uvd-body-cute{overflow:hidden!important;border-radius:28px!important;-webkit-mask-image:-webkit-radial-gradient(white,black)!important;mask-image:radial-gradient(white,black)!important}
-.uvd-body-cute #__uvd_stream_list__{border-radius:28px!important}
-/* Tabbar cute mới */
-.uvd-tabbar{background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px!important;padding:5px!important;gap:4px!important;margin:0!important;box-shadow:0 6px 16px rgba(247,108,140,.16),0 0 0 1px rgba(255,255,255,.6) inset!important;overflow:hidden!important}
-.uvd-tabbar .uvd-tab-indicator{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;box-shadow:0 3px 10px rgba(247,108,140,.4)!important;border-radius:999px!important}
-.uvd-tab{flex:1 1 0%!important;padding:10px 14px!important;border-radius:999px!important;color:#c95073!important;font-weight:800!important;font-size:11.5px!important;background:transparent!important;transition:transform .15s ease!important}
-.uvd-tab:active{transform:scale(.9)!important}
-.uvd-tab.uvd-tab-active{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;color:#fff!important;box-shadow:0 4px 12px rgba(247,108,140,.32)!important;text-shadow:none!important}
-/* Card video redesign theo popup cute */
+/* Card video + scrollbar cute (sửa gốc layout đã xong ở trên) */
 .uvd-card.uvd-cute{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(255,240,247,.88))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:24px!important;padding:14px!important;box-shadow:0 10px 26px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.7) inset!important}
 .uvd-cute .uvd-card-preview{border-radius:18px!important;overflow:hidden!important;background:linear-gradient(135deg,#ffe0ea,#ffd6e4)!important;border:1px solid rgba(255,159,180,.28)!important}
 .uvd-cute .uvd-thumb-play{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:20px;box-shadow:0 6px 16px rgba(247,108,140,.3)!important}
@@ -3747,7 +3732,6 @@ style.textContent = `
 .uvd-cute .uvd-btn{background:rgba(255,214,228,.4)!important;border:1px solid rgba(255,159,180,.3)!important;color:#c95073!important;border-radius:14px!important}
 .uvd-cute .uvd-btn[data-action="play"]{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;border:none!important;color:#fff!important}
 .uvd-cute .uvd-block-btn{background:rgba(255,93,114,.12)!important;border:1px solid rgba(255,93,114,.3)!important}
-/* Scrollbar cute hồng */
 .uvd-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#ff9fb4,#f76c8c)!important;border-radius:999px!important}
 
 

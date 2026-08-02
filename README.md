@@ -582,3 +582,15 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
      ("🚫 Không nên mở — đây là rác") kèm vote/chặn.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #22 — Bỏ hiệu ứng nước chảy + first class/thumbnail popup, popup link đơn giản, popup không bị che, nút iframe header đồng bộ — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Bỏ hiệu ứng "nước chảy"** của tab (xóa mũi nhọn chảy xuống body).
+  2. **Bỏ first class + thumbnail trong popup** → quay lại **link đơn giản** (mỗi link 1 dòng
+     text + nút Xem, link chất lượng cao có nhãn "✨ chất lượng cao").
+  3. **Fix popup bị che**: thêm cờ `__uvdPopupActive` để panel UMP luôn ẩn khi popup đang mở
+     (kể cả khi UI rebuild) → popup luôn nổi trên cùng.
+  4. **Nút iframe trên header**: đổi 🎬 (emoji màu) sang glyph "▣" đơn sắc cho đồng bộ với các
+     nút khác (▶ ◉ ↻ ⚙ ▾ ×).
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+

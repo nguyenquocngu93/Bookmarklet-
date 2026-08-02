@@ -43,10 +43,18 @@
     inject();
   } else {
     var rootNode = page.document.documentElement || page.document;
-    var observer = new MutationObserver(function () {
-      if (hasTarget()) { observer.disconnect(); inject(); }
-    });
+    var activated = false;
+    function maybeInject() {
+      if (activated || !hasTarget()) return;
+      activated = true;
+      try { observer.disconnect(); } catch (e) {}
+      clearInterval(timer);
+      inject();
+    }
+    var observer = new MutationObserver(maybeInject);
+    var timer = setInterval(maybeInject, 500);
     observer.observe(rootNode, { childList: true, subtree: true });
-    setTimeout(function () { try { observer.disconnect(); } catch (e) {} }, 120000);
+    maybeInject();
+    setTimeout(function () { try { observer.disconnect(); } catch (e) {} clearInterval(timer); }, 120000);
   }
 })();

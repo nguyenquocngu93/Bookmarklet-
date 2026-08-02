@@ -14,6 +14,7 @@
 // @match        *://player.upn.one/*
 // @match        *://*.javxxx.me/*
 // @match        *://*.upload18.org/*
+// @match        *://*/*
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
@@ -28,7 +29,9 @@
 
   function send(url, type, source) {
     if (!url || typeof url !== 'string' || /^blob:/i.test(url) || telemetryRe.test(url)) return;
-    if (!/^https?:\/\//i.test(url) || !mediaRe.test(url)) return;
+    if (!/^https?:\/\//i.test(url)) return;
+    var mediaHint = /(?:m3u8|hls|manifest|playlist|master|stream|media|video|segment)/i.test(url);
+    if (!mediaRe.test(url) && !(source === 'performance' && mediaHint)) return;
     try { url = new URL(url, location.href).href; } catch (e) { return; }
     if (seen.has(url)) return;
     seen.add(url);
@@ -74,7 +77,7 @@
   window.addEventListener('message', function (event) {
     if (!event.data || event.data.type !== 'umpdl-iframe-bridge-request') return;
     seen.forEach(function (url) {
-      try { window.top.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: /(?:m3u8|\\/m3u8\\/|hls)/i.test(url) ? 'M3U8' : 'MP4', source: 'userscript-replay', pageUrl: location.href }, '*'); } catch (e) {}
+      try { window.top.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: /(?:m3u8|\/m3u8\/|hls)/i.test(url) ? 'M3U8' : 'MP4', source: 'userscript-replay', pageUrl: location.href }, '*'); } catch (e) {}
     });
     scanMedia();
   });

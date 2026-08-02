@@ -18,6 +18,12 @@ render-header-proxy/bookmarklet.js
 
 Hai file hiện đã được đồng bộ.
 
+> **Cập nhật 2026-08-02:** Đã thử build userscript lại một lần nữa nhưng vẫn
+> không ổn (giới hạn sniff network của JavaScript trong iframe cross-origin,
+> không thể đạt mức như Via Browser ở tầng native WebView). **Chốt hướng chính
+> thức: chỉ phát triển bookmarklet.** Các file userscript chỉ còn là tài liệu
+> tham khảo, không sửa nữa.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:
@@ -40,7 +46,7 @@ Sau đó commit và push branch cố định:
 ```bash
 git add bookmark.js render-header-proxy/bookmarklet.js
 git commit -m "Describe the change"
-git push origin arena/019f7b7f-bookmarklet
+git push origin arena/019fc268-bookmarklet
 ```
 
 Render được cấu hình tự deploy sau commit.
@@ -50,6 +56,19 @@ Loader dùng để chạy bookmarklet:
 ```javascript
 javascript:(function(){var u=document.createElement('script');u.src='https://render-header-proxy.onrender.com/bookmarklet.js?v='+Date.now();document.head.appendChild(u);})();
 ```
+
+## Bản đồ file (trạng thái 2026-08-02)
+
+| File | Vai trò | Còn dùng? |
+|---|---|---|
+| `bookmark.js` | **Nguồn bookmarklet chính** — chỉ sửa file này | ✅ |
+| `render-header-proxy/bookmarklet.js` | Bản deploy lên Render, phải giống hệt `bookmark.js` | ✅ |
+| `render-header-proxy/server.js` | Proxy header/HLS + sync Supabase + phục vụ file JS | ✅ |
+| `hf-space/app.py` | Bản proxy FastAPI cho Hugging Face Space | ✅ |
+| `userscript/*` + `scripts/build-userscript.js` | Userscript sinh từ core cũ | ⚠️ legacy, chỉ tham khảo |
+| `umpdl6736-2_vjs10.js` | Core cũ hơn `bookmark.js`, chỉ dùng làm input build userscript | ⚠️ legacy |
+| `loader.html` | Loader cũ trỏ `cdn.jsdelivr.net/.../umpdl.js` — file `umpdl.js` **không tồn tại** trong repo | ⚠️ legacy, không dùng |
+| `.github/workflows/purge-jsdelivr.yml` | Purge cache jsDelivr khi push `main` | ✅ (nếu dùng jsDelivr) |
 
 ## Đã hoàn thành
 
@@ -69,6 +88,7 @@ javascript:(function(){var u=document.createElement('script');u.src='https://ren
 - Light Teal UI, menu/header/player và tối ưu scroll Settings.
 - Supabase/Render sync profile.
 - HF/Render header proxy.
+- Hide mode: icon floating tròn kéo được hoặc thu gọn còn header (commit `7e5297c`).
 
 ## Quyết định giao diện hiện tại
 
@@ -78,9 +98,15 @@ javascript:(function(){var u=document.createElement('script');u.src='https://ren
 - Menu iframe ưu tiên thao tác thủ công.
 - Popup quảng cáo tiếp tục bị chặn, nhưng không tự xóa iframe để tránh mất player hợp lệ.
 
-## Vấn đề userscript đã tạm gác
+## Vấn đề userscript — chính thức ngừng (2026-08-02)
 
-Đã thử nhiều hướng:
+Đã thử build lại từ core `umpdl6736-2_vjs10.js` (script `build-userscript.js`)
+nhưng kết quả vẫn không đạt: bookmarklet/userscript JavaScript bị giới hạn
+bởi iframe cross-origin và thời điểm inject, không sniff được network như Via
+Browser ở tầng native. **Không sửa/nâng cấp hướng này nữa** — chỉ giữ file để
+tham khảo.
+
+Trước đây đã thử nhiều hướng:
 
 - Iframe bridge bằng `postMessage`.
 - Render standalone player.
@@ -143,10 +169,22 @@ b1ab0fa Reuse original MediaSource video for blob playback
 8c3c3d8 Use lite protection without blocking page media
 c4aca92 Make UMP hide button collapse and expand in place
 2 phiên bản gần nhất: Streamtape/JWPlayer và UPN native controls
+7e5297c Add header and movable floating hide modes
 ```
 
-Branch làm việc cố định:
+Branch làm việc cố định (phiên hiện tại):
 
 ```text
-arena/019f7b7f-bookmarklet
+arena/019fc268-bookmarklet
+```
+
+## Lịch sử branch (2026-08-02)
+
+Mỗi phiên chat trên Arena được gắn một branch `arena/*` riêng. Các branch cũ
+không có commit riêng ngoài điểm xuất phát, nên **không cần merge**:
+
+```text
+arena/019f7b7f-bookmarklet  →  dừng ở 7e5297c (phiên trước)
+arena/019fc268-bookmarklet  →  tạo từ 7e5297c, là phiên hiện tại
+main                        →  425b066 (nhánh chính, có thể cũ hơn)
 ```

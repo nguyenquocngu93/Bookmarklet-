@@ -7,6 +7,7 @@
 // @run-at       document-start
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
+// @grant        GM_addElement
 // @connect      render-header-proxy.onrender.com
 // ==/UserScript==
 // UMP core is shared with bookmarklet.js and injected into the page world so
@@ -22,6 +23,12 @@
     page.__uvdUserscriptCoreInjected = true;
     page.__uvdUserscriptMode = true;
     page.__uvdUserscriptFrameMode = inFrame;
+    try {
+      if (typeof GM_addElement === 'function') {
+        GM_addElement(page.document.documentElement, 'script', { text: text || '' });
+        return;
+      }
+    } catch (e) {}
     var tag = page.document.createElement('script');
     tag.type = 'text/javascript';
     tag.text = text || '';

@@ -474,19 +474,33 @@ function __uvdLearnedVerdict(host) {
 // ========== CUTE USER VOTING ==========
 // Users can upvote (♥ đáng yêu) or downvote (💩 rác) any iframe host or video
 // host. Votes feed the self-learning counters and are synced via Supabase.
-function __uvdVoteKeyFor(host) { return host ? 'h:' + host : ''; }
+// Vote được tính theo DOMAIN (không theo từng URL — link hàng nghìn thì vote theo
+// từng link vô nghĩa). Domain A tốt thì mọi link từ A đều tốt, domain B dởm thì
+// mọi link từ B đều bị đánh thấp. Key vote = domain.
+function __uvdVoteKeyFor(host) { return host ? 'd:' + host : ''; }
+function __uvdVoteDomainKey(url) {
+  if (!url) return '';
+  url = String(url);
+  // Key dạng 'd:host' / 'h:host' -> host.
+  if (url.indexOf('d:') === 0 || url.indexOf('h:') === 0) return url.slice(2);
+  // Đã là hostname trần (không có scheme) -> dùng trực tiếp.
+  if (url.indexOf('://') === -1) return url.toLowerCase().replace(/^www\./, '');
+  return __uvdMediaHostOf(url);
+}
 function __uvdVote(url) {
-  if (!url) return { up: 0, down: 0 };
-  var rec = data.userVotes[url];
+  var host = __uvdVoteDomainKey(url);
+  if (!host) return { up: 0, down: 0 };
+  var rec = data.userVotes['d:' + host];
   return rec ? { up: rec.up || 0, down: rec.down || 0 } : { up: 0, down: 0 };
 }
 function __uvdCastVote(url, kind) {
-  var rec = data.userVotes[url] = data.userVotes[url] || { up: 0, down: 0, updatedAt: 0 };
+  var host = __uvdVoteDomainKey(url);
+  if (!host) return;
+  var key = 'd:' + host;
+  var rec = data.userVotes[key] = data.userVotes[key] || { up: 0, down: 0, updatedAt: 0 };
   if (kind === 'up') rec.up = (rec.up || 0) + 1;
   else if (kind === 'down') rec.down = (rec.down || 0) + 1;
   rec.updatedAt = Date.now();
-  // A voteKey of the form 'h:host' refers to an iframe host (not a real URL).
-  var host = String(url || '').indexOf('h:') === 0 ? String(url).slice(2) : __uvdMediaHostOf(url);
   if (host) __uvdLearnIframe(host, kind === 'up' ? 'PLAYER' : 'JUNK');
   // Feed into video host learning (separate counters).
   if (host) {
@@ -2692,7 +2706,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = '';
-  playerHeaderTitle.innerHTML = '<span class="uvd-player-mascot">🎵</span><div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>UMP DL · dễ thương</span></small></div>';
+  playerHeaderTitle.innerHTML = '<div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>UMP DL · dễ thương</span></small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);
@@ -2747,6 +2761,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   infoPanel.appendChild(titleRow);
   infoPanel.appendChild(infoRow);
   sheetBody.appendChild(infoPanel);
+  // Trang trí phía dưới player
+  var deco = document.createElement('div');
+  deco.className = 'uvd-player-deco';
+  deco.innerHTML = '<span class="uvd-player-deco-icon">🐰</span>' +
+    '<div class="uvd-player-deco-text">Chúc bạn xem phim vui vẻ nha 🍿✨</div>' +
+    '<div class="uvd-player-deco-sub">bấm ⋮ để chọn chất lượng & phụ đề</div>';
+  sheetBody.appendChild(deco);
   sheet.appendChild(sheetBody);
 
   playerState.overlay = overlay;
@@ -3811,6 +3832,21 @@ style.textContent = `
 .uvd-player-overlay .uvd-player-sheet #__uvd_video_wrapper__{background:#fff!important;border-radius:18px!important;border:1px solid rgba(255,159,180,.3)!important;box-shadow:0 14px 34px rgba(247,108,140,.28),inset 0 0 0 1px rgba(255,255,255,.6)!important;overflow:hidden!important}
 .uvd-player-overlay .uvd-player-sheet .uvd-player-info-panel{background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;border-top:1px solid rgba(194,150,255,.25)!important;border-radius:0 0 26px 26px}
 .uvd-player-overlay.uvd-open{background:rgba(28,14,40,.78)!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.uvd-player-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:0;background:rgba(10,6,18,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.uvd-player-overlay .uvd-player-sheet{width:100%;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;border:none!important;background:linear-gradient(160deg,#f8f4ff,#f3ecff,#fff0f8)!important;box-shadow:none!important;overflow:hidden!important;margin:0}
+.uvd-player-overlay .uvd-player-sheet .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important;padding:14px 18px!important;min-height:64px!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-back-btn,.uvd-player-overlay .uvd-player-sheet .uvd-icon-btn{background:#fff!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;border-radius:14px!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-player-title-copy strong{background:linear-gradient(110deg,#e84a72,#f76c8c,#c95cb8)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+.uvd-player-overlay .uvd-player-sheet .uvd-player-type-badge{background:rgba(255,182,198,.25)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important}
+/* Bỏ cục background quanh player: video trải nền luôn */
+.uvd-player-overlay .uvd-player-sheet .uvd-player-video-area{background:linear-gradient(150deg,#fff0f5,#f8e6ff)!important;padding:6px!important}
+.uvd-player-overlay .uvd-player-sheet #__uvd_video_wrapper__{background:transparent!important;border:none!important;box-shadow:none!important;border-radius:0!important}
+/* Trang trí phía dưới */
+.uvd-player-overlay .uvd-player-sheet .uvd-player-info-panel{background:linear-gradient(150deg,#f8f4ff,#f3ecff)!important;border-top:1px solid rgba(194,150,255,.25)!important}
+.uvd-player-deco{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 16px 16px;text-align:center;background:linear-gradient(150deg,#fff0f5,#f8e6ff)}
+.uvd-player-deco-icon{font-size:34px;line-height:1;animation:uvdPulse 2s infinite}
+.uvd-player-deco-text{font-size:13px;font-weight:800;color:#d85c7a}
+.uvd-player-deco-sub{font-size:10px;color:#a0729a}
 `;
 
 
@@ -4186,72 +4222,24 @@ function __uvdOpenMediaLinksPopup(streams) {
       '<button class="uvd-btn uvd-btn-sm" id="__uvd_media_links_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:700;">Để sau</button>' +
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
-  // Sắp: link chất lượng lên đầu (giữ nguyên thứ tự đã sort), link thường đơn giản.
+  __uvdRenderVotes = false;
+  // Link chất lượng dùng đúng card stream (thumbnail + cảnh khác thật); link thường đơn giản.
+  var __plCardFrag = document.createElement('div');
+  var __plIndex = 0;
   streams.slice(0, 8).forEach(function(stream, index) {
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
     if (hasMeta) {
-      // Link chất lượng cao: bê nguyên cục card stream (thumbnail to + cảnh khác + metadata)
-      var card = document.createElement('div');
-      card.className = 'uvd-plcard uvd-cute';
-      var metaLine = '<span class="uvd-plrow-badge">✨ chất lượng</span>';
-      if (stream.item && stream.item.resolution) metaLine += '<span class="uvd-plrow-res">' + escapeHtml(stream.item.resolution) + '</span>';
-      else if (stream.item && stream.item.qualityCount) metaLine += '<span class="uvd-plrow-res">' + stream.item.qualityCount + ' mức</span>';
-      card.innerHTML =
-        '<div class="uvd-plcard-preview" data-thumb-url="' + escapeHtml(stream.url) + '">' +
-          '<div class="uvd-thumb-image"></div>' +
-          '<div class="uvd-thumb-sheen"></div>' +
-          '<span class="uvd-plcard-badge">✨ chất lượng</span>' +
-          '<button class="uvd-plrow-watch" title="Xem">▶</button>' +
-        '</div>' +
-        '<div class="uvd-plcard-head">' + metaLine + '</div>' +
-        '<div class="uvd-plcard-note">link này chất lượng nè, xem ngay đi 🎬</div>' +
-        '<div class="uvd-plcard-url">' + escapeHtml(stream.url) + '</div>';
-      // Xem
-      var playBtn = card.querySelector('.uvd-plrow-watch');
-      playBtn.onclick = function() {
-        var url = stream.url, type = stream.type || 'MP4';
-        overlay.remove(); __uvdPopupDismiss();
-        setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
+      // Dựng lại item đầy đủ cho buildStreamCardHTML
+      var streamItem = {
+        url: stream.url,
+        type: stream.type || 'MP4',
+        resolution: (stream.item && stream.item.resolution) || '',
+        qualityCount: (stream.item && stream.item.qualityCount) || 0,
+        isMaster: !!(stream.item && stream.item.isMaster),
+        aiVerdict: (stream.item && stream.item.aiVerdict) || ''
       };
-      // Thumbnail thật + cảnh khác
-      (function(preview, url, type){
-        var img = preview.querySelector('.uvd-thumb-image');
-        var media = document.createElement('video');
-        media.muted = true; media.defaultMuted = true; media.playsInline = true; media.preload='metadata';
-        media.setAttribute('aria-hidden','true');
-        media.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-        img.appendChild(media);
-        function paint(){
-          try{ var c=document.createElement('canvas'); c.width=200;c.height=112; var x=c.getContext('2d'); x.drawImage(media,0,0,200,112);
-            var im=document.createElement('img'); im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;'; im.src=c.toDataURL('image/jpeg',.6); img.appendChild(im);
-          }catch(e){}
-        }
-        media.addEventListener('loadeddata',paint); media.addEventListener('seeked',paint);
-        setTimeout(function(){ try{media.pause();media.remove();}catch(e){} }, 6000);
-        var isHls = String(type||'').toUpperCase()==='M3U8' || /m3u8/i.test(url);
-        if(isHls && window.Hls && Hls.isSupported()){ var h=new Hls(); h.loadSource(url); h.attachMedia(media); h.on(Hls.Events.MANIFEST_PARSED,function(){try{media.play().catch(function(){});}catch(e){}}); media.addEventListener('timeupdate',function(){ if(media.currentTime>=0.6){ paint(); try{h.destroy();media.pause();}catch(e){} } }); }
-        else { media.src=url; media.addEventListener('loadedmetadata',function(){ try{ media.currentTime=Math.min(0.6,(media.duration||1)/3); }catch(e){} }); }
-        // Cảnh khác strip: seek vài mốc để capture frame thật
-        var strip=document.createElement('div'); strip.className='uvd-plcard-strip'; strip.innerHTML='<span class="uvd-plcard-strip-label">CẢNH KHÁC</span>';
-        preview.parentNode.insertBefore(strip, preview.nextSibling);
-        var times=[12,30,60,90,120].filter(function(t){ return !(media.duration) || t < (media.duration||1); });
-        times.forEach(function(t){
-          var done=false;
-          var cap=function(){
-            if(done) return; done=true;
-            try{ var c=document.createElement('canvas'); c.width=140;c.height=88; var x=c.getContext('2d'); x.drawImage(media,0,0,140,88);
-              var e=document.createElement('button'); e.type='button'; e.className='uvd-plcard-ext'; e.title='Xem từ '+Math.round(t)+'s';
-              e.innerHTML='<img alt="" src="'+c.toDataURL('image/jpeg',.6)+'"><span>'+Math.round(t)+'s</span>';
-              e.onclick=function(){ playBtn.click(); };
-              strip.appendChild(e);
-            }catch(err){}
-          };
-          media.addEventListener('seeked', cap, {once:true});
-          try{ media.currentTime=Math.min(t,(media.duration||1)-0.5); }catch(e){ cap(); }
-          setTimeout(cap, 2500);
-        });
-      })(card.querySelector('.uvd-plcard-preview'), stream.url, stream.type);
-      list.appendChild(card);
+      __plCardFrag.innerHTML += buildStreamCardHTML(streamItem, __plIndex);
+      __plIndex++;
     } else {
       // Link thường: chỉ hiện URL đơn giản
       var row = document.createElement('div');
@@ -4271,6 +4259,23 @@ function __uvdOpenMediaLinksPopup(streams) {
       row.appendChild(play);
       list.appendChild(row);
     }
+  });
+  // Chèn card stream đã dựng + hydrate thumbnail thật (gồm cả 'cảnh khác')
+  while (__plCardFrag.firstChild) {
+    var c = __plCardFrag.firstChild;
+    list.appendChild(c);
+  }
+  hydrateVideoThumbnails(list);
+  // Xử lý nút play trong card stream dựng lại
+  list.querySelectorAll('.uvd-card[data-url]').forEach(function(card) {
+    var cardUrl = card.getAttribute('data-url');
+    card.querySelectorAll('[data-action="play"]').forEach(function(btn) {
+      btn.onclick = function() {
+        var url = cardUrl, type = card.getAttribute('data-type') || 'MP4';
+        overlay.remove(); __uvdPopupDismiss();
+        setTimeout(function() { try { window.__uvd_showPlayer(url, type); } catch(e) {} }, 60);
+      };
+    });
   });
   function closeMedia() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
@@ -4901,9 +4906,11 @@ function __uvdTypeEmoji(type) {
 }
 function __uvdVoteChips(url) {
   var v = __uvdVote(url);
-  return '<span class="uvd-votechip uvd-votechip-up" data-vote-up="' + encodeURIComponent(url) + '">♥ ' + (v.up || 0) + '</span>' +
-         '<span class="uvd-votechip uvd-votechip-down" data-vote-down="' + encodeURIComponent(url) + '">💩 ' + (v.down || 0) + '</span>';
+  var host = __uvdVoteDomainKey(url);
+  return '<span class="uvd-votechip uvd-votechip-up" data-vote-up="' + encodeURIComponent(host) + '">♥ ' + (v.up || 0) + '</span>' +
+         '<span class="uvd-votechip uvd-votechip-down" data-vote-down="' + encodeURIComponent(host) + '">💩 ' + (v.down || 0) + '</span>';
 }
+var __uvdRenderVotes = true;
 function buildStreamCardHTML(item, i) {
   var type = String(item.type || '').toUpperCase();
   var emoji = __uvdTypeEmoji(type);
@@ -4918,7 +4925,7 @@ function buildStreamCardHTML(item, i) {
       '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
       '<div class="uvd-card-stream-meta">mở nó ở tab mới rồi chạy lại UMP để lấy link thật nha 🥺</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-cute-votes">' + voteChips + '</div>' +
+      (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
       '<div class="uvd-cute-actions">' +
         '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
         '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>' +
@@ -4962,7 +4969,7 @@ function buildStreamCardHTML(item, i) {
         '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
       '</div>' +
       '<div class="uvd-card-stream-meta" data-card-stream-meta>' + escapeHtml(item.type) + metaLabel + '</div>' +
-      '<div class="uvd-cute-votes">' + voteChips + '</div>' +
+      (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
       '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
       '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
     '</div>'
@@ -5285,7 +5292,7 @@ function renderStreams(container, arr) {
     if (voteUp) {
       var vUrl = decodeURIComponent(voteUp.getAttribute('data-vote-up'));
       __uvdCastVote(vUrl, 'up');
-      toast('Cảm ơn cưng! Link này đáng yêu quá ♥');
+      toast('Cảm ơn cưng! Đã yêu thích domain ' + vUrl + ' ♥');
       debouncedBuildUI();
       return;
     }
@@ -5293,7 +5300,7 @@ function renderStreams(container, arr) {
     if (voteDown) {
       var vdUrl = decodeURIComponent(voteDown.getAttribute('data-vote-down'));
       __uvdCastVote(vdUrl, 'down');
-      toast('Cảm ơn cưng! Sẽ loại bỏ link rác 💩');
+      toast('Cảm ơn cưng! Đã đánh dấu rác domain ' + vdUrl + ' 💩');
       debouncedBuildUI();
       return;
     }

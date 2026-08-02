@@ -3896,14 +3896,16 @@ function __uvdShowRestoreBtn() {
 function __uvdSetHidden(hidden) {
   __uvdScriptHidden = hidden;
   var panel = document.getElementById('__uvd__');
+  var hideMode = data.settings.hideMode === 'header' ? 'header' : 'floating';
   if (panel) {
-    // Ẩn = thu hết body cuộn lên, chỉ còn lại header (không ẩn hẳn, không nút đáy).
-    panel.style.display = '';
-    panel.classList.toggle('uvd-panel-collapsed', hidden);
+    panel.style.display = hidden && hideMode === 'floating' ? 'none' : '';
+    panel.classList.toggle('uvd-panel-collapsed', hidden && hideMode === 'header');
   }
-  __uvdRemoveRestoreBtn();
   if (hidden) {
     __uvdStartHardEmbedBlocker();
+    // Kiểu floating: hiện nút nổi kéo đi được để mở lại panel.
+    if (hideMode === 'floating') __uvdShowRestoreBtn();
+    else __uvdRemoveRestoreBtn();
     // Resume only media that UMP itself paused during its initial scan.
     try {
       document.querySelectorAll('video,audio').forEach(function(media) {
@@ -3914,7 +3916,7 @@ function __uvdSetHidden(hidden) {
         }
       });
     } catch(e) {}
-  }
+  } else __uvdRemoveRestoreBtn();
 }
 // ========== POPUP OVERLAY: HIDE UI + REOPEN BUTTON ==========
 // When a popup (media links or iframe) is shown, hide the main UMP panel so the
@@ -3958,8 +3960,6 @@ function __uvdRestoreUiAfterPopup() {
 }
 function __uvdPopupDismiss() {
   __uvdRestoreUiAfterPopup();
-  // Keep a cute floating button to recall the popup.
-  setTimeout(function() { __uvdShowPopupReopenBtn(__uvdPopupReopenKind || 'media'); }, 200);
 }
 
 // ========== FIX LAYER ==========
@@ -4074,7 +4074,7 @@ function __uvdHasOnlyIframeOrDemo() {
   var frames = __uvdCollectWorkflowFrames();
   if (!frames.length) return false;
   var direct = [...urls.entries()].filter(function(entry) {
-    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
+    return ['M3U8','MP4','MPD','WEBM','TS'].indexOf(entry[1].type) !== -1;
   });
   if (!direct.length) return true;
   var videos = [];
@@ -4280,7 +4280,6 @@ function __uvdOpenMediaLinksPopup(streams) {
   if (old) old.remove();
   // Hide the UMP panel so this popup is never covered by the UI.
   __uvdHideUiForPopup();
-  __uvdShowPopupReopenBtn('media');
   var overlay = document.createElement('div');
   overlay.id = '__uvd_media_links_prompt__';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
@@ -4345,7 +4344,8 @@ function __uvdOpenMediaLinksPopup(streams) {
 }
 function __uvdHasRealDirectStreams() {
   var direct = [...urls.entries()].filter(function(entry) {
-    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
+    // Blob (MediaSource) không tính là link video để mở popup.
+    return ['M3U8','MP4','MPD','WEBM','TS'].indexOf(entry[1].type) !== -1;
   });
   return direct;
 }
@@ -4382,7 +4382,6 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   if (old) old.remove();
   // Hide the UMP panel so this popup is never covered by the UI.
   __uvdHideUiForPopup();
-  __uvdShowPopupReopenBtn('iframe');
   var overlay = document.createElement('div');
   overlay.id = '__uvd_iframe_workflow_prompt__';
   // Dim the whole page behind so the cute notice stands out.
@@ -4451,7 +4450,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
 }
 function __uvdHasRealVideoCandidate() {
   var direct = [...urls.entries()].filter(function(entry) {
-    return ['M3U8','MP4','MPD','WEBM','BLOB','TS'].indexOf(entry[1].type) !== -1;
+    return ['M3U8','MP4','MPD','WEBM','TS'].indexOf(entry[1].type) !== -1;
   });
   if (direct.some(function(entry) { return entry[1].demo === false; })) return true;
   try {
@@ -4762,7 +4761,7 @@ function buildUI() {
   __uvdIsolateLayer(panel);
   applyEffectsPref(panel);
   applyMotionPref(panel);
-  if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdRemoveRestoreBtn(); }
+  if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdShowRestoreBtn(); }
   else { __uvdRemoveRestoreBtn(); }
 
   panel.querySelectorAll('.uvd-btn, .uvd-btn-icon, .uvd-tab').forEach(function(btn) {
@@ -4852,7 +4851,15 @@ function buildUI() {
   var seqBtn = document.getElementById('__uvd_seq_autoplay__');
   seqBtn.textContent = '↻';
   seqBtn.title = 'Reload và quét lại nguồn video';
-  seqBtn.onclick = function() { __uvdRefreshCapture(); };
+  seqBtn.onclick = function() {
+    __uvdRefreshCapture();
+    // Gắn "gọi lại popup" vào nút reload: quét lại xong là popup hiện lên.
+    setTimeout(function() {
+      if (playerState.overlay) return;
+      if (__uvdHasOnlyIframeOrDemo()) __uvdMaybeOfferIframeWorkflow(true);
+      else __uvdMaybeOfferMediaPopup(true);
+    }, 2600);
+  };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
 
   document.getElementById('__uvd_title__').onclick = function() {

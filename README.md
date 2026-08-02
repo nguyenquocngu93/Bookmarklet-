@@ -197,6 +197,27 @@ Hai file hiện đã được đồng bộ.
   - CSS khối "CUTE LAYOUT": header pill, context cute, body cute, tabbar/tab cute.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #8 — Bỏ nền tổng, redesign tabbar, fix góc vuông khi cuộn, card popup cute — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** hoàn thiện phần CSS của đợt "làm lại UI cute":
+  1. **Xoá background tổng cũ** của app-shell (vì header/context/body đã là các cục
+     pill riêng) → nền panel trong suốt, chỉ còn các cục bo tròn nổi.
+  2. **Redesign cụm nút tab & chuyển tab**: tabbar nền hồng gradient, tab active
+     hồng đậm có bóng, hover/ấn scale nhẹ.
+  3. **Fix bug góc bị vuông khi cuộn**: dùng `overflow:hidden` + `mask-image`
+     radial để bo góc body pill khi cuộn xuống.
+  4. **Card video redesign theo hướng popup cute**: nền pastel, preview bo tròn,
+     nút ▶ tròn hồng, badge/url-box/button đều hồng, scrollbar hồng.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - CSS khối "CUTE REDESIGN PATCH 8" ở cuối style:
+    - `.uvd-app-shell` → `background:transparent`, bỏ border/shadow/padding, bỏ `::after`/liquid-bg.
+    - `.uvd-body-cute` → `overflow:hidden` + `mask-image` fix góc vuông.
+    - `.uvd-tabbar` / `.uvd-tab` / `.uvd-tab-active` / `.uvd-tab-indicator` mới.
+    - `.uvd-card.uvd-cute`, `.uvd-thumb-play`, `.uvd-url-box`, `.uvd-btn` theo tông hồng.
+    - Scrollbar hồng.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 Chỉnh sửa:

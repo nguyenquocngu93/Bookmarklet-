@@ -3723,6 +3723,33 @@ style.textContent = `
 .uvd-extra-thumb:nth-child(2){animation-delay:.02s}.uvd-extra-thumb:nth-child(3){animation-delay:.04s}.uvd-extra-thumb:nth-child(4){animation-delay:.06s}.uvd-extra-thumb:nth-child(5){animation-delay:.08s}
 .uvd-settings-body>.uvd-card:nth-child(1){animation-delay:0s}.uvd-settings-body>.uvd-card:nth-child(2){animation-delay:.02s}.uvd-settings-body>.uvd-card:nth-child(3){animation-delay:.04s}.uvd-settings-body>.uvd-card:nth-child(4){animation-delay:.06s}.uvd-settings-body>.uvd-card:nth-child(5){animation-delay:.08s}
 @media (prefers-reduced-motion:reduce){.uvd-filter-btn,.uvd-meta-chip,.uvd-block-btn,.uvd-extra-thumb,.uvd-extra-thumb img,.uvd-tag,.uvd-stat,.uvd-history-card,.uvd-history-thumb img,.uvd-context-title::after,.uvd-toggle-switch{transition:none!important}.uvd-type-badge,.uvd-card-status,.uvd-thumb-type,.uvd-meta-chip,.uvd-history-card,.uvd-empty-state,.uvd-empty-state strong,.uvd-extra-thumb{animation:none!important}}
+/* ===== CUTE REDESIGN PATCH 8: bỏ nền tổng, tab mới, fix góc vuông, card popup ===== */
+.uvd-app-shell{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
+.uvd-app-shell::after{display:none!important}
+.uvd-app-shell .uvd-liquid-bg{display:none!important}
+.uvd-panel-content{padding:0 6px!important;gap:12px!important;display:flex;flex-direction:column}
+.uvd-app-shell.uvd-panel-collapsed{background:transparent!important;border:none!important;box-shadow:none!important}
+/* Fix góc vuông khi cuộn trong body pill */
+.uvd-body-cute{overflow:hidden!important;border-radius:28px!important;-webkit-mask-image:-webkit-radial-gradient(white,black)!important;mask-image:radial-gradient(white,black)!important}
+.uvd-body-cute #__uvd_stream_list__{border-radius:28px!important}
+/* Tabbar cute mới */
+.uvd-tabbar{background:linear-gradient(150deg,#ffe3ec,#ffd6e4)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:999px!important;padding:5px!important;gap:4px!important;margin:0!important;box-shadow:0 6px 16px rgba(247,108,140,.16),0 0 0 1px rgba(255,255,255,.6) inset!important;overflow:hidden!important}
+.uvd-tabbar .uvd-tab-indicator{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;box-shadow:0 3px 10px rgba(247,108,140,.4)!important;border-radius:999px!important}
+.uvd-tab{flex:1 1 0%!important;padding:10px 14px!important;border-radius:999px!important;color:#c95073!important;font-weight:800!important;font-size:11.5px!important;background:transparent!important;transition:transform .15s ease!important}
+.uvd-tab:active{transform:scale(.9)!important}
+.uvd-tab.uvd-tab-active{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;color:#fff!important;box-shadow:0 4px 12px rgba(247,108,140,.32)!important;text-shadow:none!important}
+/* Card video redesign theo popup cute */
+.uvd-card.uvd-cute{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(255,240,247,.88))!important;border:1px solid rgba(255,159,180,.32)!important;border-radius:24px!important;padding:14px!important;box-shadow:0 10px 26px rgba(247,108,140,.14),0 0 0 1px rgba(255,255,255,.7) inset!important}
+.uvd-cute .uvd-card-preview{border-radius:18px!important;overflow:hidden!important;background:linear-gradient(135deg,#ffe0ea,#ffd6e4)!important;border:1px solid rgba(255,159,180,.28)!important}
+.uvd-cute .uvd-thumb-play{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92)!important;border:2px solid rgba(255,159,180,.6)!important;color:#e84a72!important;font-size:20px;box-shadow:0 6px 16px rgba(247,108,140,.3)!important}
+.uvd-cute .uvd-thumb-type{background:rgba(255,255,255,.7)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important;border-radius:999px!important}
+.uvd-cute .uvd-url-box{background:rgba(255,214,228,.28)!important;border:1px solid rgba(255,159,180,.28)!important;color:#c95073!important;border-radius:14px!important}
+.uvd-cute .uvd-btn{background:rgba(255,214,228,.4)!important;border:1px solid rgba(255,159,180,.3)!important;color:#c95073!important;border-radius:14px!important}
+.uvd-cute .uvd-btn[data-action="play"]{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;border:none!important;color:#fff!important}
+.uvd-cute .uvd-block-btn{background:rgba(255,93,114,.12)!important;border:1px solid rgba(255,93,114,.3)!important}
+/* Scrollbar cute hồng */
+.uvd-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#ff9fb4,#f76c8c)!important;border-radius:999px!important}
+
 
 `;
 document.head.appendChild(style);

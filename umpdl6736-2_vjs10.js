@@ -1676,9 +1676,6 @@ function __uvdInstallIframeBridgeReceiver() {
 // ========== INIT ==========
 try {
   __uvdInstallIframeBridgeReceiver();
-  if (__uvdUserscriptOpenerMode) {
-    try { window.opener.postMessage({ type: 'umpdl-iframe-bridge-ready', pageUrl: location.href }, '*'); } catch(e) {}
-  }
   setTimeout(__uvdRequestIframeBridgeReplay, 100);
   setTimeout(__uvdRequestIframeBridgeReplay, 1200);
   window.__uvdBootPhase = 'scan';
@@ -4136,7 +4133,7 @@ function buildStreamCardHTML(item, i) {
       '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">IFRAME EMBED</span><strong>Chưa phải direct media</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
       '<div class="uvd-card-stream-meta">Iframe được giữ riêng để tránh tạo thumbnail giả. Mở nó ở cửa sổ mới rồi chạy UMP trong iframe để bắt link thật.</div>' +
       '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
-      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="opener" title="Mở iframe; userscript sẽ tự gửi media về UMP nếu trình duyệt giữ opener">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
+      '<div class="uvd-iframe-actions"><a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ Mở cửa sổ mới</a><button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">Copy UMP</button><button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">Sao chép</button></div>' +
       '</div>';
   }
   var actionsHtml;

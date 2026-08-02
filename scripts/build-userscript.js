@@ -33,12 +33,13 @@ const wrapper = `(function () {
     var code = decodeCore();
     try {
       if (typeof GM_addElement === 'function') {
-        GM_addElement(page.document.documentElement, 'script', { text: code });
+        var gmTag = GM_addElement(page.document.documentElement || page.document, 'script');
+        gmTag.textContent = code;
         return;
       }
     } catch (e) {}
     var tag = page.document.createElement('script');
-    tag.text = code;
+    tag.textContent = code;
     (page.document.head || page.document.documentElement).appendChild(tag);
     tag.remove();
   }

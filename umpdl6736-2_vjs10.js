@@ -8,9 +8,9 @@
 (function() {
 'use strict';
 
-var __uvdUserscriptMode = window.__uvdUserscriptMode === true;
-var __uvdUserscriptOpenerMode = __uvdUserscriptMode && !!window.opener && window.opener !== window;
-var __uvdUserscriptFrameMode = (__uvdUserscriptMode && window.top !== window.self) || __uvdUserscriptOpenerMode;
+var __uvdLoadedFromBookmarkletScript = !!(document.currentScript && document.currentScript.src && /bookmarklet\.js/i.test(document.currentScript.src));
+var __uvdUserscriptMode = window.__uvdUserscriptMode === true && !__uvdLoadedFromBookmarkletScript;
+var __uvdUserscriptFrameMode = __uvdUserscriptMode && window.top !== window.self;
 var __uvdBooting = true;
 window.__uvdBootPhase = 'start';
 function __uvdReportBootError(reason) {
@@ -445,8 +445,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
     urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
     if (__uvdUserscriptFrameMode) {
       try {
-        var receiver = __uvdUserscriptOpenerMode ? window.opener : window.top;
-        receiver.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: type, source: source || 'userscript-core', pageUrl: location.href }, '*');
+        window.top.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: type, source: source || 'userscript-core', pageUrl: location.href }, '*');
       } catch(e) {}
     }
     return true;
@@ -3836,7 +3835,6 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_import_media__" title="Nhập link M3U8/MP4 từ Via Browser">⇩</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng UMP DL">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
@@ -4018,7 +4016,6 @@ function buildUI() {
   seqBtn.textContent = '↻';
   seqBtn.title = 'Reload và quét lại nguồn video';
   seqBtn.onclick = function() { __uvdRefreshCapture(); };
-  document.getElementById('__uvd_import_media__').onclick = __uvdImportExternalMediaLink;
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
 
   document.getElementById('__uvd_title__').onclick = function() {
@@ -4128,21 +4125,6 @@ function __uvdDescribeHlsLevels(card, levels, media) {
     resolution: top.width && top.height ? (top.width + '×' + top.height + ' (' + __uvdResolutionLabel(top.width, top.height) + ')') : ''
   });
   __uvdSetCardStatus(card, labels.length > 1 ? 'MASTER · ' + labels.length + ' QUALITY' : 'PREVIEW…', labels.length > 1 ? 'uvd-status-ok' : 'uvd-status-loading');
-}
-
-function __uvdImportExternalMediaLink() {
-  var raw = prompt('Dán link M3U8/MP4 từ Via Browser:', '');
-  if (!raw) return;
-  var url = raw.trim().replace(/&amp;/g, '&');
-  try { url = new URL(url, location.href).href; } catch(e) { toast('Link không hợp lệ', 'var(--danger)'); return; }
-  var type = /(?:\.m3u8(?:[?#]|$)|\/m3u8\/|hls|playlist|master)/i.test(url) ? 'M3U8' : (/\.mp4(?:[?#]|$)/i.test(url) ? 'MP4' : 'M3U8');
-  if (__uvdAddDetectedMediaUrl(url, type, 'via:manual-import')) {
-    addToHistory(url, type);
-    debouncedBuildUI();
-    toast('Đã nhập ' + type + ' từ Via Browser');
-  } else {
-    toast('Link đã có hoặc không phải nguồn media', 'var(--danger)');
-  }
 }
 
 // ========== RENDER STREAMS ==========

@@ -1996,7 +1996,7 @@ function copy(text) {
 function toast(msg, color) {
   var el = document.createElement('div');
   el.textContent = msg;
-  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:' + (color || '#2dd4bf') + ';color:#fff;padding:12px 24px;border-radius:30px;z-index:2147483647;font:600 13px Segoe UI;box-shadow:0 4px 15px rgba(0,0,0,0.4);animation:uvdSlideIn 0.3s cubic-bezier(.22,1,.36,1) both;transition:opacity .22s ease,transform .22s ease;';
+  el.style.cssText = 'position:fixed;top:22px;left:50%;transform:translateX(-50%);background:' + (color || 'linear-gradient(135deg,#ff9fb4,#f76c8c)') + ';color:#fff;padding:12px 22px;border-radius:999px;z-index:2147483647;font:700 13px Segoe UI;box-shadow:0 6px 20px rgba(247,108,140,.4),inset 0 1px 0 rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.5);animation:uvdSlideIn 0.3s cubic-bezier(.22,1,.36,1) both;transition:opacity .22s ease,transform .22s ease;';
   __uvdAppendRoot(el);
   setTimeout(function() {
     el.style.opacity = '0';
@@ -2692,7 +2692,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = '';
-  playerHeaderTitle.innerHTML = '<span class="uvd-player-live-dot"></span><div class="uvd-player-title-copy"><strong>Đang phát video</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>UMP DL Player</span></small></div>';
+  playerHeaderTitle.innerHTML = '<span class="uvd-player-mascot">🎵</span><div class="uvd-player-title-copy"><strong>Đang phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>UMP DL · dễ thương</span></small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);
@@ -3743,7 +3743,7 @@ style.textContent = `
 
 
 
-.uvd-cute-votes{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px}
+.uvd-cute-votes{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}
 .uvd-thumb-menu>summary,.uvd-thumb-menu[open]>summary{width:34px!important;height:34px!important;min-height:34px!important;border-radius:12px!important;background:rgba(255,255,255,.85)!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;font-size:20px!important;letter-spacing:0!important;line-height:34px!important;box-shadow:0 4px 12px rgba(247,108,140,.2),inset 0 1px 0 rgba(255,255,255,.9)!important}
 .uvd-thumb-menu>summary:hover{background:#fff!important;border-color:rgba(247,108,140,.6)!important;box-shadow:0 6px 16px rgba(247,108,140,.28)!important}
 .uvd-thumb-menu .uvd-action-list{top:42px!important;right:0!important;width:auto!important;min-width:170px!important;display:flex!important;flex-direction:column!important;gap:0!important;padding:6px!important;background:linear-gradient(160deg,#fff6fa,#fff0f5)!important;border:1px solid rgba(255,159,180,.4)!important;border-radius:16px!important;box-shadow:0 12px 30px rgba(247,108,140,.28)!important;grid-template-columns:none!important}
@@ -3779,6 +3779,9 @@ style.textContent = `
 .uvd-plvote.up{background:#ffe3ec;color:#e84a72;border-color:rgba(232,74,114,.25)}
 .uvd-plvote.down{background:#ffe9e9;color:#ff5d72;border-color:rgba(255,93,114,.25)}
 .uvd-plrow-watch{flex:0 0 auto;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-size:10px;font-weight:800;border-radius:12px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.3)}
+.uvd-thumb-menu>summary,.uvd-thumb-menu[open]>summary{display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;min-height:34px!important;padding:0!important;border-radius:12px!important;background:linear-gradient(150deg,#fff,#fff0f5)!important;border:1px solid rgba(255,159,180,.4)!important;color:#d85c7a!important;font-size:20px!important;line-height:34px!important;box-shadow:0 4px 12px rgba(247,108,140,.2),inset 0 1px 0 rgba(255,255,255,.9)!important;overflow:hidden!important}
+.uvd-thumb-menu>summary:hover,.uvd-thumb-menu[open]>summary{background:#fff!important;border-color:rgba(247,108,140,.6)!important;box-shadow:0 6px 16px rgba(247,108,140,.3)!important}
+.uvd-player-mascot{width:40px;height:40px;flex:0 0 40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(150deg,#ffe0ea,#ffd6e4);border:1px solid rgba(255,159,180,.4);box-shadow:0 4px 12px rgba(247,108,140,.25)}
 `;
 
 
@@ -3847,12 +3850,14 @@ function __uvdSetHidden(hidden) {
 // popup is never covered. Show a floating cute button to recall the popup and a
 // restore button to bring the panel back.
 var __uvdPopupReopenBtn = null;
+var __uvdPopupReopenKind = 'media';
 function __uvdRemovePopupReopenBtn() {
   var old = document.getElementById('__uvd_popup_reopen__');
   if (old) old.remove();
   __uvdPopupReopenBtn = null;
 }
 function __uvdShowPopupReopenBtn(kind) {
+  __uvdPopupReopenKind = kind;
   __uvdRemovePopupReopenBtn();
   var b = document.createElement('button');
   b.id = '__uvd_popup_reopen__';
@@ -3882,6 +3887,8 @@ function __uvdRestoreUiAfterPopup() {
 }
 function __uvdPopupDismiss() {
   __uvdRestoreUiAfterPopup();
+  // Keep a cute floating button to recall the popup.
+  setTimeout(function() { __uvdShowPopupReopenBtn(__uvdPopupReopenKind || 'media'); }, 200);
 }
 
 // ========== FIX LAYER ==========
@@ -4084,6 +4091,44 @@ var __uvdMediaCuteArt =
 
 var __uvdMediaPopupShown = false;
 var __uvdMediaPopupDismissedAt = 0;
+// Load a real video thumbnail (muted, capture first frame) for quality links.
+function __uvdPopupThumb(thumbEl, url, type) {
+  if (!thumbEl || !url) return;
+  var media = document.createElement('video');
+  media.muted = true; media.defaultMuted = true; media.playsInline = true;
+  media.preload = 'metadata'; media.crossOrigin = 'anonymous';
+  media.setAttribute('aria-hidden', 'true');
+  media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;';
+  thumbEl.appendChild(media);
+  function paint() {
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 68;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(media, 0, 0, 120, 68);
+      thumbEl.querySelector('.uvd-plrow-thumbimg') && thumbEl.querySelector('.uvd-plrow-thumbimg').remove();
+      var im = document.createElement('img');
+      im.className = 'uvd-plrow-thumbimg';
+      im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;';
+      im.src = canvas.toDataURL('image/jpeg', .6);
+      thumbEl.appendChild(im);
+    } catch(e) {}
+  }
+  media.addEventListener('loadeddata', paint);
+  media.addEventListener('seeked', paint);
+  var done = false;
+  function timeout(){ if(!done){ done=true; try{ media.remove(); }catch(e){} } }
+  setTimeout(timeout, 6000);
+  var isHls = String(type||'').toUpperCase()==='M3U8' || /m3u8/i.test(url);
+  if (isHls && window.Hls && Hls.isSupported()) {
+    var hls = new Hls(); hls.loadSource(url); hls.attachMedia(media);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){ try{ media.play().catch(function(){}); }catch(e){} });
+    media.addEventListener('timeupdate', function(){ if(media.currentTime>=0.5){ paint(); hls.destroy(); try{media.pause();}catch(e){} } });
+  } else {
+    media.src = url;
+    media.addEventListener('loadedmetadata', function(){ try{ media.currentTime = Math.min(0.5, (media.duration||1)/3); }catch(e){} });
+  }
+}
 function __uvdOpenMediaLinksPopup(streams) {
   var old = document.getElementById('__uvd_media_links_prompt__');
   if (old) old.remove();
@@ -4117,10 +4162,15 @@ function __uvdOpenMediaLinksPopup(streams) {
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
     var row = document.createElement('div');
     row.className = 'uvd-plrow' + (hasMeta ? ' uvd-plrow-meta' : '');
-    // Thumbnail (tone pastel theo loại) + nút ▶
+    // Thumbnail: link chất lượng -> thumbnail thật; link thường -> chỉ emoji loại
     var thumb = document.createElement('div');
     thumb.className = 'uvd-plrow-thumb';
-    thumb.innerHTML = '<span>' + typeEmoji + '</span><button class="uvd-plrow-play" title="Xem">▶</button>';
+    if (hasMeta) {
+      thumb.innerHTML = '<button class="uvd-plrow-play" title="Xem">▶</button>';
+      __uvdPopupThumb(thumb, stream.url, stream.type);
+    } else {
+      thumb.innerHTML = '<span>' + typeEmoji + '</span>';
+    }
     // Body: badge loại + url + metadata (nếu có)
     var body = document.createElement('div');
     body.className = 'uvd-plrow-body';
@@ -4130,22 +4180,6 @@ function __uvdOpenMediaLinksPopup(streams) {
     else if (stream.item && stream.item.qualityCount) resLine = '<span class="uvd-plrow-res">' + stream.item.qualityCount + ' mức chất lượng</span>';
     body.innerHTML = '<div class="uvd-plrow-head">' + badge + resLine + '</div>' +
       '<div class="uvd-plrow-url">' + escapeHtml(stream.url) + '</div>';
-    // Vote
-    var votes = __uvdVote(stream.url);
-    var voteWrap = document.createElement('div');
-    voteWrap.className = 'uvd-plrow-votes';
-    var upBtn = document.createElement('button');
-    upBtn.textContent = '♥ ' + (votes.up || 0);
-    upBtn.title = 'Đáng yêu, link tốt';
-    upBtn.className = 'uvd-plvote up';
-    upBtn.onclick = function() { __uvdCastVote(stream.url, 'up'); upBtn.textContent = '♥ ' + (data.userVotes[stream.url] ? (data.userVotes[stream.url].up || 0) : 1); toast('Cảm ơn cưng! Link này đáng yêu quá ♥'); };
-    var downBtn = document.createElement('button');
-    downBtn.textContent = '💩 ' + (votes.down || 0);
-    downBtn.title = 'Rác, link xấu';
-    downBtn.className = 'uvd-plvote down';
-    downBtn.onclick = function() { __uvdCastVote(stream.url, 'down'); downBtn.textContent = '💩 ' + (data.userVotes[stream.url] ? (data.userVotes[stream.url].down || 0) : 1); toast('Cảm ơn cưng! Sẽ loại bỏ link rác 💩'); };
-    voteWrap.appendChild(upBtn);
-    voteWrap.appendChild(downBtn);
     // Xem
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
@@ -4158,7 +4192,6 @@ function __uvdOpenMediaLinksPopup(streams) {
     };
     row.appendChild(thumb);
     row.appendChild(body);
-    row.appendChild(voteWrap);
     row.appendChild(play);
     list.appendChild(row);
   });
@@ -4184,6 +4217,7 @@ function __uvdMaybeOfferMediaPopup(force) {
   if (!__uvdHasRealDirectStreams().length) return;
   if (playerState.overlay) return;
   if (!force && __uvdMediaPopupShown) return;
+  if (force) __uvdMediaPopupDismissedAt = 0;
   if (Date.now() - (__uvdMediaPopupDismissedAt || 0) < 60000) return;
   __uvdMediaPopupShown = true;
   var direct = __uvdHasRealDirectStreams().map(function(e) { return { url: e[0], type: e[1].type, item: e[1] }; });
@@ -4246,26 +4280,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       overlay.remove();
       toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
     };
-    // Cute vote buttons for this iframe host (helps kill junk forever).
-    var host = __uvdMediaHostOf(candidate.url);
-    var voteKey = host ? ('h:' + host) : candidate.url;
-    var ivotes = __uvdVote(voteKey);
-    var voteWrap = document.createElement('div');
-    voteWrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex:0 0 auto;';
-    var upBtn = document.createElement('button');
-    upBtn.textContent = '♥ ' + (ivotes.up || 0);
-    upBtn.title = 'Đáng yêu, đây là player thật';
-    upBtn.style.cssText = 'border:none;background:#ffe3ec;color:#e84a72;border-radius:9px;padding:4px 6px;font-size:9px;font-weight:800;cursor:pointer;';
-    upBtn.onclick = function() { __uvdCastVote(voteKey, 'up'); upBtn.textContent = '♥ ' + (data.userVotes[voteKey] ? (data.userVotes[voteKey].up || 0) : 1); toast('Cảm ơn cưng! Nhớ lại player này rồi ♥'); };
-    var downBtn = document.createElement('button');
-    downBtn.textContent = '💩 ' + (ivotes.down || 0);
-    downBtn.title = 'Rác, iframe quảng cáo';
-    downBtn.style.cssText = 'border:none;background:#ffe9e9;color:#ff5d72;border-radius:9px;padding:4px 6px;font-size:9px;font-weight:800;cursor:pointer;';
-    downBtn.onclick = function() { __uvdCastVote(voteKey, 'down'); downBtn.textContent = '💩 ' + (data.userVotes[voteKey] ? (data.userVotes[voteKey].down || 0) : 1); toast('Cảm ơn cưng! Loại rác này ngay 💩'); };
-    voteWrap.appendChild(upBtn);
-    voteWrap.appendChild(downBtn);
     row.appendChild(label);
-    row.appendChild(voteWrap);
     row.appendChild(open);
     list.appendChild(row);
   });
@@ -4386,6 +4401,7 @@ function __uvdMaybeOfferIframeWorkflow(force) {
   __uvdDismissIframeWorkflowIfVideoFound();
   if (Date.now() < __uvdIframeWorkflowEarliest) return;
   if (playerState.overlay) return;
+  if (force) __uvdIframeWorkflowDismissedAt = 0;
   if (__uvdIframeWorkflowAsked && !force) return;
   if (!__uvdHasOnlyIframeOrDemo()) return;
   if (!data.settings.aiIframeFilter) return;

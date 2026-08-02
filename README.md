@@ -234,7 +234,27 @@ Hai file hiện đã được đồng bộ.
   - Xoá block override "CUTE REDESIGN PATCH 8" (layout cũ gây chồng lấn), chỉ giữ card cute + scrollbar.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+
+### Patch #10 — Bong bóng comic 3 tab (mũi tên chĩa tab active + con vật từng tab) — 2026-08-02
+
+- **Branch:** `arena/019f7b7f-bookmarklet` + `arena/019fc298-bookmarklet`.
+- **Mục tiêu:** chuyển body 3 tab từ card cũ sang **bong bóng trò chuyện comic**:
+  1. Mũi tên (tail) **dính liền viền body, chĩa lên tên tab đang chọn**.
+  2. Mỗi tab có **con vật minh họa riêng** ở đầu (Streams = mèo, Nút = gấu, Lịch sử = thỏ).
+  3. Nội dung tab nằm gọn trong bong bóng, phần dưới cuộn được.
+- **Nội dung thay đổi (chỉ trong `bookmark.js` / `render-header-proxy/bookmarklet.js`):**
+  - Thêm 3 mascot SVG: `__uvdTabMascotCat/Bear/Rabbit` + `__uvdTabMeta`.
+  - `buildUI`: bọc body bằng `.uvd-bubble-wrap` > `.uvd-bubble-tail` + `.uvd-bubble`
+    (chứa `.uvd-bubble-title` + streamList). `contentWrapper` đổi class thành `.uvd-bubble`.
+  - `moveTailTo(btn)` di chuyển mũi tên chĩa vào tab active.
+  - `renderTab`: cập nhật tiêu đề bong bóng (con vật + tên + số lượng) theo tab, gọi `moveTailTo`.
+  - CSS: `.uvd-bubble-wrap`, `.uvd-bubble-tail` (cùng viền hồng với body), `.uvd-bubble`,
+    `.uvd-bubble-title/tmascot/tname/tsub`.
+  - Bỏ icon trên tên tab (chỉ giữ chữ).
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
+
 
 Chỉnh sửa:
 

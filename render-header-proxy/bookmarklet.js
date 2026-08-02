@@ -118,6 +118,7 @@ data.settings = Object.assign({
   blockAutoplay: true,
   autoClickPlay: true,
   glowEffects: true,
+  hideMode: 'floating',
   theme: 'light',             // tạm khóa Light; Dark Glass sẽ hoàn thiện sau
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
@@ -3362,9 +3363,9 @@ style.textContent = `
 .uvd-toggle-switch{width:44px;height:26px;border-radius:14px;background:rgba(15,58,56,.14);border:none;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s ease;padding:0}
 .uvd-toggle-switch .uvd-toggle-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s ease;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .uvd-toggle-switch.uvd-toggle-on{background:var(--grad-liquid)}
-.uvd-restore-btn{position:fixed;right:14px;bottom:14px;z-index:2147483647;display:flex;align-items:center;gap:6px;padding:10px 16px;border-radius:999px;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);box-shadow:0 8px 24px rgba(0,0,0,0.6);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;animation:uvdScaleIn .25s ease both}
-.uvd-restore-btn span.uvd-restore-dot{width:8px;height:8px;border-radius:50%;background:var(--grad-liquid);box-shadow:0 0 8px rgba(20,184,166,0.7);animation:uvdPulse 2s infinite}
-.uvd-restore-btn:active{transform:scale(.95)}
+.uvd-restore-btn{position:fixed;right:14px;bottom:14px;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:46px;height:46px;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(130%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(130%);box-shadow:0 8px 24px rgba(0,0,0,.22),0 0 0 1px rgba(255,255,255,.5) inset;color:var(--accent-text);font-size:20px;font-weight:800;cursor:grab;animation:uvdScaleIn .25s ease both;touch-action:none}
+.uvd-restore-btn span.uvd-restore-dot{width:13px;height:13px;border-radius:50%;background:var(--grad-liquid);box-shadow:0 0 12px rgba(20,184,166,.7);animation:uvdPulse 2s infinite}
+.uvd-restore-btn:active{transform:scale(.95);cursor:grabbing}
 .uvd-toggle-switch.uvd-toggle-on .uvd-toggle-knob{transform:translateX(18px)}
 .uvd-scroll::-webkit-scrollbar{width:4px}
 .uvd-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
@@ -3573,23 +3574,42 @@ function __uvdShowRestoreBtn() {
   var btn = document.createElement('button');
   btn.id = '__uvd_restore_btn__';
   btn.className = 'uvd-restore-btn uvd-scope';
-  btn.innerHTML = '<span class="uvd-restore-dot"></span>UMP DL';
-  btn.title = 'Stealth mode: chạy lại bookmarklet để hiện UMP DL';
-  btn.onclick = function() { __uvdSetHidden(false); };
+  btn.innerHTML = '<span class="uvd-restore-dot"></span>';
+  btn.title = 'Kéo để di chuyển · bấm để hiện UMP DL';
+  btn.style.touchAction = 'none';
+  btn.onclick = function() { if (!btn.__uvdDragged) __uvdSetHidden(false); btn.__uvdDragged = false; };
+  var dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+  btn.addEventListener('pointerdown', function(e) {
+    dragging = true; btn.__uvdDragged = false; startX = e.clientX; startY = e.clientY;
+    var r = btn.getBoundingClientRect(); startLeft = r.left; startTop = r.top;
+    try { btn.setPointerCapture(e.pointerId); } catch(ex) {}
+    e.preventDefault();
+  });
+  btn.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    var dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) + Math.abs(dy) > 5) btn.__uvdDragged = true;
+    btn.style.left = Math.max(4, Math.min(window.innerWidth - btn.offsetWidth - 4, startLeft + dx)) + 'px';
+    btn.style.top = Math.max(4, Math.min(window.innerHeight - btn.offsetHeight - 4, startTop + dy)) + 'px';
+    btn.style.right = 'auto'; btn.style.bottom = 'auto';
+  });
+  btn.addEventListener('pointerup', function() { dragging = false; });
   __uvdAppendRoot(btn);
 }
 function __uvdSetHidden(hidden) {
   __uvdScriptHidden = hidden;
   var panel = document.getElementById('__uvd__');
+  var hideMode = data.settings.hideMode === 'header' ? 'header' : 'floating';
   if (panel) {
-    panel.style.display = '';
-    panel.classList.toggle('uvd-panel-collapsed', hidden);
+    panel.style.display = hidden && hideMode === 'floating' ? 'none' : '';
+    panel.classList.toggle('uvd-panel-collapsed', hidden && hideMode === 'header');
   }
   if (hidden) {
     __uvdStartHardEmbedBlocker();
     // Collapsed mode keeps the header in its original position while the
     // content below it folds upward. Popup blocking remains active.
-    __uvdRemoveRestoreBtn();
+    if (hideMode === 'floating') __uvdShowRestoreBtn();
+    else __uvdRemoveRestoreBtn();
     // Resume only media that UMP itself paused during its initial scan.
     try {
       document.querySelectorAll('video,audio').forEach(function(media) {
@@ -4829,6 +4849,11 @@ function renderPlayerSettings(container) {
       buildToggleRow('__uvd_toggle_datasaver__', 'Chế độ tiết kiệm data (ép chất lượng thấp)', s.dataSaver) +
       buildToggleRow('__uvd_toggle_autohide__', 'Tự động ẩn thanh điều khiển', s.autoHideControls) +
       buildToggleRow('__uvd_toggle_showremaining__', 'Hiển thị thời gian còn lại', s.showRemainingTime) +
+      '<div style="font-size:12px;color:var(--text2);margin:12px 0 6px;">Kiểu ẩn UMP DL</div>' +
+      '<select id="__uvd_hide_mode__" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
+        '<option value="floating"' + (s.hideMode === 'floating' ? ' selected' : '') + '>Icon floating di chuyển được (mặc định)</option>' +
+        '<option value="header"' + (s.hideMode === 'header' ? ' selected' : '') + '>Thu nhỏ còn header</option>' +
+      '</select>' +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -4867,6 +4892,11 @@ function renderPlayerSettings(container) {
   document.getElementById('__uvd_set_quality__').onchange = function() {
     s.defaultQuality = this.value;
     storage.set(data);
+  };
+  document.getElementById('__uvd_hide_mode__').onchange = function() {
+    s.hideMode = this.value === 'header' ? 'header' : 'floating';
+    storage.set(data);
+    toast(s.hideMode === 'floating' ? 'Ẩn dạng icon floating' : 'Ẩn dạng header');
   };
   document.getElementById('__uvd_doubletap_seconds__').onchange = function() {
     var val = parseInt(this.value) || 10;

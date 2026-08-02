@@ -309,6 +309,18 @@ Hai file hiện đã được đồng bộ.
      nổi đáy phải trùng nút gọi lại pop-up.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #14 — Blob không tính là video (ưu tiên popup iframe), trả lại ẩn floating kéo được, nút reload gọi lại popup — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Blob không tính là video**: bỏ `BLOB` khỏi danh sách "link video thật" (dùng để mở
+     popup video). Nếu chỉ có **blob + iframe** thì coi như chưa có video thật → **ưu tiên
+     hiện popup iframe**.
+  2. **Trả lại cơ chế ẩn script floating di chuyển được**: khi ẩn kiểu floating lại hiện
+     **nút nổi kéo đi được** để mở lại panel (không dùng nút gọi lại popup).
+  3. **Bỏ nút gọi lại popup video nổi** (🐰) — hành vi "gọi lại popup" được **gắn vào nút
+     reload (↻)** trên header: bấm reload → quét lại → **popup xuất hiện**.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
 ## Cách phát triển bookmarklet
 
 

@@ -562,3 +562,14 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   5. **Thử nghiệm cuộn xuống ẩn header** để rộng chỗ, cuộn lên hiện lại, **mượt**.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
+### Patch #20 — Đổi tên dự án "Mèo cào media" + bump ver, popup quality có thumb + mũi chĩa, tab chảy xuống — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):**
+  1. **Đổi tên dự án** thành **Mèo cào media**, **bump version** (6.7.26 → 6.7.27); đổi cả
+     tên bookmarklet trong phần hướng dẫn đặt tên.
+  2. **Popup**: áp dụng **css chĩa** cho cục đầu tiên; **link chất lượng cao hiện 1 thumbnail**
+     (nếu cưng muốn xem trước), chỉ **1 thumb** thôi.
+  3. **Tab**: phần tô đậm của tab **chảy xuống dính liền vào body dưới** (mũi nhọn), bấm tab
+     nào thì tab đó chảy (indicator trượt + mũi nhọn theo tab).
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+

@@ -53,7 +53,9 @@ var oldMinBtn = document.getElementById('__uvd_min_float__');
 if (oldMinBtn) oldMinBtn.remove();
 
 // ========== STORAGE ==========
-var STORAGE_KEY = 'uvd_data_v54';
+// Keep userscript state completely separate from the bookmarklet state.
+// This includes history, settings, learned Play selectors and filterlist.
+var STORAGE_KEY = __uvdUserscriptMode ? 'uvd_userscript_data_v1' : 'uvd_data_v54';
 var storage = {
   get: function() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }

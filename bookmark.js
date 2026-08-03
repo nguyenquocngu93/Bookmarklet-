@@ -2822,7 +2822,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = '';
-  playerHeaderTitle.innerHTML = '<span class="uvd-player-moving-mascot">' + __uvdHeaderMascot + '</span><div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>Mèo cào media · dễ thương</span></small></div>';
+  playerHeaderTitle.innerHTML = '<span class="uvd-player-moving-mascot">' + (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : __uvdHeaderMascot) + '</span><div class="uvd-player-title-copy"><strong>Hamster mở video nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>Mèo cào media · dễ thương</span></small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);
@@ -3536,6 +3536,11 @@ style.textContent = `
 @keyframes uvdDigLegLeft{from{transform:translateY(0) rotate(10deg)}to{transform:translateY(7px) rotate(-15deg)}}
 @keyframes uvdDigLegRight{from{transform:translateY(6px) rotate(-10deg)}to{transform:translateY(0) rotate(15deg)}}
 @keyframes uvdDigShovel{from{transform:rotate(-5deg) translateY(0)}to{transform:rotate(7deg) translateY(8px)}}
+@keyframes uvdPandaEarWiggle{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(8deg)}}
+@keyframes uvdHamsterPop{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
+@keyframes uvdRaccoonTailWag{0%,100%{transform:rotate(-10deg) translateX(0)}50%{transform:rotate(14deg) translateX(1px)}}
+@keyframes uvdPawTap{0%,100%{transform:translateY(0) rotate(-16deg)}50%{transform:translateY(-3px) rotate(-10deg)}}
+@keyframes uvdBoardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
 .uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(15,118,110,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
@@ -4001,6 +4006,17 @@ style.textContent = `
 .uvd-settings-hero-sub{font-size:12.5px;color:#a0729a;margin-top:3px;line-height:1.5}
 /* Con thú cầm bảng tiêu đề trong phần hướng dẫn Cài đặt. */
 .uvd-settings-animal-sign{position:relative;display:flex;align-items:flex-end;min-height:88px;margin:2px 0 10px;padding:5px 3px 0;isolation:isolate;overflow:visible}.uvd-settings-sign-mascot{position:relative;z-index:3;width:78px;height:78px;flex:0 0 78px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 6px 10px rgba(247,108,140,.22));animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-settings-sign-mascot svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.35s ease-in-out infinite}.uvd-settings-sign-board{position:relative;z-index:2;display:flex;flex:1;flex-direction:column;justify-content:center;min-width:0;min-height:62px;margin:0 0 9px -12px;padding:9px 12px 9px 18px;border:2px solid rgba(255,159,180,.45);border-radius:17px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);box-shadow:0 6px 14px rgba(247,108,140,.15),inset 0 1px 0 #fff}.uvd-settings-sign-board::before{content:'✦';position:absolute;right:9px;top:7px;color:#f5a0bd;font-size:12px}.uvd-settings-sign-board strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c95073;font-size:14px;font-weight:900;line-height:1.2}.uvd-settings-sign-board small{display:block;margin-top:3px;color:#9a6c89;font-size:10.5px;font-weight:650;line-height:1.3}.uvd-settings-sign-paw{position:absolute;z-index:4;left:56px;bottom:21px;width:18px;height:13px;border-radius:12px;background:#ffe3ed;border:2px solid #f6abc2;box-shadow:0 2px 4px rgba(247,108,140,.12)}.uvd-settings-sign-paw-one{transform:rotate(-16deg)}.uvd-settings-sign-paw-two{left:67px;bottom:17px;transform:rotate(15deg)}.uvd-settings-sign-rabbit .uvd-settings-sign-board{border-color:rgba(194,150,255,.42);background:linear-gradient(155deg,#fffdfd,#f4ecff)}.uvd-settings-sign-rabbit .uvd-settings-sign-board strong{color:#9368c8}.uvd-settings-sign-rabbit .uvd-settings-sign-board::before{color:#b68bea}.uvd-settings-sign-bear .uvd-settings-sign-board{border-color:rgba(236,174,126,.48);background:linear-gradient(155deg,#fffdf9,#fff0e1)}.uvd-settings-sign-bear .uvd-settings-sign-board strong{color:#b87652}.uvd-settings-sign-bear .uvd-settings-sign-board::before{color:#e1a273}
+.uvd-settings-sign-panda .uvd-settings-sign-board{border-color:rgba(90,90,90,.18);background:linear-gradient(155deg,#ffffff,#f2f0f3)}.uvd-settings-sign-panda .uvd-settings-sign-board strong{color:#4a4a4e}.uvd-settings-sign-panda .uvd-settings-sign-board::before{color:#9a9a9e}
+.uvd-settings-sign-raccoon .uvd-settings-sign-board{border-color:rgba(160,156,150,.42);background:linear-gradient(155deg,#fdfcfa,#e8e6e0)}.uvd-settings-sign-raccoon .uvd-settings-sign-board strong{color:#6e6a64}.uvd-settings-sign-raccoon .uvd-settings-sign-board::before{color:#8b8680}
+.uvd-settings-sign-hamster .uvd-settings-sign-board{border-color:rgba(252,191,106,.48);background:linear-gradient(155deg,#fffdf6,#fff0c8)}.uvd-settings-sign-hamster .uvd-settings-sign-board strong{color:#c07a2e}.uvd-settings-sign-hamster .uvd-settings-sign-board::before{color:#e8a84a}
+.uvd-panda-ear{transform-box:fill-box;transform-origin:center;animation:uvdPandaEarWiggle 1.6s ease-in-out infinite}
+.uvd-raccoon-tail{transform-box:fill-box;transform-origin:20px 48px;animation:uvdRaccoonTailWag 1.1s ease-in-out infinite}
+.uvd-hamster-cheek{transform-box:fill-box;transform-origin:center;animation:uvdHamsterPop 1.3s ease-in-out infinite}
+.uvd-settings-sign-mascot{animation:uvdMascotHop 1.8s ease-in-out infinite, uvdBoardFloat 2.4s ease-in-out infinite}
+.uvd-settings-sign-paw{animation:uvdPawTap 1.2s ease-in-out infinite}
+.uvd-settings-sign-paw-two{animation-delay:.25s}
+.uvd-player-moving-mascot{animation:uvdMascotHop 1.4s ease-in-out infinite}
+.uvd-player-moving-mascot svg{animation:uvdMascotWiggle 1.1s ease-in-out infinite, uvdHamsterPop 1.8s ease-in-out infinite}
 .uvd-settings-overlay .uvd-settings-details{background:rgba(255,255,255,.72)!important;border:1px solid rgba(255,159,180,.3)!important;border-radius:20px!important}
 .uvd-settings-overlay .uvd-settings-details>summary{color:#d85c7a!important;font-size:14px!important}
 .uvd-settings-overlay .uvd-settings-details-body>.uvd-card{background:rgba(255,244,249,.6)!important}
@@ -4634,7 +4650,7 @@ function __uvdShowPlayIntro(url, type) {
     '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
     '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị link cho mấy cưng...</div>' +
     '<div style="font-size:12.5px;color:#8a6ab0;margin-top:2px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
-    '<button id="__uvd_play_intro_open__" class="uvd-btn uvd-btn-sm" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:800;font-size:14px;padding:11px;">▶ Mở ngay</button>';
+    '<button id="__uvd_play_intro_open__" class="uvd-btn uvd-btn-sm" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:800;font-size:14px;padding:11px;letter-spacing:.2px;">Mở ngay ♡</button>';
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
@@ -5048,10 +5064,39 @@ var __uvdTabMascotRabbit =
     '<circle cx="27" cy="39" r="1.1" fill="#fff"/><circle cx="39" cy="39" r="1.1" fill="#fff"/>' +
     '<ellipse cx="32" cy="45" rx="2.4" ry="3.4" fill="#ff9fb4"/>' +
   '</svg>';
+// NEW: gấu trúc, gấu mèo, hamster - phong phú và hạn chế trùng trong Settings + Player
+var __uvdTabMascotPanda =
+  '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<g class="uvd-panda-ear" style="transform-origin:18px 18px"><circle cx="18" cy="18" r="9" fill="#2b2b33"/><circle cx="18" cy="18" r="3" fill="#fff" opacity=".2"/></g>' +
+    '<g class="uvd-panda-ear" style="transform-origin:46px 18px"><circle cx="46" cy="18" r="9" fill="#2b2b33"/><circle cx="46" cy="18" r="3" fill="#fff" opacity=".2"/></g>' +
+    '<ellipse cx="32" cy="38" rx="20" ry="18" fill="#fff" stroke="#e8e0e6" stroke-width="1.5"/>' +
+    '<ellipse cx="23" cy="36" rx="6.5" ry="7.5" fill="#2b2b33"/><ellipse cx="41" cy="36" rx="6.5" ry="7.5" fill="#2b2b33"/>' +
+    '<circle cx="24.2" cy="37.5" r="2.4" fill="#fff"/><circle cx="40.2" cy="37.5" r="2.4" fill="#fff"/><circle cx="24.5" cy="38" r="1" fill="#111"/><circle cx="40.5" cy="38" r="1" fill="#111"/>' +
+    '<ellipse cx="32" cy="44" rx="2.8" ry="2" fill="#2b2b33"/><ellipse cx="32" cy="47.5" rx="5" ry="3" fill="#fff"/><path d="M28 48 Q32 50 36 48" stroke="#2b2b33" stroke-width="1.2" stroke-linecap="round" fill="none"/>' +
+    '<ellipse cx="19" cy="44" rx="4" ry="2.6" fill="#ffb6c6" opacity=".65"/><ellipse cx="45" cy="44" rx="4" ry="2.6" fill="#ffb6c6" opacity=".65"/>' +
+  '</svg>';
+var __uvdTabMascotRaccoon =
+  '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="32" cy="42" rx="18" ry="16" fill="#d6d2cc"/>' +
+    '<path d="M18 24 L10 10 L26 18 Z" fill="#8b8680"/><path d="M46 24 L54 10 L38 18 Z" fill="#8b8680"/>' +
+    '<path d="M18 24 L13 14 L23 20 Z" fill="#2e2d2b"/><path d="M46 24 L51 14 L41 20 Z" fill="#2e2d2b"/>' +
+    '<ellipse cx="32" cy="35" rx="13" ry="9" fill="#3a3937"/><circle cx="24" cy="38" r="3.2" fill="#1e1e1e"/><circle cx="40" cy="38" r="3.2" fill="#1e1e1e"/><circle cx="25" cy="37" r="1.1" fill="#fff"/><circle cx="41" cy="37" r="1.1" fill="#fff"/>' +
+    '<ellipse cx="32" cy="44" rx="2.6" ry="2" fill="#1e1e1e"/>' +
+    '<g class="uvd-raccoon-tail" style="transform-origin:16px 50px"><ellipse cx="16" cy="50" rx="8" ry="5" fill="#a8a5a0" transform="rotate(-18 16 50)"/><path d="M10 49 Q12 47 14 49 Q16 51 18 49" stroke="#3a3937" stroke-width="1" stroke-linecap="round" fill="none" opacity=".6"/></g>' +
+    '<ellipse cx="22" cy="46" rx="3.2" ry="2" fill="#b8b4ae" opacity=".7"/><ellipse cx="42" cy="46" rx="3.2" ry="2" fill="#b8b4ae" opacity=".7"/>' +
+  '</svg>';
+var __uvdTabMascotHamster =
+  '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="32" cy="42" rx="20" ry="17" fill="#fde2a8"/><ellipse cx="32" cy="40" rx="18" ry="15" fill="#ffd38a"/>' +
+    '<circle cx="17" cy="22" r="8" fill="#fcbf6a"/><circle cx="47" cy="22" r="8" fill="#fcbf6a"/><circle cx="17" cy="22" r="3.5" fill="#e89f6a"/><circle cx="47" cy="22" r="3.5" fill="#e89f6a"/>' +
+    '<circle cx="24" cy="36" r="3.1" fill="#4a2c20"/><circle cx="40" cy="36" r="3.1" fill="#4a2c20"/><circle cx="25" cy="35" r="1" fill="#fff"/><circle cx="41" cy="35" r="1" fill="#fff"/>' +
+    '<g class="uvd-hamster-cheek"><ellipse cx="18" cy="45" rx="7" ry="6" fill="#fff6c8"/><ellipse cx="46" cy="45" rx="7" ry="6" fill="#fff6c8"/></g>' +
+    '<ellipse cx="32" cy="42" rx="2" ry="1.8" fill="#ff8fa3"/><path d="M28 47 Q32 49 36 47" stroke="#4a2c20" stroke-width="1.2" stroke-linecap="round" fill="none"/>' +
+  '</svg>';
 var __uvdTabMeta = {
-  streams: { mascot: __uvdTabMascotCat, bg: 'linear-gradient(150deg,#ffe0ea,#ffb6c6)', name: 'Streams', sub: 'link video 🎬' },
-  clicked: { mascot: __uvdTabMascotBear, bg: 'linear-gradient(150deg,#ffe9d6,#ffd0b0)', name: 'Nút đã click', sub: 'nút đã bấm 🖱️' },
-  history: { mascot: __uvdTabMascotRabbit, bg: 'linear-gradient(150deg,#e7dcff,#f0c8ff)', name: 'Lịch sử', sub: 'phim đã xem 🕘' }
+  streams: { mascot: __uvdTabMascotPanda, bg: 'linear-gradient(150deg,#f8f6f8,#e9e2ee)', name: 'Streams', sub: 'gấu trúc tìm link 🎋' },
+  clicked: { mascot: __uvdTabMascotRaccoon, bg: 'linear-gradient(150deg,#eceae6,#d6d2cc)', name: 'Nút đã click', sub: 'gấu mèo mò nút 🦝' },
+  history: { mascot: __uvdTabMascotHamster, bg: 'linear-gradient(150deg,#fff4d6,#ffd38a)', name: 'Lịch sử', sub: 'hamster giữ hạt 🐹' }
 };
 
 // ========== BUILD UI ==========
@@ -6345,7 +6390,15 @@ function __uvdBuildConfigLink() {
 }
 
 function __uvdSettingsAnimalSign(kind, title, subtitle) {
-  var mascot = kind === 'rabbit' ? __uvdTabMascotRabbit : (kind === 'bear' ? __uvdTabMascotBear : __uvdHeaderMascot);
+  var map = {
+    rabbit: __uvdTabMascotRabbit,
+    bear: __uvdTabMascotBear,
+    cat: __uvdHeaderMascot,
+    panda: (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : __uvdHeaderMascot),
+    raccoon: (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : __uvdTabMascotBear),
+    hamster: (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : __uvdTabMascotRabbit)
+  };
+  var mascot = map[kind] || __uvdHeaderMascot;
   var safeTitle = escapeHtml(title || 'Hướng dẫn sử dụng');
   var safeSubtitle = escapeHtml(subtitle || 'Mèo chỉ cưng từng bước nè ♡');
   return '<div class="uvd-settings-animal-sign uvd-settings-sign-' + kind + '">' +
@@ -6453,7 +6506,7 @@ function renderSettings(container) {
     '</div>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('cat', 'Cài đặt Bookmarklet', 'Mèo giữ bảng, cưng làm theo từng bước nha ♡') + '<div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('panda', 'Cài đặt Bookmarklet', 'Gấu trúc giữ bảng, cưng làm theo từng bước nha 🎋') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ nhé.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit) nha.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ thương, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
@@ -6464,7 +6517,7 @@ function renderSettings(container) {
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('rabbit', 'Hướng dẫn sử dụng', 'Thỏ cầm bảng chỉ cưng xem phim nè ♡') + '<div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('hamster', 'Hướng dẫn sử dụng', 'Hamster cầm bảng chỉ cưng xem phim nè 🐹') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video nha</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ rồi chọn nó</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream rồi bấm <strong style="color:var(--accent-text);">Xem</strong> để mở player dễ thương</span></div>' +
@@ -6475,7 +6528,7 @@ function renderSettings(container) {
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('bear', 'Tải video với Termux', 'Gấu cầm bảng chuẩn bị lệnh tải cho cưng ✦') + '<div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('raccoon', 'Tải video với Termux', 'Gấu mèo cầm bảng chuẩn bị lệnh tải cho cưng 🦝') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài yt-dlp trên Termux nha:</strong></span></div>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg update && pkg upgrade -y</code>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg install python ffmpeg -y</code>' +

@@ -664,3 +664,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Profile giữ mô tả cá tính/trait pill, avatar mèo quay lại nằm trong ô pastel bo góc, có nền sáng mềm và trái tim nhỏ.
   - Không gỡ hệ thú mới: panda/raccoon/hamster vẫn giữ ở tab, bảng hướng dẫn và player theo bản mới.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #30 — Tách mascot Header Settings và avatar Profile — 2026-08-03
+
+- **Mục tiêu:** tránh trùng con vật trong phần Cài đặt, đồng thời bỏ khung quanh mascot avatar trong profile.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Header Settings dùng gấu trúc mascot.
+  - Profile dùng mèo mascot riêng; avatar mèo không còn ô/khung pastel, chỉ có shadow mềm và trái tim nhỏ.
+  - Giữ nguyên panda/raccoon/hamster ở các vị trí mới khác.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

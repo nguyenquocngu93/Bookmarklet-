@@ -2865,15 +2865,15 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   sheetBody.appendChild(videoArea);
 
   var infoPanel = document.createElement('div');
-  infoPanel.className = 'uvd-player-info-panel';
+  infoPanel.className = 'uvd-player-info-panel uvd-player-cute-panel';
   var playerTitle = titleOverride || pageInfo.title;
   var titleRow = document.createElement('div');
   titleRow.className = 'uvd-player-info-title';
-  titleRow.innerHTML = '<span class="uvd-player-info-icon">▶</span><span>' + escapeHtml(playerTitle) + '</span>';
+  titleRow.innerHTML = '<span class="uvd-player-mascot-holding">' + __uvdPlayerMascotHoldingVideo + '</span><div class="uvd-player-title-text"><span class="uvd-player-title-main">' + escapeHtml(playerTitle) + '</span><span class="uvd-player-title-sub">hamster đang cầm video cho cưng nè ♡</span></div>';
   var infoRow = document.createElement('div');
   infoRow.id = '__uvd_player_info__';
   infoRow.className = 'uvd-player-info-meta';
-  infoRow.textContent = type + ' · đang tải...';
+  infoRow.innerHTML = '<span class="uvd-meta-type">' + escapeHtml(type || 'VIDEO') + '</span><span class="uvd-meta-dot">·</span><span>đang tải...</span><span class="uvd-meta-bow">🎀</span>';
   infoPanel.appendChild(titleRow);
   infoPanel.appendChild(infoRow);
   sheetBody.appendChild(infoPanel);
@@ -3796,7 +3796,19 @@ style.textContent = `
 .uvd-section-num{width:20px;height:20px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(20,184,166,0.4)}
 .uvd-timeline-card{border-left:2px solid rgba(20,184,166,0.3)}
 .uvd-inline-code{display:inline-block;background:rgba(0,0,0,0.35);padding:3px 9px;border-radius:6px;color:var(--accent2);font-family:'SFMono-Regular',Consolas,monospace;font-size:11px;border:1px solid rgba(255,255,255,0.06);margin:2px 0}
-.uvd-profile-footer{text-align:center;font-size:11px;color:var(--text3);margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.uvd-profile-footer{text-align:center;font-size:11px;color:var(--text3);margin-top:10px;padding:14px 12px 10px;border-top:1px dashed rgba(255,159,180,.24);background:linear-gradient(150deg,rgba(255,246,251,.6),rgba(245,232,255,.5));border-radius:0 0 20px 20px}
+.uvd-player-cute-panel{padding:14px 16px 12px!important;background:linear-gradient(150deg,#fffdfd 0%,#fff6fb 60%,#f5edff 100%)!important;border-top:2px solid rgba(255,159,180,.22)!important;border-radius:0 0 26px 26px!important;display:flex;flex-direction:column;gap:8px}
+.uvd-player-info-title{display:flex;align-items:center;gap:12px;font-weight:800;font-size:14px;color:#7a4fb0;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
+.uvd-player-mascot-holding{flex:0 0 64px;width:64px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent!important;border:none!important;filter:drop-shadow(0 4px 10px rgba(247,108,140,.18));animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-player-mascot-holding svg{width:100%;height:100%}
+.uvd-player-title-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.uvd-player-title-main{font-size:14px;font-weight:800;color:#6b4d85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.uvd-player-title-sub{font-size:11px;font-weight:600;color:#b68bea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uvd-player-info-meta{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,rgba(243,236,255,.8),rgba(255,227,236,.7))!important;border:1px solid rgba(194,150,255,.24)!important;color:#8a6ab0!important;font-size:11px!important;max-width:100%}
+.uvd-meta-type{font-weight:800;color:#9a6ce0;background:rgba(255,255,255,.6);padding:2px 8px;border-radius:999px;border:1px solid rgba(194,150,255,.22)}
+.uvd-meta-dot{opacity:.5}
+.uvd-meta-bow{margin-left:auto;font-size:12px}
+.uvd-player-footer-cute{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;font-size:10px;color:#b68bea;background:rgba(255,255,255,.5);border-top:1px dashed rgba(255,159,180,.18)}
 .uvd-step{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
 .uvd-step:last-child{margin-bottom:0}
 .uvd-step-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--grad-liquid);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(20,184,166,0.4)}
@@ -4450,6 +4462,18 @@ var __uvdFooterMascot =
     '<ellipse cx="36" cy="41.8" rx="1.6" ry="1.8" fill="#e8788f"/>' +
     '<ellipse cx="25" cy="44" rx="5" ry="3.5" fill="#f8c8ac" opacity="0.9"/>' +
     '<ellipse cx="47" cy="44" rx="5" ry="3.5" fill="#f8c8ac" opacity="0.9"/>' +
+  '</svg>';
+// NEW: thu cam video - hamster dang om video player cute
+var __uvdPlayerMascotHoldingVideo =
+  '<svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="30" cy="78" rx="18" ry="6" fill="#fde2a8" opacity=".4"/>' +
+    '<ellipse cx="30" cy="58" rx="20" ry="18" fill="#ffd38a" stroke="#fcbf6a" stroke-width="1.2"/>' +
+    '<circle cx="18" cy="36" r="9" fill="#fcbf6a"/><circle cx="42" cy="36" r="9" fill="#fcbf6a"/>' +
+    '<circle cx="24" cy="54" r="4" fill="#4a2c20"/><circle cx="36" cy="54" r="4" fill="#4a2c20"/>' +
+    '<ellipse cx="20" cy="62" rx="6" ry="5" fill="#fff6c8"/><ellipse cx="40" cy="62" rx="6" ry="5" fill="#fff6c8"/>' +
+    '<ellipse cx="30" cy="60" rx="2" ry="1.6" fill="#ff8fa3"/>' +
+    '<g><rect x="55" y="22" width="56" height="36" rx="8" fill="#1a1a2e" stroke="#ff9fb4" stroke-width="1.5"/><rect x="58" y="25" width="50" height="26" rx="5" fill="#0f0f23"/><polygon points="74,32 74,46 86,39" fill="#ff9fb4"/><circle cx="62" cy="30" r="2" fill="#ff5d72"/><circle cx="67" cy="30" r="2" fill="#ffd38a"/><circle cx="72" cy="30" r="2" fill="#3aa97f"/></g>' +
+    '<ellipse cx="18" cy="68" rx="8" ry="10" fill="#ffd38a" stroke="#fcbf6a" stroke-width="1"/><ellipse cx="42" cy="68" rx="8" ry="10" fill="#ffd38a" stroke="#fcbf6a" stroke-width="1"/>' +
   '</svg>';
 
 // Cute rabbit mascot for the "found real video links" popup (inline SVG).

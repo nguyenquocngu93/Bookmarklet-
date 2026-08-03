@@ -4025,9 +4025,9 @@ style.textContent = `
 /* ===== Settings cute: hero mascot + hướng dẫn cute ===== */
 .uvd-settings-overlay .uvd-settings-sheet{background:linear-gradient(180deg,#fff6fb 0%,#f6f0ff 100%)!important;border-radius:34px 34px 0 0!important}
 .uvd-settings-overlay .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
-.uvd-settings-hero{display:flex;align-items:center;gap:14px;padding:18px 18px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 60%,#fff5f8 100%);border-bottom:1px solid rgba(255,159,180,.22);min-height:88px}
-.uvd-settings-hero-mascot{flex:0 0 auto;width:72px;height:72px;display:flex;align-items:center;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 6px 14px rgba(247,108,140,.28));animation:uvdMascotHop 1.9s ease-in-out infinite}
-.uvd-settings-hero-mascot svg{width:100%;height:100%;animation:uvdMascotWiggle 1.5s ease-in-out infinite}
+.uvd-settings-hero{display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 60%,#fff5f8 100%);border-bottom:1px solid rgba(255,159,180,.22);min-height:96px}
+.uvd-settings-hero-mascot{flex:0 0 auto;width:92px;height:92px;display:flex;align-items:center;justify-content:center;transform:scale(1.2);filter:drop-shadow(0 8px 16px rgba(247,108,140,.28));background:transparent!important;border:none!important;box-shadow:none!important;animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-settings-hero-mascot svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
 .uvd-settings-hero-mascot.uvd-hero-big{width:124px;height:124px}
 .uvd-hero-ear-bow{transform-box:fill-box;transform-origin:center;animation:uvdPandaEarWiggle 1.4s ease-in-out infinite}
 .uvd-hero-cheek{transform-box:fill-box;transform-origin:center;animation:uvdHamsterPop 1.5s ease-in-out infinite}

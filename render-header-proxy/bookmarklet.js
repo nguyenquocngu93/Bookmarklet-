@@ -3471,6 +3471,8 @@ style.textContent = `
 @keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
 @keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes uvdDigDirt{0%,100%{transform:translateY(0) rotate(0);opacity:.52}50%{transform:translateY(-7px) rotate(12deg);opacity:1}}
+@keyframes uvdDigOverlayOut{from{opacity:1}to{opacity:0}}
+@keyframes uvdDigBoxFlyUp{from{opacity:1;transform:translate3d(0,0,0) scale(1)}to{opacity:0;transform:translate3d(0,-120vh,0) scale(.9)}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
 .uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(15,118,110,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
@@ -3824,6 +3826,7 @@ style.textContent = `
 .uvd-dig-art svg{width:100%;height:100%;display:block}.uvd-dig-dirt{position:absolute;font-size:19px;line-height:1;animation:uvdDigDirt .9s ease-in-out infinite}.uvd-dig-dirt:nth-child(1){left:18px;bottom:33px;animation-delay:.08s}.uvd-dig-dirt:nth-child(2){right:16px;bottom:47px;animation-delay:.33s}.uvd-dig-dirt:nth-child(3){right:43px;bottom:17px;animation-delay:.58s}
 .uvd-dig-kicker{font-size:11px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#c95073}.uvd-dig-title{margin-top:8px;font-size:28px;font-weight:900;color:#d84972;line-height:1.15}.uvd-dig-sub{min-height:23px;margin:8px auto 0;color:#956077;font-size:14px;font-weight:650;line-height:1.5}.uvd-dig-enter-btn{display:block;width:100%;max-height:0;margin-top:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#ff91ae,#ef6689);color:#fff;font-size:16px;font-weight:850;box-shadow:0 8px 18px rgba(231,83,127,.3);transition:max-height .28s ease,margin .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-enter-btn:active{transform:scale(.97)}
 .uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;margin-top:16px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}
+.uvd-digging-overlay.uvd-dig-exit{pointer-events:none;animation:uvdDigOverlayOut .58s ease forwards}.uvd-digging-overlay.uvd-dig-exit .uvd-digging-box{animation:uvdDigBoxFlyUp .58s cubic-bezier(.45,0,.72,.22) forwards}
 @media (max-width:390px){.uvd-digging-box{min-height:450px;padding:25px 21px 23px;border-radius:34px}.uvd-dig-art{width:225px;height:212px}.uvd-dig-title{font-size:25px}.uvd-dig-sub{font-size:13px}}
 
 
@@ -4463,18 +4466,42 @@ function __uvdOpenDiggingDestination() {
   var direct = __uvdHasRealDirectStreams();
   if (direct.length) {
     var mapped = direct.map(function(entry) { return { url: entry[0], type: entry[1].type, item: entry[1] }; });
-    __uvdStopDiggingPopup(true);
-    __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
+    __uvdFlyDiggingPopupUp(function() {
+      __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
+    });
     return;
   }
   var candidates = __uvdDiggingIframeCandidates();
   if (candidates.length) {
-    __uvdStopDiggingPopup(true);
-    __uvdOpenIframeWorkflowPrompt(candidates);
+    __uvdFlyDiggingPopupUp(function() {
+      __uvdOpenIframeWorkflowPrompt(candidates);
+    });
     return;
   }
   var sub = document.getElementById('__uvd_dig_sub__');
   if (sub) sub.textContent = 'Mèo vẫn chưa đào được link, thử bấm Play trên trang rồi đợi thêm nha.';
+}
+function __uvdFlyDiggingPopupUp(onDone) {
+  var flow = __uvdDiggingFlow;
+  if (!flow.active) { if (typeof onDone === 'function') onDone(); return; }
+  clearTimeout(flow.transitionTimer);
+  clearTimeout(flow.waitTimer);
+  clearTimeout(flow.removeTimer);
+  flow.transitionTimer = null;
+  flow.waitTimer = null;
+  flow.removeTimer = null;
+  flow.active = false;
+  flow.released = true;
+  flow.completed = true;
+  var overlay = document.getElementById('__uvd_digging_popup__');
+  if (!overlay) { if (typeof onDone === 'function') onDone(); return; }
+  // Keep UMP hidden, let the cat card shoot above the viewport, then present
+  // the selected video/iframe popup underneath it.
+  overlay.classList.add('uvd-dig-exit');
+  setTimeout(function() {
+    if (overlay.parentNode) overlay.remove();
+    if (typeof onDone === 'function') onDone();
+  }, 590);
 }
 function __uvdStopDiggingPopup(keepUiHidden) {
   var flow = __uvdDiggingFlow;

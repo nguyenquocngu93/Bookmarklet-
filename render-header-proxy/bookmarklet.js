@@ -3951,6 +3951,8 @@ style.textContent = `
 .uvd-settings-hero-text{min-width:0}
 .uvd-settings-hero-title{font-size:20px;font-weight:800;color:#d85c7a}
 .uvd-settings-hero-sub{font-size:12.5px;color:#a0729a;margin-top:3px;line-height:1.5}
+/* Con thú cầm bảng tiêu đề trong phần hướng dẫn Cài đặt. */
+.uvd-settings-animal-sign{position:relative;display:flex;align-items:flex-end;min-height:88px;margin:2px 0 10px;padding:5px 3px 0;isolation:isolate;overflow:visible}.uvd-settings-sign-mascot{position:relative;z-index:3;width:78px;height:78px;flex:0 0 78px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 6px 10px rgba(247,108,140,.22));animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-settings-sign-mascot svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.35s ease-in-out infinite}.uvd-settings-sign-board{position:relative;z-index:2;display:flex;flex:1;flex-direction:column;justify-content:center;min-width:0;min-height:62px;margin:0 0 9px -12px;padding:9px 12px 9px 18px;border:2px solid rgba(255,159,180,.45);border-radius:17px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);box-shadow:0 6px 14px rgba(247,108,140,.15),inset 0 1px 0 #fff}.uvd-settings-sign-board::before{content:'✦';position:absolute;right:9px;top:7px;color:#f5a0bd;font-size:12px}.uvd-settings-sign-board strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c95073;font-size:14px;font-weight:900;line-height:1.2}.uvd-settings-sign-board small{display:block;margin-top:3px;color:#9a6c89;font-size:10.5px;font-weight:650;line-height:1.3}.uvd-settings-sign-paw{position:absolute;z-index:4;left:56px;bottom:21px;width:18px;height:13px;border-radius:12px;background:#ffe3ed;border:2px solid #f6abc2;box-shadow:0 2px 4px rgba(247,108,140,.12)}.uvd-settings-sign-paw-one{transform:rotate(-16deg)}.uvd-settings-sign-paw-two{left:67px;bottom:17px;transform:rotate(15deg)}.uvd-settings-sign-rabbit .uvd-settings-sign-board{border-color:rgba(194,150,255,.42);background:linear-gradient(155deg,#fffdfd,#f4ecff)}.uvd-settings-sign-rabbit .uvd-settings-sign-board strong{color:#9368c8}.uvd-settings-sign-rabbit .uvd-settings-sign-board::before{color:#b68bea}.uvd-settings-sign-bear .uvd-settings-sign-board{border-color:rgba(236,174,126,.48);background:linear-gradient(155deg,#fffdf9,#fff0e1)}.uvd-settings-sign-bear .uvd-settings-sign-board strong{color:#b87652}.uvd-settings-sign-bear .uvd-settings-sign-board::before{color:#e1a273}
 .uvd-settings-overlay .uvd-settings-details{background:rgba(255,255,255,.72)!important;border:1px solid rgba(255,159,180,.3)!important;border-radius:20px!important}
 .uvd-settings-overlay .uvd-settings-details>summary{color:#d85c7a!important;font-size:14px!important}
 .uvd-settings-overlay .uvd-settings-details-body>.uvd-card{background:rgba(255,244,249,.6)!important}
@@ -6290,6 +6292,17 @@ function __uvdBuildConfigLink() {
   return "javascript:(function(){var u=atob('" + packedUrl + "');var e=document.createElement('script');e.src=u;e.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(e);})();";
 }
 
+function __uvdSettingsAnimalSign(kind, title, subtitle) {
+  var mascot = kind === 'rabbit' ? __uvdTabMascotRabbit : (kind === 'bear' ? __uvdTabMascotBear : __uvdHeaderMascot);
+  var safeTitle = escapeHtml(title || 'Hướng dẫn sử dụng');
+  var safeSubtitle = escapeHtml(subtitle || 'Mèo chỉ cưng từng bước nè ♡');
+  return '<div class="uvd-settings-animal-sign uvd-settings-sign-' + kind + '">' +
+    '<span class="uvd-settings-sign-mascot">' + mascot + '</span>' +
+    '<i class="uvd-settings-sign-paw uvd-settings-sign-paw-one"></i><i class="uvd-settings-sign-paw uvd-settings-sign-paw-two"></i>' +
+    '<div class="uvd-settings-sign-board"><strong>' + safeTitle + '</strong><small>' + safeSubtitle + '</small></div>' +
+  '</div>';
+}
+
 function renderSettings(container) {
   var totalStreams = urls.size;
   var bookmarkletCode = "javascript:(function(){var u=atob('aHR0cHM6Ly9yZW5kZXItaGVhZGVyLXByb3h5Lm9ucmVuZGVyLmNvbS9ib29rbWFya2xldC5qcz9mb3JjZT0=')+Date.now();var e=document.createElement('script');e.src=u;e.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(e);})();";
@@ -6391,7 +6404,7 @@ function renderSettings(container) {
     '</div>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('cat', 'Cài đặt Bookmarklet', 'Mèo giữ bảng, cưng làm theo từng bước nha ♡') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ nhé.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Chọn <strong>"Chỉnh sửa"</strong> (Edit) nha.</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text"><strong>Đặt tên</strong> dễ thương, ví dụ: <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code></span></div>' +
@@ -6402,7 +6415,7 @@ function renderSettings(container) {
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('rabbit', 'Hướng dẫn sử dụng', 'Thỏ cầm bảng chỉ cưng xem phim nè ♡') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video nha</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ rồi chọn nó</span></div>' +
       '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream rồi bấm <strong style="color:var(--accent-text);">Xem</strong> để mở player dễ thương</span></div>' +
@@ -6413,7 +6426,7 @@ function renderSettings(container) {
     '</div></div></details>' +
 
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body"><div class="uvd-card uvd-timeline-card">' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('bear', 'Tải video với Termux', 'Gấu cầm bảng chuẩn bị lệnh tải cho cưng ✦') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài yt-dlp trên Termux nha:</strong></span></div>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg update && pkg upgrade -y</code>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg install python ffmpeg -y</code>' +

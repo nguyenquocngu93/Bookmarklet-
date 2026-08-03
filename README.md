@@ -615,3 +615,13 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Mascot ở popup video, popup iframe, popup mở video và header video player đều có chuyển động nhún/lắc nhỏ để giữ phong cách cute. UI script vẫn ẩn trong toàn bộ luồng và chỉ hiện lại khi người dùng đóng/ẩn popup.
   - Popup phát hiện link cũ không thể mở chồng khi popup đào đang hoạt động.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #25 — Thú cầm bảng tiêu đề trong Cài đặt — 2026-08-03
+
+- **Mục tiêu:** làm phần hướng dẫn trong Cài đặt cute và dễ định hướng hơn bằng các con thú cầm bảng tiêu đề.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Mèo cầm bảng **"Cài đặt Bookmarklet"**.
+  - Thỏ cầm bảng **"Hướng dẫn sử dụng"**.
+  - Gấu cầm bảng **"Tải video với Termux"**.
+  - Mỗi bảng là card pastel riêng, có hai bàn chân ôm bảng và hiệu ứng nhún/lắc nhẹ; màu bảng theo từng con thú.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

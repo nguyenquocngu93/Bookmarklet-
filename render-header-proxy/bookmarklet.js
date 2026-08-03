@@ -365,7 +365,15 @@ var __uvdDiggingFlow = {
   waitTimer: null,
   removeTimer: null
 };
+// One-shot handoff flag: target popups use it to rise from below immediately
+// after the digging cat has flown out of the viewport.
+var __uvdDiggingPopupHandoff = false;
 var __uvdDiggingWaitMs = 20000;
+function __uvdConsumeDiggingPopupHandoff() {
+  var handoff = __uvdDiggingPopupHandoff;
+  __uvdDiggingPopupHandoff = false;
+  return handoff;
+}
 function __uvdIsDiggingDirectType(type) {
   return ['M3U8', 'MP4', 'MPD', 'WEBM', 'TS'].indexOf(String(type || '').toUpperCase()) !== -1;
 }
@@ -3473,6 +3481,7 @@ style.textContent = `
 @keyframes uvdDigDirt{0%,100%{transform:translateY(0) rotate(0);opacity:.52}50%{transform:translateY(-7px) rotate(12deg);opacity:1}}
 @keyframes uvdDigOverlayOut{from{opacity:1}to{opacity:0}}
 @keyframes uvdDigBoxFlyUp{from{opacity:1;transform:translate3d(0,0,0) scale(1)}to{opacity:0;transform:translate3d(0,-120vh,0) scale(.9)}}
+@keyframes uvdPopupRiseAfterDig{from{opacity:0;transform:translate3d(0,96px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
 .uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(15,118,110,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
@@ -3827,6 +3836,7 @@ style.textContent = `
 .uvd-dig-kicker{font-size:11px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#c95073}.uvd-dig-title{margin-top:8px;font-size:28px;font-weight:900;color:#d84972;line-height:1.15}.uvd-dig-sub{min-height:23px;margin:8px auto 0;color:#956077;font-size:14px;font-weight:650;line-height:1.5}.uvd-dig-enter-btn{display:block;width:100%;max-height:0;margin-top:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#ff91ae,#ef6689);color:#fff;font-size:16px;font-weight:850;box-shadow:0 8px 18px rgba(231,83,127,.3);transition:max-height .28s ease,margin .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-enter-btn:active{transform:scale(.97)}
 .uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;margin-top:16px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}
 .uvd-digging-overlay.uvd-dig-exit{pointer-events:none;animation:uvdDigOverlayOut .58s ease forwards}.uvd-digging-overlay.uvd-dig-exit .uvd-digging-box{animation:uvdDigBoxFlyUp .58s cubic-bezier(.45,0,.72,.22) forwards}
+.uvd-popup-from-digging{animation:uvdPopupRiseAfterDig .52s cubic-bezier(.22,1,.36,1) both!important}
 @media (max-width:390px){.uvd-digging-box{min-height:450px;padding:25px 21px 23px;border-radius:34px}.uvd-dig-art{width:225px;height:212px}.uvd-dig-title{font-size:25px}.uvd-dig-sub{font-size:13px}}
 
 
@@ -4500,6 +4510,7 @@ function __uvdFlyDiggingPopupUp(onDone) {
   overlay.classList.add('uvd-dig-exit');
   setTimeout(function() {
     if (overlay.parentNode) overlay.remove();
+    __uvdDiggingPopupHandoff = true;
     if (typeof onDone === 'function') onDone();
   }, 590);
 }
@@ -4612,7 +4623,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
     'background:rgba(28,14,40,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
   var panel = document.createElement('div');
-  panel.className = 'uvd-glass-panel';
+  panel.className = 'uvd-glass-panel' + (__uvdConsumeDiggingPopupHandoff() ? ' uvd-popup-from-digging' : '');
   panel.style.cssText = 'width:100%;max-width:430px;margin:auto;text-align:center;border-radius:26px;overflow:hidden;' +
     'background:linear-gradient(160deg,#f8f4ff 0%,#f3ecff 45%,#fff0f8 100%);border:1px solid rgba(194,150,255,.4);' +
     'box-shadow:0 24px 60px rgba(150,90,220,.32),0 0 0 6px rgba(255,255,255,.35) inset;' +
@@ -4731,7 +4742,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
     'background:rgba(12,8,20,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
   var panel = document.createElement('div');
-  panel.className = 'uvd-glass-panel';
+  panel.className = 'uvd-glass-panel' + (__uvdConsumeDiggingPopupHandoff() ? ' uvd-popup-from-digging' : '');
   panel.style.cssText = 'width:100%;max-width:420px;margin:auto;text-align:center;border-radius:26px;overflow:hidden;' +
     'background:linear-gradient(160deg,#fff6fa 0%,#fff0f5 45%,#fdf3ff 100%);border:1px solid rgba(255,159,180,.45);' +
     'box-shadow:0 24px 60px rgba(232,120,143,.35),0 0 0 6px rgba(255,255,255,.35) inset;' +

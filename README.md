@@ -604,12 +604,13 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Popup link cũng có dòng hướng dẫn theo loại.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js` = `bookmarkkk.js`; `git diff --check` sạch.
 
-### Patch #24 — Body liền tab + mèo đào link chuyển sang UI Streams — 2026-08-03
+### Patch #24 — Khôi phục tab cũ + popup mèo đào mở đúng popup đích — 2026-08-03
 
-- **Mục tiêu:** nối liền phần body với cụm tab như bản vẽ, đồng thời tạo luồng chờ lấy link dễ thương.
+- **Mục tiêu:** trả giao diện tab/body về bố cục cũ ổn định, đồng thời làm lại luồng popup đào link theo thao tác chủ động.
 - **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
-  - Bỏ khoảng cách tab/body; thêm một **cục nhô hồng nhỏ** nối tab đang chọn với body. Cục này dùng cùng chuyển động với indicator nên trượt qua đúng tab khi đổi Streams / Nút đã click / Lịch sử; không che tiêu đề trong body.
-  - Thêm popup SVG inline **mèo đang đào link** với dòng **"Đang đào link..."**, chờ tối đa khoảng **20 giây** để thu thập nguồn. Khi bắt được M3U8/MP4/MPD/WEBM/TS, popup chuyển sang **"Vào link ♡"**; người dùng có thể bấm ngay hoặc chờ ngắn.
-  - Popup bay lên phía trên, còn tab/body Streams cùng danh sách link trượt từ dưới lên. Popup phát hiện link cũ bị chặn tuyệt đối khi mèo đang đào (kể cả reload), nên không còn hai popup chồng nhau.
-  - Nếu hết thời gian mà chỉ có iframe, popup đào link tự dừng trước khi mở workflow iframe, tránh hai overlay chồng nhau.
+  - Gỡ cục nhô và CSS nối tab/body; **Streams / Nút đã click / Lịch sử** trở lại đúng bố cục tab cũ.
+  - Popup SVG **mèo đào link** lớn hơn, giữ nguyên trên màn hình (không tự bay/tự mất); có nút ✕ để người dùng tự ẩn nếu cần.
+  - Popup đào chờ khoảng **20 giây** để tìm iframe. Khi có M3U8/MP4/MPD/WEBM/TS hoặc tìm được iframe hợp lệ, nó hiện **"Vào link ♡"** và chờ người dùng bấm.
+  - Bấm **Vào link** ưu tiên popup video nếu có link trực tiếp; nếu chỉ có iframe thì mở popup iframe. Trong toàn bộ luồng này UI script được ẩn; chỉ hiện lại khi người dùng đóng/ẩn popup video, popup iframe hoặc popup đào.
+  - Popup phát hiện link cũ không thể mở chồng khi popup đào đang hoạt động.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

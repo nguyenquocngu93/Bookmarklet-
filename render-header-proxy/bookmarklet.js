@@ -3899,7 +3899,7 @@ style.textContent = `
 .uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;margin-top:16px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}
 .uvd-digging-overlay.uvd-dig-exit{pointer-events:none;animation:uvdDigOverlayOut .58s ease forwards}.uvd-digging-overlay.uvd-dig-exit .uvd-digging-box{animation:uvdDigBoxFlyUp .58s cubic-bezier(.45,0,.72,.22) forwards}
 .uvd-popup-from-digging{animation:uvdPopupRiseAfterDig .52s cubic-bezier(.22,1,.36,1) both!important}
-.uvd-media-popup-mascot,.uvd-iframe-popup-mascot,.uvd-play-intro-mascot,.uvd-player-moving-mascot{display:inline-flex;align-items:center;justify-content:center;transform-origin:center bottom;animation:uvdMascotHop 1.65s ease-in-out infinite}.uvd-media-popup-mascot svg,.uvd-iframe-popup-mascot svg,.uvd-play-intro-mascot svg,.uvd-player-moving-mascot svg{display:block;transform-origin:center;animation:uvdMascotWiggle 1.25s ease-in-out infinite}
+.uvd-media-popup-mascot,.uvd-iframe-popup-mascot,.uvd-play-intro-mascot,.uvd-player-moving-mascot{display:inline-flex;align-items:center;justify-content:center;transform-origin:center bottom;animation:uvdMascotHop 1.75s ease-in-out infinite;transform:scale(1.2)}.uvd-media-popup-mascot svg,.uvd-iframe-popup-mascot svg,.uvd-play-intro-mascot svg,.uvd-player-moving-mascot svg{display:block;transform-origin:center;animation:uvdMascotWiggle 1.35s ease-in-out infinite;width:100%;height:100%}
 .uvd-player-moving-mascot{width:46px;height:46px;flex:0 0 46px;margin-left:2px;filter:drop-shadow(0 4px 7px rgba(247,108,140,.2))}.uvd-player-moving-mascot svg{width:100%;height:100%}
 .uvd-dig-leg,.uvd-dig-shovel{transform-box:fill-box;transform-origin:center}.uvd-digging-overlay.uvd-dig-running{pointer-events:none}.uvd-digging-overlay.uvd-dig-running .uvd-dig-leg-left{animation:uvdDigLegLeft .17s ease-in-out infinite alternate}.uvd-digging-overlay.uvd-dig-running .uvd-dig-leg-right{animation:uvdDigLegRight .17s ease-in-out infinite alternate}.uvd-digging-overlay.uvd-dig-running .uvd-dig-shovel{animation:uvdDigShovel .21s ease-in-out infinite alternate}.uvd-digging-overlay.uvd-dig-running .uvd-dig-art{animation:uvdMascotHop .28s ease-in-out infinite alternate}
 @media (max-width:390px){.uvd-digging-box{min-height:450px;padding:25px 21px 23px;border-radius:34px}.uvd-dig-art{width:225px;height:212px}.uvd-dig-title{font-size:25px}.uvd-dig-sub{font-size:13px}}
@@ -3973,7 +3973,7 @@ style.textContent = `
 .uvd-farewell-mascots.uvd-farewell-big{gap:8px;min-height:160px;justify-content:center}
 .uvd-fm{width:56px;height:56px;display:inline-flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 6px 12px rgba(247,108,140,.22));animation:uvdMascotHop 1.9s ease-in-out infinite}
 .uvd-fm.uvd-fm-big{width:92px;height:92px;filter:drop-shadow(0 10px 20px rgba(247,108,140,.30))}
-.uvd-fm.uvd-fm-big-full{width:110px;height:140px;filter:drop-shadow(0 12px 20px rgba(247,108,140,.32));animation:uvdMascotHop 2s ease-in-out infinite}
+.uvd-fm.uvd-fm-big-full{width:140px;height:180px;filter:drop-shadow(0 14px 24px rgba(247,108,140,.34));animation:uvdMascotHop 2s ease-in-out infinite}
 .uvd-fm.uvd-fm-big-full svg{width:100%;height:100%;animation:uvdMascotWiggle 1.8s ease-in-out infinite}
 .uvd-fm svg{width:100%;height:100%;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
 .uvd-fm:nth-child(2){animation-delay:.14s}.uvd-fm:nth-child(3){animation-delay:.28s}
@@ -4557,7 +4557,7 @@ function __uvdStartDiggingPopup() {
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
       '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
-      '<div class="uvd-dig-art">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
+      '<div class="uvd-dig-art" style="width:300px;height:280px;transform:scale(1.15);">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
       '<div class="uvd-dig-kicker">mèo cào media</div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
@@ -4568,7 +4568,12 @@ function __uvdStartDiggingPopup() {
   var enter = overlay.querySelector('#__uvd_dig_enter__');
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
   var help = overlay.querySelector('#__uvd_dig_help__');
-  if (help) help.onclick = function(e){ e.stopPropagation(); if (typeof __uvdShowTutorialSlides === 'function') __uvdShowTutorialSlides(); };
+  if (help) help.onclick = function(e){ 
+    e.stopPropagation(); 
+    // An popup dao truoc khi mo tutorial, giu UI an de tutorial noi len tren
+    try { __uvdStopDiggingPopup(true); } catch(ex){}
+    if (typeof __uvdShowTutorialSlides === 'function') __uvdShowTutorialSlides();
+  };
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
   clearTimeout(flow.waitTimer);
@@ -4699,12 +4704,12 @@ function __uvdShowPlayIntro(url, type) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
     'background:rgba(28,14,40,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:uvdFadeIn .3s ease both;';
   var box = document.createElement('div');
-  box.style.cssText = 'text-align:center;padding:22px 26px;border-radius:34px;' +
+  box.style.cssText = 'text-align:center;padding:26px 28px;border-radius:36px;max-width:520px;width:100%;' +
     'background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 100%);border:1px solid rgba(194,150,255,.45);' +
-    'box-shadow:0 24px 60px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.4) inset;' +
-    'animation:uvdScaleIn .35s cubic-bezier(.22,1,.36,1) both;';
+    'box-shadow:0 28px 72px rgba(150,90,220,.44),0 0 0 6px rgba(255,255,255,.4) inset;' +
+    'animation:uvdScaleIn .38s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
-    '<div class="uvd-play-intro-mascot" style="line-height:0;transform:scale(1.1);">' + __uvdPlayIntroArt + '</div>' +
+    '<div class="uvd-play-intro-mascot" style="line-height:0;transform:scale(1.45);margin-bottom:8px;">' + __uvdPlayIntroArt + '</div>' +
     '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
     '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị link cho mấy cưng...</div>' +
     '<div style="font-size:12.5px;color:#8a6ab0;margin-top:2px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
@@ -4750,7 +4755,7 @@ function __uvdShowFarewellPopup(onConfirm) {
   var box = document.createElement('div');
   box.className = 'uvd-digging-box uvd-farewell-box';
   // To nhu popup dao link
-  box.style.cssText = 'width:100%;max-width:460px;min-height:520px;padding:26px 22px 22px;border-radius:34px;text-align:center;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 28px 70px rgba(150,90,220,.38),0 0 0 6px rgba(255,255,255,.42) inset;animation:uvdScaleIn .4s cubic-bezier(.22,1,.36,1) both;';
+  box.style.cssText = 'width:100%;max-width:540px;min-height:620px;padding:28px 24px 24px;border-radius:36px;text-align:center;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 32px 80px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.44) inset;animation:uvdScaleIn .44s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
     '<div class="uvd-farewell-art" style="width:280px;height:200px;margin:0 auto 14px;line-height:0;">' + __uvdGetFarewellMascotsHtml() + '</div>' +
     '<div class="uvd-farewell-kicker" style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;margin-bottom:6px;">mèo cào media</div>' +
@@ -4830,13 +4835,13 @@ function __uvdShowTutorialSlides() {
   overlay.id = '__uvd_tutorial__';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(28,14,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);animation:uvdFadeIn .3s ease both;';
   var box = document.createElement('div');
-  box.style.cssText = 'width:100%;max-width:460px;max-height:84vh;display:flex;flex-direction:column;border-radius:32px;overflow:hidden;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 28px 70px rgba(150,90,220,.38);animation:uvdScaleIn .4s cubic-bezier(.22,1,.36,1) both;';
+  box.style.cssText = 'width:100%;max-width:540px;max-height:86vh;display:flex;flex-direction:column;border-radius:34px;overflow:hidden;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 32px 80px rgba(150,90,220,.42);animation:uvdScaleIn .42s cubic-bezier(.22,1,.36,1) both;';
   var idx = 0;
   function render() {
     var slide = __uvdTutorialSlides[idx];
     box.innerHTML =
       '<div style="padding:18px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(150deg,#ffe9f3,#f3e6ff);border-bottom:1px solid rgba(255,159,180,.22)">' +
-        '<div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:56px;height:56px;flex:0 0 56px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;filter:drop-shadow(0 4px 10px rgba(247,108,140,.22))">' + slide.mascot + '</span>' +
+        '<div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:88px;height:88px;flex:0 0 88px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;filter:drop-shadow(0 8px 18px rgba(247,108,140,.28))">' + slide.mascot + '</span>' +
         '<div style="min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b68bea">' + slide.sub + '</div><div style="font-size:18px;font-weight:900;color:#d85c7a;line-height:1.2">' + slide.title + '</div></div></div>' +
         '<button id="__uvd_tut_close__" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,159,180,.18);color:#d85c7a;font-size:16px;cursor:pointer">✕</button>' +
       '</div>' +
@@ -4848,7 +4853,7 @@ function __uvdShowTutorialSlides() {
         '<div style="display:flex;gap:6px">' + __uvdTutorialSlides.map(function(_,i){return '<span style="width:8px;height:8px;border-radius:50%;background:' + (i===idx ? '#f76c8c' : 'rgba(255,159,180,.25)') + ';display:inline-block;transition:all .2s"></span>'}).join('') + '</div>' +
         '<div style="display:flex;gap:8px"><button id="__uvd_tut_prev__" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(255,159,180,.25);background:#fff;color:#d85c7a;font-weight:700;font-size:12px;cursor:pointer' + (idx===0 ? ';opacity:.4;pointer-events:none' : '') + '">← Trước</button><button id="__uvd_tut_next__" style="padding:10px 16px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.25)">' + (idx===__uvdTutorialSlides.length-1 ? 'Xong ♡' : 'Tiếp →') + '</button></div>' +
       '</div>';
-    box.querySelector('#__uvd_tut_close__').onclick = function(){ overlay.remove(); };
+    box.querySelector('#__uvd_tut_close__').onclick = function(){ try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(e){} };
     var prev = box.querySelector('#__uvd_tut_prev__');
     if (prev) prev.onclick = function(){ if(idx>0){idx--; render();} };
     var next = box.querySelector('#__uvd_tut_next__');
@@ -4858,7 +4863,7 @@ function __uvdShowTutorialSlides() {
   __uvdAppendRoot(overlay);
   try { (document.body||document.documentElement).appendChild(overlay); } catch(e){}
   overlay.style.zIndex='2147483647';
-  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay){ try{ overlay.remove(); }catch(ex){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(ex){} } });
   render();
 }
 
@@ -4912,10 +4917,10 @@ function __uvdOpenMediaLinksPopup(streams) {
     'background:rgba(28,14,40,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel' + (__uvdConsumeDiggingPopupHandoff() ? ' uvd-popup-from-digging' : '');
-  panel.style.cssText = 'width:100%;max-width:430px;margin:auto;text-align:center;border-radius:26px;overflow:hidden;' +
+  panel.style.cssText = 'width:100%;max-width:520px;margin:auto;text-align:center;border-radius:28px;overflow:hidden;' +
     'background:linear-gradient(160deg,#f8f4ff 0%,#f3ecff 45%,#fff0f8 100%);border:1px solid rgba(194,150,255,.4);' +
-    'box-shadow:0 24px 60px rgba(150,90,220,.32),0 0 0 6px rgba(255,255,255,.35) inset;' +
-    'animation:uvdScaleIn .32s cubic-bezier(.22,1,.36,1) both;';
+    'box-shadow:0 28px 72px rgba(150,90,220,.36),0 0 0 6px rgba(255,255,255,.35) inset;' +
+    'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   panel.innerHTML =
     '<div style="padding:16px 16px 2px;position:relative;">' +
       '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
@@ -4965,7 +4970,17 @@ function __uvdOpenMediaLinksPopup(streams) {
     row.appendChild(play);
     list.appendChild(row);
   });
-  function closeMedia() { __uvdMediaPopupDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
+  function closeMedia() { 
+    __uvdMediaPopupDismissedAt = Date.now(); 
+    try { overlay.remove(); } catch(e){}
+    __uvdPopupDismiss(); 
+    // Force restore UI - fix bug X khong hien lai UI
+    try {
+      __uvdRestoreUiAfterPopup();
+      var p = document.getElementById('__uvd__');
+      if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
+    } catch(e){}
+  }
   // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
   if (cancel) cancel.onclick = function() {
@@ -5039,10 +5054,10 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     'background:rgba(12,8,20,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel' + (__uvdConsumeDiggingPopupHandoff() ? ' uvd-popup-from-digging' : '');
-  panel.style.cssText = 'width:100%;max-width:420px;margin:auto;text-align:center;border-radius:26px;overflow:hidden;' +
+  panel.style.cssText = 'width:100%;max-width:520px;margin:auto;text-align:center;border-radius:28px;overflow:hidden;' +
     'background:linear-gradient(160deg,#fff6fa 0%,#fff0f5 45%,#fdf3ff 100%);border:1px solid rgba(255,159,180,.45);' +
-    'box-shadow:0 24px 60px rgba(232,120,143,.35),0 0 0 6px rgba(255,255,255,.35) inset;' +
-    'animation:uvdScaleIn .32s cubic-bezier(.22,1,.36,1) both;';
+    'box-shadow:0 28px 72px rgba(232,120,143,.38),0 0 0 6px rgba(255,255,255,.35) inset;' +
+    'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML =
     '<div style="padding:18px 18px 4px;position:relative;">' +
@@ -5096,7 +5111,16 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     row.appendChild(open);
     list.appendChild(row);
   });
-  function closeIframe() { __uvdIframeWorkflowDismissedAt = Date.now(); overlay.remove(); __uvdPopupDismiss(); }
+  function closeIframe() { 
+    __uvdIframeWorkflowDismissedAt = Date.now(); 
+    try { overlay.remove(); } catch(e){}
+    __uvdPopupDismiss();
+    try {
+      __uvdRestoreUiAfterPopup();
+      var p = document.getElementById('__uvd__');
+      if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
+    } catch(e){}
+  }
   // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
   var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
   if (cancel) cancel.onclick = function() {

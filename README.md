@@ -603,3 +603,13 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
     (rác) khuyên "Đừng bấm nha" + ẩn nút "↗ mở"** thay bằng dòng "🚫 Không nên mở — đây là rác".
   - Popup link cũng có dòng hướng dẫn theo loại.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js` = `bookmarkkk.js`; `git diff --check` sạch.
+
+### Patch #24 — Body liền tab + mèo đào link chuyển sang UI Streams — 2026-08-03
+
+- **Mục tiêu:** nối liền phần body với cụm tab như bản vẽ, đồng thời tạo luồng chờ lấy link dễ thương.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Bỏ khoảng cách tab/body; thêm một **cục nhô bo tròn** nối tab đang chọn với body. Cục này dùng cùng chuyển động với indicator nên trượt qua đúng tab khi đổi Streams / Nút đã click / Lịch sử.
+  - Thêm popup SVG inline **mèo đang đào link** với dòng **"Đang đào link..."**. Khi bắt được M3U8/MP4/MPD/WEBM/TS, popup chuyển sang **"Vào link ♡"**; người dùng có thể bấm ngay hoặc chờ ngắn.
+  - Popup bay lên phía trên, còn tab/body Streams cùng danh sách link trượt từ dưới lên. Popup link tự động cũ được nhường cho luồng đầu tiên này; bấm reload vẫn gọi popup link bình thường.
+  - Nếu hết thời gian mà chỉ có iframe, popup đào link tự dừng trước khi mở workflow iframe, tránh hai overlay chồng nhau.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

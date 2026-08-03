@@ -51,6 +51,8 @@ var old = document.getElementById('__uvd__');
 if (old) old.remove();
 var oldMinBtn = document.getElementById('__uvd_min_float__');
 if (oldMinBtn) oldMinBtn.remove();
+var oldDiggingPopup = document.getElementById('__uvd_digging_popup__');
+if (oldDiggingPopup) oldDiggingPopup.remove();
 
 // ========== STORAGE ==========
 // Keep userscript state completely separate from the bookmarklet state.
@@ -348,6 +350,33 @@ var urls = new Map();
 var __uvdPinnedMasters = new Set();
 var __uvdUrlSequence = 0;
 var __uvdMediaAccessTokens = [];
+// Intro flow: while UMP is collecting sources, a digging cat sits above the
+// panel. A newly discovered direct media URL promotes the popup to “Vào link”
+// and reveals the Streams UI from below.
+var __uvdDiggingFlow = {
+  active: false,
+  found: false,
+  completed: false,
+  released: false,
+  url: '',
+  type: '',
+  transitionTimer: null,
+  removeTimer: null
+};
+function __uvdIsDiggingDirectType(type) {
+  return ['M3U8', 'MP4', 'MPD', 'WEBM', 'TS'].indexOf(String(type || '').toUpperCase()) !== -1;
+}
+function __uvdMarkDiggingLinkFound(url, type) {
+  if (!__uvdIsDiggingDirectType(type)) return;
+  __uvdDiggingFlow.found = true;
+  __uvdDiggingFlow.url = url || __uvdDiggingFlow.url;
+  __uvdDiggingFlow.type = type || __uvdDiggingFlow.type;
+  // During initial synchronous scanning the UI does not exist yet. Once it
+  // does, redraw it before the reveal animation so the new card is already
+  // waiting underneath the popup.
+  if (document.getElementById('__uvd__') && typeof debouncedBuildUI === 'function') debouncedBuildUI();
+  if (__uvdDiggingFlow.active && typeof __uvdUpdateDiggingPopup === 'function') __uvdUpdateDiggingPopup();
+}
 function __uvdRememberAccessToken(url) {
   try {
     var parsed = new URL(url, location.href);
@@ -586,6 +615,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
     urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
+    __uvdMarkDiggingLinkFound(url, type);
     if (__uvdUserscriptFrameMode) {
       try {
         window.top.postMessage({ type: 'umpdl-iframe-media-found', url: url, mediaType: type, source: source || 'userscript-core', pageUrl: location.href }, '*');
@@ -3434,6 +3464,9 @@ style.textContent = `
 @keyframes uvdCardEnter{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
 @keyframes uvdLiquidDrift{0%{transform:translate(-6%,-4%) scale(1)}50%{transform:translate(4%,6%) scale(1.12)}100%{transform:translate(-6%,-4%) scale(1)}}
 @keyframes uvdFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes uvdDigDirt{0%,100%{transform:translateY(0) rotate(0);opacity:.52}50%{transform:translateY(-7px) rotate(12deg);opacity:1}}
+@keyframes uvdDigFlyUp{0%{opacity:1;transform:translate3d(0,0,0) scale(1)}100%{opacity:0;transform:translate3d(0,-118vh,0) scale(.92)}}
+@keyframes uvdLinkUiRise{from{opacity:0;transform:translate3d(0,76px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
 .uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(15,118,110,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
@@ -3779,6 +3812,25 @@ style.textContent = `
 .uvd-bubble-tname{font-size:16px;font-weight:850;color:#e84a72;line-height:1.1}
 .uvd-bubble-tsub{font-size:9px;color:#c9862a;font-weight:700}
 .uvd-bubble #__uvd_stream_list__{border-radius:20px}
+/* ===== TAB LIỀN BODY: cục nhô đi theo tab đang chọn ===== */
+.uvd-tabbar{margin:0!important;border-radius:24px 24px 0 0!important;z-index:5!important}
+.uvd-bubble-wrap{padding-top:0!important;margin-top:0!important;overflow:visible!important}
+.uvd-bubble{position:relative;z-index:1;border-radius:0 0 26px 26px!important;margin-top:-1px!important}
+.uvd-tab-body-bridge{position:absolute;top:-1px;left:0;width:0;height:25px;z-index:2;pointer-events:none;overflow:hidden;background:linear-gradient(180deg,#fffafd 0%,#fff 100%);border:2px solid #ff9fb4;border-top:0;border-radius:0 0 18px 18px;box-shadow:0 8px 15px rgba(247,108,140,.16),inset 0 1px 0 rgba(255,255,255,.9);transition:transform .46s cubic-bezier(.22,1,.36,1),width .46s cubic-bezier(.22,1,.36,1)}
+.uvd-tab-body-bridge::after{content:'';position:absolute;left:18%;right:18%;top:0;height:4px;border-radius:0 0 999px 999px;background:linear-gradient(90deg,#ff9fb4,#f76c8c);opacity:.9}
+.uvd-bubble-title,.uvd-bubble #__uvd_stream_list__{position:relative;z-index:3}
+/* The capture intro holds the link area below the fold until it finds media. */
+.uvd-link-ui-pending .uvd-tabbar,.uvd-link-ui-pending .uvd-bubble-wrap,.uvd-link-ui-pending .uvd-profile-footer{opacity:0!important;transform:translate3d(0,76px,0)!important;pointer-events:none!important}
+.uvd-link-ui-enter .uvd-tabbar{animation:uvdLinkUiRise .42s cubic-bezier(.22,1,.36,1) both}
+.uvd-link-ui-enter .uvd-bubble-wrap{animation:uvdLinkUiRise .52s .08s cubic-bezier(.22,1,.36,1) both}
+.uvd-link-ui-enter .uvd-profile-footer{animation:uvdLinkUiRise .38s .16s cubic-bezier(.22,1,.36,1) both}
+/* Popup con mèo đào link */
+.uvd-digging-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(45,22,47,.28);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);animation:uvdFadeIn .22s ease both}
+.uvd-digging-box{width:min(100%,330px);overflow:hidden;text-align:center;padding:19px 20px 17px;border:1px solid rgba(255,255,255,.82);border-radius:30px;background:linear-gradient(155deg,rgba(255,250,253,.98),rgba(255,231,242,.96) 54%,rgba(245,232,255,.97));box-shadow:0 22px 58px rgba(108,46,92,.33),0 0 0 6px rgba(255,255,255,.24) inset;transform:translateZ(0)}
+.uvd-dig-art{position:relative;width:172px;height:138px;margin:0 auto -4px;filter:drop-shadow(0 8px 10px rgba(222,100,140,.2))}
+.uvd-dig-art svg{width:100%;height:100%;display:block}.uvd-dig-dirt{position:absolute;font-size:14px;line-height:1;animation:uvdDigDirt .9s ease-in-out infinite}.uvd-dig-dirt:nth-child(1){left:20px;bottom:23px;animation-delay:.08s}.uvd-dig-dirt:nth-child(2){right:18px;bottom:33px;animation-delay:.33s}.uvd-dig-dirt:nth-child(3){right:40px;bottom:13px;animation-delay:.58s}
+.uvd-dig-kicker{font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#c95073}.uvd-dig-title{margin-top:5px;font-size:22px;font-weight:900;color:#d84972;line-height:1.15}.uvd-dig-sub{min-height:19px;margin:5px auto 0;color:#956077;font-size:12px;font-weight:650;line-height:1.45}.uvd-dig-enter-btn{display:block;width:100%;max-height:0;margin-top:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:14px;background:linear-gradient(135deg,#ff91ae,#ef6689);color:#fff;font-size:14px;font-weight:850;box-shadow:0 7px 15px rgba(231,83,127,.28);transition:max-height .28s ease,margin .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-enter-btn:active{transform:scale(.97)}
+.uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:48px;margin-top:13px;padding:11px 14px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}.uvd-digging-overlay.uvd-dig-exit{pointer-events:none;animation:uvdDigFlyUp .56s cubic-bezier(.45,0,.7,.2) forwards}
 
 
 
@@ -4295,6 +4347,121 @@ var __uvdPlayIntroArt =
     '<path d="M246 176 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#ffd6e4"/>' +
   '</svg>';
 
+// Popup đầu phiên: mèo đang đào link. SVG inline để vẫn chạy được ở site
+// chặn ảnh/CDN bên ngoài.
+var __uvdDiggingCatArt =
+  '<svg viewBox="0 0 180 145" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="91" cy="130" rx="76" ry="12" fill="#f3cbd8" opacity=".62"/>' +
+    '<path d="M144 122 L161 46" stroke="#c68a63" stroke-width="7" stroke-linecap="round"/>' +
+    '<path d="M157 48 L168 38" stroke="#c68a63" stroke-width="7" stroke-linecap="round"/>' +
+    '<path d="M151 57 L171 63" stroke="#c68a63" stroke-width="6" stroke-linecap="round"/>' +
+    '<path d="M137 123 Q151 113 166 122 L160 136 Q147 140 135 131 Z" fill="#a9765a"/>' +
+    '<path d="M22 120 Q30 102 56 108 Q69 95 88 108 Q106 96 126 110 Q151 102 158 124 Q143 136 119 132 Q96 140 74 133 Q43 138 22 120 Z" fill="#c98c66"/>' +
+    '<ellipse cx="91" cy="100" rx="47" ry="35" fill="#ffe4ed"/>' +
+    '<path d="M54 84 L43 49 L75 73 Z" fill="#ffb4c9"/><path d="M128 84 L140 49 L107 73 Z" fill="#ffb4c9"/>' +
+    '<path d="M54 82 L48 57 L69 74 Z" fill="#f582a3"/><path d="M128 82 L134 57 L113 74 Z" fill="#f582a3"/>' +
+    '<ellipse cx="69" cy="97" rx="7" ry="8" fill="#503645"/><ellipse cx="111" cy="97" rx="7" ry="8" fill="#503645"/>' +
+    '<circle cx="71" cy="95" r="2.4" fill="#fff"/><circle cx="113" cy="95" r="2.4" fill="#fff"/>' +
+    '<ellipse cx="90" cy="108" rx="4.5" ry="4" fill="#ef7996"/><path d="M90 112 q-5 6 -10 0 M90 112 q5 6 10 0" stroke="#503645" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
+    '<ellipse cx="57" cy="108" rx="8" ry="4.7" fill="#ffb8cc" opacity=".8"/><ellipse cx="123" cy="108" rx="8" ry="4.7" fill="#ffb8cc" opacity=".8"/>' +
+    '<path d="M49 119 Q65 106 77 121 Q68 131 52 129 Z" fill="#ffe4ed"/><path d="M104 121 Q118 106 133 119 L130 130 Q113 131 104 121 Z" fill="#ffe4ed"/>' +
+    '<path d="M58 124 L72 116" stroke="#ef7996" stroke-width="3" stroke-linecap="round"/><path d="M110 122 L130 111" stroke="#ef7996" stroke-width="3" stroke-linecap="round"/>' +
+    '<path d="M24 61 l3 7 7 3 -7 3 -3 7 -3-7-7-3 7-3 Z" fill="#f4b7d8"/><path d="M150 83 l3 7 7 3 -7 3 -3 7 -3-7-7-3 7-3 Z" fill="#d7b5f3"/>' +
+  '</svg>';
+
+function __uvdSetLinkUiPending(pending, animateIn) {
+  var panel = document.getElementById('__uvd__');
+  if (!panel) return;
+  panel.classList.toggle('uvd-link-ui-pending', !!pending);
+  if (animateIn) {
+    panel.classList.remove('uvd-link-ui-enter');
+    // Reflow lets a second discovery in the same document replay cleanly.
+    void panel.offsetWidth;
+    panel.classList.add('uvd-link-ui-enter');
+    setTimeout(function() { if (panel && panel.isConnected) panel.classList.remove('uvd-link-ui-enter'); }, 760);
+  }
+}
+function __uvdStartDiggingPopup() {
+  var flow = __uvdDiggingFlow;
+  if (flow.active || flow.completed || playerState.overlay) return;
+  if (document.getElementById('__uvd_iframe_workflow_prompt__') || document.getElementById('__uvd_media_links_prompt__')) return;
+  flow.active = true;
+  flow.released = false;
+  // It is normal for initial DOM/performance scanning to finish before the UI
+  // gets mounted. Preserve that result and immediately move to the success
+  // state once the cat popup is visible.
+  if (!flow.found) {
+    urls.forEach(function(item, url) {
+      if (!flow.found && item && __uvdIsDiggingDirectType(item.type)) {
+        flow.found = true;
+        flow.url = url;
+        flow.type = item.type;
+      }
+    });
+  }
+  __uvdSetLinkUiPending(true, false);
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_digging_popup__';
+  overlay.className = 'uvd-digging-overlay';
+  overlay.innerHTML =
+    '<div class="uvd-digging-box" role="status" aria-live="polite">' +
+      '<div class="uvd-dig-art">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
+      '<div class="uvd-dig-kicker">mèo cào media</div>' +
+      '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
+      '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo đang moi từng góc cho cưng nè ♡</div>' +
+      '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
+    '</div>';
+  __uvdAppendRoot(overlay);
+  var enter = overlay.querySelector('#__uvd_dig_enter__');
+  if (enter) enter.onclick = function() { __uvdReleaseDiggingPopup(); };
+  if (flow.found) setTimeout(__uvdUpdateDiggingPopup, 180);
+}
+function __uvdUpdateDiggingPopup() {
+  var flow = __uvdDiggingFlow;
+  if (!flow.active || !flow.found) return;
+  var overlay = document.getElementById('__uvd_digging_popup__');
+  if (!overlay) return;
+  clearTimeout(flow.transitionTimer);
+  overlay.classList.add('uvd-dig-found');
+  var title = overlay.querySelector('#__uvd_dig_title__');
+  var sub = overlay.querySelector('#__uvd_dig_sub__');
+  if (title) title.textContent = 'Vào link ♡';
+  if (sub) sub.textContent = 'Đào được link video rồi nè, mở lên thôi!';
+  // Keep “Vào link” readable briefly, then send the popup up and let the
+  // waiting Streams interface rise into view. The button can skip the wait.
+  flow.transitionTimer = setTimeout(__uvdReleaseDiggingPopup, 1150);
+}
+function __uvdReleaseDiggingPopup() {
+  var flow = __uvdDiggingFlow;
+  if (!flow.active) return;
+  clearTimeout(flow.transitionTimer);
+  flow.transitionTimer = null;
+  flow.active = false;
+  flow.released = true;
+  flow.completed = true;
+  var overlay = document.getElementById('__uvd_digging_popup__');
+  if (overlay) {
+    overlay.classList.add('uvd-dig-exit');
+    clearTimeout(flow.removeTimer);
+    flow.removeTimer = setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 620);
+  }
+  __uvdSetLinkUiPending(false, true);
+}
+function __uvdStopDiggingPopup() {
+  var flow = __uvdDiggingFlow;
+  clearTimeout(flow.transitionTimer);
+  clearTimeout(flow.removeTimer);
+  flow.transitionTimer = null;
+  flow.removeTimer = null;
+  if (!flow.active && !document.getElementById('__uvd_digging_popup__')) return;
+  flow.active = false;
+  flow.released = true;
+  flow.completed = true;
+  var overlay = document.getElementById('__uvd_digging_popup__');
+  if (overlay) overlay.remove();
+  __uvdSetLinkUiPending(false, false);
+}
+
 var __uvdMediaPopupShown = false;
 var __uvdMediaPopupDismissedAt = 0;
 // Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
@@ -4465,6 +4632,10 @@ function __uvdIsDemoStream(entry) {
   return false;
 }
 function __uvdMaybeOfferMediaPopup(force) {
+  // The first captured link is presented by the digging cat intro and the
+  // Streams body rising from below. Manual/reload requests may still open the
+  // normal link popup afterwards.
+  if (!force && (__uvdDiggingFlow.active || __uvdDiggingFlow.completed)) return;
   var direct = __uvdHasRealDirectStreams();
   if (!direct.length) return;
   if (playerState.overlay) return;
@@ -4487,6 +4658,9 @@ function __uvdMaybeOfferMediaPopup(force) {
 }
 
 function __uvdOpenIframeWorkflowPrompt(candidates) {
+  // The iframe helper replaces the initial digging state when no direct link
+  // has appeared; do not leave two overlays competing for the screen.
+  __uvdStopDiggingPopup();
   var old = document.getElementById('__uvd_iframe_workflow_prompt__');
   if (old) old.remove();
   // Hide the UMP panel so this popup is never covered by the UI.
@@ -4844,12 +5018,27 @@ function buildUI() {
     var width = btn.offsetWidth;
     indicator.style.width = width + 'px';
     indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
+    // Body and tab are physically connected: keep the rounded “cục nhô”
+    // centered under the active tab, then let CSS glide it to the next tab.
+    var bridge = document.getElementById('__uvd_tab_body_bridge__');
+    if (bridge) {
+      var inset = Math.min(12, Math.max(5, Math.round(width * 0.1)));
+      bridge.style.width = Math.max(48, width - inset * 2) + 'px';
+      bridge.style.transform = 'translateX(' + (btn.offsetLeft + inset) + 'px)';
+    }
     if (btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
 
   // Bong bóng comic: mũi tên chĩa lên tab active, nội dung tab nằm trong bong bóng
   var bubbleWrap = document.createElement('div');
   bubbleWrap.className = 'uvd-bubble-wrap';
+  // This is the soft raised connector drawn between the active tab and body.
+  // Its horizontal position is updated together with the tab indicator.
+  var tabBodyBridge = document.createElement('div');
+  tabBodyBridge.id = '__uvd_tab_body_bridge__';
+  tabBodyBridge.className = 'uvd-tab-body-bridge';
+  tabBodyBridge.setAttribute('aria-hidden', 'true');
+  bubbleWrap.appendChild(tabBodyBridge);
   var contentWrapper = document.createElement('div');
   contentWrapper.className = 'uvd-scroll uvd-bubble';
   contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;display:flex;flex-direction:column;';
@@ -4890,6 +5079,7 @@ function buildUI() {
   __uvdIsolateLayer(panel);
   applyEffectsPref(panel);
   applyMotionPref(panel);
+  if (__uvdDiggingFlow.active && !__uvdDiggingFlow.released) panel.classList.add('uvd-link-ui-pending');
   if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdShowRestoreBtn(); }
   else { __uvdRemoveRestoreBtn(); }
   // Nếu có popup đang mở, giữ panel ẩn để không đè lên popup (kể cả sau khi rebuild).
@@ -6296,6 +6486,7 @@ function __uvdStartUserscriptUi() {
   if (document.getElementById('__uvd__')) return;
   window.__uvdBootPhase = 'build-ui';
   buildUI();
+  setTimeout(function() { __uvdStartDiggingPopup(); }, 140);
   setTimeout(__uvdSyncLoad, 350);
   if (__uvdUserscriptMode) setTimeout(function() { __uvdSetHidden(true); }, 0);
 }

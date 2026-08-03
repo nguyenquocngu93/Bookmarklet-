@@ -626,11 +626,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Mỗi bảng là card pastel riêng, có hai bàn chân ôm bảng và hiệu ứng nhún/lắc nhẹ; màu bảng theo từng con thú.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
 
-### Patch #26 — Cầu nối mềm giữa tab active và body — 2026-08-03
+### Patch #26 — Hoàn tác cầu tab + đồng bộ Lịch sử an toàn — 2026-08-03
 
-- **Mục tiêu:** chỉnh lại cảm giác tab/body mà không quay về cục nhô lớn che tiêu đề.
+- **Mục tiêu:** bỏ cầu hồng dưới tab vì chưa đúng ý, đồng thời sửa Lịch sử không đồng bộ đầy đủ giữa thiết bị.
 - **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
-  - Giữ body bo góc và bố cục tab cũ.
-  - Thu hẹp khoảng cách giữa tabbar và body còn 8px.
-  - Thêm một **dải hồng nhỏ** nằm hoàn toàn trong khoảng hở dưới tab active; dải trượt theo Streams / Nút đã click / Lịch sử, không chạm hoặc che nội dung body.
+  - Hoàn tác hoàn toàn dải nối tab/body; tab và body trở về bố cục ổn định trước đó.
+  - Video bấm **Xem** trong popup video và iframe bấm **Mở + Copy** giờ đều được ghi ngay vào Lịch sử.
+  - Khi đồng bộ, Lịch sử từ máy hiện tại và cloud được **gộp theo URL + thời gian** (tối đa 50 mục), không còn ghi đè nguyên mảng khiến mất video từ thiết bị khác.
+  - Nút **Đồng bộ ngay** giờ upload tức thời sau khi gộp lịch sử và báo kết quả rõ ràng.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

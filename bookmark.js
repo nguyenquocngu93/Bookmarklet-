@@ -163,6 +163,32 @@ if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
 
 // ========== CLOUD SYNC ==========
 var __uvdSyncTimer = null;
+// Keep history from every device. The previous whole-array replacement could
+// erase a newly watched item when another device uploaded a stale payload.
+function __uvdMergeHistory(localList, remoteList) {
+  var byUrl = {};
+  function add(item) {
+    if (!item || !item.url) return;
+    var key = String(item.url);
+    var current = byUrl[key];
+    if (!current) { byUrl[key] = Object.assign({}, item); return; }
+    var incomingTime = Number(item.timestamp) || 0;
+    var currentTime = Number(current.timestamp) || 0;
+    // Keep fields (thumbnail/resolution/title) accumulated on either device,
+    // while the most recently watched record wins conflicting values.
+    byUrl[key] = incomingTime >= currentTime
+      ? Object.assign({}, current, item)
+      : Object.assign({}, item, current);
+  }
+  (Array.isArray(remoteList) ? remoteList : []).forEach(add);
+  (Array.isArray(localList) ? localList : []).forEach(add);
+  return Object.keys(byUrl).map(function(key) { return byUrl[key]; })
+    .sort(function(a, b) { return (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0); })
+    .slice(0, 50);
+}
+function __uvdPersistLocalOnly() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
 function __uvdSyncPayload() {
   var settings = Object.assign({}, data.settings);
   delete settings.headerProxyKey;
@@ -171,21 +197,43 @@ function __uvdSyncPayload() {
     settings: settings,
     siteProfiles: data.siteProfiles,
     filterlist: data.filterlist,
-    history: data.history,
+    history: __uvdMergeHistory(data.history, []),
     favorites: data.favorites,
     userVotes: data.userVotes,
     learnedHosts: data.learnedHosts,
     learnedVideos: data.learnedVideos
   };
 }
+function __uvdSyncUploadMerged() {
+  if (!data || !data.settings || !data.settings.syncProfileId) return Promise.resolve(false);
+  var syncUrl = RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId);
+  function upload() {
+    return fetch(syncUrl, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
+    }).then(function(r) { return r.ok; });
+  }
+  // Read first, merge histories, then write the combined payload. This makes
+  // concurrent device usage additive rather than last-write-wins for history.
+  return fetch(syncUrl, { cache: 'no-store' })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(remote) {
+      if (remote && remote.payload && Array.isArray(remote.payload.history)) {
+        data.history = __uvdMergeHistory(data.history, remote.payload.history);
+        __uvdPersistLocalOnly();
+      }
+      return upload();
+    })
+    .catch(function() { return upload().catch(function() { return false; }); });
+}
 function __uvdSyncSchedule() {
   if (!data || !data.settings || !data.settings.syncProfileId) return;
   clearTimeout(__uvdSyncTimer);
-  __uvdSyncTimer = setTimeout(function() {
-    fetch(RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
-    }).catch(function() {});
-  }, 1500);
+  __uvdSyncTimer = setTimeout(function() { __uvdSyncUploadMerged().catch(function() {}); }, 1500);
+}
+function __uvdSyncNow() {
+  if (!data.settings.syncProfileId) __uvdCreateSyncProfileId();
+  clearTimeout(__uvdSyncTimer);
+  return __uvdSyncUploadMerged();
 }
 function __uvdSyncLoad() {
   if (!data.settings.syncProfileId) return;
@@ -197,7 +245,7 @@ function __uvdSyncLoad() {
       if (payload.settings) data.settings = Object.assign({}, data.settings, payload.settings, { syncProfileId: data.settings.syncProfileId });
       if (payload.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, payload.siteProfiles);
       if (Array.isArray(payload.filterlist)) data.filterlist = payload.filterlist.slice();
-      if (Array.isArray(payload.history)) data.history = payload.history;
+      if (Array.isArray(payload.history)) data.history = __uvdMergeHistory(data.history, payload.history);
       if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
       if (payload.userVotes) data.userVotes = Object.assign({}, data.userVotes, payload.userVotes);
       if (payload.learnedHosts) data.learnedHosts = Object.assign({}, data.learnedHosts || {}, payload.learnedHosts);
@@ -3833,8 +3881,6 @@ style.textContent = `
 .uvd-bubble-tname{font-size:16px;font-weight:850;color:#e84a72;line-height:1.1}
 .uvd-bubble-tsub{font-size:9px;color:#c9862a;font-weight:700}
 .uvd-bubble #__uvd_stream_list__{border-radius:20px}
-/* Cầu nối mềm: chỉ nối nhẹ tab active với body, không che nội dung body. */
-.uvd-tabbar{margin-bottom:8px!important;z-index:3!important}.uvd-bubble-wrap{overflow:visible!important}.uvd-tab-soft-bridge{position:absolute;top:-8px;left:0;width:0;height:8px;z-index:0;pointer-events:none;border-radius:0 0 12px 12px;background:linear-gradient(180deg,#ff9fb4,#f76c8c);box-shadow:0 5px 9px rgba(247,108,140,.22);transition:transform .42s cubic-bezier(.22,1,.36,1),width .42s cubic-bezier(.22,1,.36,1)}
 /* Popup con mèo đào link */
 .uvd-digging-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(45,22,47,.42);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);animation:uvdFadeIn .22s ease both}
 .uvd-digging-box{position:relative;width:min(100%,430px);min-height:490px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:30px 27px 27px;border:1px solid rgba(255,255,255,.9);border-radius:40px;background:linear-gradient(155deg,rgba(255,250,253,.99),rgba(255,231,242,.98) 54%,rgba(245,232,255,.98));box-shadow:0 30px 76px rgba(108,46,92,.44),0 0 0 7px rgba(255,255,255,.25) inset;transform:translateZ(0)}
@@ -4692,6 +4738,7 @@ function __uvdOpenMediaLinksPopup(streams) {
     play.textContent = '▶ Xem';
     play.onclick = function() {
       var url = stream.url, type = stream.type || 'MP4';
+      addToHistory(url, type);
       overlay.remove(); __uvdPopupDismiss();
       setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
     };
@@ -4812,6 +4859,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       copy(BOOKMARKLET_NAME);
       // Self-learn: the user opened this iframe believing it is the player.
       __uvdLearnIframe(__uvdMediaHostOf(candidate.url), 'PLAYER');
+      addToHistory(candidate.url, 'IFRAME');
       window.__uvdSafeOpen(candidate.url);
       overlay.remove();
       // Popup is gone now, so restore the script UI as promised.
@@ -5124,24 +5172,12 @@ function buildUI() {
     var width = btn.offsetWidth;
     indicator.style.width = width + 'px';
     indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
-    // A small pink bridge fills only the gap under the selected tab.
-    var bridge = document.getElementById('__uvd_tab_soft_bridge__');
-    if (bridge) {
-      var bridgeWidth = Math.max(34, Math.min(58, Math.round(width * 0.46)));
-      bridge.style.width = bridgeWidth + 'px';
-      bridge.style.transform = 'translateX(' + (btn.offsetLeft + (width - bridgeWidth) / 2) + 'px)';
-    }
     if (btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
 
   // Bong bóng comic: nội dung tab nằm trong bong bóng.
   var bubbleWrap = document.createElement('div');
   bubbleWrap.className = 'uvd-bubble-wrap';
-  var tabSoftBridge = document.createElement('div');
-  tabSoftBridge.id = '__uvd_tab_soft_bridge__';
-  tabSoftBridge.className = 'uvd-tab-soft-bridge';
-  tabSoftBridge.setAttribute('aria-hidden', 'true');
-  bubbleWrap.appendChild(tabSoftBridge);
   var contentWrapper = document.createElement('div');
   contentWrapper.className = 'uvd-scroll uvd-bubble';
   contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;display:flex;flex-direction:column;';
@@ -6554,7 +6590,12 @@ function renderSettings(container) {
   var syncCreate = document.getElementById('__uvd_sync_create__');
   if (syncCreate) syncCreate.onclick = function() { var id = __uvdCreateSyncProfileId(); if (syncInput) syncInput.value = id; toast('Đã tạo profile: ' + id); };
   var syncNow = document.getElementById('__uvd_sync_now__');
-  if (syncNow) syncNow.onclick = function() { if (!data.settings.syncProfileId) __uvdCreateSyncProfileId(); __uvdSyncSchedule(); toast('☁ Đang đồng bộ...'); };
+  if (syncNow) syncNow.onclick = function() {
+    toast('☁ Đang gộp lịch sử và đồng bộ...');
+    __uvdSyncNow().then(function(ok) {
+      toast(ok ? '☁ Đã đồng bộ lịch sử' : 'Không thể đồng bộ lúc này, sẽ thử lại khi có thay đổi tiếp theo');
+    }).catch(function() { toast('Không thể đồng bộ lúc này'); });
+  };
 
   document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {
     var isOn = this.classList.toggle('uvd-toggle-on');

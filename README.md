@@ -644,3 +644,14 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Avatar `NQ` được thay bằng mèo mascot pastel có trái tim nhỏ, nhún/lắc nhẹ.
   - Phần giới thiệu đổi thành mô tả: thích mày mò, mê UI cute, chăm chút từng trải nghiệm; thêm các trait pill dễ thương thay cho tag kỹ thuật.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #28 — Fix trùng mascot Setting+Player + thêm panda/raccoon/hamster + animation + fix nút Mở ngay — 2026-08-03
+
+- **Mục tiêu (làm theo ý ní):** popup giữ nguyên vì đã đẹp độc đáo, chỉ fix phần Setting + Player bị trùng + icon xấu.
+  1. **Nút "Mở ngay"**: bỏ icon ▶ xanh xấu (emoji), đổi thành `Mở ngay ♡` + letter-spacing .2px.
+  2. **Thêm 3 mascot mới phong phú:** gấu trúc 🐼 (`__uvdTabMascotPanda` - tai wiggle), gấu mèo 🦝 (`__uvdTabMascotRaccoon` - đuôi wag), hamster 🐹 (`__uvdTabMascotHamster` - má pop).
+  3. **Tabs:** Streams = panda `gấu trúc tìm link 🎋`, Nút đã click = raccoon `gấu mèo mò nút 🦝`, Lịch sử = hamster `hamster giữ hạt 🐹` — không còn trùng cat/bear/rabbit.
+  4. **Settings:** Cài đặt Bookmarklet = panda, Hướng dẫn sử dụng = hamster, Tải với Termux = raccoon — footer bear giữ riêng, header cat giữ riêng brand.
+  5. **Player:** header đổi từ mèo sang hamster `Hamster mở video nè ♡` + animation cheek pop.
+  6. **Animation mới:** `uvdPandaEarWiggle`, `uvdHamsterPop`, `uvdRaccoonTailWag`, `uvdPawTap`, `uvdBoardFloat`; CSS cho `.uvd-settings-sign-panda/raccoon/hamster`, `.uvd-panda-ear`, `.uvd-raccoon-tail`, `.uvd-hamster-cheek`, `.uvd-bubble-tmascot`.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

@@ -611,6 +611,7 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Gỡ cục nhô và CSS nối tab/body; **Streams / Nút đã click / Lịch sử** trở lại đúng bố cục tab cũ.
   - Popup SVG được làm **cao và to hơn**, minh hoạ một **con mèo béo cầm xẻng đào đất** theo tông pastel cute; popup giữ nguyên trên màn hình (không tự bay/tự mất) và có nút ✕ để người dùng tự ẩn nếu cần.
   - Popup đào chờ khoảng **20 giây** để tìm iframe. Khi có M3U8/MP4/MPD/WEBM/TS hoặc tìm được iframe hợp lệ, nó hiện **"Vào link ♡"** và chờ người dùng bấm.
-  - Bấm **Vào link** ưu tiên popup video nếu có link trực tiếp; nếu chỉ có iframe thì mở popup iframe. Popup mèo đào **bay vọt lên trên màn hình rồi biến mất**, kế tiếp popup video/iframe **trượt từ dưới lên**. Trong toàn bộ luồng này UI script được ẩn; chỉ hiện lại khi người dùng đóng/ẩn popup video, popup iframe hoặc popup đào.
+  - Bấm **Vào link**: mèo đào chạy chân và vung xẻng một nhịp ngắn, rồi popup mèo **bay vọt lên trên màn hình rồi biến mất**. Kế tiếp popup video (ưu tiên nếu có link trực tiếp) hoặc popup iframe **trượt từ dưới lên**.
+  - Mascot ở popup video, popup iframe, popup mở video và header video player đều có chuyển động nhún/lắc nhỏ để giữ phong cách cute. UI script vẫn ẩn trong toàn bộ luồng và chỉ hiện lại khi người dùng đóng/ẩn popup.
   - Popup phát hiện link cũ không thể mở chồng khi popup đào đang hoạt động.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

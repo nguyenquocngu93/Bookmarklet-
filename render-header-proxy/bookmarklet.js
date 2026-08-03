@@ -363,6 +363,7 @@ var __uvdDiggingFlow = {
   type: '',
   transitionTimer: null,
   waitTimer: null,
+  runTimer: null,
   removeTimer: null
 };
 // One-shot handoff flag: target popups use it to rise from below immediately
@@ -2773,7 +2774,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
   playerHeaderTitle.style.cssText = '';
-  playerHeaderTitle.innerHTML = '<div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>Mèo cào media · dễ thương</span></small></div>';
+  playerHeaderTitle.innerHTML = '<span class="uvd-player-moving-mascot">' + __uvdHeaderMascot + '</span><div class="uvd-player-title-copy"><strong>Đã tìm được video, giờ phát nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>Mèo cào media · dễ thương</span></small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
   sheetHeader.appendChild(menuBtn);
@@ -3482,6 +3483,11 @@ style.textContent = `
 @keyframes uvdDigOverlayOut{from{opacity:1}to{opacity:0}}
 @keyframes uvdDigBoxFlyUp{from{opacity:1;transform:translate3d(0,0,0) scale(1)}to{opacity:0;transform:translate3d(0,-120vh,0) scale(.9)}}
 @keyframes uvdPopupRiseAfterDig{from{opacity:0;transform:translate3d(0,96px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes uvdMascotHop{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(-2deg)}}
+@keyframes uvdMascotWiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(4deg)}}
+@keyframes uvdDigLegLeft{from{transform:translateY(0) rotate(10deg)}to{transform:translateY(7px) rotate(-15deg)}}
+@keyframes uvdDigLegRight{from{transform:translateY(6px) rotate(-10deg)}to{transform:translateY(0) rotate(15deg)}}
+@keyframes uvdDigShovel{from{transform:rotate(-5deg) translateY(0)}to{transform:rotate(7deg) translateY(8px)}}
 .uvd-scope,.uvd-scope *{box-sizing:border-box}
 .uvd-glass-card,.uvd-glass-panel,.uvd-settings-sheet:not(.uvd-player-sheet),.uvd-card{position:relative;background:var(--glass);backdrop-filter:blur(var(--uvd-blur)) saturate(135%);-webkit-backdrop-filter:blur(var(--uvd-blur)) saturate(135%);border:1px solid var(--border);color:var(--text);box-shadow:0 12px 32px rgba(15,118,110,.12),0 0 0 1px rgba(255,255,255,.12) inset,0 1px 0 rgba(255,255,255,.62) inset;transition:backdrop-filter var(--uvd-transition),background var(--uvd-transition),border-color var(--uvd-transition),box-shadow var(--uvd-transition)}
 .uvd-glass-panel{border-radius:var(--radius-lg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-size:var(--fs-base);padding:16px;width:100%;position:relative;overflow:hidden;max-width:1000px;margin:auto}
@@ -3837,6 +3843,9 @@ style.textContent = `
 .uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;margin-top:16px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}
 .uvd-digging-overlay.uvd-dig-exit{pointer-events:none;animation:uvdDigOverlayOut .58s ease forwards}.uvd-digging-overlay.uvd-dig-exit .uvd-digging-box{animation:uvdDigBoxFlyUp .58s cubic-bezier(.45,0,.72,.22) forwards}
 .uvd-popup-from-digging{animation:uvdPopupRiseAfterDig .52s cubic-bezier(.22,1,.36,1) both!important}
+.uvd-media-popup-mascot,.uvd-iframe-popup-mascot,.uvd-play-intro-mascot,.uvd-player-moving-mascot{display:inline-flex;align-items:center;justify-content:center;transform-origin:center bottom;animation:uvdMascotHop 1.65s ease-in-out infinite}.uvd-media-popup-mascot svg,.uvd-iframe-popup-mascot svg,.uvd-play-intro-mascot svg,.uvd-player-moving-mascot svg{display:block;transform-origin:center;animation:uvdMascotWiggle 1.25s ease-in-out infinite}
+.uvd-player-moving-mascot{width:46px;height:46px;flex:0 0 46px;margin-left:2px;filter:drop-shadow(0 4px 7px rgba(247,108,140,.2))}.uvd-player-moving-mascot svg{width:100%;height:100%}
+.uvd-dig-leg,.uvd-dig-shovel{transform-box:fill-box;transform-origin:center}.uvd-digging-overlay.uvd-dig-running{pointer-events:none}.uvd-digging-overlay.uvd-dig-running .uvd-dig-leg-left{animation:uvdDigLegLeft .17s ease-in-out infinite alternate}.uvd-digging-overlay.uvd-dig-running .uvd-dig-leg-right{animation:uvdDigLegRight .17s ease-in-out infinite alternate}.uvd-digging-overlay.uvd-dig-running .uvd-dig-shovel{animation:uvdDigShovel .21s ease-in-out infinite alternate}.uvd-digging-overlay.uvd-dig-running .uvd-dig-art{animation:uvdMascotHop .28s ease-in-out infinite alternate}
 @media (max-width:390px){.uvd-digging-box{min-height:450px;padding:25px 21px 23px;border-radius:34px}.uvd-dig-art{width:225px;height:212px}.uvd-dig-title{font-size:25px}.uvd-dig-sub{font-size:13px}}
 
 
@@ -4361,9 +4370,7 @@ var __uvdDiggingCatArt =
     '<ellipse cx="130" cy="230" rx="105" ry="14" fill="#e9bfd0" opacity=".6"/>' +
     '<path d="M30 210 Q44 185 72 197 Q86 177 112 194 Q133 178 154 194 Q180 180 198 200 Q224 190 236 214 Q208 233 170 224 Q132 239 94 225 Q57 234 30 210 Z" fill="#c98a62"/>' +
     '<path d="M36 210 Q65 198 86 212 M165 211 Q194 197 222 211" stroke="#a96f52" stroke-width="4" stroke-linecap="round" opacity=".55"/>' +
-    '<path d="M190 198 L207 65" stroke="#b57958" stroke-width="9" stroke-linecap="round"/>' +
-    '<path d="M202 69 Q216 51 231 67" stroke="#b57958" stroke-width="9" stroke-linecap="round" fill="none"/>' +
-    '<path d="M180 199 Q198 187 218 201 L212 222 Q194 228 178 212 Z" fill="#9c654d" stroke="#85513e" stroke-width="3"/>' +
+    '<g class="uvd-dig-shovel"><path d="M190 198 L207 65" stroke="#b57958" stroke-width="9" stroke-linecap="round"/><path d="M202 69 Q216 51 231 67" stroke="#b57958" stroke-width="9" stroke-linecap="round" fill="none"/><path d="M180 199 Q198 187 218 201 L212 222 Q194 228 178 212 Z" fill="#9c654d" stroke="#85513e" stroke-width="3"/></g>' +
     '<path d="M67 180 Q31 173 38 140 Q48 126 67 140" stroke="#ffabc3" stroke-width="15" stroke-linecap="round" fill="none"/>' +
     '<ellipse cx="127" cy="151" rx="76" ry="68" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3"/>' +
     '<path d="M69 111 L55 58 L100 91 Z" fill="#ffb4c9" stroke="#f6abc2" stroke-width="3"/>' +
@@ -4374,9 +4381,9 @@ var __uvdDiggingCatArt =
     '<circle cx="101" cy="136" r="3.2" fill="#fff"/><circle cx="159" cy="136" r="3.2" fill="#fff"/>' +
     '<ellipse cx="127" cy="153" rx="6" ry="5" fill="#ed7797"/><path d="M127 158 q-8 9 -16 0 M127 158 q8 9 16 0" stroke="#4d3444" stroke-width="2.2" stroke-linecap="round" fill="none"/>' +
     '<ellipse cx="76" cy="156" rx="13" ry="7" fill="#ffb7cd" opacity=".82"/><ellipse cx="178" cy="156" rx="13" ry="7" fill="#ffb7cd" opacity=".82"/>' +
-    '<ellipse cx="165" cy="179" rx="20" ry="15" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3" transform="rotate(-18 165 179)"/>' +
+    '<ellipse class="uvd-dig-leg uvd-dig-leg-right" cx="165" cy="179" rx="20" ry="15" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3" transform="rotate(-18 165 179)"/>' +
     '<path d="M153 182 Q165 172 179 176" stroke="#f57fa2" stroke-width="4" stroke-linecap="round"/>' +
-    '<ellipse cx="92" cy="192" rx="25" ry="14" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3" transform="rotate(12 92 192)"/>' +
+    '<ellipse class="uvd-dig-leg uvd-dig-leg-left" cx="92" cy="192" rx="25" ry="14" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3" transform="rotate(12 92 192)"/>' +
     '<path d="M75 191 Q90 184 105 192" stroke="#f57fa2" stroke-width="4" stroke-linecap="round"/>' +
     '<path d="M28 90 l4 10 10 4 -10 4 -4 10 -4-10-10-4 10-4 Z" fill="#f4b7d8"/>' +
     '<path d="M218 118 l3 8 8 3 -8 3 -3 8 -3-8-8-3 8-3 Z" fill="#d5b3f4"/>' +
@@ -4476,14 +4483,14 @@ function __uvdOpenDiggingDestination() {
   var direct = __uvdHasRealDirectStreams();
   if (direct.length) {
     var mapped = direct.map(function(entry) { return { url: entry[0], type: entry[1].type, item: entry[1] }; });
-    __uvdFlyDiggingPopupUp(function() {
+    __uvdRunDiggingCatThenFly(function() {
       __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
     });
     return;
   }
   var candidates = __uvdDiggingIframeCandidates();
   if (candidates.length) {
-    __uvdFlyDiggingPopupUp(function() {
+    __uvdRunDiggingCatThenFly(function() {
       __uvdOpenIframeWorkflowPrompt(candidates);
     });
     return;
@@ -4491,14 +4498,31 @@ function __uvdOpenDiggingDestination() {
   var sub = document.getElementById('__uvd_dig_sub__');
   if (sub) sub.textContent = 'Mèo vẫn chưa đào được link, thử bấm Play trên trang rồi đợi thêm nha.';
 }
+function __uvdRunDiggingCatThenFly(onDone) {
+  var flow = __uvdDiggingFlow;
+  if (!flow.active) { if (typeof onDone === 'function') onDone(); return; }
+  var overlay = document.getElementById('__uvd_digging_popup__');
+  if (!overlay) { __uvdFlyDiggingPopupUp(onDone); return; }
+  clearTimeout(flow.runTimer);
+  overlay.classList.add('uvd-dig-running');
+  // A few playful steps and shovel strokes make the cat feel alive before it
+  // takes off toward the top of the screen.
+  flow.runTimer = setTimeout(function() {
+    flow.runTimer = null;
+    if (overlay.isConnected) overlay.classList.remove('uvd-dig-running');
+    __uvdFlyDiggingPopupUp(onDone);
+  }, 820);
+}
 function __uvdFlyDiggingPopupUp(onDone) {
   var flow = __uvdDiggingFlow;
   if (!flow.active) { if (typeof onDone === 'function') onDone(); return; }
   clearTimeout(flow.transitionTimer);
   clearTimeout(flow.waitTimer);
+  clearTimeout(flow.runTimer);
   clearTimeout(flow.removeTimer);
   flow.transitionTimer = null;
   flow.waitTimer = null;
+  flow.runTimer = null;
   flow.removeTimer = null;
   flow.active = false;
   flow.released = true;
@@ -4518,9 +4542,11 @@ function __uvdStopDiggingPopup(keepUiHidden) {
   var flow = __uvdDiggingFlow;
   clearTimeout(flow.transitionTimer);
   clearTimeout(flow.waitTimer);
+  clearTimeout(flow.runTimer);
   clearTimeout(flow.removeTimer);
   flow.transitionTimer = null;
   flow.waitTimer = null;
+  flow.runTimer = null;
   flow.removeTimer = null;
   if (!flow.active && !document.getElementById('__uvd_digging_popup__')) return;
   flow.active = false;
@@ -4552,7 +4578,7 @@ function __uvdShowPlayIntro(url, type) {
     'box-shadow:0 24px 60px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.4) inset;' +
     'animation:uvdScaleIn .35s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
-    '<div style="line-height:0;transform:scale(1.1);">' + __uvdPlayIntroArt + '</div>' +
+    '<div class="uvd-play-intro-mascot" style="line-height:0;transform:scale(1.1);">' + __uvdPlayIntroArt + '</div>' +
     '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
     '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị link cho mấy cưng...</div>' +
     '<div style="font-size:12.5px;color:#8a6ab0;margin-top:2px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
@@ -4631,7 +4657,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   panel.innerHTML =
     '<div style="padding:16px 16px 2px;position:relative;">' +
       '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
-      '<div style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
+      '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
       '<div style="font-size:18px;font-weight:800;color:#9a6ce0;margin-bottom:4px;">Tìm thấy ' + streams.length + ' link video rồi nè 🐰</div>' +
@@ -4751,7 +4777,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   panel.innerHTML =
     '<div style="padding:18px 18px 4px;position:relative;">' +
       '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
-      '<div style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
+      '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
       '<div style="font-size:18px;font-weight:800;color:#d85c7a;margin-bottom:6px;">' + (hasIntermediateServer ? 'Server trung gian cần mở 🥺' : 'Không có link video — chỉ có iframe 🥺') + '</div>' +

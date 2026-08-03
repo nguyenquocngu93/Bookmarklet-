@@ -655,3 +655,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   5. **Player:** header đổi từ mèo sang hamster `Hamster mở video nè ♡` + animation cheek pop.
   6. **Animation mới:** `uvdPandaEarWiggle`, `uvdHamsterPop`, `uvdRaccoonTailWag`, `uvdPawTap`, `uvdBoardFloat`; CSS cho `.uvd-settings-sign-panda/raccoon/hamster`, `.uvd-panda-ear`, `.uvd-raccoon-tail`, `.uvd-hamster-cheek`, `.uvd-bubble-tmascot`.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #29 — Trả Settings header + profile về hướng cute cũ, giữ hệ thú mới — 2026-08-03
+
+- **Mục tiêu:** lấy code UI/player mới làm nền, nhưng đưa header Settings và cục profile về cảm giác pastel cute trước đó.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Header Settings trở lại mascot mèo thương hiệu.
+  - Profile giữ mô tả cá tính/trait pill, avatar mèo quay lại nằm trong ô pastel bo góc, có nền sáng mềm và trái tim nhỏ.
+  - Không gỡ hệ thú mới: panda/raccoon/hamster vẫn giữ ở tab, bảng hướng dẫn và player theo bản mới.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

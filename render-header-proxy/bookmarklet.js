@@ -3888,18 +3888,6 @@ style.textContent = `
 /* ===== BONG BÓNG COMIC (contentWrapper mới) ===== */
 .uvd-bubble-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;padding-top:2px}
 .uvd-bubble{background:#ffffff!important;border:2px solid #ff9fb4!important;border-radius:26px!important;box-shadow:0 14px 34px rgba(247,108,140,.22),inset 0 0 0 1px rgba(255,255,255,.7)!important;padding:12px;flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-
-/* ===== CHAT BUBBLE BODY - cute dang tin nhan ===== */
-.uvd-chat-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;animation:uvdCardEnter .28s ease both}
-.uvd-chat-avatar{flex:0 0 44px;width:44px;height:44px;display:flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 4px 10px rgba(247,108,140,.18));animation:uvdMascotHop 2s ease-in-out infinite}
-.uvd-chat-avatar svg{width:100%;height:100%}
-.uvd-chat-bubble{flex:1;min-width:0;position:relative;padding:12px 14px 10px 16px;border-radius:20px 20px 20px 6px;background:linear-gradient(155deg,#fffdfd 0%,#fff0f5 70%,#f5edff 100%);border:2px solid rgba(255,159,180,.28);box-shadow:0 6px 18px rgba(247,108,140,.12),inset 0 1px 0 #fff}
-.uvd-chat-bubble::before{content:'';position:absolute;left:-8px;bottom:12px;width:14px;height:14px;background:#fffdfd;border-left:2px solid rgba(255,159,180,.28);border-bottom:2px solid rgba(255,159,180,.28);transform:rotate(45deg);border-radius:0 0 0 4px}
-.uvd-chat-bubble::after{content:'🎀';position:absolute;right:8px;top:6px;font-size:11px}
-.uvd-chat-url{font-size:12px;color:#7a5f9e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,214,228,.22);border:1px solid rgba(255,159,180,.20);border-radius:10px;padding:6px 8px;margin:6px 0 4px}
-.uvd-chat-note{font-size:11px;font-weight:700;color:#a05668;margin-top:4px}
-.uvd-chat-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-
 .uvd-bubble-title{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-shrink:0}
 .uvd-bubble-tmascot{width:48px;height:48px;display:inline-flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 4px 10px rgba(247,108,140,.18));animation:uvdMascotHop 1.7s ease-in-out infinite}
 .uvd-bubble-tmascot svg{width:100%;height:100%;border-radius:14px;display:block}
@@ -4056,16 +4044,9 @@ style.textContent = `
 .uvd-player-deco-text{font-size:13px;font-weight:800;color:#d85c7a}
 .uvd-player-deco-sub{font-size:10px;color:#a0729a}
 /* ===== Settings cute: hero mascot + hướng dẫn cute ===== */
-.uvd-settings-overlay .uvd-settings-sheet{background:linear-gradient(180deg,#fff6fb 0%,#f6f0ff 100%)!important;border-radius:32px 32px 0 0!important;overflow:hidden}
-.uvd-settings-overlay .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.22)!important;padding:14px 18px!important}
-.uvd-settings-hero{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 20px 20px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 65%,#fff5f8 100%);border-bottom:1px solid rgba(255,159,180,.18);min-height:auto;text-align:center}
-.uvd-settings-hero-mascot{width:110px!important;height:110px!important;transform:none!important;filter:drop-shadow(0 10px 22px rgba(247,108,140,.32))}
-.uvd-settings-hero-text{flex:none!important;width:100%!important;padding:0!important;text-align:center}
-.uvd-settings-hero-title{font-size:22px!important}
-.uvd-settings-hero-sub{font-size:13px!important;max-width:320px;margin:6px auto 0!important}
-.uvd-settings-body{display:flex;flex-direction:column;gap:12px;padding:16px!important}
-.uvd-settings-body>.uvd-card{margin:0!important;border-radius:22px!important}
-.uvd-settings-stack-gap{display:flex;flex-direction:column;gap:14px}
+.uvd-settings-overlay .uvd-settings-sheet{background:linear-gradient(180deg,#fff6fb 0%,#f6f0ff 100%)!important;border-radius:34px 34px 0 0!important}
+.uvd-settings-overlay .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
+.uvd-settings-hero{display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 60%,#fff5f8 100%);border-bottom:1px solid rgba(255,159,180,.22);min-height:96px}
 .uvd-settings-hero-mascot{flex:0 0 auto;width:92px;height:92px;display:flex;align-items:center;justify-content:center;transform:scale(1.2);filter:drop-shadow(0 8px 16px rgba(247,108,140,.28));background:transparent!important;border:none!important;box-shadow:none!important;animation:uvdMascotHop 1.9s ease-in-out infinite}
 .uvd-settings-hero-mascot svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
 .uvd-settings-hero-mascot.uvd-hero-big{width:124px;height:124px}
@@ -5838,9 +5819,6 @@ function buildStreamCardHTML(item, i) {
   var type = String(item.type || '').toUpperCase();
   var emoji = __uvdTypeEmoji(type);
   var voteChips = __uvdVoteChips(item.url);
-  // Chat bubble mode - mascot cycle
-  var mascots = [__uvdTabMascotPanda, __uvdTabMascotRaccoon, __uvdTabMascotHamster];
-  var mascot = mascots[i % mascots.length] || __uvdTabMascotPanda;
   if (type === 'IFRAME') {
     var verdictBadge = item.aiVerdict === 'PLAYER'
       ? '<span class="uvd-ai-badge uvd-ai-player">player thật ✨</span>'
@@ -5857,15 +5835,15 @@ function buildStreamCardHTML(item, i) {
       ? '<span class="uvd-junk-advice">🚫 Không nên mở — đây là rác</span>'
       : '<a class="uvd-btn uvd-btn-sm uvd-iframe-window-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" title="Mở iframe">↗ mở</a>' +
         '<button class="uvd-btn uvd-btn-sm" data-action="iframe-copy" data-url="' + encodeURIComponent(item.url) + '">copy UMP</button>';
-    return '<div class="uvd-chat-row" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-chat-avatar">' + mascot + '</div>' +
-      '<div class="uvd-chat-bubble">' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><span class="uvd-type-badge">iframe</span>' + verdictBadge + '</div>' +
-        '<div class="uvd-chat-note">' + iframeGuide + '</div>' +
-        '<div class="uvd-chat-url">' + escapeHtml(item.url) + '</div>' +
-        (__uvdRenderVotes ? '<div class="uvd-cute-votes" style="margin:6px 0">' + voteChips + '</div>' : '') +
-        '<div class="uvd-chat-actions">' + iframeActions + '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button></div>' +
-      '</div></div>';
+    return '<div class="uvd-card uvd-iframe-card uvd-cute" data-type="IFRAME" data-url="' + escapeHtml(item.url) + '">' +
+      '<div class="uvd-iframe-card-head"><div><span class="uvd-type-badge">iframe</span>' + verdictBadge + '<strong>chưa phải video trực tiếp</strong></div><button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn iframe này">⛔</button></div>' +
+      '<div class="uvd-card-guide">' + iframeGuide + '</div>' +
+      '<div class="uvd-card-url-label">IFRAME URL</div><div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
+      (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
+      '<div class="uvd-cute-actions">' + iframeActions +
+        '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>' +
+      '</div>' +
+      '</div>';
   }
   var actionsHtml;
   if (type === 'BLOB') {
@@ -5895,17 +5873,23 @@ function buildStreamCardHTML(item, i) {
   else if (type === 'BLOB') guideText = 'Blob MediaSource nè 🌀 — bấm Xem để phát trực tiếp.';
   else guideText = 'Link media nè — bấm Xem để phát thử nha.';
   return (
-    '<div class="uvd-chat-row" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-chat-avatar">' + mascot + '</div>' +
-      '<div class="uvd-chat-bubble">' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><span class="uvd-type-badge">' + emoji + ' #' + (i+1) + ' ' + escapeHtml(item.type) + '</span><span class="uvd-card-status ' + statusClass + '">' + statusText + '</span></div>' +
-        '<div class="uvd-card-guide" style="margin:0 0 6px">' + guideText + '</div>' +
-        '<div class="uvd-card-stream-meta" data-card-stream-meta style="margin:0 0 6px">' + escapeHtml(item.type) + metaLabel + '</div>' +
-        (__uvdRenderVotes ? '<div class="uvd-cute-votes" style="margin:4px 0">' + voteChips + '</div>' : '') +
-        '<div class="uvd-chat-url">' + escapeHtml(item.url) + '</div>' +
-        '<div class="uvd-chat-actions"><button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">▶ Xem ♡</button>' +
-        '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button></div>' +
+    '<div class="uvd-card uvd-cute" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
+      '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
+        '<div class="uvd-thumb-image"></div>' +
+        '<div class="uvd-thumb-sheen"></div>' +
+        '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
+        '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
+        actionMenuHtml +
       '</div>' +
+      '<div class="uvd-card-head">' +
+        '<div class="uvd-card-badges"><span class="uvd-type-badge">' + emoji + ' #' + (i+1) + '</span><span class="uvd-card-status ' + statusClass + '">' + statusText + '</span></div>' +
+        '<button class="uvd-block-btn" data-url="' + encodeURIComponent(item.url) + '" title="Chặn link này">⛔</button>' +
+      '</div>' +
+      '<div class="uvd-card-guide">' + guideText + '</div>' +
+      '<div class="uvd-card-stream-meta" data-card-stream-meta>' + escapeHtml(item.type) + metaLabel + '</div>' +
+      (__uvdRenderVotes ? '<div class="uvd-cute-votes">' + voteChips + '</div>' : '') +
+      '<div class="uvd-card-url-label">DIRECT MEDIA URL</div>' +
+      '<div class="uvd-url-box" title="Bấm để sao chép URL">' + escapeHtml(item.url) + '</div>' +
     '</div>'
   );
 }

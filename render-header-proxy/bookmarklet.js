@@ -1374,7 +1374,7 @@ function openSettingsOverlay() {
   ov.innerHTML =
     '<div class="uvd-settings-sheet">' +
       '<div class="uvd-settings-hero">' +
-        '<span class="uvd-settings-hero-mascot">' + __uvdHeaderMascot + '</span>' +
+        '<span class="uvd-settings-hero-mascot uvd-hero-big">' + __uvdHeroMascot + '</span>' +
         '<div class="uvd-settings-hero-text">' +
           '<div class="uvd-settings-hero-title">Cài đặt Mèo cào media ♡</div>' +
           '<div class="uvd-settings-hero-sub">Chỉnh cho cưng xinh xắn nè 🎀 Mèo gợi ý: cứ bấm thoải mái, phần hướng dẫn ở dưới cùng nha!</div>' +
@@ -3999,8 +3999,14 @@ style.textContent = `
 /* ===== Settings cute: hero mascot + hướng dẫn cute ===== */
 .uvd-settings-overlay .uvd-settings-sheet{background:linear-gradient(180deg,#fff6fb 0%,#f6f0ff 100%)!important;border-radius:34px 34px 0 0!important}
 .uvd-settings-overlay .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
-.uvd-settings-hero{display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(150deg,#ffe9f3,#f3e6ff);border-bottom:1px solid rgba(255,159,180,.22)}
-.uvd-settings-hero-mascot{flex:0 0 auto;width:92px;height:92px;display:flex;align-items:center;justify-content:center;transform:scale(1.2);filter:drop-shadow(0 8px 16px rgba(247,108,140,.28))}
+.uvd-settings-hero{display:flex;align-items:center;gap:18px;padding:22px 20px 20px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 55%,#fff0f8 100%);border-bottom:1px solid rgba(255,159,180,.22);min-height:118px}
+.uvd-settings-hero-mascot{flex:0 0 auto;width:112px;height:112px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 10px 20px rgba(247,108,140,.32));background:transparent!important;border:none!important;box-shadow:none!important;animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-settings-hero-mascot.uvd-hero-big{width:124px;height:124px;transform:scale(1.15);animation:uvdMascotHop 1.85s ease-in-out infinite, uvdBoardFloat 3.2s ease-in-out infinite}
+.uvd-settings-hero-mascot.uvd-hero-big svg{display:block;width:100%;height:100%;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
+.uvd-hero-ear-bow{transform-box:fill-box;transform-origin:center;animation:uvdPandaEarWiggle 1.4s ease-in-out infinite}
+.uvd-hero-cheek{transform-box:fill-box;transform-origin:center;animation:uvdHamsterPop 1.5s ease-in-out infinite}
+.uvd-hero-heart{animation:uvdHeroHeartFloat 2.2s ease-in-out infinite}
+@keyframes uvdHeroHeartFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.15)}}
 .uvd-settings-hero-text{min-width:0}
 .uvd-settings-hero-title{font-size:20px;font-weight:800;color:#d85c7a}
 .uvd-settings-hero-sub{font-size:12.5px;color:#a0729a;margin-top:3px;line-height:1.5}
@@ -4356,6 +4362,20 @@ var __uvdHeaderMascot =
     '<circle cx="20" cy="43" r="4" fill="#ffb6c6" opacity="0.9"/>' +
     '<circle cx="44" cy="43" r="4" fill="#ffb6c6" opacity="0.9"/>' +
     '<path d="M32 48 q2 4 0 6" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+  '</svg>';
+// NEW: hero mascot to cho Settings header - to, khong dong khung, co chuyen dong rieng, khong trung profile
+var __uvdHeroMascot =
+  '<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="60" cy="106" rx="42" ry="12" fill="#f3d8e3" opacity=".45"/>' +
+    '<ellipse cx="60" cy="62" rx="44" ry="40" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.6"/>' +
+    '<circle cx="33" cy="36" r="18" fill="#ffb6c6"/><circle cx="87" cy="36" r="18" fill="#ffb6c6"/>' +
+    '<path d="M33 36 L20 12 L52 26 Z" fill="#ff9fb4"/><path d="M87 36 L100 12 L68 26 Z" fill="#ff9fb4"/>' +
+    '<g class="uvd-hero-ear-bow" style="transform-origin:88px 22px"><path d="M78 22 Q88 8 98 22 Q88 32 78 22 Z" fill="#f76c8c"/><circle cx="88" cy="22" r="5" fill="#fff"/><circle cx="88" cy="22" r="2.6" fill="#ff8fa3"/></g>' +
+    '<circle cx="45" cy="64" r="7" fill="#5b3a40"/><circle cx="75" cy="64" r="7" fill="#5b3a40"/><circle cx="47" cy="62" r="2.4" fill="#fff"/><circle cx="77" cy="62" r="2.4" fill="#fff"/>' +
+    '<g class="uvd-hero-cheek"><ellipse cx="38" cy="78" rx="9" ry="5.5" fill="#ff8fa3" opacity=".72"/><ellipse cx="82" cy="78" rx="9" ry="5.5" fill="#ff8fa3" opacity=".72"/></g>' +
+    '<ellipse cx="60" cy="75" rx="7" ry="9" fill="#5b3a40"/><ellipse cx="60" cy="73" rx="3.2" ry="3.8" fill="#e8788f"/>' +
+    '<path d="M60 84 q-7 7 -12 3 M60 84 q7 7 12 3" stroke="#5b3a40" stroke-width="2.2" stroke-linecap="round" fill="none"/>' +
+    '<g class="uvd-hero-heart" style="transform-origin:60px 20px"><text x="60" y="18" text-anchor="middle" font-size="14" font-weight="900" fill="#f76c8c">♡</text></g>' +
   '</svg>';
 
 // Cute bear mascot for the settings footer (inline SVG).

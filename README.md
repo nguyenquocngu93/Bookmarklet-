@@ -673,3 +673,13 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Profile dùng mèo mascot riêng; avatar mèo không còn ô/khung pastel, chỉ có shadow mềm và trái tim nhỏ.
   - Giữ nguyên panda/raccoon/hamster ở các vị trí mới khác.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #31 — Gom layout chính, đưa Footer vào body tab — 2026-08-04
+
+- **Mục tiêu:** xử lý footer lạc lõng và cảm giác header/session/tab/body bị rời thành nhiều cục.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Footer không còn là card riêng phía dưới panel; được đưa vào đáy của bubble body tab, cùng hệ với nội dung Streams/Nút/Lịch sử.
+  - Footer đổi sang đường phân cách mảnh, nền trong suốt và chữ nhỏ, không còn shadow/card riêng.
+  - Chuẩn hoá khoảng cách giữa header, session, tabbar và body thành 8px; giảm shadow của các lớp phụ để chỉ còn body là khối nội dung chính.
+  - Giữ nguyên bố cục tab, không dùng lại cục nhô/cầu nối.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

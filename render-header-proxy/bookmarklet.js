@@ -4138,6 +4138,8 @@ style.textContent = `
 /* Cuộn xuống ẩn header để rộng chỗ, cuộn lên hiện lại (mượt) */
 .uvd-panel-content #__uvd_header__{transition:max-height .45s cubic-bezier(.22,1,.36,1),opacity .4s ease,transform .45s cubic-bezier(.22,1,.36,1),margin .45s ease,padding .45s ease}
 .uvd-scroll-hide-header #__uvd_header__{max-height:0!important;min-height:0!important;opacity:0!important;overflow:hidden!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;border-width:0!important;pointer-events:none!important;transform:translateY(-24px)}
+/* ===== UNIFIED MAIN SHEET: less floating cards, footer belongs to body ===== */
+.uvd-app-shell>.uvd-panel-content{gap:8px}.uvd-app-shell #__uvd_header__,.uvd-app-shell .uvd-context-bar,.uvd-app-shell .uvd-tabbar{margin:0!important}.uvd-app-shell #__uvd_header__{box-shadow:0 4px 13px rgba(247,108,140,.12),0 0 0 1px rgba(255,255,255,.62) inset!important}.uvd-app-shell .uvd-context-bar{box-shadow:0 3px 11px rgba(150,90,220,.1),0 0 0 1px rgba(255,255,255,.55) inset!important}.uvd-app-shell .uvd-tabbar{box-shadow:0 4px 12px rgba(247,108,140,.11),0 0 0 1px rgba(255,255,255,.65) inset!important}.uvd-app-shell .uvd-bubble-wrap{min-height:0;margin:0!important}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer{flex:0 0 auto;margin:0!important;padding:10px 6px 3px!important;border-top:1px solid rgba(255,159,180,.22)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#9a7488!important;font-size:10px!important;line-height:1.45;text-align:center}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer::before{display:none!important}
 `;
 
 
@@ -5634,13 +5636,15 @@ function buildUI() {
     });
   }, { passive: true });
 
+  // Footer belongs to the selected tab body, not to a separate card under it.
+  // This keeps the visual hierarchy to hero → session → one main content sheet.
+  var footer = document.createElement('div');
+  footer.className = 'uvd-profile-footer uvd-bubble-footer';
+  footer.textContent = '© ' + new Date().getFullYear() + ' nguyenquocngu91 · Mèo cào media v' + VERSION + ' · Made for Chrome Android';
+  contentWrapper.appendChild(footer);
+
   bubbleWrap.appendChild(contentWrapper);
   content.appendChild(bubbleWrap);
-
-  var footer = document.createElement('div');
-  footer.className = 'uvd-profile-footer';
-  footer.textContent = '© ' + new Date().getFullYear() + ' nguyenquocngu91 · Mèo cào media v' + VERSION + ' · Made for Chrome Android';
-  content.appendChild(footer);
 
   __uvdAppendRoot(panel);
   __uvdIsolateLayer(panel);

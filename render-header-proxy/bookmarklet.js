@@ -4050,6 +4050,8 @@ style.textContent = `
 .uvd-settings-hero-mascot{flex:0 0 auto;width:92px;height:92px;display:flex;align-items:center;justify-content:center;transform:scale(1.2);filter:drop-shadow(0 8px 16px rgba(247,108,140,.28));background:transparent!important;border:none!important;box-shadow:none!important;animation:uvdMascotHop 1.9s ease-in-out infinite}
 .uvd-settings-hero-mascot svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
 .uvd-settings-hero-mascot.uvd-hero-big{width:124px;height:124px}
+#_uvd_dig_fact_box__{animation:uvdScaleIn .3s ease both}
+#_uvd_dig_fact_wrap__{animation:uvdFadeIn .4s ease both}
 .uvd-hero-ear-bow{transform-box:fill-box;transform-origin:center;animation:uvdPandaEarWiggle 1.4s ease-in-out infinite}
 .uvd-hero-cheek{transform-box:fill-box;transform-origin:center;animation:uvdHamsterPop 1.5s ease-in-out infinite}
 .uvd-hero-heart{animation:uvdHeroHeartFloat 2.2s ease-in-out infinite}
@@ -4584,6 +4586,11 @@ function __uvdStartDiggingPopup() {
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
       '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
       '<div style="margin-top:14px;font-size:11.5px;color:#9a6ce0;">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
+      '<div id="__uvd_dig_fact_wrap__" style="margin-top:12px;display:none;text-align:center;">' +
+        '<button type="button" id="__uvd_dig_fact_btn__" style="padding:8px 14px;border-radius:999px;border:1px dashed rgba(255,159,180,.4);background:linear-gradient(135deg,#fff6fb,#ffe9f3);color:#d85c7a;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 3px 10px rgba(247,108,140,.12);">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
+        '<div id="__uvd_dig_fact_box__" style="display:none;margin-top:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#fffdfd,#fff0f5);border:1px solid rgba(255,159,180,.28);box-shadow:0 6px 16px rgba(247,108,140,.12);font-size:12px;color:#7a5f9e;line-height:1.5;text-align:left;position:relative;overflow:hidden"><div style="position:absolute;right:8px;top:6px;font-size:12px">✨</div><div id="__uvd_dig_fact_text__" style="padding-right:16px">Đang lấy fact vui...</div></div>' +
+      '</div>' +
+      '<div style="margin-top:8px;font-size:10px;color:#b68bea;opacity:.8">Tip: Mở video rồi bấm Play thật trên trang để mèo bắt link nhanh hơn nha!</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
   var enter = overlay.querySelector('#__uvd_dig_enter__');
@@ -4595,6 +4602,47 @@ function __uvdStartDiggingPopup() {
     try { __uvdStopDiggingPopup(true); } catch(ex){}
     if (typeof __uvdShowTutorialSlides === 'function') __uvdShowTutorialSlides();
   };
+  // Random fact feature - show after 8s if still digging
+  var factWrap = overlay.querySelector('#__uvd_dig_fact_wrap__');
+  var factBtn = overlay.querySelector('#__uvd_dig_fact_btn__');
+  var factBox = overlay.querySelector('#__uvd_dig_fact_box__');
+  var factText = overlay.querySelector('#__uvd_dig_fact_text__');
+  var factTimer = null;
+  function showFactWrap(){ if(factWrap) factWrap.style.display='block'; }
+  factTimer = setTimeout(showFactWrap, 8000);
+  if (factBtn && factBox && factText) {
+    factBtn.onclick = function(e){
+      e.stopPropagation();
+      factBox.style.display='block';
+      factText.textContent='Đang lấy fact vui từ internet... 🐾';
+      // Try multiple fact APIs with fallback
+      var apis = [
+        {url:'https://catfact.ninja/fact', parse:function(j){return j.fact;}},
+        {url:'https://uselessfacts.jsph.pl/api/v2/facts/random?language=en', parse:function(j){return j.text;}},
+        {url:'https://official-joke-api.appspot.com/jokes/random', parse:function(j){return (j.setup? j.setup+' '+j.punchline : j.joke) || JSON.stringify(j);}}
+      ];
+      var tried=0;
+      function tryNext(){
+        if(tried>=apis.length){ factText.textContent='Ui không lấy được fact rồi 🥺 Thử lại sau nha! Mèo vẫn đang đào link đó!'; return; }
+        var api = apis[tried++];
+        fetch(api.url, {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+          var txt = '';
+          try { txt = api.parse(j); } catch(ex){ txt = ''; }
+          if (!txt) throw new Error('empty');
+          // Translate? Keep original but add cute prefix
+          factText.innerHTML = '🎀 <b>Fact vui nè:</b> ' + txt.replace(/</g,'&lt;') + '<br><br><span style="font-size:10px;color:#b68bea">Nguồn: ' + api.url + ' - random mỗi lần bấm nha!</span>';
+        }).catch(function(){ tryNext(); });
+      }
+      tryNext();
+    };
+  }
+  // Clear timer when popup closes
+  var origClose = overlay.querySelector('#__uvd_dig_close__');
+  if (origClose) {
+    var origCloseFn = origClose.onclick;
+    origClose.onclick = function(){ clearTimeout(factTimer); if(origCloseFn) origCloseFn(); };
+  }
+
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
   clearTimeout(flow.waitTimer);

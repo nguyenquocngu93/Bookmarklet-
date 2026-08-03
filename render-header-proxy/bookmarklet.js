@@ -3833,6 +3833,8 @@ style.textContent = `
 .uvd-bubble-tname{font-size:16px;font-weight:850;color:#e84a72;line-height:1.1}
 .uvd-bubble-tsub{font-size:9px;color:#c9862a;font-weight:700}
 .uvd-bubble #__uvd_stream_list__{border-radius:20px}
+/* Cầu nối mềm: chỉ nối nhẹ tab active với body, không che nội dung body. */
+.uvd-tabbar{margin-bottom:8px!important;z-index:3!important}.uvd-bubble-wrap{overflow:visible!important}.uvd-tab-soft-bridge{position:absolute;top:-8px;left:0;width:0;height:8px;z-index:0;pointer-events:none;border-radius:0 0 12px 12px;background:linear-gradient(180deg,#ff9fb4,#f76c8c);box-shadow:0 5px 9px rgba(247,108,140,.22);transition:transform .42s cubic-bezier(.22,1,.36,1),width .42s cubic-bezier(.22,1,.36,1)}
 /* Popup con mèo đào link */
 .uvd-digging-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(45,22,47,.42);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);animation:uvdFadeIn .22s ease both}
 .uvd-digging-box{position:relative;width:min(100%,430px);min-height:490px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:30px 27px 27px;border:1px solid rgba(255,255,255,.9);border-radius:40px;background:linear-gradient(155deg,rgba(255,250,253,.99),rgba(255,231,242,.98) 54%,rgba(245,232,255,.98));box-shadow:0 30px 76px rgba(108,46,92,.44),0 0 0 7px rgba(255,255,255,.25) inset;transform:translateZ(0)}
@@ -5122,12 +5124,24 @@ function buildUI() {
     var width = btn.offsetWidth;
     indicator.style.width = width + 'px';
     indicator.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
+    // A small pink bridge fills only the gap under the selected tab.
+    var bridge = document.getElementById('__uvd_tab_soft_bridge__');
+    if (bridge) {
+      var bridgeWidth = Math.max(34, Math.min(58, Math.round(width * 0.46)));
+      bridge.style.width = bridgeWidth + 'px';
+      bridge.style.transform = 'translateX(' + (btn.offsetLeft + (width - bridgeWidth) / 2) + 'px)';
+    }
     if (btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
 
   // Bong bóng comic: nội dung tab nằm trong bong bóng.
   var bubbleWrap = document.createElement('div');
   bubbleWrap.className = 'uvd-bubble-wrap';
+  var tabSoftBridge = document.createElement('div');
+  tabSoftBridge.id = '__uvd_tab_soft_bridge__';
+  tabSoftBridge.className = 'uvd-tab-soft-bridge';
+  tabSoftBridge.setAttribute('aria-hidden', 'true');
+  bubbleWrap.appendChild(tabSoftBridge);
   var contentWrapper = document.createElement('div');
   contentWrapper.className = 'uvd-scroll uvd-bubble';
   contentWrapper.style.cssText = 'flex:1;overflow:hidden;position:relative;min-height:0;display:flex;flex-direction:column;';

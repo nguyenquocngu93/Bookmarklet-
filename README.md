@@ -625,3 +625,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Gấu cầm bảng **"Tải video với Termux"**.
   - Mỗi bảng là card pastel riêng, có hai bàn chân ôm bảng và hiệu ứng nhún/lắc nhẹ; màu bảng theo từng con thú.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #26 — Cầu nối mềm giữa tab active và body — 2026-08-03
+
+- **Mục tiêu:** chỉnh lại cảm giác tab/body mà không quay về cục nhô lớn che tiêu đề.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Giữ body bo góc và bố cục tab cũ.
+  - Thu hẹp khoảng cách giữa tabbar và body còn 8px.
+  - Thêm một **dải hồng nhỏ** nằm hoàn toàn trong khoảng hở dưới tab active; dải trượt theo Streams / Nút đã click / Lịch sử, không chạm hoặc che nội dung body.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

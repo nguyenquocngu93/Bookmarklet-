@@ -1374,7 +1374,7 @@ function openSettingsOverlay() {
   ov.innerHTML =
     '<div class="uvd-settings-sheet">' +
       '<div class="uvd-settings-hero">' +
-        '<span class="uvd-settings-hero-mascot uvd-hero-big">' + __uvdHeroMascot + '</span>' +
+        '<span class="uvd-settings-hero-mascot">' + (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : __uvdHeaderMascot) + '</span>' +
         '<div class="uvd-settings-hero-text">' +
           '<div class="uvd-settings-hero-title">Cài đặt Mèo cào media ♡</div>' +
           '<div class="uvd-settings-hero-sub">Chỉnh cho cưng xinh xắn nè 🎀 Mèo gợi ý: cứ bấm thoải mái, phần hướng dẫn ở dưới cùng nha!</div>' +
@@ -3625,7 +3625,10 @@ style.textContent = `
 #__uvd_preload__{color:var(--accent2);border-color:rgba(6,182,212,.32)}
 .uvd-header-actions .uvd-close-action{color:var(--danger)}
 /* ===== CUTE HEADER (kawaii pastel) ===== */
-.uvd-brand-mark{background:linear-gradient(150deg,#ffd6e4 0%,#ffb6c6 55%,#f6c8ff 100%)!important;box-shadow:0 8px 20px rgba(247,108,140,.30),0 0 0 4px rgba(255,255,255,.5) inset!important;border:1px solid rgba(255,159,180,.4)}.uvd-brand-mark svg{display:block;width:100%;height:100%;border-radius:18px}
+.uvd-brand-mark{background:transparent!important;box-shadow:none!important;border:none!important;width:76px!important;height:76px!important;flex:0 0 76px!important;border-radius:22px!important;filter:drop-shadow(0 8px 18px rgba(247,108,140,.32));animation:uvdMascotHop 2s ease-in-out infinite}
+.uvd-brand-mark.uvd-brand-mark-hero{width:88px!important;height:88px!important;flex:0 0 88px!important;transform:scale(1.12);background:transparent!important;border:none!important;box-shadow:none!important}
+.uvd-brand-mark.uvd-brand-mark-hero svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
+.uvd-brand-mark svg{display:block;width:100%;height:100%}
 .uvd-brand-name{background:linear-gradient(120deg,#e84a72,#f76c8c,#c95cb8);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:22px}
 .uvd-brand-heart{color:#f76c8c;-webkit-text-fill-color:#f76c8c;font-size:17px}
 .uvd-brand-version{background:linear-gradient(120deg,#f76c8c,#c95cb8);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:3px;font-size:13px;font-weight:800}
@@ -3957,7 +3960,27 @@ style.textContent = `
 .uvd-plcard-ext{position:relative;flex:0 0 70px;height:44px;overflow:hidden;border:1px solid rgba(94,194,160,.3);border-radius:9px;background:linear-gradient(135deg,#d7f7ea,#b9f0dc)}
 .uvd-plcard-ext img{display:block;width:100%;height:100%;object-fit:cover}
 .uvd-plcard-ext span{position:absolute;right:4px;bottom:2px;color:#fff;font-size:8px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
-.uvd-plplain{display:flex;align-items:center;gap:10px;padding:9px 11px;margin-bottom:7px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(194,150,255,.25)}
+.uvd-plplain{position:relative;display:flex;align-items:flex-end;gap:0;padding:5px 4px 0 4px;margin-bottom:14px;border-radius:0;background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible;isolation:isolate}
+.uvd-plplain:hover{transform:none;box-shadow:none}
+.uvd-plplain-cute-icon{position:relative;z-index:3;width:54px;height:54px;flex:0 0 54px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 4px 8px rgba(247,108,140,.18));animation:uvdMascotHop 1.8s ease-in-out infinite}
+.uvd-plplain-cute-icon svg{width:100%;height:100%;animation:uvdMascotWiggle 1.4s ease-in-out infinite}
+.uvd-plplain-paw{position:absolute;z-index:4;left:36px;bottom:18px;width:14px;height:10px;border-radius:10px;background:#ffe3ed;border:1.5px solid #f6abc2;box-shadow:0 1px 3px rgba(247,108,140,.12)}
+.uvd-plplain-paw-one{transform:rotate(-16deg)}.uvd-plplain-paw-two{left:44px;bottom:15px;transform:rotate(14deg)}
+.uvd-plplain-board{position:relative;z-index:2;flex:1;min-width:0;padding:9px 10px 9px 16px;margin:0 0 6px -8px;border:2px solid rgba(255,159,180,.38);border-radius:16px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);box-shadow:0 4px 12px rgba(247,108,140,.12),inset 0 1px 0 #fff}
+.uvd-plplain-board::before{content:'🎀';position:absolute;right:8px;top:5px;font-size:11px}
+.uvd-iframe-cute-row{position:relative;display:flex;align-items:flex-end;gap:0;padding:5px 4px 0 4px;margin-bottom:14px;background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible;isolation:isolate}
+.uvd-iframe-cute-icon{position:relative;z-index:3;width:54px;height:54px;flex:0 0 54px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 4px 8px rgba(247,108,140,.18));animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-iframe-cute-icon svg{width:100%;height:100%;animation:uvdMascotWiggle 1.5s ease-in-out infinite}
+.uvd-plplain .uvd-plplain-body,.uvd-iframe-cute-row .uvd-plplain-body{position:relative;z-index:2;flex:1;min-width:0;padding:9px 10px 8px 16px;margin:0 0 6px -8px;border:2px solid rgba(255,159,180,.35);border-radius:16px;background:linear-gradient(155deg,#fff 0%,#fff6fb 60%,#f5edff 100%);box-shadow:0 4px 12px rgba(247,108,140,.12)}
+.uvd-plplain .uvd-plplain-body::before,.uvd-iframe-cute-row .uvd-plplain-body::before{content:'🎀';position:absolute;right:8px;top:5px;font-size:10px}
+.uvd-plplain .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-btn{position:relative;z-index:3;margin-left:6px;flex:0 0 auto}
+
+.uvd-farewell-mascots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.uvd-fm{width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid rgba(255,159,180,.22);box-shadow:0 4px 12px rgba(247,108,140,.14);animation:uvdMascotHop 1.8s ease-in-out infinite}
+.uvd-fm:nth-child(2){animation-delay:.1s}.uvd-fm:nth-child(3){animation-delay:.2s}.uvd-fm:nth-child(4){animation-delay:.3s}.uvd-fm:nth-child(5){animation-delay:.4s}.uvd-fm:nth-child(6){animation-delay:.5s}
+.uvd-fm svg{width:90%;height:90%;animation:uvdMascotWiggle 1.5s ease-in-out infinite}
+.uvd-farewell-box{animation:uvdScaleIn .36s cubic-bezier(.22,1,.36,1) both}
+
 .uvd-plplain-quality{border-color:rgba(179,133,242,.5)!important;background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(247,235,255,.92))!important}
 .uvd-plplain-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .uvd-plplain-top{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
@@ -3999,10 +4022,10 @@ style.textContent = `
 /* ===== Settings cute: hero mascot + hướng dẫn cute ===== */
 .uvd-settings-overlay .uvd-settings-sheet{background:linear-gradient(180deg,#fff6fb 0%,#f6f0ff 100%)!important;border-radius:34px 34px 0 0!important}
 .uvd-settings-overlay .uvd-settings-header{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border-bottom:1px solid rgba(255,159,180,.25)!important}
-.uvd-settings-hero{display:flex;align-items:center;gap:18px;padding:22px 20px 20px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 55%,#fff0f8 100%);border-bottom:1px solid rgba(255,159,180,.22);min-height:118px}
-.uvd-settings-hero-mascot{flex:0 0 auto;width:112px;height:112px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 10px 20px rgba(247,108,140,.32));background:transparent!important;border:none!important;box-shadow:none!important;animation:uvdMascotHop 1.9s ease-in-out infinite}
-.uvd-settings-hero-mascot.uvd-hero-big{width:124px;height:124px;transform:scale(1.15);animation:uvdMascotHop 1.85s ease-in-out infinite, uvdBoardFloat 3.2s ease-in-out infinite}
-.uvd-settings-hero-mascot.uvd-hero-big svg{display:block;width:100%;height:100%;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
+.uvd-settings-hero{display:flex;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(150deg,#ffe9f3 0%,#f3e6ff 55%,#fff0f8 100%);border-bottom:1px solid rgba(255,159,180,.22);min-height:72px}
+.uvd-settings-hero-mascot{flex:0 0 auto;width:56px;height:56px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 4px 10px rgba(247,108,140,.22));background:rgba(255,255,255,.6)!important;border:1px solid rgba(255,159,180,.22)!important;border-radius:18px!important;box-shadow:0 4px 12px rgba(247,108,140,.12)!important;animation:uvdMascotHop 1.8s ease-in-out infinite}
+.uvd-settings-hero-mascot svg{width:82%;height:82%;animation:uvdMascotWiggle 1.5s ease-in-out infinite}
+.uvd-settings-hero-mascot.uvd-hero-big{width:124px;height:124px}
 .uvd-hero-ear-bow{transform-box:fill-box;transform-origin:center;animation:uvdPandaEarWiggle 1.4s ease-in-out infinite}
 .uvd-hero-cheek{transform-box:fill-box;transform-origin:center;animation:uvdHamsterPop 1.5s ease-in-out infinite}
 .uvd-hero-heart{animation:uvdHeroHeartFloat 2.2s ease-in-out infinite}
@@ -4689,6 +4712,52 @@ function __uvdShowPlayIntro(url, type) {
   setTimeout(openIt, 3200);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) openIt(); });
 }
+
+// ========== FAREWELL POPUP - gom het thu lai tam biet de thuong khi bam X ==========
+var __uvdFarewellArt =
+  '<div class="uvd-farewell-mascots">' +
+    '<span class="uvd-fm uvd-fm-cat">' + __uvdHeaderMascot + '</span>' +
+    '<span class="uvd-fm uvd-fm-panda">' + (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : __uvdHeaderMascot) + '</span>' +
+    '<span class="uvd-fm uvd-fm-raccoon">' + (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : __uvdTabMascotBear) + '</span>' +
+    '<span class="uvd-fm uvd-fm-hamster">' + (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : __uvdTabMascotRabbit) + '</span>' +
+    '<span class="uvd-fm uvd-fm-rabbit">' + __uvdTabMascotRabbit + '</span>' +
+    '<span class="uvd-fm uvd-fm-bear">' + __uvdFooterMascot + '</span>' +
+  '</div>';
+function __uvdShowFarewellPopup(onConfirm) {
+  var old = document.getElementById('__uvd_farewell_popup__');
+  if (old) old.remove();
+  __uvdHideUiForPopup();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_farewell_popup__';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(28,14,40,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:uvdFadeIn .3s ease both;';
+  var box = document.createElement('div');
+  box.className = 'uvd-farewell-box';
+  box.style.cssText = 'text-align:center;padding:22px 22px 18px;border-radius:32px;max-width:420px;width:100%;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 45%,#fff0f8 100%);border:1px solid rgba(255,159,180,.4);box-shadow:0 24px 60px rgba(150,90,220,.36),0 0 0 6px rgba(255,255,255,.4) inset;animation:uvdScaleIn .36s cubic-bezier(.22,1,.36,1) both;';
+  box.innerHTML =
+    '<div class="uvd-farewell-mascot-row" style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' + __uvdFarewellArt + '</div>' +
+    '<div style="font-size:22px;font-weight:900;color:#d85c7a;margin-bottom:4px;">Tạm biệt cưng iu ♡</div>' +
+    '<div style="font-size:13.5px;font-weight:700;color:#9a6ce0;margin-bottom:6px;">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
+    '<div style="font-size:12px;color:#8a6ab0;line-height:1.6;margin-bottom:14px;">Mấy đứa tụi mình (mèo cào, gấu trúc, gấu mèo, hamster, thỏ, gấu) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+    '<div style="display:flex;gap:8px;">' +
+      '<button id="__uvd_farewell_stay__" style="flex:1;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#d85c7a;font-weight:800;font-size:13px;cursor:pointer;">Ở lại ♡</button>' +
+      '<button id="__uvd_farewell_bye__" style="flex:1;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 6px 16px rgba(247,108,140,.32);">Tạm biệt 🐾</button>' +
+    '</div>';
+  overlay.appendChild(box);
+  __uvdAppendRoot(overlay);
+  try { (document.body||document.documentElement).appendChild(overlay); } catch(e){}
+  overlay.style.zIndex='2147483647';
+  var done=false;
+  function closeFarewell(confirm){
+    if(done) return; done=true;
+    overlay.remove();
+    __uvdRestoreUiAfterPopup();
+    if(confirm && typeof onConfirm==='function') onConfirm();
+  }
+  box.querySelector('#__uvd_farewell_stay__').onclick = function(){ closeFarewell(false); };
+  box.querySelector('#__uvd_farewell_bye__').onclick = function(){ closeFarewell(true); };
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) closeFarewell(false); });
+}
+
 // Load a real video thumbnail (muted, capture first frame) for quality links.
 function __uvdPopupThumb(thumbEl, url, type) {
   if (!thumbEl || !url) return;
@@ -4760,6 +4829,13 @@ function __uvdOpenMediaLinksPopup(streams) {
     var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
     var row = document.createElement('div');
     row.className = 'uvd-plplain';
+    var mascots = [ (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : ''), (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : ''), (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '') ];
+    var mascotHtml = mascots[index % mascots.length] || mascots[0];
+    var cuteIcon = document.createElement('div');
+    cuteIcon.className = 'uvd-plplain-cute-icon';
+    cuteIcon.innerHTML = mascotHtml;
+    var paw1 = document.createElement('i'); paw1.className = 'uvd-plplain-paw uvd-plplain-paw-one';
+    var paw2 = document.createElement('i'); paw2.className = 'uvd-plplain-paw uvd-plplain-paw-two';
     var body = document.createElement('div');
     body.className = 'uvd-plplain-body';
     var typeText = String(stream.type || 'MEDIA').toUpperCase();
@@ -4773,13 +4849,16 @@ function __uvdOpenMediaLinksPopup(streams) {
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
-    play.textContent = 'Xem';
+    play.textContent = 'Xem ♡';
     play.onclick = function() {
       var url = stream.url, type = stream.type || 'MP4';
       addToHistory(url, type);
       overlay.remove(); __uvdPopupDismiss();
       setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
     };
+    row.appendChild(cuteIcon);
+    row.appendChild(paw1);
+    row.appendChild(paw2);
     row.appendChild(body);
     row.appendChild(play);
     list.appendChild(row);
@@ -4881,10 +4960,17 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   var list = panel.querySelector('#__uvd_iframe_workflow_list__');
   candidates.slice(0, 6).forEach(function(candidate, index) {
     var row = document.createElement('div');
-    row.className = 'uvd-card';
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 10px;margin-bottom:7px;text-align:left;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid rgba(255,159,180,.28);';
+    row.className = 'uvd-iframe-cute-row';
+    row.style.cssText = ''; // moved to css class
+    var iframeMascots = { 'PLAYER': (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : ''), 'JUNK': (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : ''), 'UNKNOWN': (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '') };
+    var icon = document.createElement('div');
+    icon.className = 'uvd-iframe-cute-icon';
+    icon.innerHTML = iframeMascots[candidate.verdict] || iframeMascots['UNKNOWN'];
+    var ipaw1 = document.createElement('i'); ipaw1.className = 'uvd-plplain-paw uvd-plplain-paw-one';
+    var ipaw2 = document.createElement('i'); ipaw2.className = 'uvd-plplain-paw uvd-plplain-paw-two';
     var label = document.createElement('div');
-    label.style.cssText = 'flex:1;min-width:0;font-size:9.5px;color:#a05668;word-break:break-all;line-height:1.4;';
+    label.className = 'uvd-plplain-body';
+    label.style.cssText = 'flex:1;min-width:0;';
     var badgeColor = candidate.verdict === 'PLAYER' ? '#3aa97f' : (candidate.verdict === 'JUNK' ? '#ff5d72' : '#c9862a');
     var badgeText = candidate.verdict === 'PLAYER' ? 'PLAYER ✓' : (candidate.verdict === 'JUNK' ? 'JUNK ✗' : 'UNKNOWN ?');
     label.innerHTML = '<div style="margin-bottom:2px;"><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:' + badgeColor + ';">' + badgeText + '</span> <span style="color:#c95073;font-weight:700;">#' + (index + 1) + '</span></div>' + escapeHtml(candidate.url);
@@ -4904,6 +4990,9 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       __uvdPopupDismiss();
       toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
     };
+    row.appendChild(icon);
+    row.appendChild(ipaw1);
+    row.appendChild(ipaw2);
     row.appendChild(label);
     row.appendChild(open);
     list.appendChild(row);
@@ -5173,7 +5262,7 @@ function buildUI() {
   header.style.cssText = 'flex-shrink:0;';
   header.innerHTML =
     '<div class="uvd-brand">' +
-      '<span class="uvd-brand-mark">' + __uvdHeaderMascot + '</span>' +
+      '<span class="uvd-brand-mark uvd-brand-mark-hero">' + __uvdHeroMascot + '</span>' +
       '<div class="uvd-brand-text">' +
         '<div class="uvd-brand-name">Mèo cào media <span class="uvd-brand-heart">♡</span></div>' +
         '<div class="uvd-brand-version">v' + VERSION + ' ✦ cute player</div>' +
@@ -5347,19 +5436,23 @@ function buildUI() {
   };
   window.addEventListener('resize', window.__uvdPanelResizeHandler);
 
-  document.getElementById('__uvd_close__').onclick = function() {
+  function __uvdRealClose(){
     if (playerState.overlay) closePlayer();
     stopMonitor();
     if (window.__uvdPanelResizeHandler) {
       window.removeEventListener('resize', window.__uvdPanelResizeHandler);
       window.__uvdPanelResizeHandler = null;
     }
-    panel.remove();
+    var p = document.getElementById('__uvd__');
+    if (p) p.remove();
     __uvdRemoveRestoreBtn();
     __uvdScriptHidden = false;
     runCleanup();
     urls.clear();
     if (typeof style !== 'undefined' && style.parentNode) style.remove();
+  }
+  document.getElementById('__uvd_close__').onclick = function() {
+    __uvdShowFarewellPopup(function(){ __uvdRealClose(); });
   };
   document.getElementById('__uvd_hide__').onclick = function() {
     var isCollapsed = panel.classList.contains('uvd-panel-collapsed');

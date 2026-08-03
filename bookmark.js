@@ -3964,11 +3964,27 @@ style.textContent = `
 .uvd-plplain:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(247,108,140,.18)}
 .uvd-plplain-body{flex:1;min-width:0;position:relative;padding-right:28px}
 .uvd-plplain-body::before{content:'🎀';position:absolute;right:6px;top:4px;font-size:13px;filter:drop-shadow(0 1px 2px rgba(247,108,140,.2))}
-.uvd-plplain-url{font-size:12px;color:#7a5f9e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;line-height:1.4;background:rgba(255,214,228,.20);border:1px solid rgba(255,159,180,.20);border-radius:10px;padding:5px 8px;margin-top:4px;max-width:100%}
+.uvd-plplain-url{font-size:12px;color:#7a5f9e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;line-height:1.4;background:rgba(243,236,255,.55);border:1px solid rgba(194,150,255,.20);border-radius:10px;padding:5px 8px;margin-top:4px;max-width:100%}
 .uvd-iframe-cute-row{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:10px;border-radius:18px;background:linear-gradient(155deg,#fffdf6 0%,#fff0f5 70%,#f5edff 100%);border:2px solid rgba(255,159,180,.28);box-shadow:0 6px 16px rgba(247,108,140,.12)}
-.uvd-iframe-cute-row .uvd-plplain-body{flex:1;min-width:0;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#8a6ab0}
-.uvd-iframe-cute-row .uvd-plplain-body::before{content:'🎀';position:absolute;right:-6px;top:-6px;font-size:13px}
-.uvd-plplain .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-btn{flex:0 0 auto;padding:10px 16px;border-radius:14px;font-weight:800}
+.uvd-iframe-cute-row .uvd-plplain-body{flex:1;min-width:0;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#8a6ab0;padding-right:26px}
+.uvd-iframe-cute-row .uvd-plplain-body::before{content:'🎀';position:absolute;right:6px;top:4px;font-size:12px;filter:drop-shadow(0 1px 2px rgba(247,108,140,.2))}
+.uvd-plplain .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-btn{flex:0 0 auto;padding:10px 16px;border-radius:14px;font-weight:800;transition:transform .15s ease}
+.uvd-plplain .uvd-plrow-watch:hover,.uvd-iframe-cute-row .uvd-btn:hover{transform:scale(1.04)}
+/* Video popup - dong bo mau tim voi tho - purple */
+#__uvd_media_links_prompt__ .uvd-plplain{border-color:rgba(194,150,255,.32)!important;background:linear-gradient(155deg,#fff 0%,#f8f4ff 65%,#f3ecff 100%)!important}
+#__uvd_media_links_prompt__ .uvd-plplain-body::before{content:'🎀';color:#b68bea}
+#__uvd_media_links_prompt__ .uvd-plplain-badge{background:#b385f2!important}
+#__uvd_media_links_prompt__ .uvd-plplain-q{background:linear-gradient(135deg,#d9b8ff,#b385f2)!important}
+#__uvd_media_links_prompt__ .uvd-plrow-watch{background:linear-gradient(135deg,#d9b8ff,#b385f2)!important;color:#fff!important;box-shadow:0 4px 14px rgba(179,133,242,.32)!important}
+#__uvd_media_links_prompt__ .uvd-plplain-url{background:rgba(243,236,255,.6)!important;border-color:rgba(194,150,255,.22)!important}
+/* Iframe popup - dong bo mau hong voi meo - pink */
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-cute-row{border-color:rgba(255,159,180,.32)!important;background:linear-gradient(155deg,#fff6fa 0%,#fff0f5 70%,#fff0f8 100%)!important}
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-cute-row .uvd-plplain-body::before{content:'🎀';color:#f5a0bd}
+#__uvd_iframe_workflow_prompt__ .uvd-plplain-badge{background:#3aa97f!important}
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-cute-row .uvd-btn,#__uvd_iframe_workflow_prompt__ .uvd-plrow-watch{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;color:#fff!important;box-shadow:0 4px 14px rgba(247,108,140,.32)!important}
+#__uvd_iframe_workflow_prompt__ .uvd-plplain-body{color:#a05668!important}
+#__uvd_iframe_workflow_prompt__ .uvd-plplain-url{word-break:break-all}
+
 .uvd-farewell-mascots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:flex-end}
 .uvd-farewell-mascots.uvd-farewell-big{gap:8px;min-height:160px;justify-content:center}
 .uvd-fm{width:56px;height:56px;display:inline-flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 6px 12px rgba(247,108,140,.22));animation:uvdMascotHop 1.9s ease-in-out infinite}

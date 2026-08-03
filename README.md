@@ -635,3 +635,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Khi đồng bộ, Lịch sử từ máy hiện tại và cloud được **gộp theo URL + thời gian** (tối đa 50 mục), không còn ghi đè nguyên mảng khiến mất video từ thiết bị khác.
   - Nút **Đồng bộ ngay** giờ upload tức thời sau khi gộp lịch sử và báo kết quả rõ ràng.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #27 — Popup Xem gọn hơn + profile Cài đặt cute — 2026-08-03
+
+- **Mục tiêu:** làm popup link đỡ rối icon và thay profile kỹ thuật khô khan trong Cài đặt bằng một profile cá tính, dễ thương hơn.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Các nút trong popup link video đổi từ `▶ Xem` thành **`Xem`** để không lặp icon play.
+  - Avatar `NQ` được thay bằng mèo mascot pastel có trái tim nhỏ, nhún/lắc nhẹ.
+  - Phần giới thiệu đổi thành mô tả: thích mày mò, mê UI cute, chăm chút từng trải nghiệm; thêm các trait pill dễ thương thay cho tag kỹ thuật.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

@@ -4030,6 +4030,8 @@ style.textContent = `
 .uvd-settings-overlay .uvd-toggle-switch .uvd-toggle-knob{background:linear-gradient(135deg,#ff9fb4,#b385f2)!important}
 .uvd-settings-overlay .uvd-profile-card{background:linear-gradient(135deg,rgba(255,159,180,.16),rgba(194,150,255,.12))!important;border-color:rgba(255,159,180,.3)!important}
 .uvd-settings-overlay .uvd-profile-avatar{background:linear-gradient(135deg,#ff9fb4,#b385f2)!important;box-shadow:0 6px 18px rgba(247,108,140,.4),0 0 0 3px rgba(255,255,255,.1)!important}
+/* Profile avatar/copy cute: thay các tag kỹ thuật khô bằng cá tính của chủ tool. */
+.uvd-settings-overlay .uvd-profile-card-cute{position:relative;align-items:center;gap:13px;overflow:hidden;padding:15px!important;border-radius:25px!important;background:linear-gradient(135deg,rgba(255,232,242,.95),rgba(245,233,255,.94))!important;border:1px solid rgba(255,159,180,.38)!important;box-shadow:0 12px 26px rgba(247,108,140,.17),inset 0 1px 0 rgba(255,255,255,.82)!important}.uvd-settings-overlay .uvd-profile-card-cute::before{content:'';position:absolute;width:145px;height:145px;right:-50px;top:-68px;border-radius:50%;background:rgba(255,255,255,.48);filter:blur(3px);pointer-events:none}.uvd-settings-overlay .uvd-profile-card-cute>*{position:relative;z-index:1}.uvd-settings-overlay .uvd-profile-avatar-cute{position:relative;width:76px;height:76px;flex-basis:76px;border-radius:24px!important;background:linear-gradient(145deg,#fff8fc,#ffdce9)!important;border:1px solid rgba(255,159,180,.42)!important;box-shadow:0 9px 18px rgba(247,108,140,.25),inset 0 2px 0 rgba(255,255,255,.9)!important;overflow:visible}.uvd-profile-avatar-cat{display:flex;width:68px;height:68px;align-items:center;justify-content:center;animation:uvdMascotHop 1.9s ease-in-out infinite}.uvd-profile-avatar-cat svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.35s ease-in-out infinite}.uvd-profile-avatar-heart{position:absolute;right:-7px;top:-8px;width:25px;height:25px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#ff91ae,#d99cff);border:2px solid #fff;color:#fff;font-style:normal;font-size:18px;font-weight:900;line-height:1;box-shadow:0 4px 10px rgba(247,108,140,.28)}.uvd-profile-copy-cute{padding-right:2px}.uvd-profile-eyebrow{font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase;color:#b283bd}.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-name{margin-top:2px;color:#c95073!important;font-size:16px!important;font-weight:900}.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-name span{color:#b385f2}.uvd-profile-personality{margin-top:3px;color:#7c5b82;font-size:11.5px;font-weight:650;line-height:1.42}.uvd-profile-traits{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.uvd-profile-traits span{padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.66);border:1px solid rgba(255,159,180,.26);color:#c95073;font-size:9.5px;font-weight:800}
 .uvd-settings-overlay .uvd-tag{background:rgba(255,159,180,.14)!important;color:#c95073!important;border-color:rgba(255,159,180,.3)!important}
 .uvd-settings-overlay .uvd-stat-num{color:#d85c7a!important}
 .uvd-settings-overlay .uvd-url-box{color:#9a6ce0!important;background:rgba(255,214,228,.28)!important;border-color:rgba(255,159,180,.3)!important}
@@ -4735,7 +4737,7 @@ function __uvdOpenMediaLinksPopup(streams) {
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
-    play.textContent = '▶ Xem';
+    play.textContent = 'Xem';
     play.onclick = function() {
       var url = stream.url, type = stream.type || 'MP4';
       addToHistory(url, type);
@@ -6358,17 +6360,14 @@ function renderSettings(container) {
   var bookmarkletCode = "javascript:(function(){var u=atob('aHR0cHM6Ly9yZW5kZXItaGVhZGVyLXByb3h5Lm9ucmVuZGVyLmNvbS9ib29rbWFya2xldC5qcz9mb3JjZT0=')+Date.now();var e=document.createElement('script');e.src=u;e.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(c){(0,eval)(c);});};(document.head||document.documentElement).appendChild(e);})();";
 
   container.innerHTML =
-    '<div class="uvd-profile-card">' +
-      '<div class="uvd-profile-avatar">NQ</div>' +
-      '<div class="uvd-profile-info">' +
-        '<div class="uvd-profile-name">nguyenquocngu91</div>' +
-        '<div class="uvd-profile-role">Bookmarklet Developer · Universal Media Tools</div>' +
-        '<div class="uvd-profile-tags">' +
-          '<span class="uvd-tag">Mèo cào media v' + VERSION + ' PRO</span>' +
-          '<span class="uvd-tag">Vanilla JS</span>' +
-          '<span class="uvd-tag">HLS · M3U8</span>' +
-          '<span class="uvd-tag">Adblock</span>' +
-          '<span class="uvd-tag">HLS Normalize · Iframe workflow</span>' +
+    '<div class="uvd-profile-card uvd-profile-card-cute">' +
+      '<div class="uvd-profile-avatar uvd-profile-avatar-cute"><span class="uvd-profile-avatar-cat">' + __uvdHeaderMascot + '</span><i class="uvd-profile-avatar-heart">♡</i></div>' +
+      '<div class="uvd-profile-info uvd-profile-copy-cute">' +
+        '<div class="uvd-profile-eyebrow">một chiếc mèo làm tool</div>' +
+        '<div class="uvd-profile-name">nguyenquocngu91 <span>♡</span></div>' +
+        '<div class="uvd-profile-personality">Hay tò mò, mê mày mò và thích biến những thứ khó hiểu thành nút bấm xinh xắn cho cưng.</div>' +
+        '<div class="uvd-profile-traits">' +
+          '<span>🐾 thích khám phá</span><span>🎀 mê UI cute</span><span>💗 chăm chút từng tí</span>' +
         '</div>' +
       '</div>' +
     '</div>' +

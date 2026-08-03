@@ -3969,14 +3969,19 @@ style.textContent = `
 .uvd-iframe-cute-row .uvd-plplain-body{flex:1;min-width:0;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#8a6ab0}
 .uvd-iframe-cute-row .uvd-plplain-body::before{content:'🎀';position:absolute;right:-6px;top:-6px;font-size:13px}
 .uvd-plplain .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-btn{flex:0 0 auto;padding:10px 16px;border-radius:14px;font-weight:800}
-.uvd-farewell-mascots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:flex-end}
-.uvd-farewell-mascots.uvd-farewell-big{gap:12px;min-height:140px}
+.uvd-farewell-mascots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:flex-end}
+.uvd-farewell-mascots.uvd-farewell-big{gap:8px;min-height:160px;justify-content:center}
 .uvd-fm{width:56px;height:56px;display:inline-flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 6px 12px rgba(247,108,140,.22));animation:uvdMascotHop 1.9s ease-in-out infinite}
 .uvd-fm.uvd-fm-big{width:92px;height:92px;filter:drop-shadow(0 10px 20px rgba(247,108,140,.30))}
+.uvd-fm.uvd-fm-big-full{width:110px;height:140px;filter:drop-shadow(0 12px 20px rgba(247,108,140,.32));animation:uvdMascotHop 2s ease-in-out infinite}
+.uvd-fm.uvd-fm-big-full svg{width:100%;height:100%;animation:uvdMascotWiggle 1.8s ease-in-out infinite}
 .uvd-fm svg{width:100%;height:100%;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
 .uvd-fm:nth-child(2){animation-delay:.14s}.uvd-fm:nth-child(3){animation-delay:.28s}
-.uvd-farewell-art{display:flex;justify-content:center;align-items:flex-end;gap:8px;flex-wrap:wrap;min-height:140px}
-.uvd-farewell-box{max-width:480px!important;min-height:580px!important}
+.uvd-farewell-art{display:flex;justify-content:center;align-items:flex-end;gap:10px;flex-wrap:wrap;min-height:150px;margin-bottom:10px}
+.uvd-farewell-box{max-width:480px!important;min-height:600px!important}
+.uvd-wave-arm{animation:uvdWaveArm 1.2s ease-in-out infinite;transform-box:fill-box}
+.uvd-wave-arm2{animation:uvdWaveArm 1.2s ease-in-out infinite .2s;transform-box:fill-box}
+@keyframes uvdWaveArm{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
 .uvd-farewell-box .uvd-farewell-art .uvd-fm-big{width:110px;height:110px}
 
 .uvd-plplain-quality{border-color:rgba(179,133,242,.5)!important;background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(247,235,255,.92))!important}
@@ -4722,15 +4727,47 @@ function __uvdShowPlayIntro(url, type) {
 
 // ========== FAREWELL POPUP - gom het thu lai tam biet de thuong khi bam X (fix undefined + to nhu digging popup) ==========
 function __uvdGetFarewellMascotsHtml(){
-  // 2-3 con bu nguyen con nhu popup video, khong o, to hon
-  var catBig = (typeof __uvdHeroMascot !== 'undefined' ? __uvdHeroMascot : (typeof __uvdHeaderMascot !== 'undefined' ? __uvdHeaderMascot : ''));
-  var panda = (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : catBig);
-  var hamster = (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : catBig);
-  // Tra ve 3 con to nguyen con, khong khung, nhu popup video
+  // Full body with arms and legs - nguyen con that su, khong phai phong to dau
+  var catFull = '<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="50" cy="110" rx="28" ry="8" fill="#f3d8e3" opacity=".45"/>' +
+    '<ellipse cx="35" cy="85" rx="12" ry="18" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.2" transform="rotate(-12 35 85)"/><ellipse cx="65" cy="85" rx="12" ry="18" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.2" transform="rotate(12 65 85)"/>' +
+    '<ellipse cx="35" cy="100" rx="8" ry="6" fill="#ffb6c6"/><ellipse cx="65" cy="100" rx="8" ry="6" fill="#ffb6c6"/>' +
+    '<ellipse cx="50" cy="78" rx="22" ry="20" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.2"/>' +
+    '<circle cx="34" cy="32" r="14" fill="#ffb6c6"/><circle cx="66" cy="32" r="14" fill="#ffb6c6"/>' +
+    '<path d="M34 32 L24 12 L48 24 Z" fill="#ff9fb4"/><path d="M66 32 L76 12 L52 24 Z" fill="#ff9fb4"/>' +
+    '<ellipse cx="50" cy="52" rx="32" ry="28" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.2"/><circle cx="40" cy="52" r="5" fill="#5b3a40"/><circle cx="60" cy="52" r="5" fill="#5b3a40"/><circle cx="41" cy="51" r="1.6" fill="#fff"/><circle cx="61" cy="51" r="1.6" fill="#fff"/>' +
+    '<ellipse cx="36" cy="64" rx="6" ry="4" fill="#ff8fa3" opacity=".6"/><ellipse cx="64" cy="64" rx="6" ry="4" fill="#ff8fa3" opacity=".6"/>' +
+    '<ellipse cx="50" cy="62" rx="4" ry="5" fill="#5b3a40"/><ellipse cx="50" cy="60" rx="2" ry="2.2" fill="#e8788f"/><path d="M50 68 q-5 5 -9 2 M50 68 q5 5 9 2" stroke="#5b3a40" stroke-width="1.6" stroke-linecap="round" fill="none"/>' +
+    '<g class="uvd-wave-arm" style="transform-origin:32px 70px"><ellipse cx="28" cy="68" rx="7" ry="11" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.2"/><circle cx="22" cy="62" r="5" fill="#ffb6c6"/></g>' +
+    '<g class="uvd-wave-arm2" style="transform-origin:68px 70px"><ellipse cx="72" cy="68" rx="7" ry="11" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.2"/><circle cx="78" cy="62" r="5" fill="#ffb6c6"/></g>' +
+    '<text x="50" y="18" text-anchor="middle" font-size="10" font-weight="900" fill="#f76c8c">♡</text>' +
+  '</svg>';
+  var pandaFull = '<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="50" cy="110" rx="28" ry="8" fill="#e8e0e6" opacity=".4"/>' +
+    '<ellipse cx="35" cy="88" rx="11" ry="17" fill="#fff" stroke="#e8e0e6" stroke-width="1.2" transform="rotate(-10 35 88)"/><ellipse cx="65" cy="88" rx="11" ry="17" fill="#fff" stroke="#e8e0e6" stroke-width="1.2" transform="rotate(10 65 88)"/>' +
+    '<ellipse cx="35" cy="102" rx="7" ry="5" fill="#2b2b33"/><ellipse cx="65" cy="102" rx="7" ry="5" fill="#2b2b33"/>' +
+    '<ellipse cx="50" cy="80" rx="22" ry="20" fill="#fff" stroke="#e8e0e6" stroke-width="1.2"/>' +
+    '<circle cx="32" cy="30" r="13" fill="#2b2b33"/><circle cx="68" cy="30" r="13" fill="#2b2b33"/>' +
+    '<ellipse cx="50" cy="52" rx="30" ry="26" fill="#fff" stroke="#e8e0e6" stroke-width="1.2"/><ellipse cx="38" cy="50" rx="7" ry="6" fill="#2b2b33"/><ellipse cx="62" cy="50" rx="7" ry="6" fill="#2b2b33"/><circle cx="39" cy="49" r="1.8" fill="#fff"/><circle cx="63" cy="49" r="1.8" fill="#fff"/>' +
+    '<ellipse cx="32" cy="62" rx="5" ry="3" fill="#ffb6c6" opacity=".5"/><ellipse cx="68" cy="62" rx="5" ry="3" fill="#ffb6c6" opacity=".5"/>' +
+    '<ellipse cx="50" cy="60" rx="3.5" ry="2.5" fill="#2b2b33"/><path d="M44 66 Q50 70 56 66" stroke="#2b2b33" stroke-width="1.4" stroke-linecap="round" fill="none"/>' +
+    '<g class="uvd-wave-arm" style="transform-origin:32px 70px"><ellipse cx="28" cy="70" rx="6" ry="10" fill="#fff" stroke="#e8e0e6" stroke-width="1.2"/><circle cx="22" cy="64" r="4.5" fill="#2b2b33"/></g>' +
+    '<text x="50" y="16" text-anchor="middle" font-size="10" font-weight="900" fill="#a0a0a0">Baii ♡</text>' +
+  '</svg>';
+  var hamsterFull = '<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="50" cy="110" rx="26" ry="7" fill="#fde2a8" opacity=".45"/>' +
+    '<ellipse cx="36" cy="88" rx="10" ry="16" fill="#ffd38a" stroke="#fcbf6a" stroke-width="1.1" transform="rotate(-12 36 88)"/><ellipse cx="64" cy="88" rx="10" ry="16" fill="#ffd38a" stroke="#fcbf6a" stroke-width="1.1" transform="rotate(12 64 88)"/>' +
+    '<ellipse cx="36" cy="102" rx="7" ry="5" fill="#fcbf6a"/><ellipse cx="64" cy="102" rx="7" ry="5" fill="#fcbf6a"/>' +
+    '<ellipse cx="50" cy="78" rx="21" ry="19" fill="#fde2a8" stroke="#fcbf6a" stroke-width="1.1"/><ellipse cx="50" cy="76" rx="19" ry="17" fill="#ffd38a"/>' +
+    '<circle cx="32" cy="32" r="12" fill="#fcbf6a"/><circle cx="68" cy="32" r="12" fill="#fcbf6a"/><circle cx="32" cy="32" r="5" fill="#e89f6a"/><circle cx="68" cy="32" r="5" fill="#e89f6a"/>' +
+    '<ellipse cx="50" cy="54" rx="28" ry="24" fill="#fde2a8" stroke="#fcbf6a" stroke-width="1.1"/><circle cx="40" cy="52" r="4.5" fill="#4a2c20"/><circle cx="60" cy="52" r="4.5" fill="#4a2c20"/><circle cx="41" cy="51" r="1.4" fill="#fff"/><circle cx="61" cy="51" r="1.4" fill="#fff"/>' +
+    '<ellipse cx="30" cy="64" rx="8" ry="7" fill="#fff6c8"/><ellipse cx="70" cy="64" rx="8" ry="7" fill="#fff6c8"/><ellipse cx="50" cy="60" rx="2.5" ry="2" fill="#ff8fa3"/><path d="M44 66 Q50 69 56 66" stroke="#4a2c20" stroke-width="1.3" stroke-linecap="round" fill="none"/>' +
+    '<g class="uvd-wave-arm2" style="transform-origin:66px 72px"><ellipse cx="70" cy="72" rx="6" ry="10" fill="#ffd38a" stroke="#fcbf6a" stroke-width="1"/><circle cx="74" cy="66" r="4" fill="#fde2a8"/></g>' +
+  '</svg>';
   return '<div class="uvd-farewell-mascots uvd-farewell-big">' +
-    '<span class="uvd-fm uvd-fm-cat uvd-fm-big">' + catBig + '</span>' +
-    '<span class="uvd-fm uvd-fm-panda uvd-fm-big">' + panda + '</span>' +
-    '<span class="uvd-fm uvd-fm-hamster uvd-fm-big">' + hamster + '</span>' +
+    '<span class="uvd-fm uvd-fm-cat uvd-fm-big-full">' + catFull + '</span>' +
+    '<span class="uvd-fm uvd-fm-panda uvd-fm-big-full">' + pandaFull + '</span>' +
+    '<span class="uvd-fm uvd-fm-hamster uvd-fm-big-full">' + hamsterFull + '</span>' +
   '</div>';
 }
 function __uvdShowFarewellPopup(onConfirm) {

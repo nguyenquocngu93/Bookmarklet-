@@ -3818,13 +3818,13 @@ style.textContent = `
 .uvd-bubble #__uvd_stream_list__{border-radius:20px}
 /* Popup con mèo đào link */
 .uvd-digging-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(45,22,47,.42);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);animation:uvdFadeIn .22s ease both}
-.uvd-digging-box{position:relative;width:min(100%,420px);overflow:hidden;text-align:center;padding:26px 25px 23px;border:1px solid rgba(255,255,255,.88);border-radius:38px;background:linear-gradient(155deg,rgba(255,250,253,.99),rgba(255,231,242,.98) 54%,rgba(245,232,255,.98));box-shadow:0 28px 72px rgba(108,46,92,.42),0 0 0 7px rgba(255,255,255,.25) inset;transform:translateZ(0)}
-.uvd-dig-close{position:absolute;top:14px;right:14px;width:34px;height:34px;padding:0;border:1px solid rgba(255,159,180,.35);border-radius:50%;background:rgba(255,255,255,.7);color:#d85c7a;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 11px rgba(247,108,140,.13)}
-.uvd-dig-art{position:relative;width:235px;height:190px;margin:0 auto -7px;filter:drop-shadow(0 10px 13px rgba(222,100,140,.24))}
-.uvd-dig-art svg{width:100%;height:100%;display:block}.uvd-dig-dirt{position:absolute;font-size:18px;line-height:1;animation:uvdDigDirt .9s ease-in-out infinite}.uvd-dig-dirt:nth-child(1){left:20px;bottom:27px;animation-delay:.08s}.uvd-dig-dirt:nth-child(2){right:18px;bottom:38px;animation-delay:.33s}.uvd-dig-dirt:nth-child(3){right:42px;bottom:15px;animation-delay:.58s}
-.uvd-dig-kicker{font-size:11px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#c95073}.uvd-dig-title{margin-top:7px;font-size:27px;font-weight:900;color:#d84972;line-height:1.15}.uvd-dig-sub{min-height:22px;margin:7px auto 0;color:#956077;font-size:14px;font-weight:650;line-height:1.5}.uvd-dig-enter-btn{display:block;width:100%;max-height:0;margin-top:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#ff91ae,#ef6689);color:#fff;font-size:16px;font-weight:850;box-shadow:0 8px 18px rgba(231,83,127,.3);transition:max-height .28s ease,margin .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-enter-btn:active{transform:scale(.97)}
+.uvd-digging-box{position:relative;width:min(100%,430px);min-height:490px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:30px 27px 27px;border:1px solid rgba(255,255,255,.9);border-radius:40px;background:linear-gradient(155deg,rgba(255,250,253,.99),rgba(255,231,242,.98) 54%,rgba(245,232,255,.98));box-shadow:0 30px 76px rgba(108,46,92,.44),0 0 0 7px rgba(255,255,255,.25) inset;transform:translateZ(0)}
+.uvd-dig-close{position:absolute;top:15px;right:15px;width:35px;height:35px;padding:0;border:1px solid rgba(255,159,180,.35);border-radius:50%;background:rgba(255,255,255,.72);color:#d85c7a;font-size:21px;line-height:1;cursor:pointer;box-shadow:0 4px 11px rgba(247,108,140,.13)}
+.uvd-dig-art{position:relative;width:270px;height:250px;margin:0 auto -10px;filter:drop-shadow(0 12px 15px rgba(222,100,140,.25))}
+.uvd-dig-art svg{width:100%;height:100%;display:block}.uvd-dig-dirt{position:absolute;font-size:19px;line-height:1;animation:uvdDigDirt .9s ease-in-out infinite}.uvd-dig-dirt:nth-child(1){left:18px;bottom:33px;animation-delay:.08s}.uvd-dig-dirt:nth-child(2){right:16px;bottom:47px;animation-delay:.33s}.uvd-dig-dirt:nth-child(3){right:43px;bottom:17px;animation-delay:.58s}
+.uvd-dig-kicker{font-size:11px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#c95073}.uvd-dig-title{margin-top:8px;font-size:28px;font-weight:900;color:#d84972;line-height:1.15}.uvd-dig-sub{min-height:23px;margin:8px auto 0;color:#956077;font-size:14px;font-weight:650;line-height:1.5}.uvd-dig-enter-btn{display:block;width:100%;max-height:0;margin-top:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#ff91ae,#ef6689);color:#fff;font-size:16px;font-weight:850;box-shadow:0 8px 18px rgba(231,83,127,.3);transition:max-height .28s ease,margin .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-enter-btn:active{transform:scale(.97)}
 .uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;margin-top:16px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}
-@media (max-width:390px){.uvd-digging-box{padding:23px 20px 20px;border-radius:32px}.uvd-dig-art{width:205px;height:165px}.uvd-dig-title{font-size:24px}.uvd-dig-sub{font-size:13px}}
+@media (max-width:390px){.uvd-digging-box{min-height:450px;padding:25px 21px 23px;border-radius:34px}.uvd-dig-art{width:225px;height:212px}.uvd-dig-title{font-size:25px}.uvd-dig-sub{font-size:13px}}
 
 
 
@@ -4344,23 +4344,30 @@ var __uvdPlayIntroArt =
 // Popup đầu phiên: mèo đang đào link. SVG inline để vẫn chạy được ở site
 // chặn ảnh/CDN bên ngoài.
 var __uvdDiggingCatArt =
-  '<svg viewBox="0 0 180 145" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-    '<ellipse cx="91" cy="130" rx="76" ry="12" fill="#f3cbd8" opacity=".62"/>' +
-    '<path d="M144 122 L161 46" stroke="#c68a63" stroke-width="7" stroke-linecap="round"/>' +
-    '<path d="M157 48 L168 38" stroke="#c68a63" stroke-width="7" stroke-linecap="round"/>' +
-    '<path d="M151 57 L171 63" stroke="#c68a63" stroke-width="6" stroke-linecap="round"/>' +
-    '<path d="M137 123 Q151 113 166 122 L160 136 Q147 140 135 131 Z" fill="#a9765a"/>' +
-    '<path d="M22 120 Q30 102 56 108 Q69 95 88 108 Q106 96 126 110 Q151 102 158 124 Q143 136 119 132 Q96 140 74 133 Q43 138 22 120 Z" fill="#c98c66"/>' +
-    '<ellipse cx="91" cy="100" rx="47" ry="35" fill="#ffe4ed"/>' +
-    '<path d="M54 84 L43 49 L75 73 Z" fill="#ffb4c9"/><path d="M128 84 L140 49 L107 73 Z" fill="#ffb4c9"/>' +
-    '<path d="M54 82 L48 57 L69 74 Z" fill="#f582a3"/><path d="M128 82 L134 57 L113 74 Z" fill="#f582a3"/>' +
-    '<ellipse cx="69" cy="97" rx="7" ry="8" fill="#503645"/><ellipse cx="111" cy="97" rx="7" ry="8" fill="#503645"/>' +
-    '<circle cx="71" cy="95" r="2.4" fill="#fff"/><circle cx="113" cy="95" r="2.4" fill="#fff"/>' +
-    '<ellipse cx="90" cy="108" rx="4.5" ry="4" fill="#ef7996"/><path d="M90 112 q-5 6 -10 0 M90 112 q5 6 10 0" stroke="#503645" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
-    '<ellipse cx="57" cy="108" rx="8" ry="4.7" fill="#ffb8cc" opacity=".8"/><ellipse cx="123" cy="108" rx="8" ry="4.7" fill="#ffb8cc" opacity=".8"/>' +
-    '<path d="M49 119 Q65 106 77 121 Q68 131 52 129 Z" fill="#ffe4ed"/><path d="M104 121 Q118 106 133 119 L130 130 Q113 131 104 121 Z" fill="#ffe4ed"/>' +
-    '<path d="M58 124 L72 116" stroke="#ef7996" stroke-width="3" stroke-linecap="round"/><path d="M110 122 L130 111" stroke="#ef7996" stroke-width="3" stroke-linecap="round"/>' +
-    '<path d="M24 61 l3 7 7 3 -7 3 -3 7 -3-7-7-3 7-3 Z" fill="#f4b7d8"/><path d="M150 83 l3 7 7 3 -7 3 -3 7 -3-7-7-3 7-3 Z" fill="#d7b5f3"/>' +
+  '<svg viewBox="0 0 260 250" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="130" cy="230" rx="105" ry="14" fill="#e9bfd0" opacity=".6"/>' +
+    '<path d="M30 210 Q44 185 72 197 Q86 177 112 194 Q133 178 154 194 Q180 180 198 200 Q224 190 236 214 Q208 233 170 224 Q132 239 94 225 Q57 234 30 210 Z" fill="#c98a62"/>' +
+    '<path d="M36 210 Q65 198 86 212 M165 211 Q194 197 222 211" stroke="#a96f52" stroke-width="4" stroke-linecap="round" opacity=".55"/>' +
+    '<path d="M190 198 L207 65" stroke="#b57958" stroke-width="9" stroke-linecap="round"/>' +
+    '<path d="M202 69 Q216 51 231 67" stroke="#b57958" stroke-width="9" stroke-linecap="round" fill="none"/>' +
+    '<path d="M180 199 Q198 187 218 201 L212 222 Q194 228 178 212 Z" fill="#9c654d" stroke="#85513e" stroke-width="3"/>' +
+    '<path d="M67 180 Q31 173 38 140 Q48 126 67 140" stroke="#ffabc3" stroke-width="15" stroke-linecap="round" fill="none"/>' +
+    '<ellipse cx="127" cy="151" rx="76" ry="68" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3"/>' +
+    '<path d="M69 111 L55 58 L100 91 Z" fill="#ffb4c9" stroke="#f6abc2" stroke-width="3"/>' +
+    '<path d="M185 111 L199 58 L154 91 Z" fill="#ffb4c9" stroke="#f6abc2" stroke-width="3"/>' +
+    '<path d="M68 105 L62 70 L91 94 Z" fill="#f57fa2"/><path d="M186 105 L192 70 L163 94 Z" fill="#f57fa2"/>' +
+    '<ellipse cx="127" cy="171" rx="47" ry="39" fill="#fff8fb" opacity=".92"/>' +
+    '<ellipse cx="98" cy="139" rx="9" ry="10" fill="#4d3444"/><ellipse cx="156" cy="139" rx="9" ry="10" fill="#4d3444"/>' +
+    '<circle cx="101" cy="136" r="3.2" fill="#fff"/><circle cx="159" cy="136" r="3.2" fill="#fff"/>' +
+    '<ellipse cx="127" cy="153" rx="6" ry="5" fill="#ed7797"/><path d="M127 158 q-8 9 -16 0 M127 158 q8 9 16 0" stroke="#4d3444" stroke-width="2.2" stroke-linecap="round" fill="none"/>' +
+    '<ellipse cx="76" cy="156" rx="13" ry="7" fill="#ffb7cd" opacity=".82"/><ellipse cx="178" cy="156" rx="13" ry="7" fill="#ffb7cd" opacity=".82"/>' +
+    '<ellipse cx="165" cy="179" rx="20" ry="15" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3" transform="rotate(-18 165 179)"/>' +
+    '<path d="M153 182 Q165 172 179 176" stroke="#f57fa2" stroke-width="4" stroke-linecap="round"/>' +
+    '<ellipse cx="92" cy="192" rx="25" ry="14" fill="#ffe5ee" stroke="#f6abc2" stroke-width="3" transform="rotate(12 92 192)"/>' +
+    '<path d="M75 191 Q90 184 105 192" stroke="#f57fa2" stroke-width="4" stroke-linecap="round"/>' +
+    '<path d="M28 90 l4 10 10 4 -10 4 -4 10 -4-10-10-4 10-4 Z" fill="#f4b7d8"/>' +
+    '<path d="M218 118 l3 8 8 3 -8 3 -3 8 -3-8-8-3 8-3 Z" fill="#d5b3f4"/>' +
+    '<circle cx="48" cy="119" r="5" fill="#ffd6e4"/><circle cx="212" cy="42" r="6" fill="#ffd6e4"/>' +
   '</svg>';
 
 function __uvdDiggingIframeCandidates() {

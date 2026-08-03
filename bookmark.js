@@ -3969,12 +3969,15 @@ style.textContent = `
 .uvd-iframe-cute-row .uvd-plplain-body{border:none!important;background:transparent!important;box-shadow:none!important;padding:0!important;margin:0!important}
 .uvd-iframe-cute-row .uvd-plplain-body::before{content:'🎀';position:absolute;right:-6px;top:-6px;font-size:13px}
 .uvd-plplain .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-plrow-watch,.uvd-iframe-cute-row .uvd-btn{flex:0 0 auto;padding:10px 16px;border-radius:14px;font-weight:800}
-.uvd-farewell-mascots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;align-items:flex-end}
-.uvd-fm{width:64px;height:64px;display:inline-flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 6px 12px rgba(247,108,140,.22));animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-farewell-mascots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:flex-end}
+.uvd-farewell-mascots.uvd-farewell-big{gap:12px;min-height:140px}
+.uvd-fm{width:56px;height:56px;display:inline-flex;align-items:flex-end;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;filter:drop-shadow(0 6px 12px rgba(247,108,140,.22));animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-fm.uvd-fm-big{width:92px;height:92px;filter:drop-shadow(0 10px 20px rgba(247,108,140,.30))}
 .uvd-fm svg{width:100%;height:100%;animation:uvdMascotWiggle 1.6s ease-in-out infinite}
-.uvd-fm:nth-child(2){animation-delay:.12s}.uvd-fm:nth-child(3){animation-delay:.24s}.uvd-fm:nth-child(4){animation-delay:.36s}.uvd-fm:nth-child(5){animation-delay:.48s}.uvd-fm:nth-child(6){animation-delay:.6s}
-.uvd-farewell-art{display:flex;justify-content:center;align-items:flex-end;gap:4px;flex-wrap:wrap;min-height:110px}
-.uvd-farewell-box{max-width:480px!important;min-height:560px!important}
+.uvd-fm:nth-child(2){animation-delay:.14s}.uvd-fm:nth-child(3){animation-delay:.28s}
+.uvd-farewell-art{display:flex;justify-content:center;align-items:flex-end;gap:8px;flex-wrap:wrap;min-height:140px}
+.uvd-farewell-box{max-width:480px!important;min-height:580px!important}
+.uvd-farewell-box .uvd-farewell-art .uvd-fm-big{width:110px;height:110px}
 
 .uvd-plplain-quality{border-color:rgba(179,133,242,.5)!important;background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(247,235,255,.92))!important}
 .uvd-plplain-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
@@ -4074,10 +4077,12 @@ style.textContent = `
 .uvd-settings-overlay .uvd-profile-card-cute{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:visible;padding:18px 12px 6px!important;border-radius:0!important;background:transparent!important;border:none!important;box-shadow:none!important;text-align:center}
 .uvd-settings-overlay .uvd-profile-card-cute::before{display:none}
 .uvd-settings-overlay .uvd-profile-card-cute>*{position:relative;z-index:1}
-.uvd-settings-overlay .uvd-profile-avatar-cute{position:relative;width:96px;height:96px;flex-basis:96px;background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible;filter:drop-shadow(0 8px 16px rgba(247,108,140,.28))}
+.uvd-settings-overlay .uvd-profile-avatar-cute{position:relative;width:108px;height:108px;flex-basis:108px;background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible;filter:drop-shadow(0 10px 18px rgba(247,108,140,.30))}
 .uvd-profile-avatar-cat{display:flex;width:96px;height:96px;align-items:center;justify-content:center;background:transparent!important;border:none!important;box-shadow:none!important;animation:uvdMascotHop 2s ease-in-out infinite}
 .uvd-profile-avatar-cat svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.5s ease-in-out infinite}
-.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-copy-cute{background:transparent!important;border:none!important;box-shadow:none!important;padding:4px 0!important;width:100%;max-width:340px;text-align:center}
+.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-copy-cute{background:linear-gradient(155deg,#fffdfd 0%,#ffe9f2 60%,#fff8fc 100%)!important;border:2px solid rgba(255,159,180,.32)!important;border-radius:22px!important;padding:14px 16px!important;box-shadow:0 8px 20px rgba(247,108,140,.14),inset 0 1px 0 #fff!important;width:100%;max-width:360px;text-align:left}
+.uvd-settings-overlay .uvd-profile-card-cute{padding:22px 14px 14px!important;gap:14px!important}
+.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-traits{justify-content:flex-start}
 .uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-traits{justify-content:center}.uvd-profile-avatar-heart{position:absolute;right:-7px;top:-8px;width:25px;height:25px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(135deg,#ff91ae,#d99cff);border:2px solid #fff;color:#fff;font-style:normal;font-size:18px;font-weight:900;line-height:1;box-shadow:0 4px 10px rgba(247,108,140,.28)}.uvd-profile-copy-cute{padding-right:2px}.uvd-profile-eyebrow{font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase;color:#b283bd}.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-name{margin-top:2px;color:#c95073!important;font-size:16px!important;font-weight:900}.uvd-settings-overlay .uvd-profile-card-cute .uvd-profile-name span{color:#b385f2}.uvd-profile-personality{margin-top:3px;color:#7c5b82;font-size:11.5px;font-weight:650;line-height:1.42}.uvd-profile-traits{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.uvd-profile-traits span{padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.66);border:1px solid rgba(255,159,180,.26);color:#c95073;font-size:9.5px;font-weight:800}
 .uvd-settings-overlay .uvd-tag{background:rgba(255,159,180,.14)!important;color:#c95073!important;border-color:rgba(255,159,180,.3)!important}
 .uvd-settings-overlay .uvd-stat-num{color:#d85c7a!important}
@@ -4717,20 +4722,15 @@ function __uvdShowPlayIntro(url, type) {
 
 // ========== FAREWELL POPUP - gom het thu lai tam biet de thuong khi bam X (fix undefined + to nhu digging popup) ==========
 function __uvdGetFarewellMascotsHtml(){
-  // Build at call time so all mascots are defined, avoid undefined
-  var cat = (typeof __uvdHeaderMascot !== 'undefined' ? __uvdHeaderMascot : '');
-  var panda = (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : cat);
-  var raccoon = (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : (typeof __uvdTabMascotBear !== 'undefined' ? __uvdTabMascotBear : cat));
-  var hamster = (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : (typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : cat));
-  var rabbit = (typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : cat);
-  var bear = (typeof __uvdFooterMascot !== 'undefined' ? __uvdFooterMascot : cat);
-  return '<div class="uvd-farewell-mascots">' +
-    '<span class="uvd-fm uvd-fm-cat">' + cat + '</span>' +
-    '<span class="uvd-fm uvd-fm-panda">' + panda + '</span>' +
-    '<span class="uvd-fm uvd-fm-raccoon">' + raccoon + '</span>' +
-    '<span class="uvd-fm uvd-fm-hamster">' + hamster + '</span>' +
-    '<span class="uvd-fm uvd-fm-rabbit">' + rabbit + '</span>' +
-    '<span class="uvd-fm uvd-fm-bear">' + bear + '</span>' +
+  // 2-3 con bu nguyen con nhu popup video, khong o, to hon
+  var catBig = (typeof __uvdHeroMascot !== 'undefined' ? __uvdHeroMascot : (typeof __uvdHeaderMascot !== 'undefined' ? __uvdHeaderMascot : ''));
+  var panda = (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : catBig);
+  var hamster = (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : catBig);
+  // Tra ve 3 con to nguyen con, khong khung, nhu popup video
+  return '<div class="uvd-farewell-mascots uvd-farewell-big">' +
+    '<span class="uvd-fm uvd-fm-cat uvd-fm-big">' + catBig + '</span>' +
+    '<span class="uvd-fm uvd-fm-panda uvd-fm-big">' + panda + '</span>' +
+    '<span class="uvd-fm uvd-fm-hamster uvd-fm-big">' + hamster + '</span>' +
   '</div>';
 }
 function __uvdShowFarewellPopup(onConfirm) {

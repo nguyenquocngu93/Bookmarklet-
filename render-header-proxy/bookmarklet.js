@@ -4868,6 +4868,57 @@ function __uvdShowTutorialSlides() {
 }
 
 
+function __uvdShowTutorialSlides() {
+  var old = document.getElementById('__uvd_tutorial__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_tutorial__';
+  overlay.className = 'uvd-digging-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(45,22,47,.48);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:uvdFadeIn .3s ease both;';
+  var box = document.createElement('div');
+  box.className = 'uvd-digging-box';
+  box.style.cssText = 'position:relative;width:min(100%,460px);min-height:580px;display:flex;flex-direction:column;text-align:center;padding:26px 22px 18px;border-radius:36px;background:linear-gradient(155deg,rgba(255,250,253,.99),rgba(255,231,242,.98) 56%,rgba(245,232,255,.98));border:1px solid rgba(255,255,255,.9);box-shadow:0 30px 80px rgba(108,46,92,.44),0 0 0 7px rgba(255,255,255,.26) inset;animation:uvdScaleIn .42s cubic-bezier(.22,1,.36,1) both;overflow:hidden';
+  var idx = 0;
+  function getMascotBig(i){
+    var glasses = '<g><circle cx="42" cy="52" r="9" fill="none" stroke="#2b2b33" stroke-width="2.2"/><circle cx="68" cy="52" r="9" fill="none" stroke="#2b2b33" stroke-width="2.2"/><line x1="51" y1="52" x2="59" y2="52" stroke="#2b2b33" stroke-width="2.2"/><line x1="33" y1="48" x2="26" y2="44" stroke="#2b2b33" stroke-width="1.8" stroke-linecap="round"/><line x1="77" y1="48" x2="84" y2="44" stroke="#2b2b33" stroke-width="1.8" stroke-linecap="round"/></g>';
+    var pointer = '<g><line x1="78" y1="78" x2="88" y2="60" stroke="#f76c8c" stroke-width="3" stroke-linecap="round"/><circle cx="88" cy="58" r="4" fill="#ff9fb4"/></g>';
+    var cats = [
+      '<svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="126" rx="32" ry="8" fill="#f3d8e3" opacity=".4"/><ellipse cx="60" cy="88" rx="26" ry="22" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.3"/><circle cx="38" cy="44" r="15" fill="#ffb6c6"/><circle cx="82" cy="44" r="15" fill="#ffb6c6"/><path d="M38 44 L26 18 L52 32 Z" fill="#ff9fb4"/><path d="M82 44 L94 18 L68 32 Z" fill="#ff9fb4"/><ellipse cx="60" cy="66" rx="36" ry="30" fill="#ffe0ea" stroke="#ffd6e6" stroke-width="1.3"/><circle cx="48" cy="62" r="5" fill="#5b3a40"/><circle cx="72" cy="62" r="5" fill="#5b3a40"/>' + glasses + pointer + '</svg>',
+      '<svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="126" rx="30" ry="7" fill="#e8e0e6" opacity=".4"/><circle cx="34" cy="36" r="14" fill="#2b2b33"/><circle cx="86" cy="36" r="14" fill="#2b2b33"/><ellipse cx="60" cy="66" rx="34" ry="28" fill="#fff" stroke="#e8e0e6" stroke-width="1.3"/><ellipse cx="46" cy="60" rx="7" ry="6" fill="#2b2b33"/><ellipse cx="74" cy="60" rx="7" ry="6" fill="#2b2b33"/>' + glasses + pointer + '</svg>',
+      '<svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="126" rx="28" ry="7" fill="#d6d2cc" opacity=".4"/><circle cx="36" cy="36" r="13" fill="#8b8680"/><circle cx="84" cy="36" r="13" fill="#8b8680"/><ellipse cx="60" cy="66" rx="32" ry="26" fill="#d6d2cc" stroke="#a8a5a0" stroke-width="1.2"/><circle cx="48" cy="60" r="5" fill="#1e1e1e"/><circle cx="72" cy="60" r="5" fill="#1e1e1e"/>' + glasses + pointer + '</svg>',
+      '<svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="126" rx="26" ry="7" fill="#fde2a8" opacity=".4"/><circle cx="36" cy="36" r="12" fill="#fcbf6a"/><circle cx="84" cy="36" r="12" fill="#fcbf6a"/><ellipse cx="60" cy="66" rx="32" ry="28" fill="#fde2a8" stroke="#fcbf6a" stroke-width="1.2"/><circle cx="48" cy="60" r="5" fill="#4a2c20"/><circle cx="72" cy="60" r="5" fill="#4a2c20"/>' + glasses + pointer + '</svg>',
+      '<svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="126" rx="26" ry="7" fill="#e7dcff" opacity=".4"/><path d="M38 92 Q24 20 50 38 Q46 60 48 84 Z" fill="#fff" stroke="#e4d5ff" stroke-width="1.3"/><path d="M82 92 Q96 20 70 38 Q74 60 72 84 Z" fill="#fff" stroke="#e4d5ff" stroke-width="1.3"/><ellipse cx="60" cy="88" rx="24" ry="20" fill="#fff" stroke="#e4d5ff" stroke-width="1.3"/><circle cx="48" cy="62" r="5" fill="#4a3550"/><circle cx="72" cy="62" r="5" fill="#4a3550"/>' + glasses + pointer + '</svg>',
+      '<svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="126" rx="26" ry="7" fill="#f5d0b8" opacity=".4"/><circle cx="34" cy="34" r="12" fill="#f5d0b8"/><circle cx="86" cy="34" r="12" fill="#f5d0b8"/><ellipse cx="60" cy="66" rx="30" ry="26" fill="#fbe3d0" stroke="#f5d0b8" stroke-width="1.2"/><circle cx="48" cy="60" r="5" fill="#4a3550"/><circle cx="72" cy="60" r="5" fill="#4a3550"/>' + glasses + pointer + '</svg>'
+    ];
+    return cats[i % cats.length];
+  }
+  function render() {
+    var slide = __uvdTutorialSlides[idx];
+    var bigMascot = getMascotBig(idx);
+    box.innerHTML =
+      '<button id="__uvd_tut_close__" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,159,180,.28);background:rgba(255,255,255,.75);color:#d85c7a;font-size:18px;cursor:pointer;z-index:2">✕</button>' +
+      '<div style="width:100%;display:flex;justify-content:center;margin:8px 0 6px"><div style="width:220px;height:200px;line-height:0;filter:drop-shadow(0 10px 18px rgba(247,108,140,.28));animation:uvdMascotHop 1.9s ease-in-out infinite">' + bigMascot + '</div></div>' +
+      '<div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;text-align:center">' + slide.sub + '</div>' +
+      '<div style="font-size:22px;font-weight:900;color:#d85c7a;line-height:1.2;text-align:center;margin:4px 0 10px">' + slide.title + '</div>' +
+      '<div style="flex:1;overflow-y:auto;padding:0 4px"><div style="font-size:13.5px;color:#6b4d85;line-height:1.6;text-align:left;background:rgba(255,255,255,.7);border:1px solid rgba(255,159,180,.22);border-radius:16px;padding:12px 14px">' + slide.text + '</div>' +
+      '<div style="margin-top:10px;padding:10px 12px;border-radius:14px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);border:1px dashed rgba(255,159,180,.3);font-size:11.5px;color:#9a6ce0;text-align:left"><span style="font-weight:800">💡 Tip:</span> ' + slide.tips + '</div></div>' +
+      '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="display:flex;gap:6px">' + __uvdTutorialSlides.map(function(_,i){return '<span style="width:8px;height:8px;border-radius:50%;background:' + (i===idx ? '#f76c8c' : 'rgba(255,159,180,.25)') + ';display:inline-block"></span>'}).join('') + '</div><div style="display:flex;gap:8px"><button id="__uvd_tut_prev__" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(255,159,180,.25);background:#fff;color:#d85c7a;font-weight:700;font-size:12px;cursor:pointer' + (idx===0 ? ';opacity:.4;pointer-events:none' : '') + '">← Trước</button><button id="__uvd_tut_next__" style="padding:10px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 6px 16px rgba(247,108,140,.28)">' + (idx===__uvdTutorialSlides.length-1 ? 'Xong ♡' : 'Tiếp →') + '</button></div></div>';
+    box.querySelector('#__uvd_tut_close__').onclick = function(){ try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(e){} };
+    var prev = box.querySelector('#__uvd_tut_prev__');
+    if (prev) prev.onclick = function(){ if(idx>0){idx--; render();} };
+    var next = box.querySelector('#__uvd_tut_next__');
+    if (next) next.onclick = function(){ if(idx<__uvdTutorialSlides.length-1){idx++; render();} else { try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); }catch(e){} } };
+  }
+  overlay.appendChild(box);
+  __uvdAppendRoot(overlay);
+  try { (document.body||document.documentElement).appendChild(overlay); } catch(e){}
+  overlay.style.zIndex='2147483647';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay){ try{ overlay.remove(); }catch(ex){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(ex){} } });
+  render();
+}
+
+// Load a real video thumbnail
+
 // Load a real video thumbnail (muted, capture first frame) for quality links.
 function __uvdPopupThumb(thumbEl, url, type) {
   if (!thumbEl || !url) return;

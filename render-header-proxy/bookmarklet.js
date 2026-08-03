@@ -4562,10 +4562,13 @@ function __uvdStartDiggingPopup() {
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
       '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
+      '<div style="margin-top:14px;font-size:11.5px;color:#9a6ce0;">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
     '</div>';
   __uvdAppendRoot(overlay);
   var enter = overlay.querySelector('#__uvd_dig_enter__');
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
+  var help = overlay.querySelector('#__uvd_dig_help__');
+  if (help) help.onclick = function(e){ e.stopPropagation(); if (typeof __uvdShowTutorialSlides === 'function') __uvdShowTutorialSlides(); };
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
   clearTimeout(flow.waitTimer);
@@ -4773,6 +4776,92 @@ function __uvdShowFarewellPopup(onConfirm) {
   box.querySelector('#__uvd_farewell_bye__').onclick = function(){ closeFarewell(true); };
   overlay.addEventListener('click', function(e){ if(e.target===overlay) closeFarewell(false); });
 }
+
+// ========== TUTORIAL SLIDES CUTE - huong dan su dung Meo Cao Media ==========
+var __uvdTutorialSlides = [
+  {
+    mascot: (typeof __uvdHeroMascot !== 'undefined' ? __uvdHeroMascot : (typeof __uvdHeaderMascot !== 'undefined' ? __uvdHeaderMascot : '🐱')),
+    title: 'Mèo cào media là gì? ♡',
+    sub: 'Bạn đồng hành xem phim cute',
+    text: 'Mèo cào media là bookmarklet giúp cưng bắt link video thật (M3U8/MP4) trên mọi trang, lọc iframe rác, có player cute và đồng bộ lịch sử qua Supabase. Không cần cài app!',
+    tips: 'Mèo cào = cào link như mèo cào len ý 🐾'
+  },
+  {
+    mascot: (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : '🐼'),
+    title: '1. Cài đặt siêu dễ 🎀',
+    sub: 'Chỉ 10 giây thôi nè',
+    text: 'Mở trang bất kỳ → bấm ⭐ Bookmark → Edit → Đặt tên "mèo cào media" → Xóa URL cũ → Dán code loader → Lưu. Từ lần sau gõ tên bookmark vào thanh địa chỉ là chạy ngay!',
+    tips: 'Code loader tự cập nhật bản mới nhất mỗi lần chạy nha!'
+  },
+  {
+    mascot: (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : '🦝'),
+    title: '2. Mở trang có video 📺',
+    sub: 'Mèo sẽ tự đào link',
+    text: 'Vào trang phim, bấm bookmark "mèo cào media". Popup mèo béo cầm xẻng sẽ hiện "Đang đào link... 20 giây". Mèo tự quét fetch/XHR/resource để bắt link video thật, không cần bấm gì thêm.',
+    tips: 'Nếu trang chỉ có iframe, mèo sẽ gợi ý mở iframe rồi chạy lại UMP để lấy link thật.'
+  },
+  {
+    mascot: (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹'),
+    title: '3. Chọn link & Xem ♡',
+    sub: 'Popup cute liệt kê link',
+    text: 'Sau 20s, bấm "Vào link ♡" → Mèo bay lên, hiện popup video (nếu có M3U8/MP4) hoặc popup iframe. Mỗi link là 1 ô có nơ 🎀, hiện # + loại + URL rút gọn 1 dòng. Bấm "Xem ♡" → Intro thỏ bắp rang 3s rồi mở player.',
+    tips: 'Link có nhãn ✨ chất lượng cao là link có nhiều chất lượng / master nhé!'
+  },
+  {
+    mascot: (typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : '🐰'),
+    title: '4. Player dễ thương 🎬',
+    sub: 'Chọn chất lượng, full màn hình',
+    text: 'Trong player: chọn chất lượng (auto/highest), toàn màn hình, phụ đề (tải .srt/.vtt hoặc tìm trên SubDL). Chạm đúp trái/phải để tua 10s. Header player giờ là hamster cute!',
+    tips: 'Video gốc bị pause để xem qua player script cho ổn định hơn nè.'
+  },
+  {
+    mascot: (typeof __uvdFooterMascot !== 'undefined' ? __uvdFooterMascot : '🐻'),
+    title: '5. Cài đặt & Đồng bộ ☁️',
+    sub: 'Vote, lịch sử, filter',
+    text: 'Tab Streams / Nút đã click / Lịch sử giờ là panda / gấu mèo / hamster. Trong Cài đặt: chỉnh hiệu năng, AI lọc iframe rác, đồng bộ Supabase, chặn popup, vote ♥/💩 cho link, xem lịch sử. Bấm X sẽ hiện popup tạm biệt với 1 con random full body!',
+    tips: 'Nhớ: bookmark.js = render-header-proxy/bookmarklet.js + node --check + update README nhé!'
+  }
+];
+
+function __uvdShowTutorialSlides() {
+  var old = document.getElementById('__uvd_tutorial__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_tutorial__';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(28,14,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);animation:uvdFadeIn .3s ease both;';
+  var box = document.createElement('div');
+  box.style.cssText = 'width:100%;max-width:460px;max-height:84vh;display:flex;flex-direction:column;border-radius:32px;overflow:hidden;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 28px 70px rgba(150,90,220,.38);animation:uvdScaleIn .4s cubic-bezier(.22,1,.36,1) both;';
+  var idx = 0;
+  function render() {
+    var slide = __uvdTutorialSlides[idx];
+    box.innerHTML =
+      '<div style="padding:18px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(150deg,#ffe9f3,#f3e6ff);border-bottom:1px solid rgba(255,159,180,.22)">' +
+        '<div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:56px;height:56px;flex:0 0 56px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;filter:drop-shadow(0 4px 10px rgba(247,108,140,.22))">' + slide.mascot + '</span>' +
+        '<div style="min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b68bea">' + slide.sub + '</div><div style="font-size:18px;font-weight:900;color:#d85c7a;line-height:1.2">' + slide.title + '</div></div></div>' +
+        '<button id="__uvd_tut_close__" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,159,180,.18);color:#d85c7a;font-size:16px;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div style="padding:18px 20px;overflow-y:auto;flex:1">' +
+        '<div style="font-size:13.5px;color:#6b4d85;line-height:1.6;margin-bottom:12px">' + slide.text + '</div>' +
+        '<div style="padding:10px 12px;border-radius:14px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);border:1px dashed rgba(255,159,180,.3);font-size:11.5px;color:#9a6ce0"><span style="font-weight:800">💡 Tip:</span> ' + slide.tips + '</div>' +
+      '</div>' +
+      '<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,159,180,.18);background:rgba(255,255,255,.6)">' +
+        '<div style="display:flex;gap:6px">' + __uvdTutorialSlides.map(function(_,i){return '<span style="width:8px;height:8px;border-radius:50%;background:' + (i===idx ? '#f76c8c' : 'rgba(255,159,180,.25)') + ';display:inline-block;transition:all .2s"></span>'}).join('') + '</div>' +
+        '<div style="display:flex;gap:8px"><button id="__uvd_tut_prev__" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(255,159,180,.25);background:#fff;color:#d85c7a;font-weight:700;font-size:12px;cursor:pointer' + (idx===0 ? ';opacity:.4;pointer-events:none' : '') + '">← Trước</button><button id="__uvd_tut_next__" style="padding:10px 16px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.25)">' + (idx===__uvdTutorialSlides.length-1 ? 'Xong ♡' : 'Tiếp →') + '</button></div>' +
+      '</div>';
+    box.querySelector('#__uvd_tut_close__').onclick = function(){ overlay.remove(); };
+    var prev = box.querySelector('#__uvd_tut_prev__');
+    if (prev) prev.onclick = function(){ if(idx>0){idx--; render();} };
+    var next = box.querySelector('#__uvd_tut_next__');
+    if (next) next.onclick = function(){ if(idx<__uvdTutorialSlides.length-1){idx++; render();} else { overlay.remove(); } };
+  }
+  overlay.appendChild(box);
+  __uvdAppendRoot(overlay);
+  try { (document.body||document.documentElement).appendChild(overlay); } catch(e){}
+  overlay.style.zIndex='2147483647';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  render();
+}
+
 
 // Load a real video thumbnail (muted, capture first frame) for quality links.
 function __uvdPopupThumb(thumbEl, url, type) {

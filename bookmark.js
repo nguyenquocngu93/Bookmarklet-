@@ -450,12 +450,6 @@ function __uvdQualifiedDirectEntries() {
     return __uvdIsQualifiedMediaItem(entry[1]);
   });
 }
-function __uvdPendingDirectCount() {
-  return __uvdHasRealDirectStreams().filter(function(entry) {
-    var item = entry[1] || {};
-    return !__uvdIsQualifiedMediaItem(item) && item.demo !== true && item.verification !== 'failed';
-  }).length;
-}
 function __uvdCaptureVerifiedThumbnail(media) {
   if (!media || !media.videoWidth || !media.videoHeight) return '';
   try {
@@ -5917,13 +5911,8 @@ function __uvdStreamRank(item) {
 }
 
 function buildUI() {
-  var rawArr = [...urls.entries()].map(function(e) {
-    var sourceItem = e[1] || {};
-    if (__uvdIsDiggingDirectType(sourceItem.type) && !__uvdIsQualifiedMediaItem(sourceItem) && sourceItem.verification !== 'failed') __uvdQueueMediaVerification(e[0]);
-    return { url: e[0], type: sourceItem.type, source: sourceItem.source, priority: sourceItem.priority, timestamp: sourceItem.timestamp || 0, sequence: sourceItem.sequence || 0, qualityCount: sourceItem.qualityCount || 0, isMaster: !!sourceItem.isMaster, resolution: sourceItem.resolution || __uvdGetUrlResolution(e[0]), aiVerdict: sourceItem.aiVerdict || '', aiScore: sourceItem.aiScore == null ? null : sourceItem.aiScore, aiReasons: sourceItem.aiReasons || [], demo: sourceItem.demo === true, verified: sourceItem.verified === true, thumbnail: sourceItem.thumbnail || '', durationSeconds: sourceItem.durationSeconds || 0, videoWidth: sourceItem.videoWidth || 0, videoHeight: sourceItem.videoHeight || 0 };
-  });
-  var arr = rawArr.filter(function(item) {
-    return String(item.type || '').toUpperCase() === 'IFRAME' || __uvdIsQualifiedMediaItem(item);
+  var arr = [...urls.entries()].map(function(e) {
+    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]), aiVerdict: e[1].aiVerdict || '', aiScore: e[1].aiScore == null ? null : e[1].aiScore, aiReasons: e[1].aiReasons || [] };
   }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
@@ -6364,12 +6353,8 @@ function buildStreamCardHTML(item, i) {
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
-  var hasVerifiedThumb = __uvdIsQualifiedMediaItem(item);
-  var statusText = hasVerifiedThumb ? 'PREVIEW OK' : ((type === 'MP4' || type === 'M3U8') ? 'đang xác minh…' : 'chưa có preview');
-  var statusClass = hasVerifiedThumb ? 'uvd-status-ok' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
-  var thumbHtml = hasVerifiedThumb
-    ? '<img class="uvd-thumb-image uvd-thumb-ready" src="' + escapeHtml(item.thumbnail) + '" alt="Ảnh xem trước video">'
-    : '<div class="uvd-thumb-image"></div>';
+  var statusText = (type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview';
+  var statusClass = (type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted';
   var guideText;
   if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
   else if (type === 'MP4' || type === 'WEBM') guideText = 'Link video thật nè 📼 — bấm Xem để phát ngay nha.';
@@ -6377,8 +6362,8 @@ function buildStreamCardHTML(item, i) {
   else guideText = 'Link media nè — bấm Xem để phát thử nha.';
   return (
     '<div class="uvd-card uvd-cute" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '"' + (hasVerifiedThumb ? ' data-thumb-verified="1"' : '') + '>' +
-        thumbHtml +
+      '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
+        '<div class="uvd-thumb-image"></div>' +
         '<div class="uvd-thumb-sheen"></div>' +
         '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
@@ -6479,8 +6464,8 @@ function hydrateVideoThumbnails(root) {
   if (!root) return;
   root.querySelectorAll('.uvd-card-preview[data-thumb-url]').forEach(function(preview) {
     if (preview.dataset.thumbState) return;
-    if (preview.dataset.thumbVerified === '1') { preview.dataset.thumbState = 'ready'; return; }
     var card = preview.closest('.uvd-card');
+    var isVerificationStage = !!preview.closest('.uvd-verification-stage');
     var type = card ? (card.dataset.type || '').toUpperCase() : '';
     if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO' && type !== 'BLOB') {
       preview.dataset.thumbState = 'unsupported';
@@ -6514,10 +6499,7 @@ function hydrateVideoThumbnails(root) {
       media.defaultMuted = true;
       media.playsInline = true;
       media.preload = 'metadata';
-      // The strict verifier stores an actual JPEG frame, so request CORS
-      // permission before assigning the source instead of accepting a frame
-      // that cannot be turned into a thumbnail.
-      media.crossOrigin = 'anonymous';
+      if (isVerificationStage) media.crossOrigin = 'anonymous';
       media.setAttribute('aria-hidden', 'true');
     } else {
       media.classList.add('uvd-thumb-video');
@@ -6545,7 +6527,7 @@ function hydrateVideoThumbnails(root) {
       if (card) card.classList.add('uvd-card-has-real-preview');
       __uvdUpdateCardFromMedia(card, media);
       var verifiedUrl = preview.getAttribute('data-thumb-url');
-      __uvdPromoteVerifiedMedia(verifiedUrl, media);
+      if (isVerificationStage) __uvdPromoteVerifiedMedia(verifiedUrl, media);
       __uvdSaveHistoryMetadata(verifiedUrl, media, card);
       var status = card && card.querySelector('.uvd-card-status');
       if (status) { status.textContent = 'PREVIEW OK'; status.className = 'uvd-card-status uvd-status-ok'; }
@@ -6685,10 +6667,7 @@ function hydrateVideoThumbnails(root) {
 
 function renderStreams(container, arr) {
   if (!arr.length) {
-    var pending = __uvdPendingDirectCount();
-    container.innerHTML = pending
-      ? '<div class="uvd-empty-state"><strong>Mèo đang kiểm chứng video…</strong><span>Chỉ hiện video dài có đủ dữ liệu và ảnh xem trước thật. Clip ngắn, quảng cáo và link trần sẽ bị ẩn.</span></div>'
-      : '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
+    container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
     var emptyPreload = container.querySelector('#__uvd_empty_preload__');
     if (emptyPreload) emptyPreload.onclick = function() { runPreloadCapture(); };
     return;

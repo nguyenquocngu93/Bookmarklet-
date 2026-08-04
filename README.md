@@ -791,3 +791,9 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **KPhim intro:** module versioned để ép tải bản mới, sửa trường hợp popup giới thiệu bị cache module cũ bỏ qua.
 - **Bảo mật:** không đưa bearer token vào repository hoặc tài liệu; đặt token đã rotate vào Render Environment Variables bằng key `TMDB_BEARER_TOKEN`.
 - **Kết quả:** `node --check` OK cho bookmarklet/module/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.
+
+### Patch #45 — Fix skin KPhim bị host CSS đè + ép intro module mới — 2026-08-04
+
+- **Fix intro:** module KPhim dùng version `4`; bookmarklet xóa module/script cũ trong page rồi tải lại bản mới, tránh cache khiến bỏ qua intro.
+- **Fix giao diện:** CSS KPhim được cô lập bằng selector `#__uvd_kkphim` + `!important` cho sheet, button, category row, hàng phim ngang, card/poster/detail/tập. Sửa lỗi button tối, chữ quá lớn, category xuống dòng và poster/card bị giãn dọc do CSS trang chủ đè.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.

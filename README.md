@@ -803,3 +803,9 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Bug:** keyframes `uvdKkHop` thiếu dấu đóng `}`, làm browser nuốt toàn bộ CSS KPhim phía sau; vì vậy host CSS đè thành button đen, category wrap và poster khổng lồ.
 - **Fix:** đóng đúng keyframe và bump KPhim module version lên `5` để xóa module/style cũ trong page, buộc tải skin mới + intro mới.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.
+
+### Patch #47 — Fix KKPhim bỏ qua TMDB Render proxy khi không có key local — 2026-08-04
+
+- **Bug:** module yêu cầu `tmdbApiKey` local trước khi gọi TMDB, nên dù Render đã có `TMDB_BEARER_TOKEN` thì cast/logo vẫn không tải.
+- **Fix:** chỉ cần `tmdb.id`; module ưu tiên gọi `/tmdb/:kind/:id` trên Render. Local TMDB key chỉ dùng làm fallback khi proxy chưa cấu hình.
+- **Kết quả:** diễn viên có ảnh, score/overview và logo TMDB (nếu TMDB có logo cho phim) sẽ render khi Render token hoạt động.

@@ -143,7 +143,9 @@
   function tmdbDetails(movie) {
     var b = bridge(), key = b.tmdbKey && b.tmdbKey();
     var tmdb = movie && movie.tmdb || {};
-    if (!key || !tmdb.id) return Promise.resolve(null);
+    // A Render-side bearer token is enough; a browser-local key is only a
+    // fallback when the shared proxy has not been configured.
+    if (!tmdb.id) return Promise.resolve(null);
     var kind = tmdb.type === 'tv' ? 'tv' : (movie.type === 'series' ? 'tv' : 'movie');
     var proxy = b.tmdbProxyBase && b.tmdbProxyBase();
     var direct = function() { return key ? json('https://api.themoviedb.org/3/' + kind + '/' + encodeURIComponent(tmdb.id) + '?api_key=' + encodeURIComponent(key) + '&append_to_response=credits,images&include_image_language=vi,en,null') : Promise.resolve(null); };

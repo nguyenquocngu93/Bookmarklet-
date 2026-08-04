@@ -846,3 +846,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - Card Streams/body giữ cute nhưng shadow nhẹ hơn; mobile override gọn hơn.
 - Đợt sau sẽ cleanup Settings rồi Player CSS legacy.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #53 — CSS Cleanup đợt 2: Settings nhẹ hơn — 2026-08-04
+
+- Scope: `uvd-settings-clean`, không đụng player hoặc popup.
+- Tắt backdrop-filter/glass stack cũ trong Settings, sheet/card/details dùng nền pastel solid + shadow nhẹ.
+- Giảm padding/margin trên mobile, bo sheet/hero mềm hơn, nhóm settings/danh sách hướng dẫn gọn hơn.
+- Đợt 3 sẽ cleanup Player CSS legacy sau khi kiểm tra lại main/settings.

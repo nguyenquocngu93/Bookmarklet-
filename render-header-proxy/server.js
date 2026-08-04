@@ -510,6 +510,15 @@ app.get('/bookmarklet.js', (_req, res) => {
   res.sendFile(path.join(__dirname, 'bookmarklet.js'));
 });
 
+// Public setup script for the optional Supabase tables. This is documentation
+// only; executing it still requires the project owner in Supabase SQL Editor.
+app.get('/sync.sql', (_req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Disposition', 'inline; filename="sync.sql"');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.sendFile(path.join(__dirname, 'sync.sql'));
+});
+
 // Optional TMDB metadata bridge. Its bearer token is a Render environment
 // variable, so browser users never receive it.
 app.get('/tmdb/search', async (req, res) => {

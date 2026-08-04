@@ -496,7 +496,7 @@ function __uvdIsQualifiedMediaItem(item) {
 }
 function __uvdQualifiedDirectEntries() {
   return __uvdHasRealDirectStreams().filter(function(entry) {
-    return __uvdIsQualifiedMediaItem(entry[1]);
+    return !__uvdIsLearnedJunkVideo(entry[0]) && __uvdIsQualifiedMediaItem(entry[1]);
   });
 }
 function __uvdCaptureVerifiedThumbnail(media) {
@@ -799,10 +799,23 @@ function __uvdCreateDetectionVoteControls(url, context) {
   wrap.appendChild(up); wrap.appendChild(down); refresh();
   return wrap;
 }
+function __uvdLearnedVideoVerdict(url) {
+  var host = __uvdVoteDomainKey(url);
+  var rec = host && (data.learnedVideos || {})[host];
+  if (!rec) return null;
+  var up = Math.max(Number(rec.up) || 0, Number(rec.player) || 0);
+  var down = Math.max(Number(rec.down) || 0, Number(rec.junk) || 0);
+  if (down >= 2 && down > up) return 'JUNK';
+  if (up >= 2 && up > down) return 'PLAYER';
+  return null;
+}
+function __uvdIsLearnedJunkVideo(url) {
+  return __uvdLearnedVideoVerdict(url) === 'JUNK';
+}
 function __uvdVideoScore(url, type) {
   var host = __uvdMediaHostOf(url);
   var v = host && (data.learnedVideos || {})[host];
-  var score = 0;
+  var score = __uvdIsLearnedJunkVideo(url) ? -100 : 0;
   if (v) score += ((v.up || 0) * 8) - ((v.down || 0) * 12);
   // Metadata & preview bonus: a link that already has resolution/quality or a
   // thumbnail is treated as more "real" than a bare URL.
@@ -934,6 +947,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   else if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
   type = type || 'MP4';
+  if (__uvdIsDiggingDirectType(type) && __uvdIsLearnedJunkVideo(url)) return false;
   if (__uvdIsMatthewHost() && type === 'M3U8') setTimeout(__uvdFreezeMatthewPage, 0);
   var priorityMap = { M3U8: 1, MPD: 2, MP4: 3, WEBM: 4, BLOB: 8, IFRAME: 99 };
   var priority = priorityMap[type] || 6;
@@ -4636,6 +4650,7 @@ style.textContent = `
 /* ===== COMMUNITY FEEDBACK — video, iframe and TMDB recognition ===== */
 .uvd-feedback-note{margin:8px 0 5px;padding:7px 9px;border:1px solid rgba(194,150,255,.23);border-radius:11px;background:rgba(255,255,255,.62);color:#8a6ab0;font-size:10px;font-weight:700;line-height:1.4;text-align:left}.uvd-popup-feedback{margin:0 0 10px}.uvd-feedback-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.uvd-feedback-vote{appearance:none;padding:5px 7px;border:1px solid transparent;border-radius:999px;background:#fff;color:#8a6ab0;font:800 9px/1.15 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .14s ease,filter .14s ease}.uvd-feedback-vote:active{transform:scale(.94)}.uvd-feedback-vote:hover{filter:brightness(.98)}.uvd-feedback-vote-up{border-color:rgba(247,108,140,.27);background:rgba(255,225,237,.76);color:#c95073}.uvd-feedback-vote-down{border-color:rgba(194,150,255,.28);background:rgba(242,233,255,.82);color:#7d5ca5}.uvd-plplain-body .uvd-feedback-actions{margin:7px 0 1px}.uvd-iframe-cute-row .uvd-feedback-actions{margin:7px 0 0}.uvd-player-tmdb-copy .uvd-tmdb-feedback{margin:7px 0 5px;padding:6px 7px;font-size:9px}.uvd-player-tmdb-copy .uvd-tmdb-feedback-actions{margin-top:4px}
 .uvd-stream-end{display:flex;align-items:center;justify-content:center;gap:9px;margin:14px 3px 5px;padding:11px 14px;border:1px dashed rgba(194,150,255,.34);border-radius:18px;background:linear-gradient(135deg,rgba(255,248,252,.82),rgba(246,238,255,.82));color:#8a6ab0;text-align:left}.uvd-stream-end-animal{display:flex;flex:0 0 42px;width:42px;height:42px;align-items:center;justify-content:center;filter:drop-shadow(0 4px 7px rgba(247,108,140,.18));animation:uvdMascotHop 2s ease-in-out infinite}.uvd-stream-end-animal svg{width:100%;height:100%;display:block}.uvd-stream-end strong{display:block;color:#c95073;font-size:11px;font-weight:900}.uvd-stream-end span:not(.uvd-stream-end-animal){display:block;margin-top:2px;font-size:9.5px;font-weight:700;line-height:1.35}
+.uvd-card-learned-junk{opacity:.72!important}.uvd-thumb-play-blocked{pointer-events:none!important;background:rgba(255,235,240,.92)!important;color:#d85c7a!important;border-color:rgba(255,93,114,.35)!important}
 /* ===== POPUP SCROLL SAFETY =====
    Short phones must be able to reach both the close button and the final action. */
 #__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_resume_prompt__,#__uvd_tutorial__,#__uvd_farewell_popup__,.uvd-digging-overlay{overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;align-items:flex-start!important}#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div,#__uvd_farewell_popup__>.uvd-digging-box,.uvd-digging-overlay>.uvd-digging-box{flex:0 0 auto!important;max-height:calc(100dvh - 24px)!important;margin:auto!important;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-digging-overlay>.uvd-digging-box,.uvd-farewell-box{min-height:0!important}@media (max-width:560px){#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_resume_prompt__,#__uvd_tutorial__,#__uvd_farewell_popup__,.uvd-digging-overlay{padding:10px!important}#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div,#__uvd_farewell_popup__>.uvd-digging-box,.uvd-digging-overlay>.uvd-digging-box{max-height:calc(100dvh - 20px)!important}}
@@ -6499,7 +6514,8 @@ function __uvdDescribeHlsLevels(card, levels, media) {
     quality: quality,
     resolution: top.width && top.height ? (top.width + '×' + top.height + ' (' + __uvdResolutionLabel(top.width, top.height) + ')') : ''
   });
-  __uvdSetCardStatus(card, labels.length > 1 ? 'MASTER · ' + labels.length + ' QUALITY' : 'PREVIEW…', labels.length > 1 ? 'uvd-status-ok' : 'uvd-status-loading');
+  var learnedJunk = card && card.dataset.url && __uvdIsLearnedJunkVideo(card.dataset.url);
+  __uvdSetCardStatus(card, learnedJunk ? 'RÁC ĐÃ HỌC' : (labels.length > 1 ? 'MASTER · ' + labels.length + ' QUALITY' : 'PREVIEW…'), learnedJunk ? 'uvd-status-muted' : (labels.length > 1 ? 'uvd-status-ok' : 'uvd-status-loading'));
 }
 
 // ========== RENDER STREAMS ==========
@@ -6551,8 +6567,13 @@ function buildStreamCardHTML(item, i) {
       '</div>' +
       '</div>';
   }
+  var learnedVideoVerdict = __uvdLearnedVideoVerdict(item.url);
+  var isLearnedVideoJunk = learnedVideoVerdict === 'JUNK';
   var actionsHtml;
-  if (type === 'BLOB') {
+  if (isLearnedVideoJunk) {
+    actionsHtml = '<span class="uvd-junk-advice">🚫 Domain này đã bị học là rác — không nên xem</span>' +
+      '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>';
+  } else if (type === 'BLOB') {
     actionsHtml =
       '<button class="uvd-btn uvd-btn-sm" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '">▶ xem</button>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="blobdl" data-url="' + encodeURIComponent(item.url) + '">⬇ tải blob</button>' +
@@ -6571,20 +6592,24 @@ function buildStreamCardHTML(item, i) {
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
-  var statusText = (type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview';
-  var statusClass = (type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted';
+  var statusText = isLearnedVideoJunk ? 'RÁC ĐÃ HỌC' : ((type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview');
+  var statusClass = isLearnedVideoJunk ? 'uvd-status-muted' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
   var guideText;
-  if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
+  if (isLearnedVideoJunk) guideText = '🚫 Domain này đã nhận 2+ vote 💩. Mèo sẽ không gọi đây là link thật và sẽ tự bỏ qua ở lần quét sau.';
+  else if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
   else if (type === 'MP4' || type === 'WEBM') guideText = 'Link video thật nè 📼 — bấm Xem để phát ngay nha.';
   else if (type === 'BLOB') guideText = 'Blob MediaSource nè 🌀 — bấm Xem để phát trực tiếp.';
   else guideText = 'Link media nè — bấm Xem để phát thử nha.';
+  var previewAction = isLearnedVideoJunk
+    ? '<span class="uvd-thumb-play uvd-thumb-play-blocked" title="Đã học là link rác">🚫</span>'
+    : '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>';
   return (
-    '<div class="uvd-card uvd-cute" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
+    '<div class="uvd-card uvd-cute' + (isLearnedVideoJunk ? ' uvd-card-learned-junk' : '') + '" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
         '<div class="uvd-thumb-image"></div>' +
         '<div class="uvd-thumb-sheen"></div>' +
         '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
-        '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
+        previewAction +
         actionMenuHtml +
       '</div>' +
       '<div class="uvd-card-head">' +
@@ -6759,7 +6784,8 @@ function hydrateVideoThumbnails(root) {
       if (isVerificationStage) __uvdPromoteVerifiedMedia(verifiedUrl, media);
       __uvdSaveHistoryMetadata(verifiedUrl, media, card);
       var status = card && card.querySelector('.uvd-card-status');
-      if (status) { status.textContent = 'PREVIEW OK'; status.className = 'uvd-card-status uvd-status-ok'; }
+      var learnedJunk = card && card.dataset.url && __uvdIsLearnedJunkVideo(card.dataset.url);
+      if (status) { status.textContent = learnedJunk ? 'RÁC ĐÃ HỌC' : 'PREVIEW OK'; status.className = 'uvd-card-status ' + (learnedJunk ? 'uvd-status-muted' : 'uvd-status-ok'); }
       if (media.videoWidth && media.videoHeight) {
         preview.classList.toggle('uvd-thumb-portrait', media.videoHeight > media.videoWidth);
         preview.classList.toggle('uvd-thumb-landscape', media.videoWidth >= media.videoHeight);

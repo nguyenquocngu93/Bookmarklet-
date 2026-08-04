@@ -767,15 +767,50 @@ function __uvdVideoScore(url, type) {
   if (String(type || '').toUpperCase() === 'M3U8' && /master\.m3u8/i.test(url)) score += 20;
   return score;
 }
+// Read the latest labels already obtained in the Streams tab before opening
+// the compact popup.  The tab is the canonical source for HLS level metadata
+// and for a card that was intentionally marked QUALITY ONLY.
+function __uvdSyncPopupMetadataFromStreamTab() {
+  try {
+    document.querySelectorAll('#__uvd_stream_list__ .uvd-card[data-url]').forEach(function(card) {
+      var url = card.dataset && card.dataset.url;
+      var item = url && urls.get(url);
+      if (!item) return;
+      var status = (card.querySelector('.uvd-card-status') || {}).textContent || '';
+      var meta = (card.querySelector('[data-card-stream-meta]') || {}).textContent || '';
+      var text = (status + ' ' + meta).toLowerCase();
+      if (/quality\s*only/.test(text)) {
+        item.qualityOnly = true;
+        item.qualityLabel = 'QUALITY ONLY';
+        return;
+      }
+      var qualityMatch = text.match(/(?:master\s*[··]\s*|đa chất lượng\s*[··]\s*)(\d+)\s*(?:quality|mức)/i);
+      if (qualityMatch && Number(qualityMatch[1]) > 1) {
+        item.qualityCount = Math.max(Number(item.qualityCount) || 0, Number(qualityMatch[1]));
+        item.isMaster = true;
+        item.qualityOnly = false;
+        item.qualityLabel = 'ĐA CHẤT LƯỢNG';
+      }
+    });
+  } catch(e) {}
+}
+function __uvdPopupQualityTier(stream) {
+  var item = stream && (stream.item || urls.get(stream.url)) || {};
+  // QUALITY ONLY is a fallback/limited card, never let score or recency lift
+  // it above normal results. A master with 2+ levels is always the first tier.
+  if (item.qualityOnly === true) return 0;
+  if ((Number(item.qualityCount) || 0) > 1 || item.isMaster === true) return 3;
+  if (item.resolution || (Number(item.qualityCount) || 0) > 0) return 2;
+  return 1;
+}
 function __uvdSortStreamsForPopup(direct) {
-  // Link chất lượng cao (có metadata / đa chất lượng / resolution) luôn đứng đầu.
-  function isQuality(stream) {
-    var m = stream.item || {};
-    return !!(m.qualityCount || m.isMaster || m.resolution);
-  }
-  return direct.slice().sort(function(a, b) {
-    var qa = isQuality(a), qb = isQuality(b);
-    if (qa !== qb) return qb - qa;
+  __uvdSyncPopupMetadataFromStreamTab();
+  return direct.slice().map(function(stream) {
+    var item = urls.get(stream.url) || stream.item || {};
+    return Object.assign({}, stream, { item: item });
+  }).sort(function(a, b) {
+    var ta = __uvdPopupQualityTier(a), tb = __uvdPopupQualityTier(b);
+    if (ta !== tb) return tb - ta;
     var sa = __uvdVideoScore(a.url, a.type), sb = __uvdVideoScore(b.url, b.type);
     return (sb - sa) || ((urls.get(b.url) ? (urls.get(b.url).timestamp || 0) : 0) - (urls.get(a.url) ? (urls.get(a.url).timestamp || 0) : 0));
   });
@@ -5541,7 +5576,8 @@ function __uvdPopupThumb(thumbEl, url, type) {
   }
 }
 function __uvdOpenMediaLinksPopup(streams) {
-  streams = (streams || []).filter(function(stream) {
+  __uvdSyncPopupMetadataFromStreamTab();
+  streams = __uvdSortStreamsForPopup(streams || []).filter(function(stream) {
     return __uvdIsQualifiedMediaItem(stream && (stream.item || urls.get(stream.url)));
   });
   if (!streams.length) return false;
@@ -5575,7 +5611,10 @@ function __uvdOpenMediaLinksPopup(streams) {
   __uvdRenderVotes = false;
   // Quay lại link đơn giản: mỗi link 1 dòng text + nút Xem (không thumbnail, không mũi chĩa).
   streams.slice(0, 8).forEach(function(stream, index) {
-    var hasMeta = !!(stream.item && (stream.item.qualityCount || stream.item.isMaster || stream.item.resolution));
+    var popupItem = stream.item || urls.get(stream.url) || {};
+    var isMultiQuality = __uvdPopupQualityTier(stream) === 3;
+    var isQualityOnly = __uvdPopupQualityTier(stream) === 0;
+    var hasMeta = !!(popupItem.qualityCount || popupItem.isMaster || popupItem.resolution);
     var row = document.createElement('div');
     row.className = 'uvd-plplain';
     var mascots = [ (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : ''), (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : ''), (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '') ];
@@ -5589,10 +5628,14 @@ function __uvdOpenMediaLinksPopup(streams) {
     body.className = 'uvd-plplain-body';
     var typeText = String(stream.type || 'MEDIA').toUpperCase();
     var badge = '<span class="uvd-plplain-badge">#' + (index + 1) + ' ' + typeText + '</span>';
-    if (hasMeta) badge += ' <span class="uvd-plplain-q">✨ chất lượng cao</span>';
-    var popGuide = String(stream.type || '').toUpperCase() === 'M3U8'
-      ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.'
-      : '📼 Link video thật — bấm Xem để phát ngay nha.';
+    if (isMultiQuality) badge += ' <span class="uvd-plplain-q">✨ đa chất lượng · ưu tiên</span>';
+    else if (isQualityOnly) badge += ' <span class="uvd-plplain-q uvd-plplain-quality-only">QUALITY ONLY · xếp sau</span>';
+    else if (hasMeta) badge += ' <span class="uvd-plplain-q">✨ có metadata</span>';
+    var popGuide = isQualityOnly
+      ? '📎 Chỉ có một quality/preview — Mèo xếp sau các link đa chất lượng nha.'
+      : (String(stream.type || '').toUpperCase() === 'M3U8'
+        ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.'
+        : '📼 Link video thật — bấm Xem để phát ngay nha.');
     body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
       '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>' +
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
@@ -6352,7 +6395,13 @@ function __uvdDescribeHlsLevels(card, levels, media) {
   }).filter(function(label, index, list) { return list.indexOf(label) === index; });
   labels.sort(function(a, b) { return (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0); });
   var quality = labels.length > 1 ? 'Đa chất lượng · ' + labels.length + ' mức (' + labels.slice(0, 6).join(' · ') + (labels.length > 6 ? ' …' : '') + ')' : (labels[0] || 'M3U8');
-  if (card && card.dataset.url && urls.has(card.dataset.url)) { urls.get(card.dataset.url).qualityCount = labels.length; urls.get(card.dataset.url).isMaster = labels.length > 1; }
+  if (card && card.dataset.url && urls.has(card.dataset.url)) {
+    var streamItem = urls.get(card.dataset.url);
+    streamItem.qualityCount = labels.length;
+    streamItem.isMaster = labels.length > 1;
+    streamItem.qualityOnly = false;
+    streamItem.qualityLabel = labels.length > 1 ? 'ĐA CHẤT LƯỢNG' : '';
+  }
   var top = levels.slice().sort(function(a, b) { return (b.height || 0) - (a.height || 0); })[0] || {};
   __uvdUpdateCardFromMedia(card, media, {
     quality: quality,
@@ -6552,6 +6601,8 @@ function hydrateVideoThumbnails(root) {
       var existingHlsThumb = root.querySelector('.uvd-card-preview[data-uvd-hls-owner="1"]');
       if (existingHlsThumb && existingHlsThumb !== preview) {
         preview.dataset.thumbState = 'quality-only';
+        var qualityOnlyItem = card && card.dataset.url && urls.get(card.dataset.url);
+        if (qualityOnlyItem) { qualityOnlyItem.qualityOnly = true; qualityOnlyItem.qualityLabel = 'QUALITY ONLY'; }
         var qualityOnlyStatus = card && card.querySelector('.uvd-card-status');
         if (qualityOnlyStatus) { qualityOnlyStatus.textContent = 'QUALITY ONLY'; qualityOnlyStatus.className = 'uvd-card-status uvd-status-muted'; }
         return;

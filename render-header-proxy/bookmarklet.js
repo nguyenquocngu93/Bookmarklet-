@@ -2313,6 +2313,83 @@ function __uvdOpenResumePrompt(video, url, pos, onPick) {
   overlay.querySelector('#__uvd_resume_continue__').onclick = function() { choose('continue'); };
 }
 
+// ========== TMDB PLAYER RECOGNITION ==========
+function __uvdTmdbCleanTitle(raw) {
+  return String(raw || '')
+    .replace(/https?:\/\/\S+/gi, ' ').replace(/\[[^\]]*\]|\([^)]*(?:1080|720|vietsub|thuyết minh|lồng tiếng)[^)]*\)/gi, ' ')
+    .replace(/\b(?:tap|tập|episode|ep|phần|season|s\d+e\d+)\s*\d*\b/gi, ' ')
+    .replace(/\b(?:1080p|720p|480p|m3u8|mp4|vietsub|thuyet minh|long tieng|full hd|watch online)\b/gi, ' ')
+    .replace(/[_|·–—-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function __uvdTmdbSimilarity(query, candidate) {
+  query = __uvdTmdbCleanTitle(query).toLowerCase();
+  candidate = __uvdTmdbCleanTitle(candidate).toLowerCase();
+  if (!query || !candidate) return 0;
+  if (query === candidate) return 1;
+  if (query.indexOf(candidate) !== -1 || candidate.indexOf(query) !== -1) return 0.84;
+  var q = query.split(/\s+/).filter(function(x) { return x.length > 1; });
+  var c = candidate.split(/\s+/);
+  var hits = q.filter(function(x) { return c.indexOf(x) !== -1; }).length;
+  return hits / Math.max(q.length, c.length, 1);
+}
+function __uvdTmdbJson(path, localUrl) {
+  var proxy = RENDER_PROXY_BASE.replace(/\/$/, '') + '/tmdb/' + path;
+  return fetch(proxy, { cache: 'no-store' }).then(function(r) {
+    if (!r.ok) throw new Error('proxy ' + r.status);
+    return r.json();
+  }).catch(function() {
+    if (!localUrl) return null;
+    return fetch(localUrl, { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+  });
+}
+function __uvdFindTmdbMovie(title) {
+  var query = __uvdTmdbCleanTitle(title);
+  if (query.length < 3) return Promise.resolve(null);
+  var key = String(data.settings.tmdbApiKey || '').trim();
+  var local = key ? 'https://api.themoviedb.org/3/search/multi?api_key=' + encodeURIComponent(key) + '&query=' + encodeURIComponent(query) + '&language=vi-VN&include_adult=false' : '';
+  return __uvdTmdbJson('search?query=' + encodeURIComponent(query), local).then(function(result) {
+    var list = result && result.results || [];
+    var best = null, bestScore = 0;
+    list.forEach(function(item) {
+      if (!item || (item.media_type && item.media_type !== 'movie' && item.media_type !== 'tv')) return;
+      var score = Math.max(__uvdTmdbSimilarity(query, item.title || item.name), __uvdTmdbSimilarity(query, item.original_title || item.original_name));
+      if (score > bestScore) { best = item; bestScore = score; }
+    });
+    if (!best || bestScore < 0.52) return null;
+    var kind = best.media_type === 'tv' ? 'tv' : (best.media_type === 'movie' ? 'movie' : (best.first_air_date ? 'tv' : 'movie'));
+    var detailLocal = key ? 'https://api.themoviedb.org/3/' + kind + '/' + best.id + '?api_key=' + encodeURIComponent(key) + '&append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN' : '';
+    return __uvdTmdbJson(kind + '/' + best.id, detailLocal).then(function(detail) { return detail || null; });
+  });
+}
+function __uvdRenderPlayerTmdb(bar, movie) {
+  if (!bar || !movie) return;
+  var logos = movie.images && movie.images.logos || [];
+  var logo = logos.filter(function(x) { return x && x.file_path; }).sort(function(a, b) { return (a.iso_639_1 === 'vi' ? -1 : 0) || (a.iso_639_1 === 'en' ? -1 : 0); })[0];
+  var poster = movie.poster_path ? 'https://image.tmdb.org/t/p/w185' + movie.poster_path : '';
+  var title = movie.title || movie.name || movie.original_title || movie.original_name || '';
+  var year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
+  var cast = movie.credits && movie.credits.cast || [];
+  var castText = cast.slice(0, 4).map(function(x) { return x.name; }).filter(Boolean).join(' · ');
+  var genres = (movie.genres || []).slice(0, 3).map(function(x) { return x.name; }).join(' · ');
+  bar.innerHTML = '<div class="uvd-player-tmdb-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="">' : '🎞') + '</div><div class="uvd-player-tmdb-copy">' +
+    (logo ? '<img class="uvd-player-tmdb-logo" src="https://image.tmdb.org/t/p/w500' + escapeHtml(logo.file_path) + '" alt="' + escapeHtml(title) + '">' : '<div class="uvd-player-tmdb-title">' + escapeHtml(title) + '</div>') +
+    '<div class="uvd-player-tmdb-meta">TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (year ? ' · ' + escapeHtml(year) : '') + (genres ? ' · ' + escapeHtml(genres) : '') + '</div>' +
+    (castText ? '<div class="uvd-player-tmdb-cast">' + escapeHtml(castText) + '</div>' : '') +
+  '</div>';
+  bar.hidden = false;
+}
+function __uvdRecognizePlayerMovie(title, bar) {
+  if (!bar) return;
+  bar.hidden = false;
+  bar.classList.add('uvd-player-tmdb-loading');
+  bar.textContent = '🔎 Mèo đang nhận diện tên phim...';
+  __uvdFindTmdbMovie(title).then(function(movie) {
+    if (!movie) { bar.hidden = true; return; }
+    bar.classList.remove('uvd-player-tmdb-loading');
+    __uvdRenderPlayerTmdb(bar, movie);
+  }).catch(function() { bar.hidden = true; });
+}
+
 // ========== PHỤ ĐỀ ==========
 function srtToVtt(text) {
   var body = text.replace(/\r/g, '').replace(/^\uFEFF/, '');
@@ -2908,12 +2985,18 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   infoRow.innerHTML = '<span class="uvd-meta-type">' + escapeHtml(type || 'VIDEO') + '</span><span class="uvd-meta-dot">·</span><span>đang tải...</span><span class="uvd-meta-bow">🎀</span>';
   infoPanel.appendChild(titleRow);
   infoPanel.appendChild(infoRow);
+  var tmdbBar = document.createElement('div');
+  tmdbBar.id = '__uvd_player_tmdb_bar__';
+  tmdbBar.className = 'uvd-player-tmdb-bar';
+  tmdbBar.hidden = true;
+  infoPanel.appendChild(tmdbBar);
   sheetBody.appendChild(infoPanel);
   sheet.appendChild(sheetBody);
 
   playerState.overlay = overlay;
   playerState.video = video;
   playerState.reusedOriginalVideo = reusedOriginalVideo;
+  setTimeout(function() { __uvdRecognizePlayerMovie(playerTitle, tmdbBar); }, 280);
   // Low-power mode is entered after the sheet has finished sliding in.
   // Keep the video surface hidden during this short warm-up.
   videoWrapper.style.boxSizing = 'border-box';
@@ -3956,7 +4039,7 @@ style.textContent = `
 .uvd-dig-art{position:relative;width:270px;height:250px;margin:0 auto -10px;filter:drop-shadow(0 12px 15px rgba(222,100,140,.25))}
 .uvd-dig-art svg{width:100%;height:100%;display:block}.uvd-dig-dirt{position:absolute;font-size:19px;line-height:1;animation:uvdDigDirt .9s ease-in-out infinite}.uvd-dig-dirt:nth-child(1){left:18px;bottom:33px;animation-delay:.08s}.uvd-dig-dirt:nth-child(2){right:16px;bottom:47px;animation-delay:.33s}.uvd-dig-dirt:nth-child(3){right:43px;bottom:17px;animation-delay:.58s}
 .uvd-dig-kicker{font-size:11px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#c95073;position:relative;z-index:2;margin-top:4px}.uvd-dig-title{margin-top:12px;font-size:28px;font-weight:900;color:#d84972;line-height:1.2;position:relative;z-index:2}.uvd-dig-sub{min-height:23px;margin:10px auto 0;color:#956077;font-size:14px;font-weight:650;line-height:1.5;position:relative;z-index:2}.uvd-dig-action-row{display:flex;gap:8px;max-height:0;margin:0;overflow:hidden;opacity:0;transition:max-height .28s ease,margin .28s ease,opacity .22s ease}.uvd-dig-enter-btn{display:block;flex:1;min-width:0;max-height:0;margin:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#ff91ae,#ef6689);color:#fff;font-size:16px;font-weight:850;box-shadow:0 8px 18px rgba(231,83,127,.3);transition:max-height .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-enter-btn:active{transform:scale(.97)}
-.uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-action-row{max-height:56px;margin-top:16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}.uvd-dig-utility-row{display:flex;gap:8px;margin-top:10px}.uvd-dig-ui-btn,.uvd-dig-kkphim-btn{flex:1;min-width:0;margin:0;padding:9px 10px;border:1px solid rgba(179,133,242,.46);border-radius:14px;background:rgba(255,255,255,.58);color:#8a6ab0;font-size:11px;font-weight:850;box-shadow:0 4px 11px rgba(150,90,220,.1);cursor:pointer}.uvd-dig-kkphim-btn{border-color:rgba(255,159,180,.38);color:#c95073}.uvd-dig-ui-btn:active,.uvd-dig-kkphim-btn:active{transform:scale(.98);background:rgba(243,231,255,.85)}.uvd-dig-route-hint{max-height:0;margin:0;overflow:hidden;opacity:0;color:#8a6ab0;font-size:11.5px;font-weight:700;line-height:1.4;transition:max-height .28s ease,margin .28s ease,opacity .22s ease}.uvd-digging-overlay.uvd-dig-found .uvd-dig-route-hint{max-height:38px;margin-top:8px;opacity:1}
+.uvd-digging-overlay.uvd-dig-found .uvd-dig-title{color:#b85dc8}.uvd-digging-overlay.uvd-dig-found .uvd-dig-action-row{max-height:56px;margin-top:16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:54px;padding:14px 16px;opacity:1}.uvd-digging-overlay.uvd-dig-found .uvd-dig-dirt{animation-play-state:paused;opacity:.38}.uvd-dig-utility-row{display:flex;gap:8px;margin-top:10px}.uvd-dig-ui-btn{flex:1;min-width:0;margin:0;padding:9px 10px;border:1px solid rgba(179,133,242,.46);border-radius:14px;background:rgba(255,255,255,.58);color:#8a6ab0;font-size:11px;font-weight:850;box-shadow:0 4px 11px rgba(150,90,220,.1);cursor:pointer}.uvd-dig-ui-btn:active{transform:scale(.98);background:rgba(243,231,255,.85)}.uvd-dig-route-hint{max-height:0;margin:0;overflow:hidden;opacity:0;color:#8a6ab0;font-size:11.5px;font-weight:700;line-height:1.4;transition:max-height .28s ease,margin .28s ease,opacity .22s ease}.uvd-digging-overlay.uvd-dig-found .uvd-dig-route-hint{max-height:38px;margin-top:8px;opacity:1}
 .uvd-digging-overlay.uvd-dig-exit{pointer-events:none;animation:uvdDigOverlayOut .58s ease forwards}.uvd-digging-overlay.uvd-dig-exit .uvd-digging-box{animation:uvdDigBoxFlyUp .58s cubic-bezier(.45,0,.72,.22) forwards}
 .uvd-popup-from-digging{animation:uvdPopupRiseAfterDig .52s cubic-bezier(.22,1,.36,1) both!important}
 .uvd-media-popup-mascot,.uvd-iframe-popup-mascot,.uvd-play-intro-mascot,.uvd-player-moving-mascot{display:inline-flex;align-items:center;justify-content:center;transform-origin:center bottom;animation:uvdMascotHop 1.75s ease-in-out infinite;transform:scale(1.2)}.uvd-media-popup-mascot svg,.uvd-iframe-popup-mascot svg,.uvd-play-intro-mascot svg,.uvd-player-moving-mascot svg{display:block;transform-origin:center;animation:uvdMascotWiggle 1.35s ease-in-out infinite;width:100%;height:100%}
@@ -4188,7 +4271,7 @@ style.textContent = `
 /* ===== MOBILE COMFORT + HISTORY/SETTINGS POLISH ===== */
 .uvd-dig-status-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:8px}.uvd-dig-status-row span{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.66);border:1px solid rgba(194,150,255,.24);color:#8a6ab0;font-size:9.5px;font-weight:850}
 .uvd-history-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px;padding:4px 2px}.uvd-history-toolbar-title{font-size:15px;font-weight:900;color:#c95073}.uvd-history-filter-row{display:flex;gap:5px;flex-wrap:wrap;width:100%}.uvd-history-filter{padding:5px 9px;border:1px solid rgba(194,150,255,.28);border-radius:999px;background:rgba(255,255,255,.64);color:#8a6ab0;font-size:10px;font-weight:800;cursor:pointer}.uvd-history-filter-active{background:linear-gradient(135deg,#ff9fb4,#b385f2);border-color:transparent;color:#fff}.uvd-history-sync-chip{margin-left:auto;padding:4px 8px;border-radius:999px;background:rgba(194,150,255,.12);color:#8a6ab0;font-size:9px;font-weight:800}.uvd-history-title-row{display:flex;align-items:center;gap:6px}.uvd-history-title-row strong{flex:1;min-width:0}.uvd-history-star{width:28px;height:28px;border:1px solid rgba(255,159,180,.28);border-radius:10px;background:#fff;color:#d85c7a;font-size:16px;line-height:1;cursor:pointer}.uvd-history-star-on{background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff}.uvd-history-clear{width:100%;margin-top:10px!important;background:rgba(255,93,114,.14)!important;color:#d85c7a!important}.uvd-settings-group-title{display:flex;align-items:center;gap:8px;margin:18px 2px 8px;color:#a05f86;font-size:12px;font-weight:900;letter-spacing:.04em}.uvd-settings-group-title::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,rgba(255,159,180,.34),transparent)}.uvd-settings-tutorial-card{display:flex;align-items:center;gap:10px;padding:12px!important;background:linear-gradient(135deg,rgba(255,239,247,.92),rgba(244,235,255,.9))!important}.uvd-settings-tutorial-card .uvd-settings-tutorial-mascot{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-settings-tutorial-card .uvd-settings-tutorial-mascot svg{width:100%;height:100%}.uvd-settings-tutorial-card .uvd-btn{margin-left:auto;white-space:nowrap}
-@keyframes uvdTutorialSlideRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}@keyframes uvdTutorialSlideLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}.uvd-tutorial-slide-next{animation:uvdTutorialSlideRight .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-slide-prev{animation:uvdTutorialSlideLeft .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-mute{margin-top:7px;border:0;background:transparent;color:#a47ca8;font-size:10px;font-weight:750;text-decoration:underline;cursor:pointer}.uvd-resume-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(28,14,40,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:uvdFadeIn .24s ease both}.uvd-resume-card{width:min(100%,360px);padding:22px 20px 18px;border-radius:30px;text-align:center;background:linear-gradient(155deg,#fff8fc,#fff0f7 58%,#f4ebff);border:1px solid rgba(255,255,255,.9);box-shadow:0 24px 60px rgba(108,46,92,.35),0 0 0 6px rgba(255,255,255,.24) inset;animation:uvdScaleIn .3s cubic-bezier(.22,1,.36,1) both}.uvd-resume-mascot{width:70px;height:70px;margin:0 auto 2px;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-resume-mascot svg{width:100%;height:100%;display:block}.uvd-resume-kicker{font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#b68bea}.uvd-resume-title{margin-top:5px;color:#d85c7a;font-size:21px;font-weight:900}.uvd-resume-copy{margin-top:7px;color:#805e83;font-size:12.5px;line-height:1.55}.uvd-resume-copy b{color:#9a6ce0}.uvd-resume-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin-top:16px}.uvd-resume-actions button{padding:11px 8px;border-radius:14px;border:1px solid rgba(194,150,255,.28);background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}.uvd-resume-actions #__uvd_resume_continue__{border:0;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;box-shadow:0 6px 14px rgba(247,108,140,.25)}.uvd-history-pager{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;color:#8a6ab0;font-size:10px;font-weight:850}.uvd-history-pager button{width:30px;height:28px;border:1px solid rgba(194,150,255,.28);border-radius:9px;background:#fff;color:#8a6ab0;font-size:15px;font-weight:900;cursor:pointer}.uvd-history-pager button:disabled{opacity:.35;cursor:default}.uvd-card-preview.uvd-thumb-real-preview{height:220px!important;box-shadow:0 10px 22px rgba(247,108,140,.18),0 0 0 2px rgba(255,255,255,.58) inset!important}.uvd-card-preview.uvd-thumb-real-preview.uvd-thumb-portrait{height:285px!important}@media (max-width:560px){.uvd-card-preview.uvd-thumb-real-preview{height:178px!important}.uvd-card-preview.uvd-thumb-real-preview.uvd-thumb-portrait{height:235px!important}}
+@keyframes uvdTutorialSlideRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}@keyframes uvdTutorialSlideLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}.uvd-tutorial-slide-next{animation:uvdTutorialSlideRight .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-slide-prev{animation:uvdTutorialSlideLeft .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-mute{margin-top:7px;border:0;background:transparent;color:#a47ca8;font-size:10px;font-weight:750;text-decoration:underline;cursor:pointer}.uvd-player-tmdb-bar{display:flex;align-items:center;gap:9px;margin-top:10px;padding:8px;border-radius:15px;background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(243,235,255,.8));border:1px solid rgba(194,150,255,.24);text-align:left}.uvd-player-tmdb-loading{display:block;color:#8a6ab0;font-size:10px;font-weight:800}.uvd-player-tmdb-poster{width:43px;height:58px;flex:0 0 43px;overflow:hidden;border-radius:10px;background:#f2e7ff;display:flex;align-items:center;justify-content:center;font-size:18px}.uvd-player-tmdb-poster img{width:100%;height:100%;object-fit:cover}.uvd-player-tmdb-copy{min-width:0;flex:1}.uvd-player-tmdb-logo{display:block;max-width:150px;max-height:27px;object-fit:contain;object-position:left center;margin-bottom:3px}.uvd-player-tmdb-title{overflow:hidden;color:#785382;font-size:12px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}.uvd-player-tmdb-meta{overflow:hidden;color:#8a6ab0;font-size:9.5px;font-weight:800;line-height:1.4;text-overflow:ellipsis;white-space:nowrap}.uvd-player-tmdb-cast{overflow:hidden;margin-top:3px;color:#a0789d;font-size:9px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.uvd-resume-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(28,14,40,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:uvdFadeIn .24s ease both}.uvd-resume-card{width:min(100%,360px);padding:22px 20px 18px;border-radius:30px;text-align:center;background:linear-gradient(155deg,#fff8fc,#fff0f7 58%,#f4ebff);border:1px solid rgba(255,255,255,.9);box-shadow:0 24px 60px rgba(108,46,92,.35),0 0 0 6px rgba(255,255,255,.24) inset;animation:uvdScaleIn .3s cubic-bezier(.22,1,.36,1) both}.uvd-resume-mascot{width:70px;height:70px;margin:0 auto 2px;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-resume-mascot svg{width:100%;height:100%;display:block}.uvd-resume-kicker{font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#b68bea}.uvd-resume-title{margin-top:5px;color:#d85c7a;font-size:21px;font-weight:900}.uvd-resume-copy{margin-top:7px;color:#805e83;font-size:12.5px;line-height:1.55}.uvd-resume-copy b{color:#9a6ce0}.uvd-resume-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin-top:16px}.uvd-resume-actions button{padding:11px 8px;border-radius:14px;border:1px solid rgba(194,150,255,.28);background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}.uvd-resume-actions #__uvd_resume_continue__{border:0;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;box-shadow:0 6px 14px rgba(247,108,140,.25)}.uvd-history-pager{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;color:#8a6ab0;font-size:10px;font-weight:850}.uvd-history-pager button{width:30px;height:28px;border:1px solid rgba(194,150,255,.28);border-radius:9px;background:#fff;color:#8a6ab0;font-size:15px;font-weight:900;cursor:pointer}.uvd-history-pager button:disabled{opacity:.35;cursor:default}.uvd-card-preview.uvd-thumb-real-preview{height:220px!important;box-shadow:0 10px 22px rgba(247,108,140,.18),0 0 0 2px rgba(255,255,255,.58) inset!important}.uvd-card-preview.uvd-thumb-real-preview.uvd-thumb-portrait{height:285px!important}@media (max-width:560px){.uvd-card-preview.uvd-thumb-real-preview{height:178px!important}.uvd-card-preview.uvd-thumb-real-preview.uvd-thumb-portrait{height:235px!important}}
 @media (max-width:560px){.uvd-app-shell{padding:10px!important}.uvd-app-shell>.uvd-panel-content{gap:7px}.uvd-app-shell #__uvd_header__{padding:8px 10px!important;gap:8px!important;border-radius:22px!important}.uvd-brand{gap:6px!important}.uvd-brand-mark,.uvd-brand-mark.uvd-brand-mark-hero{width:62px!important;height:62px!important;flex:0 0 62px!important;transform:none!important}.uvd-brand-name{font-size:17px!important;white-space:nowrap}.uvd-brand-version{font-size:10px!important;white-space:nowrap;margin-top:2px!important}.uvd-header-actions{width:94px!important;min-width:94px!important;max-width:94px!important;flex-basis:94px!important;grid-template-columns:repeat(3,29px)!important;grid-auto-rows:29px!important;gap:3px!important}.uvd-header-actions .uvd-btn-icon{width:29px!important;height:29px!important;font-size:12px!important}.uvd-context-bar{padding:10px!important;border-radius:18px!important}.uvd-context-title{font-size:13px!important}.uvd-context-meta{gap:4px!important;margin-top:7px!important}.uvd-meta-chip{padding:5px 7px!important;font-size:9px!important;max-width:49%!important}.uvd-tabbar{padding:6px!important;gap:3px!important;border-radius:22px!important}.uvd-tab{min-width:0!important;padding:6px 4px 7px!important;gap:2px!important}.uvd-tab-mascot{width:30px!important;height:30px!important}.uvd-tab-text{font-size:9px!important}.uvd-bubble{padding:10px!important;border-radius:22px!important}.uvd-bubble-title{margin-bottom:6px!important}.uvd-bubble-tmascot{width:36px!important;height:36px!important;flex-basis:36px!important}.uvd-bubble-tname{font-size:15px!important}.uvd-app-shell #__uvd_stream_list__{padding:8px!important}.uvd-card{padding:10px!important}.uvd-card-preview{height:122px!important;margin-bottom:9px!important}.uvd-card-preview.uvd-thumb-portrait{height:175px!important}.uvd-history-thumb{flex-basis:82px!important;height:62px!important}.uvd-history-actions .uvd-btn{padding:5px 7px!important;font-size:9px!important}.uvd-profile-footer{font-size:9px!important}.uvd-digging-box{min-height:0!important;padding:22px 18px 18px!important}.uvd-dig-art{transform:scale(.86)!important;margin:-18px auto -28px!important}.uvd-tutorial-mascot-stage{height:180px!important}.uvd-tutorial-mascot-art{width:150px!important;height:158px!important}}
 @media (max-height:740px) and (max-width:560px){.uvd-brand-sub{display:none!important}.uvd-card-preview{height:110px!important}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer{padding-top:7px!important}.uvd-context-kicker{display:none}.uvd-dig-fact-wrap{display:none!important}}
 `;
@@ -4678,7 +4761,7 @@ function __uvdStartDiggingPopup() {
         '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
       '</div>' +
       '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
-      '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button><button type="button" class="uvd-dig-kkphim-btn" id="__uvd_dig_kkphim__">KPhim</button></div>' +
+      '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button></div>' +
       '<div style="margin-top:14px;font-size:11.5px;color:#9a6ce0;">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
       '<div id="__uvd_dig_fact_wrap__" style="margin-top:12px;display:none;text-align:center;">' +
         '<button type="button" id="__uvd_dig_fact_btn__" style="padding:8px 14px;border-radius:999px;border:1px dashed rgba(255,159,180,.4);background:linear-gradient(135deg,#fff6fb,#ffe9f3);color:#d85c7a;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 3px 10px rgba(247,108,140,.12);">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
@@ -4700,8 +4783,6 @@ function __uvdStartDiggingPopup() {
       if (panel) { __uvdPopupActive = false; panel.__uvdPopupHidden = false; panel.style.display = ''; panel.style.visibility = ''; }
     });
   };
-  var goKkphim = overlay.querySelector('#__uvd_dig_kkphim__');
-  if (goKkphim) goKkphim.onclick = function() { __uvdStopDiggingPopup(true); setTimeout(__uvdOpenKkphim, 20); };
   var help = overlay.querySelector('#__uvd_dig_help__');
   if (help) help.onclick = function(e){ 
     e.stopPropagation(); 
@@ -5577,45 +5658,6 @@ var __uvdTabMeta = {
   history: { mascot: __uvdTabMascotHamster, bg: 'linear-gradient(150deg,#fff4d6,#ffd38a)', name: 'Lịch sử', sub: 'hamster giữ hạt 🐹' }
 };
 
-// ========== KKPHIM / PHIMAPI COMPANION ==========
-var __uvdKkphimModuleVersion = '5';
-function __uvdOpenKkphim() {
-  window.__uvdKkphimBridge = {
-    hideUi: __uvdHideUiForPopup,
-    restoreUi: __uvdRestoreUiAfterPopup,
-    tmdbKey: function() { return String(data.settings.tmdbApiKey || '').trim(); },
-    tmdbProxyBase: function() { return RENDER_PROXY_BASE.replace(/\/$/, '') + '/tmdb'; },
-    openEpisode: function(movie, episode) {
-      var mediaUrl = episode && episode.link_m3u8;
-      if (!mediaUrl) { toast('KKPhim chưa có link M3U8 cho tập này'); return; }
-      __uvdAddDetectedMediaUrl(mediaUrl, 'M3U8', 'kkphim:' + ((movie && movie.slug) || 'movie'));
-      addToHistory(mediaUrl, 'M3U8');
-      var entry = (data.history || []).find(function(item) { return item.url === mediaUrl; });
-      if (entry && movie) {
-        entry.title = (movie.name || 'KKPhim') + (episode.name ? ' · ' + episode.name : '');
-        entry.host = 'phimapi.com';
-        entry.pageUrl = 'https://phimapi.com/phim/' + encodeURIComponent(movie.slug || '');
-        storage.set(data);
-      }
-      debouncedBuildUI();
-      setTimeout(function() {
-        playerState.launchFromThumbnail = true;
-        showVideoPlayer(mediaUrl, 'M3U8', false, false, false, entry && entry.title);
-      }, 80);
-    }
-  };
-  if (window.__uvdKkphim && window.__uvdKkphim.version === __uvdKkphimModuleVersion && typeof window.__uvdKkphim.open === 'function') { window.__uvdKkphim.open(); return; }
-  var old = document.getElementById('__uvd_kkphim_loader__');
-  if (old) old.remove();
-  try { delete window.__uvdKkphim; } catch(e) { window.__uvdKkphim = null; }
-  var script = document.createElement('script');
-  script.id = '__uvd_kkphim_loader__';
-  script.src = RENDER_PROXY_BASE.replace(/\/$/, '') + '/kkphim.js?v=' + encodeURIComponent(__uvdKkphimModuleVersion + '_' + Date.now());
-  script.onload = function() { if (window.__uvdKkphim && window.__uvdKkphim.open) window.__uvdKkphim.open(); else toast('Không thể mở KKPhim lúc này'); };
-  script.onerror = function() { script.remove(); toast('Không tải được góc phim KKPhim'); };
-  document.head.appendChild(script);
-}
-
 // ========== BUILD UI ==========
 
 function __uvdGetUrlResolution(url) {
@@ -5682,7 +5724,6 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_iframe_btn__" title="Mở popup iframe">▣</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_kkphim_btn__" title="Khám phá phim từ KKPhim">K</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng Mèo cào media">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
@@ -5892,8 +5933,6 @@ function buildUI() {
     }, 2600);
   };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
-  var kkphimBtn = document.getElementById('__uvd_kkphim_btn__');
-  if (kkphimBtn) kkphimBtn.onclick = __uvdOpenKkphim;
 
   var iframeBtn = document.getElementById('__uvd_iframe_btn__');
   if (iframeBtn) {
@@ -7046,8 +7085,8 @@ function renderSettings(container) {
 
     '<div class="uvd-settings-group-title">☁ Đồng bộ & lịch sử</div>' +
     '<div class="uvd-card">' +
-      '<div style="font-weight:600;margin-bottom:8px;">🎞 TMDB (tuỳ chọn)</div>' +
-      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Dán API key TMDB của cưng để KKPhim lấy logo phim, cast và điểm TMDB đầy đủ hơn. Key chỉ lưu local trên máy này, không sync/cloud.</div>' +
+      '<div style="font-weight:600;margin-bottom:8px;">🎞 Nhận diện phim TMDB (tuỳ chọn)</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">TMDB sẽ tự nhận diện tên phim trong player để hiện logo, cast và thông tin phim. Render token được ưu tiên; key local này chỉ là fallback, không sync/cloud.</div>' +
       '<input id="__uvd_tmdb_key__" type="password" autocomplete="off" placeholder="TMDB API key (v3)" value="' + escapeHtml(data.settings.tmdbApiKey || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:#d85c7a;font-size:12px;">' +
     '</div>' +
 

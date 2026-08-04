@@ -414,17 +414,21 @@ app.get('/bookmarklet.js', (_req, res) => {
   res.sendFile(path.join(__dirname, 'bookmarklet.js'));
 });
 
-// Optional on-demand KKPhim companion. Kept separate so the core bookmarklet
-// stays light for users who only want capture/player features.
-app.get('/kkphim.js', (_req, res) => {
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-  res.sendFile(path.join(__dirname, 'kkphim.js'));
+// Optional TMDB metadata bridge. Its bearer token is a Render environment
+// variable, so browser users never receive it.
+app.get('/tmdb/search', async (req, res) => {
+  const query = String(req.query.query || '').trim().slice(0, 160);
+  if (!query) return res.status(400).json({ error: 'Thiếu query TMDB' });
+  if (!TMDB_BEARER_TOKEN) return res.status(503).json({ error: 'TMDB chưa được cấu hình trên Render' });
+  try {
+    const tmdbUrl = 'https://api.themoviedb.org/3/search/multi?query=' + encodeURIComponent(query) + '&language=vi-VN&include_adult=false';
+    const response = await fetch(tmdbUrl, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}`, accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+    const body = await response.text();
+    if (!response.ok) return res.status(response.status).send(body);
+    res.type('application/json').send(body);
+  } catch (error) { res.status(502).json({ error: 'Không tìm được TMDB: ' + error.message }); }
 });
 
-// Optional TMDB metadata bridge. Its bearer token is a Render environment
-// variable, so browser users never receive it. Restrict endpoint to movie/tv
-// metadata identified by a numeric TMDB id.
 app.get('/tmdb/:kind/:id', async (req, res) => {
   const kind = req.params.kind;
   const id = req.params.id;

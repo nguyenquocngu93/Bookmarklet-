@@ -809,3 +809,11 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Bug:** module yêu cầu `tmdbApiKey` local trước khi gọi TMDB, nên dù Render đã có `TMDB_BEARER_TOKEN` thì cast/logo vẫn không tải.
 - **Fix:** chỉ cần `tmdb.id`; module ưu tiên gọi `/tmdb/:kind/:id` trên Render. Local TMDB key chỉ dùng làm fallback khi proxy chưa cấu hình.
 - **Kết quả:** diễn viên có ảnh, score/overview và logo TMDB (nếu TMDB có logo cho phim) sẽ render khi Render token hoạt động.
+
+### Patch #48 — Đóng băng/xóa KPhim UI, chuyển TMDB vào Player Mèo cào — 2026-08-04
+
+- **KPhim v1 đóng băng:** bỏ nút `K` header, nút KPhim popup đào, loader/module/file `kkphim.js` và Render route `/kkphim.js`.
+- **TMDB Player Info:** player tự chuẩn hóa/so sánh tên trang với TMDB; chỉ khi điểm khớp đủ cao mới hiện thanh info phim trong player gồm poster, logo (nếu có), điểm TMDB, năm, thể loại và cast top.
+- **TMDB search:** Render thêm `/tmdb/search?query=` dùng bearer token server-side; key local vẫn là fallback.
+- **An toàn:** không phát/không import link qua KPhim nữa; capture/player core Mèo cào là hướng chính.
+- **Kết quả:** `node --check` OK cho bookmarklet/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`.

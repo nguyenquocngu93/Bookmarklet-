@@ -711,3 +711,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Cả 6 đều đeo kính học giả.
   - Mỗi slide có sân khấu pastel riêng và capsule nhãn tên như “Panda học giả”, “Gấu mèo thám tử” để nhận diện rõ trên mobile.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #35 — Thay toàn bộ 6 thú tutorial, bỏ khung mascot — 2026-08-04
+
+- **Mục tiêu:** thay các thú tutorial cũ bằng 6 con mới hoàn toàn, rõ loài và không đặt trong khung/card.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Bộ mới: cáo / rái cá / cánh cụt / capybara / cún / sóc.
+  - Cả 6 đeo kính học giả, có silhouette và màu riêng.
+  - Bỏ toàn bộ sân khấu bo góc, border, background và capsule bao quanh thú; chỉ giữ illustration có shadow mềm + nhãn chữ mảnh.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

@@ -693,3 +693,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Slide hướng dẫn dùng 3 thú không trùng: thỏ / hamster / gấu mèo; mỗi mascot có nhãn tên nhỏ để nhận diện rõ trên mobile.
   - Popup đào có thêm một dòng hint dưới nút **Vào link**, tự đổi lời nhắc cho link video hoặc iframe.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #33 — Sửa đúng tutorial “Bấm vào đây” + nút Vào UI — 2026-08-04
+
+- **Mục tiêu:** sửa đúng popup tutorial mở từ dòng “Chưa biết đây là gì? Bấm vào đây” và thêm lối thoát rõ ràng từ popup đào.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Tutorial popup dùng thỏ / hamster / gấu mèo không trùng header panda, mỗi con có nhãn tên để nhận diện rõ.
+  - Popup đào có nút phụ **Vào UI ♡**; bấm là đóng popup đào và mở UI chính ngay.
+  - Các chỉnh footer inset, note tím trong popup video và hint route dưới Vào link vẫn được giữ.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

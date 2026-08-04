@@ -702,3 +702,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Popup đào có nút phụ **Vào UI ♡**; bấm là đóng popup đào và mở UI chính ngay.
   - Các chỉnh footer inset, note tím trong popup video và hint route dưới Vào link vẫn được giữ.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #34 — Redesign 6 thú tutorial “Bấm vào đây” — 2026-08-04
+
+- **Mục tiêu:** làm rõ đúng 6 mascot trong popup tutorial mở từ “Chưa biết đây là gì? Bấm vào đây”.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - 6 slide dùng đúng 6 thú không trùng: mèo / panda / gấu mèo / hamster / thỏ / gấu.
+  - Cả 6 đều đeo kính học giả.
+  - Mỗi slide có sân khấu pastel riêng và capsule nhãn tên như “Panda học giả”, “Gấu mèo thám tử” để nhận diện rõ trên mobile.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

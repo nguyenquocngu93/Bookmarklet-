@@ -4140,6 +4140,8 @@ style.textContent = `
 .uvd-scroll-hide-header #__uvd_header__{max-height:0!important;min-height:0!important;opacity:0!important;overflow:hidden!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;border-width:0!important;pointer-events:none!important;transform:translateY(-24px)}
 /* ===== UNIFIED MAIN SHEET: less floating cards, footer belongs to body ===== */
 .uvd-app-shell>.uvd-panel-content{gap:8px}.uvd-app-shell #__uvd_header__,.uvd-app-shell .uvd-context-bar,.uvd-app-shell .uvd-tabbar{margin:0!important}.uvd-app-shell #__uvd_header__{box-shadow:0 4px 13px rgba(247,108,140,.12),0 0 0 1px rgba(255,255,255,.62) inset!important}.uvd-app-shell .uvd-context-bar{box-shadow:0 3px 11px rgba(150,90,220,.1),0 0 0 1px rgba(255,255,255,.55) inset!important}.uvd-app-shell .uvd-tabbar{box-shadow:0 4px 12px rgba(247,108,140,.11),0 0 0 1px rgba(255,255,255,.65) inset!important}.uvd-app-shell .uvd-bubble-wrap{min-height:0;margin:0!important}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer{flex:0 0 auto;margin:8px 6px 0!important;padding:10px 0 3px!important;border-top:1px solid rgba(255,159,180,.22)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#9a7488!important;font-size:10px!important;line-height:1.45;text-align:center}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer::before{display:none!important}
+/* 6 slide tutorial: mỗi slide một thú đeo kính, có nhãn nhận diện rõ ràng. */
+.uvd-tutorial-mascot-stage{position:relative;width:228px;height:206px;display:flex;align-items:center;justify-content:center;margin:8px auto 10px;border-radius:32px;background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.9),rgba(255,225,240,.58) 58%,rgba(235,219,255,.52));border:1px solid rgba(255,159,180,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 10px 24px rgba(247,108,140,.12);overflow:visible}.uvd-tutorial-mascot-art{width:154px;height:176px;line-height:0;filter:drop-shadow(0 10px 16px rgba(247,108,140,.23));animation:uvdMascotHop 1.9s ease-in-out infinite}.uvd-tutorial-mascot-art svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.45s ease-in-out infinite}.uvd-tutorial-mascot-label{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);padding:5px 11px;border-radius:999px;background:linear-gradient(135deg,#fff,#f4e8ff);border:1px solid rgba(194,150,255,.3);box-shadow:0 4px 10px rgba(150,90,220,.12);color:#8a6ab0;font-size:10px;font-weight:900;white-space:nowrap;letter-spacing:.02em}
 `;
 
 
@@ -5002,9 +5004,11 @@ function __uvdShowTutorialSlides() {
   function render() {
     var slide = __uvdTutorialSlides[idx];
     var bigMascot = getMascotBig(idx);
+    var animalNames = ['🐱 Mèo kính hồng', '🐼 Panda học giả', '🦝 Gấu mèo thám tử', '🐹 Hamster mọt sách', '🐰 Thỏ thông minh', '🐻 Gấu hiền'];
+    var animalName = animalNames[idx] || '🐾 Thú cưng học bài';
     box.innerHTML =
       '<button id="__uvd_tut_close__" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,159,180,.28);background:rgba(255,255,255,.75);color:#d85c7a;font-size:18px;cursor:pointer;z-index:2">✕</button>' +
-      '<div style="width:100%;display:flex;justify-content:center;margin:8px 0 6px"><div style="width:220px;height:200px;line-height:0;filter:drop-shadow(0 10px 18px rgba(247,108,140,.28));animation:uvdMascotHop 1.9s ease-in-out infinite">' + bigMascot + '</div></div>' +
+      '<div class="uvd-tutorial-mascot-stage"><div class="uvd-tutorial-mascot-art">' + bigMascot + '</div><span class="uvd-tutorial-mascot-label">' + animalName + '</span></div>' +
       '<div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;text-align:center">' + slide.sub + '</div>' +
       '<div style="font-size:22px;font-weight:900;color:#d85c7a;line-height:1.2;text-align:center;margin:4px 0 10px">' + slide.title + '</div>' +
       '<div style="flex:1;overflow-y:auto;padding:0 4px"><div style="font-size:13.5px;color:#6b4d85;line-height:1.6;text-align:left;background:rgba(255,255,255,.7);border:1px solid rgba(255,159,180,.22);border-radius:16px;padding:12px 14px">' + slide.text + '</div>' +

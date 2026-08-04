@@ -866,3 +866,9 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - Overlay player `uvd-player-clean` đổi từ nền đen sang gradient pastel hồng/tím, giữ card player bo góc/bóng.
 - Menu ⋮ và quality panel gắn class `uvd-player-clean-menu`, override toàn bộ teal legacy sang pastel hồng/tím (background, text, hover, active, mũi menu).
 - Video surface vẫn dark để tương phản video/controls, fullscreen vẫn bo góc 0.
+
+### Patch #56 — Fix góc đen player: surface chỉ đen khi fullscreen — 2026-08-04
+
+- **Nguyên nhân:** Phase 3 set `#__uvd_video_wrapper__` dark và layout JS luôn dùng `surface:#000`, nên màu đen lộ ở các góc letterbox bo tròn.
+- **Fix:** player thường dùng surface/background `#fff8fc` đồng bộ skin pastel; chỉ fullscreen mới giữ `#000`.
+- Giữ nguyên bo góc, Video.js/native skin, bóng và menu pastel Phase 3.1.

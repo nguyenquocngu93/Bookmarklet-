@@ -204,12 +204,6 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
 function validProfileId(id) {
   return /^[A-Za-z0-9_-]{8,80}$/.test(id || '');
 }
-function withoutHistory(payload) {
-  const safe = payload && typeof payload === 'object' ? { ...payload } : {};
-  delete safe.history;
-  delete safe.playbackPositions;
-  return safe;
-}
 
 async function syncRequest(method, profileId, body) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -245,9 +239,7 @@ app.get('/sync/:profileId', async (req, res) => {
   if (!validProfileId(profileId)) return res.status(400).json({ error: 'Profile ID không hợp lệ' });
   try {
     const rows = await syncRequest('GET', profileId);
-    const record = rows && rows[0] ? rows[0] : { profile_id: profileId, payload: {}, updated_at: null };
-    record.payload = withoutHistory(record.payload);
-    res.json(record);
+    res.json(rows && rows[0] ? rows[0] : { profile_id: profileId, payload: {}, updated_at: null });
   } catch (error) {
     res.status(error.status || 502).json({ error: error.message });
   }
@@ -260,7 +252,7 @@ app.put('/sync/:profileId', async (req, res) => {
   try {
     const rows = await syncRequest('PUT', profileId, {
       profile_id: profileId,
-      payload: withoutHistory(req.body),
+      payload: req.body,
       updated_at: new Date().toISOString()
     });
     res.json(rows && rows[0] ? rows[0] : { ok: true });

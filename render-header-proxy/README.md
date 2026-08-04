@@ -48,7 +48,7 @@ Run the complete `sync.sql` once in **Supabase SQL Editor**. It creates a separa
 - `POST /learning/vote` — accepts only an up/down vote for a normalized hostname or a public TMDB ID.
 - `GET /learning/rules` — returns only aggregated ad-host rules after the configured vote threshold.
 
-It **never stores watch history, page title, page URL, media URL path/query, cookies, profile ID, or executable JavaScript**. The bookmarklet sends only hostnames/IDs; downloaded ad improvements are host rules, not remotely executed functions. Set `LEARNING_MIN_BLOCK_VOTES=3` (or your preferred threshold) and keep `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` only in Render.
+This **separate community table** never stores watch history, page title, page URL, media URL path/query, cookies, profile ID, or executable JavaScript. The bookmarklet sends only hostnames/IDs; downloaded ad improvements are host rules, not remotely executed functions. The existing optional personal Sync (including its History/Sync feature) is unchanged. Set `LEARNING_MIN_BLOCK_VOTES=3` (or your preferred threshold) and keep `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` only in Render.
 
 ## Security notes
 

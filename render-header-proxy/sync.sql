@@ -9,11 +9,6 @@ alter table public.umpdl_profiles enable row level security;
 create index if not exists umpdl_profiles_updated_at_idx
 on public.umpdl_profiles(updated_at);
 
--- Privacy migration: remove any history accidentally written by older clients.
-update public.umpdl_profiles
-set payload = (coalesce(payload, '{}'::jsonb) - 'history' - 'playbackPositions')
-where payload ? 'history' or payload ? 'playbackPositions';
-
 -- Anonymous community learning store.
 -- It intentionally has no profile_id, page URL, title, watch history, cookie,
 -- IP or executable code. Only aggregate votes for safe host rules/TMDB ids are

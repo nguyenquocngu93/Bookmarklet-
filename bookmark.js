@@ -201,8 +201,7 @@ function __uvdSyncPayload() {
     settings: settings,
     siteProfiles: data.siteProfiles,
     filterlist: data.filterlist,
-    // Privacy: watch history never leaves this device. Anonymous votes/ad
-    // rules use the separate aggregate /learning store instead.
+    history: __uvdMergeHistory(data.history, []),
     favorites: data.favorites,
     userVotes: data.userVotes,
     tmdbVotes: data.tmdbVotes,
@@ -218,9 +217,18 @@ function __uvdSyncUploadMerged() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
     }).then(function(r) { return r.ok; });
   }
-  // History is intentionally device-local. The profile only carries settings,
-  // safe site preferences and learning votes; upload directly with no history read.
-  return upload().catch(function() { return false; });
+  // Read first, merge histories, then write the combined payload. This makes
+  // concurrent device usage additive rather than last-write-wins for history.
+  return fetch(syncUrl, { cache: 'no-store' })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(remote) {
+      if (remote && remote.payload && Array.isArray(remote.payload.history)) {
+        data.history = __uvdMergeHistory(data.history, remote.payload.history);
+        __uvdPersistLocalOnly();
+      }
+      return upload();
+    })
+    .catch(function() { return upload().catch(function() { return false; }); });
 }
 function __uvdSyncSchedule() {
   if (!data || !data.settings || !data.settings.syncProfileId) return;
@@ -242,6 +250,7 @@ function __uvdSyncLoad() {
       if (payload.settings) data.settings = Object.assign({}, data.settings, payload.settings, { syncProfileId: data.settings.syncProfileId });
       if (payload.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, payload.siteProfiles);
       if (Array.isArray(payload.filterlist)) data.filterlist = payload.filterlist.slice();
+      if (Array.isArray(payload.history)) data.history = __uvdMergeHistory(data.history, payload.history);
       if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
       if (payload.userVotes) data.userVotes = Object.assign({}, data.userVotes, payload.userVotes);
       if (payload.tmdbVotes) data.tmdbVotes = Object.assign({}, data.tmdbVotes, payload.tmdbVotes);

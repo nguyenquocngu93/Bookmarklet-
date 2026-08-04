@@ -824,3 +824,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - Không cần bấm Preload riêng để bắt request M3U8/MP4 vừa sinh ra trong lúc đào.
 - Status popup đổi thành **⚡ Đang quét realtime**; khi thấy video/iframe sẽ đổi status như cũ.
 - Timer được dọn khi đóng popup, bay sang popup link/iframe hoặc hết cửa sổ đào.
+
+### Patch #50 — TMDB nhận diện tên Việt/biến thể mạnh hơn — 2026-08-04
+
+- **Vấn đề:** title Việt dài như “Biệt Đội Siêu Anh Hùng 4 Hồi Kết 2019” không trả kết quả khi search nguyên chuỗi, nên thanh TMDB player không hiện.
+- **Fix:** chuẩn hoá dấu tiếng Việt, trích năm, thử nhiều query rút gọn (bỏ năm / 4 từ cuối / 3 từ cuối / 2 từ cuối), chấm điểm token + bonus trùng năm + popularity.
+- **An toàn:** vẫn yêu cầu ngưỡng khớp 0.58 trước khi hiện info, tránh nhận sai phim.
+- **Kết quả:** `node --check` OK; Render TMDB search được dùng cho title Việt/Anh.

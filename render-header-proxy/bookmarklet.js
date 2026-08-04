@@ -2321,7 +2321,8 @@ function __uvdTmdbCleanTitle(raw) {
     .replace(/https?:\/\/\S+/gi, ' ').replace(/\[[^\]]*\]|\([^)]*(?:1080|720|vietsub|thuyết minh|lồng tiếng)[^)]*\)/gi, ' ')
     .replace(/\b(?:tap|tập|episode|ep|phần|season|s\d+e\d+)\s*\d*\b/gi, ' ')
     .replace(/\b(?:1080p|720p|480p|m3u8|mp4|vietsub|thuyet minh|long tieng|full hd|watch online)\b/gi, ' ')
-    .replace(/[_|·–—-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    .replace(/[_|·–—-]+/g, ' ').replace(/\s+/g, ' ').trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
 function __uvdTmdbSimilarity(query, candidate) {
   query = __uvdTmdbCleanTitle(query).toLowerCase();
@@ -2329,7 +2330,7 @@ function __uvdTmdbSimilarity(query, candidate) {
   if (!query || !candidate) return 0;
   if (query === candidate) return 1;
   if (query.indexOf(candidate) !== -1 || candidate.indexOf(query) !== -1) return 0.84;
-  var q = query.split(/\s+/).filter(function(x) { return x.length > 1; });
+  var q = query.split(/\s+/).filter(function(x) { return x.length > 1 || /^\d+$/.test(x); });
   var c = candidate.split(/\s+/);
   var hits = q.filter(function(x) { return c.indexOf(x) !== -1; }).length;
   return hits / Math.max(q.length, c.length, 1);
@@ -2344,20 +2345,36 @@ function __uvdTmdbJson(path, localUrl) {
     return fetch(localUrl, { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
   });
 }
-function __uvdFindTmdbMovie(title) {
-  var query = __uvdTmdbCleanTitle(title);
-  if (query.length < 3) return Promise.resolve(null);
-  var key = String(data.settings.tmdbApiKey || '').trim();
+function __uvdTmdbSearchCandidates(queries, key, index) {
+  if (index >= queries.length) return Promise.resolve({ query: '', results: [] });
+  var query = queries[index];
   var local = key ? 'https://api.themoviedb.org/3/search/multi?api_key=' + encodeURIComponent(key) + '&query=' + encodeURIComponent(query) + '&language=vi-VN&include_adult=false' : '';
   return __uvdTmdbJson('search?query=' + encodeURIComponent(query), local).then(function(result) {
-    var list = result && result.results || [];
+    var results = result && result.results || [];
+    return results.length ? { query: query, results: results } : __uvdTmdbSearchCandidates(queries, key, index + 1);
+  });
+}
+function __uvdFindTmdbMovie(title) {
+  var clean = __uvdTmdbCleanTitle(title);
+  if (clean.length < 3) return Promise.resolve(null);
+  var key = String(data.settings.tmdbApiKey || '').trim();
+  var yearMatch = clean.match(/\b(19\d{2}|20\d{2})\b/);
+  var year = yearMatch && yearMatch[1];
+  var noYear = clean.replace(/\b(19\d{2}|20\d{2})\b/g, ' ').replace(/\s+/g, ' ').trim();
+  var words = noYear.split(/\s+/).filter(Boolean);
+  var queries = [clean, noYear, words.slice(-4).join(' '), words.slice(-3).join(' '), words.slice(-2).join(' ')].filter(function(q, i, list) { return q.length >= 3 && list.indexOf(q) === i; });
+  return __uvdTmdbSearchCandidates(queries, key, 0).then(function(found) {
     var best = null, bestScore = 0;
-    list.forEach(function(item) {
+    found.results.forEach(function(item) {
       if (!item || (item.media_type && item.media_type !== 'movie' && item.media_type !== 'tv')) return;
-      var score = Math.max(__uvdTmdbSimilarity(query, item.title || item.name), __uvdTmdbSimilarity(query, item.original_title || item.original_name));
+      var candidateTitle = item.title || item.name || '';
+      var score = Math.max(__uvdTmdbSimilarity(clean, candidateTitle), __uvdTmdbSimilarity(clean, item.original_title || item.original_name), __uvdTmdbSimilarity(found.query, candidateTitle), __uvdTmdbSimilarity(found.query, item.original_title || item.original_name));
+      var itemYear = String(item.release_date || item.first_air_date || '').slice(0, 4);
+      if (year && itemYear === year) score += 0.24;
+      if (item.popularity) score += Math.min(0.05, Number(item.popularity) / 2000);
       if (score > bestScore) { best = item; bestScore = score; }
     });
-    if (!best || bestScore < 0.52) return null;
+    if (!best || bestScore < 0.58) return null;
     var kind = best.media_type === 'tv' ? 'tv' : (best.media_type === 'movie' ? 'movie' : (best.first_air_date ? 'tv' : 'movie'));
     var detailLocal = key ? 'https://api.themoviedb.org/3/' + kind + '/' + best.id + '?api_key=' + encodeURIComponent(key) + '&append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN' : '';
     return __uvdTmdbJson(kind + '/' + best.id, detailLocal).then(function(detail) { return detail || null; });

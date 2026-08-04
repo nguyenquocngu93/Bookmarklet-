@@ -738,3 +738,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Tutorial:** slide chuyển ngang, nút “Đừng tự nhắc tutorial nữa”, nút xem lại trong Cài đặt.
 - **Settings:** chia thành nhóm Cơ bản / Đào link nâng cao / Đồng bộ & lịch sử / Bảo vệ & lọc rác / Hướng dẫn nhanh.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #38 — Popup tạm biệt: 6 thú mới khóc chào tạm biệt — 2026-08-04
+
+- **Mục tiêu:** thay bộ mascot random cũ bằng 6 thú mới, đáng yêu và biểu cảm rõ hơn.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Mỗi lần bấm X mở popup tạm biệt sẽ random 1 trong 6 con: cáo / rái cá / cánh cụt / capybara / cún / sóc.
+  - Cả 6 có full-body, giọt nước mắt xanh chuyển động và nhãn tên theo cảm xúc tạm biệt.
+  - Nội dung popup cũng đổi sang nhắc đúng bộ 6 thú mới.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

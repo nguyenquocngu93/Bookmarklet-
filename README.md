@@ -747,3 +747,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Cả 6 có full-body, giọt nước mắt xanh chuyển động và nhãn tên theo cảm xúc tạm biệt.
   - Nội dung popup cũng đổi sang nhắc đúng bộ 6 thú mới.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #39 — Resume prompt + sửa nút Vào UI + hoàn thiện UX mobile — 2026-08-04
+
+- **Resume:** nếu có vị trí xem dở, player hiện popup pastel hỏi **Xem tiếp** hoặc **Từ đầu** thay vì tự nhảy thời gian.
+- **Vào UI:** sau khi đóng popup đào, ép panel chính hiển thị lại/khi cần tự rebuild để xử lý lỗi bấm mà UI không mở.
+- **Mobile/history/tutorial/settings:** hoàn thiện compact layout, status đào link, History có filter/ghim/thời gian tương đối, tutorial replay/mute và nhóm Cài đặt.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

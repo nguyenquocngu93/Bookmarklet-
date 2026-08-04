@@ -2920,9 +2920,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
 
   var overlay = document.createElement('div');
   overlay.id = '__uvd_player_overlay__';
-  // Card UI snapshot: restore the exact pre-cleanup player card from the interface rebuild.
-  // Player engine/TMDB/resume stay current; only the visual cleanup layer is removed.
-  overlay.className = 'uvd-settings-overlay uvd-player-overlay';
+  // Card skin is isolated from the media engine.
+  overlay.className = 'uvd-settings-overlay uvd-player-overlay uvd-player-card-v2';
   __uvdAppendRoot(overlay);
   __uvdIsolateLayer(overlay);
   applyEffectsPref(overlay);
@@ -4311,6 +4310,20 @@ style.textContent = `
    Keep the later pastel menu palette separate from the card itself. */
 /* Phase 3.1 – player menu palette and light rounded backdrop. */
 .uvd-player-clean-menu{background:linear-gradient(155deg,#fffafd,#f6ecff)!important;border:1px solid rgba(194,150,255,.34)!important;box-shadow:0 12px 28px rgba(111,67,122,.2),0 0 0 1px rgba(255,255,255,.78) inset!important;color:#7a4f89!important}.uvd-player-clean-menu button{background:transparent!important;color:#8a6ab0!important;border-color:rgba(194,150,255,.16)!important}.uvd-player-clean-menu button:hover{background:rgba(255,159,180,.15)!important;color:#c95073!important}.uvd-player-clean-menu .uvd-quality-menu-title{color:#c95073!important;border-bottom-color:rgba(255,159,180,.22)!important}.uvd-player-clean-menu .uvd-quality-option-active{background:linear-gradient(135deg,rgba(255,159,180,.18),rgba(194,150,255,.16))!important;color:#c95073!important}.uvd-player-clean-menu .uvd-quality-menu-back{color:#8a6ab0!important}.uvd-player-clean-menu::before{background:linear-gradient(135deg,#fffafd,#f6ecff)!important;border-color:rgba(194,150,255,.34)!important}
+
+/* ===== PLAYER CARD V2 — soft pastel modal =====
+   Scope intentionally stops at card chrome: sheet, header and information panel. */
+.uvd-player-card-v2{align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(74,43,78,.42)!important;backdrop-filter:blur(5px)!important;-webkit-backdrop-filter:blur(5px)!important}
+.uvd-player-card-v2.uvd-open{background:radial-gradient(circle at 50% 22%,rgba(255,236,246,.54),rgba(137,99,152,.40) 60%,rgba(59,35,67,.52))!important}
+.uvd-player-card-v2 .uvd-player-sheet{width:min(100%,590px)!important;height:min(86dvh,760px)!important;max-height:86dvh!important;margin:auto!important;border:1px solid rgba(255,255,255,.72)!important;border-radius:30px!important;background:linear-gradient(155deg,#fffafd 0%,#fff2f8 56%,#f3ecff 100%)!important;box-shadow:0 22px 58px rgba(74,43,78,.30),0 4px 16px rgba(247,108,140,.16),inset 0 1px 0 rgba(255,255,255,.92)!important;overflow:hidden!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-settings-header.uvd-player-header{min-height:74px!important;padding:13px 15px!important;background:linear-gradient(135deg,#fff7fb,#ffeaf4)!important;border-bottom:1px solid rgba(255,159,180,.25)!important;box-shadow:0 4px 12px rgba(247,108,140,.08)!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-title-copy strong{background:linear-gradient(105deg,#d85c7a,#b385f2)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;text-shadow:none!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-back-btn,.uvd-player-card-v2 .uvd-player-sheet .uvd-player-menu-btn{background:rgba(255,255,255,.82)!important;border-color:rgba(255,159,180,.28)!important;color:#c95073!important;box-shadow:0 4px 10px rgba(247,108,140,.12)!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-panel{padding:13px 15px 15px!important;background:linear-gradient(155deg,#fffafd,#f7efff)!important;border-top:1px solid rgba(194,150,255,.18)!important;border-radius:0!important;box-shadow:none!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-meta{background:rgba(255,255,255,.70)!important;border-color:rgba(194,150,255,.24)!important;color:#8a6ab0!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-tmdb-bar{background:rgba(255,255,255,.74)!important;border-color:rgba(194,150,255,.20)!important;box-shadow:none!important}
+@media (max-width:560px){.uvd-player-card-v2{padding:10px!important}.uvd-player-card-v2 .uvd-player-sheet{width:100%!important;height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important;border-radius:25px!important}.uvd-player-card-v2 .uvd-player-sheet .uvd-settings-header.uvd-player-header{min-height:68px!important;padding:10px 12px!important}.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-panel{padding:11px 12px 12px!important}}
+
 
 `;
 

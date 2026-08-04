@@ -485,9 +485,11 @@ function __uvdIsDiggingDirectType(type) {
 // element supplies a long-form duration, pixels/resolution and a canvas frame.
 // This deliberately rejects trailers, short ad clips and bare network URLs.
 var __uvdVerificationQueue = [];
-var __uvdVerificationRunning = false;
-var __uvdVerificationTimeoutMs = 11500;
-var __uvdVerificationRetryMs = 20000;
+var __uvdVerificationRunning = 0;
+var __uvdVerificationMaxConcurrent = 2;
+var __uvdVerificationTimeoutMs = 8500;
+var __uvdTrustedVerificationTimeoutMs = 6500;
+var __uvdVerificationRetryMs = 12000;
 function __uvdIsQualifiedMediaItem(item) {
   if (!item || item.demo === true) return false;
   return item.verified === true && !!item.thumbnail &&
@@ -535,26 +537,37 @@ function __uvdPromoteVerifiedMedia(url, media) {
   if (typeof debouncedBuildUI === 'function') debouncedBuildUI();
   return true;
 }
+function __uvdVerificationPriority(url) {
+  var item = urls.get(url) || {};
+  if (__uvdIsLearnedJunkVideo(url)) return -1000;
+  var score = __uvdLearnedVideoVerdict(url) === 'PLAYER' ? 100 : 0;
+  if (item.isMaster || (Number(item.qualityCount) || 0) > 1) score += 45;
+  if (item.resolution || item.hasThumbnail || item.thumbnail) score += 25;
+  if (item.source && /(?:element|current|manifest)/i.test(item.source)) score += 12;
+  return score;
+}
 function __uvdQueueMediaVerification(url) {
   var item = urls.get(url);
-  if (!item || !__uvdIsDiggingDirectType(item.type) || __uvdIsQualifiedMediaItem(item) || item.demo === true) return;
+  if (!item || !__uvdIsDiggingDirectType(item.type) || __uvdIsLearnedJunkVideo(url) || __uvdIsQualifiedMediaItem(item) || item.demo === true) return;
   if (item.verification === 'queued' || item.verification === 'checking') return;
   if (item.verification === 'failed' && Date.now() - (item.verificationFailedAt || 0) < __uvdVerificationRetryMs) return;
   item.verification = 'queued';
   __uvdVerificationQueue.push(url);
+  // Votes from trusted hosts and already-rich metadata are verified first.
+  __uvdVerificationQueue.sort(function(a, b) { return __uvdVerificationPriority(b) - __uvdVerificationPriority(a); });
   setTimeout(__uvdPumpMediaVerification, 0);
 }
 function __uvdPumpMediaVerification() {
-  if (__uvdVerificationRunning) return;
+  if (__uvdVerificationRunning >= __uvdVerificationMaxConcurrent) return;
   var url = '';
   var item = null;
   while (__uvdVerificationQueue.length && !item) {
     url = __uvdVerificationQueue.shift();
     var candidate = urls.get(url);
-    if (candidate && !__uvdIsQualifiedMediaItem(candidate) && candidate.demo !== true) item = candidate;
+    if (candidate && !__uvdIsLearnedJunkVideo(url) && !__uvdIsQualifiedMediaItem(candidate) && candidate.demo !== true) item = candidate;
   }
   if (!item) return;
-  __uvdVerificationRunning = true;
+  __uvdVerificationRunning += 1;
   item.verification = 'checking';
   var stage = document.createElement('div');
   stage.className = 'uvd-verification-stage';
@@ -577,7 +590,7 @@ function __uvdPumpMediaVerification() {
     var preview = stage.querySelector('.uvd-card-preview');
     try { if (preview && preview.__uvdThumbHls) preview.__uvdThumbHls.destroy(); } catch(e) {}
     try { stage.remove(); } catch(e) {}
-    __uvdVerificationRunning = false;
+    __uvdVerificationRunning = Math.max(0, __uvdVerificationRunning - 1);
     if (!ok && typeof debouncedBuildUI === 'function') debouncedBuildUI();
     setTimeout(__uvdPumpMediaVerification, 0);
   }
@@ -590,7 +603,10 @@ function __uvdPumpMediaVerification() {
     if (preview && preview.__uvdStartThumb) preview.__uvdStartThumb();
     else finish(false);
   } catch(e) { finish(false); }
-  setTimeout(function() { finish(false); }, __uvdVerificationTimeoutMs);
+  var verificationTimeout = __uvdLearnedVideoVerdict(url) === 'PLAYER' ? __uvdTrustedVerificationTimeoutMs : __uvdVerificationTimeoutMs;
+  setTimeout(function() { finish(false); }, verificationTimeout);
+  // If there are several candidates already waiting, start another slot now.
+  if (__uvdVerificationQueue.length) setTimeout(__uvdPumpMediaVerification, 0);
 }
 function __uvdMarkDiggingLinkFound(url, type) {
   if (!__uvdIsDiggingDirectType(type)) return;
@@ -953,7 +969,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var priority = priorityMap[type] || 6;
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
-    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence, verification: 'new' });
+    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence, verification: 'new', isMaster: type === 'M3U8' && /master\.m3u8/i.test(url) });
     if (__uvdIsDiggingDirectType(type)) __uvdQueueMediaVerification(url);
     __uvdMarkDiggingLinkFound(url, type);
     if (__uvdUserscriptFrameMode) {

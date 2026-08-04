@@ -432,8 +432,127 @@ function __uvdConsumeDiggingPopupHandoff() {
 function __uvdIsDiggingDirectType(type) {
   return ['M3U8', 'MP4', 'MPD', 'WEBM', 'TS'].indexOf(String(type || '').toUpperCase()) !== -1;
 }
+// A captured URL is only a lead.  It becomes a result after a real media
+// element supplies a long-form duration, pixels/resolution and a canvas frame.
+// This deliberately rejects trailers, short ad clips and bare network URLs.
+var __uvdVerificationQueue = [];
+var __uvdVerificationRunning = false;
+var __uvdVerificationTimeoutMs = 11500;
+var __uvdVerificationRetryMs = 20000;
+function __uvdIsQualifiedMediaItem(item) {
+  if (!item || item.demo === true) return false;
+  return item.verified === true && !!item.thumbnail &&
+    isFinite(item.durationSeconds) && item.durationSeconds > __uvdDemoPreviewMaxSeconds &&
+    Number(item.videoWidth || 0) > 0 && Number(item.videoHeight || 0) > 0;
+}
+function __uvdQualifiedDirectEntries() {
+  return __uvdHasRealDirectStreams().filter(function(entry) {
+    return __uvdIsQualifiedMediaItem(entry[1]);
+  });
+}
+function __uvdPendingDirectCount() {
+  return __uvdHasRealDirectStreams().filter(function(entry) {
+    var item = entry[1] || {};
+    return !__uvdIsQualifiedMediaItem(item) && item.demo !== true && item.verification !== 'failed';
+  }).length;
+}
+function __uvdCaptureVerifiedThumbnail(media) {
+  if (!media || !media.videoWidth || !media.videoHeight) return '';
+  try {
+    var canvas = document.createElement('canvas');
+    canvas.width = 240; canvas.height = 135;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', .62);
+  } catch(e) { return ''; }
+}
+function __uvdPromoteVerifiedMedia(url, media) {
+  var item = urls.get(url);
+  if (!item || !media) return false;
+  var duration = Number(media.duration || 0);
+  // A VOD duration plus actual decoded pixels is the required data proof.
+  if (!isFinite(duration) || duration <= __uvdDemoPreviewMaxSeconds || !media.videoWidth || !media.videoHeight) return false;
+  var thumbnail = __uvdCaptureVerifiedThumbnail(media);
+  // A video that cannot yield a thumbnail remains a hidden candidate instead
+  // of being promoted merely because its URL looks like an MP4/HLS stream.
+  if (!thumbnail) return false;
+  item.durationSeconds = duration;
+  item.videoWidth = media.videoWidth;
+  item.videoHeight = media.videoHeight;
+  item.resolution = media.videoWidth + '×' + media.videoHeight;
+  item.thumbnail = thumbnail;
+  item.verified = true;
+  item.previewReady = true;
+  item.demo = false;
+  item.verification = 'ready';
+  var done = item.__uvdVerificationDone;
+  delete item.__uvdVerificationDone;
+  if (typeof done === 'function') done(true);
+  __uvdMarkDiggingLinkFound(url, item.type);
+  if (typeof debouncedBuildUI === 'function') debouncedBuildUI();
+  return true;
+}
+function __uvdQueueMediaVerification(url) {
+  var item = urls.get(url);
+  if (!item || !__uvdIsDiggingDirectType(item.type) || __uvdIsQualifiedMediaItem(item) || item.demo === true) return;
+  if (item.verification === 'queued' || item.verification === 'checking') return;
+  if (item.verification === 'failed' && Date.now() - (item.verificationFailedAt || 0) < __uvdVerificationRetryMs) return;
+  item.verification = 'queued';
+  __uvdVerificationQueue.push(url);
+  setTimeout(__uvdPumpMediaVerification, 0);
+}
+function __uvdPumpMediaVerification() {
+  if (__uvdVerificationRunning) return;
+  var url = '';
+  var item = null;
+  while (__uvdVerificationQueue.length && !item) {
+    url = __uvdVerificationQueue.shift();
+    var candidate = urls.get(url);
+    if (candidate && !__uvdIsQualifiedMediaItem(candidate) && candidate.demo !== true) item = candidate;
+  }
+  if (!item) return;
+  __uvdVerificationRunning = true;
+  item.verification = 'checking';
+  var stage = document.createElement('div');
+  stage.className = 'uvd-verification-stage';
+  stage.setAttribute('aria-hidden', 'true');
+  stage.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;';
+  // Reuse the exact thumbnail loader used by a visible stream card.  The card
+  // stays offscreen until the loader has both metadata and an actual frame.
+  stage.innerHTML = buildStreamCardHTML({ url: url, type: item.type, resolution: item.resolution || '', thumbnail: '', verified: false }, 0);
+  try { (document.body || document.documentElement).appendChild(stage); } catch(e) {}
+  var finished = false;
+  function finish(ok) {
+    if (finished) return;
+    finished = true;
+    var latest = urls.get(url);
+    if (latest && latest.verification !== 'ready') {
+      latest.verification = ok ? 'ready' : 'failed';
+      if (!ok) latest.verificationFailedAt = Date.now();
+    }
+    if (latest) delete latest.__uvdVerificationDone;
+    var preview = stage.querySelector('.uvd-card-preview');
+    try { if (preview && preview.__uvdThumbHls) preview.__uvdThumbHls.destroy(); } catch(e) {}
+    try { stage.remove(); } catch(e) {}
+    __uvdVerificationRunning = false;
+    if (!ok && typeof debouncedBuildUI === 'function') debouncedBuildUI();
+    setTimeout(__uvdPumpMediaVerification, 0);
+  }
+  item.__uvdVerificationDone = finish;
+  try {
+    hydrateVideoThumbnails(stage);
+    var preview = stage.querySelector('.uvd-card-preview');
+    // The staging card has no scroll viewport, so deliberately start its
+    // loader instead of waiting for IntersectionObserver visibility.
+    if (preview && preview.__uvdStartThumb) preview.__uvdStartThumb();
+    else finish(false);
+  } catch(e) { finish(false); }
+  setTimeout(function() { finish(false); }, __uvdVerificationTimeoutMs);
+}
 function __uvdMarkDiggingLinkFound(url, type) {
   if (!__uvdIsDiggingDirectType(type)) return;
+  var item = urls.get(url);
+  if (!__uvdIsQualifiedMediaItem(item)) { __uvdQueueMediaVerification(url); return; }
   __uvdDiggingFlow.found = true;
   __uvdDiggingFlow.route = 'media';
   __uvdDiggingFlow.url = url || __uvdDiggingFlow.url;
@@ -681,7 +800,8 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   var priority = priorityMap[type] || 6;
   var existing = urls.get(url);
   if (!existing || existing.type !== type || existing.priority > priority) {
-    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence });
+    urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence, verification: 'new' });
+    if (__uvdIsDiggingDirectType(type)) __uvdQueueMediaVerification(url);
     __uvdMarkDiggingLinkFound(url, type);
     if (__uvdUserscriptFrameMode) {
       try {
@@ -690,6 +810,9 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
     }
     return true;
   }
+  // A delayed media source may have failed its previous strict thumbnail
+  // attempt; realtime sweeps may retry it after the cooldown above.
+  if (existing && __uvdIsDiggingDirectType(existing.type)) __uvdQueueMediaVerification(url);
   return false;
 }
 function findPlaylistBodyUrls(text, source) {
@@ -4770,7 +4893,7 @@ function __uvdSetDiggingReady(kind, subtitle) {
   var status = overlay.querySelector('#__uvd_dig_status__');
   var count = overlay.querySelector('#__uvd_dig_count__');
   if (status) status.textContent = kind === 'iframe' ? '🖼️ Đã thấy player iframe' : '✨ Đã đào được video';
-  if (count) count.textContent = kind === 'iframe' ? '1 player' : (__uvdHasRealDirectStreams().length + ' link');
+  if (count) count.textContent = kind === 'iframe' ? '1 player' : (__uvdQualifiedDirectEntries().length + ' video đã kiểm chứng');
   var routeHint = overlay.querySelector('#__uvd_dig_route_hint__');
   if (routeHint) routeHint.textContent = kind === 'iframe'
     ? 'Bấm vào để chọn player iframe mèo đã tìm thấy nha ♡'
@@ -4843,7 +4966,7 @@ function __uvdStartDiggingPopup() {
   // and show its route as soon as the large digging popup is in the document.
   if (!flow.found) {
     urls.forEach(function(item, url) {
-      if (!flow.found && item && __uvdIsDiggingDirectType(item.type)) {
+      if (!flow.found && item && __uvdIsDiggingDirectType(item.type) && __uvdIsQualifiedMediaItem(item)) {
         flow.found = true;
         flow.route = 'media';
         flow.url = url;
@@ -4982,7 +5105,7 @@ function __uvdOpenDiggingDestination() {
   var flow = __uvdDiggingFlow;
   if (!flow.active) return;
   // A direct media URL is always preferred over an iframe fallback.
-  var direct = __uvdHasRealDirectStreams();
+  var direct = __uvdQualifiedDirectEntries();
   if (direct.length) {
     var mapped = direct.map(function(entry) { return { url: entry[0], type: entry[1].type, item: entry[1] }; });
     __uvdRunDiggingCatThenFly(function() {
@@ -5351,6 +5474,10 @@ function __uvdPopupThumb(thumbEl, url, type) {
   }
 }
 function __uvdOpenMediaLinksPopup(streams) {
+  streams = (streams || []).filter(function(stream) {
+    return __uvdIsQualifiedMediaItem(stream && (stream.item || urls.get(stream.url)));
+  });
+  if (!streams.length) return false;
   var old = document.getElementById('__uvd_media_links_prompt__');
   if (old) old.remove();
   // Hide the UMP panel so this popup is never covered by the UI.
@@ -5460,7 +5587,7 @@ function __uvdMaybeOfferMediaPopup(force) {
   // The first captured link is presented by the digging cat intro and the
   // Streams body rising from below. Never open the legacy popup on top of it,
   // even for a reload/reopen request while the cat is still digging.
-  var direct = __uvdHasRealDirectStreams();
+  var direct = __uvdQualifiedDirectEntries();
   if (__uvdDiggingFlow.active) return;
   if (!force && __uvdDiggingFlow.completed) return;
   if (!direct.length) return;
@@ -5468,16 +5595,9 @@ function __uvdMaybeOfferMediaPopup(force) {
   if (!force && __uvdMediaPopupShown) return;
   if (force) __uvdMediaPopupDismissedAt = 0;
   if (Date.now() - (__uvdMediaPopupDismissedAt || 0) < 60000) return;
-  // Hạn chế mở auto: chỉ mở khi có ít nhất 1 video thật (không phải demo) có
-  // get được preview/metadata (đa chất lượng / master / resolution).
-  if (!force) {
-    var hasReal = direct.some(function(entry) {
-      if (__uvdIsDemoStream(entry)) return false;
-      var item = entry[1] || {};
-      return !!(item.qualityCount || item.isMaster || item.resolution);
-    });
-    if (!hasReal) return;
-  }
+  // force only reopens a previously valid popup; it never bypasses the
+  // duration + metadata + thumbnail proof required above.
+  if (!direct.length) return;
   __uvdMediaPopupShown = true;
   var mapped = direct.map(function(e) { return { url: e[0], type: e[1].type, item: e[1] }; });
   __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
@@ -5797,8 +5917,13 @@ function __uvdStreamRank(item) {
 }
 
 function buildUI() {
-  var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]), aiVerdict: e[1].aiVerdict || '', aiScore: e[1].aiScore == null ? null : e[1].aiScore, aiReasons: e[1].aiReasons || [] };
+  var rawArr = [...urls.entries()].map(function(e) {
+    var sourceItem = e[1] || {};
+    if (__uvdIsDiggingDirectType(sourceItem.type) && !__uvdIsQualifiedMediaItem(sourceItem) && sourceItem.verification !== 'failed') __uvdQueueMediaVerification(e[0]);
+    return { url: e[0], type: sourceItem.type, source: sourceItem.source, priority: sourceItem.priority, timestamp: sourceItem.timestamp || 0, sequence: sourceItem.sequence || 0, qualityCount: sourceItem.qualityCount || 0, isMaster: !!sourceItem.isMaster, resolution: sourceItem.resolution || __uvdGetUrlResolution(e[0]), aiVerdict: sourceItem.aiVerdict || '', aiScore: sourceItem.aiScore == null ? null : sourceItem.aiScore, aiReasons: sourceItem.aiReasons || [], demo: sourceItem.demo === true, verified: sourceItem.verified === true, thumbnail: sourceItem.thumbnail || '', durationSeconds: sourceItem.durationSeconds || 0, videoWidth: sourceItem.videoWidth || 0, videoHeight: sourceItem.videoHeight || 0 };
+  });
+  var arr = rawArr.filter(function(item) {
+    return String(item.type || '').toUpperCase() === 'IFRAME' || __uvdIsQualifiedMediaItem(item);
   }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
@@ -6239,8 +6364,12 @@ function buildStreamCardHTML(item, i) {
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
-  var statusText = (type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview';
-  var statusClass = (type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted';
+  var hasVerifiedThumb = __uvdIsQualifiedMediaItem(item);
+  var statusText = hasVerifiedThumb ? 'PREVIEW OK' : ((type === 'MP4' || type === 'M3U8') ? 'đang xác minh…' : 'chưa có preview');
+  var statusClass = hasVerifiedThumb ? 'uvd-status-ok' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
+  var thumbHtml = hasVerifiedThumb
+    ? '<img class="uvd-thumb-image uvd-thumb-ready" src="' + escapeHtml(item.thumbnail) + '" alt="Ảnh xem trước video">'
+    : '<div class="uvd-thumb-image"></div>';
   var guideText;
   if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
   else if (type === 'MP4' || type === 'WEBM') guideText = 'Link video thật nè 📼 — bấm Xem để phát ngay nha.';
@@ -6248,8 +6377,8 @@ function buildStreamCardHTML(item, i) {
   else guideText = 'Link media nè — bấm Xem để phát thử nha.';
   return (
     '<div class="uvd-card uvd-cute" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
-      '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
-        '<div class="uvd-thumb-image"></div>' +
+      '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '"' + (hasVerifiedThumb ? ' data-thumb-verified="1"' : '') + '>' +
+        thumbHtml +
         '<div class="uvd-thumb-sheen"></div>' +
         '<span class="uvd-thumb-type">' + escapeHtml(item.type) + '</span>' +
         '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>' +
@@ -6350,6 +6479,7 @@ function hydrateVideoThumbnails(root) {
   if (!root) return;
   root.querySelectorAll('.uvd-card-preview[data-thumb-url]').forEach(function(preview) {
     if (preview.dataset.thumbState) return;
+    if (preview.dataset.thumbVerified === '1') { preview.dataset.thumbState = 'ready'; return; }
     var card = preview.closest('.uvd-card');
     var type = card ? (card.dataset.type || '').toUpperCase() : '';
     if (type !== 'MP4' && type !== 'M3U8' && type !== 'VIDEO' && type !== 'BLOB') {
@@ -6384,6 +6514,10 @@ function hydrateVideoThumbnails(root) {
       media.defaultMuted = true;
       media.playsInline = true;
       media.preload = 'metadata';
+      // The strict verifier stores an actual JPEG frame, so request CORS
+      // permission before assigning the source instead of accepting a frame
+      // that cannot be turned into a thumbnail.
+      media.crossOrigin = 'anonymous';
       media.setAttribute('aria-hidden', 'true');
     } else {
       media.classList.add('uvd-thumb-video');
@@ -6410,7 +6544,9 @@ function hydrateVideoThumbnails(root) {
       preview.classList.add('uvd-thumb-real-preview');
       if (card) card.classList.add('uvd-card-has-real-preview');
       __uvdUpdateCardFromMedia(card, media);
-      __uvdSaveHistoryMetadata(preview.getAttribute('data-thumb-url'), media, card);
+      var verifiedUrl = preview.getAttribute('data-thumb-url');
+      __uvdPromoteVerifiedMedia(verifiedUrl, media);
+      __uvdSaveHistoryMetadata(verifiedUrl, media, card);
       var status = card && card.querySelector('.uvd-card-status');
       if (status) { status.textContent = 'PREVIEW OK'; status.className = 'uvd-card-status uvd-status-ok'; }
       if (media.videoWidth && media.videoHeight) {
@@ -6549,7 +6685,10 @@ function hydrateVideoThumbnails(root) {
 
 function renderStreams(container, arr) {
   if (!arr.length) {
-    container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
+    var pending = __uvdPendingDirectCount();
+    container.innerHTML = pending
+      ? '<div class="uvd-empty-state"><strong>Mèo đang kiểm chứng video…</strong><span>Chỉ hiện video dài có đủ dữ liệu và ảnh xem trước thật. Clip ngắn, quảng cáo và link trần sẽ bị ẩn.</span></div>'
+      : '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
     var emptyPreload = container.querySelector('#__uvd_empty_preload__');
     if (emptyPreload) emptyPreload.onclick = function() { runPreloadCapture(); };
     return;

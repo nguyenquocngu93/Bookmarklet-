@@ -831,3 +831,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Fix:** chuẩn hoá dấu tiếng Việt, trích năm, thử nhiều query rút gọn (bỏ năm / 4 từ cuối / 3 từ cuối / 2 từ cuối), chấm điểm token + bonus trùng năm + popularity.
 - **An toàn:** vẫn yêu cầu ngưỡng khớp 0.58 trước khi hiện info, tránh nhận sai phim.
 - **Kết quả:** `node --check` OK; Render TMDB search được dùng cho title Việt/Anh.
+
+### Patch #51 — Ưu tiên iframe player trong popup đào — 2026-08-04
+
+- **Trước đây:** iframe chỉ được promote sau cửa sổ đào 20 giây, nên dù UI đã có link iframe vẫn phải chờ.
+- **Bây giờ:** sau ~1.8 giây, iframe PLAYER/score cao được hiện route **Vào link** ngay; iframe UNKNOWN có thêm ~3.5 giây lấy evidence rồi cũng hiện route nếu còn hợp lệ.
+- **Không thêm popup mới:** bấm Vào link vẫn chuyển vào popup iframe hiện có.
+- **An toàn:** iframe rác vẫn không được promote; realtime video link tìm thấy sau đó luôn ghi đè ưu tiên iframe.

@@ -417,6 +417,7 @@ var __uvdDiggingFlow = {
   runTimer: null,
   realtimeTimer: null,
   realtimeEndTimer: null,
+  iframeProbeTimer: null,
   removeTimer: null
 };
 // One-shot handoff flag: target popups use it to rise from below immediately
@@ -4776,6 +4777,31 @@ function __uvdStartDiggingRealtimeCapture() {
   flow.realtimeEndTimer = setTimeout(__uvdStopDiggingRealtimeCapture, __uvdDiggingWaitMs + 1500);
 }
 
+function __uvdStopDiggingIframeProbe() {
+  if (__uvdDiggingFlow.iframeProbeTimer) clearTimeout(__uvdDiggingFlow.iframeProbeTimer);
+  __uvdDiggingFlow.iframeProbeTimer = null;
+}
+function __uvdProbeIframeDuringDig(stage) {
+  var flow = __uvdDiggingFlow;
+  if (!flow.active || flow.found) return;
+  var candidates = __uvdDiggingIframeCandidates();
+  if (!candidates.length) {
+    if (stage < 2) flow.iframeProbeTimer = setTimeout(function() { __uvdProbeIframeDuringDig(stage + 1); }, 3000);
+    return;
+  }
+  var strong = candidates.some(function(c) { return c.verdict === 'PLAYER' || c.score >= 50; });
+  // Known/large/embed players appear almost immediately. UNKNOWN candidates
+  // get one short extra evidence window first, avoiding ad iframe noise.
+  if (strong || stage >= 1) {
+    __uvdStopDiggingIframeProbe();
+    clearTimeout(flow.waitTimer);
+    flow.waitTimer = null;
+    __uvdSetDiggingReady('iframe', strong ? 'Mèo thấy player iframe thật rồi — bấm vào link để chọn nha!' : 'Mèo thấy iframe có thể là player — bấm vào link để kiểm tra nha!');
+  } else {
+    flow.iframeProbeTimer = setTimeout(function() { __uvdProbeIframeDuringDig(1); }, 3500);
+  }
+}
+
 function __uvdStartDiggingPopup() {
   var flow = __uvdDiggingFlow;
   if (flow.active || flow.completed || playerState.overlay) return;
@@ -4888,6 +4914,8 @@ function __uvdStartDiggingPopup() {
   var initialStatus = overlay.querySelector('#__uvd_dig_status__');
   if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
   __uvdStartDiggingRealtimeCapture();
+  __uvdStopDiggingIframeProbe();
+  flow.iframeProbeTimer = setTimeout(function() { __uvdProbeIframeDuringDig(0); }, 1800);
   clearTimeout(flow.waitTimer);
   // At the 20-second mark, do not dismiss this popup. On an iframe-only page
   // it simply changes to an explicit “Vào link” route for the user to choose.
@@ -4962,6 +4990,7 @@ function __uvdFlyDiggingPopupUp(onDone) {
   clearTimeout(flow.transitionTimer);
   clearTimeout(flow.waitTimer);
   clearTimeout(flow.runTimer);
+  __uvdStopDiggingIframeProbe();
   __uvdStopDiggingRealtimeCapture();
   clearTimeout(flow.removeTimer);
   flow.transitionTimer = null;
@@ -4987,6 +5016,7 @@ function __uvdStopDiggingPopup(keepUiHidden) {
   clearTimeout(flow.transitionTimer);
   clearTimeout(flow.waitTimer);
   clearTimeout(flow.runTimer);
+  __uvdStopDiggingIframeProbe();
   __uvdStopDiggingRealtimeCapture();
   clearTimeout(flow.removeTimer);
   flow.transitionTimer = null;

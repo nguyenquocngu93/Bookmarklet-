@@ -769,3 +769,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Tính năng:** xem phim mới, tìm phim, xem chi tiết/tập và mở `link_m3u8` API trả về bằng player Mèo cào; tập được thêm vào Streams và Lịch sử.
 - **Render:** thêm route `/kkphim.js`, không dùng API key hoặc proxy key, không can thiệp pipeline capture hiện có.
 - **Kết quả:** `node --check` OK cho bookmarklet/module/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`.
+
+### Patch #42 — KKPhim chi tiết đầy đủ + TMDB logo/cast tuỳ chọn — 2026-08-04
+
+- **KKPhim/PhimAPI:** detail hiển thị nội dung phim, thể loại, quốc gia, đạo diễn, trạng thái, chất lượng, ngôn ngữ, thời lượng, IMDb/TMDB score và danh sách diễn viên.
+- **TMDB (tuỳ chọn):** thêm ô nhập TMDB v3 API key trong Cài đặt; key chỉ lưu local, không sync/cloud/link. Khi có key, module lấy logo phim TMDB, overview, score và cast có ảnh/nhân vật.
+- **An toàn:** TMDB key đi thẳng từ browser tới TMDB, không qua Render/Supabase.
+- **Kết quả:** `node --check` OK cho bookmarklet/module/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`.

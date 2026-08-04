@@ -127,6 +127,7 @@ data.settings = Object.assign({
   effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
   subdlApiKey: '',
+  tmdbApiKey: '',
   syncProfileId: '',
   aiIframeFilter: true,
   llmProxyUrl: '',
@@ -194,6 +195,7 @@ function __uvdSyncPayload() {
   var settings = Object.assign({}, data.settings);
   delete settings.headerProxyKey;
   delete settings.subdlApiKey;
+  delete settings.tmdbApiKey;
   return {
     settings: settings,
     siteProfiles: data.siteProfiles,
@@ -5578,6 +5580,7 @@ function __uvdOpenKkphim() {
   window.__uvdKkphimBridge = {
     hideUi: __uvdHideUiForPopup,
     restoreUi: __uvdRestoreUiAfterPopup,
+    tmdbKey: function() { return String(data.settings.tmdbApiKey || '').trim(); },
     openEpisode: function(movie, episode) {
       var mediaUrl = episode && episode.link_m3u8;
       if (!mediaUrl) { toast('KKPhim chưa có link M3U8 cho tập này'); return; }
@@ -6941,6 +6944,7 @@ function __uvdBuildConfigLink() {
   var safeSettings = Object.assign({}, data.settings);
   delete safeSettings.headerProxyKey;
   delete safeSettings.subdlApiKey;
+  delete safeSettings.tmdbApiKey;
   // Keep the bookmarklet URL short. The shared data lives in Supabase;
   // the link only needs the profile ID (and a few safe defaults).
   var payload = { version: 2, settings: { syncProfileId: safeSettings.syncProfileId || '' } };
@@ -7036,6 +7040,12 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-settings-group-title">☁ Đồng bộ & lịch sử</div>' +
+    '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">🎞 TMDB (tuỳ chọn)</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Dán API key TMDB của cưng để KKPhim lấy logo phim, cast và điểm TMDB đầy đủ hơn. Key chỉ lưu local trên máy này, không sync/cloud.</div>' +
+      '<input id="__uvd_tmdb_key__" type="password" autocomplete="off" placeholder="TMDB API key (v3)" value="' + escapeHtml(data.settings.tmdbApiKey || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:#d85c7a;font-size:12px;">' +
+    '</div>' +
+
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🔗 Bookmarklet riêng</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tạo link chạy với các cài đặt hiện tại. Link không chứa Proxy key hoặc SubDL API key.</div>' +
@@ -7192,6 +7202,12 @@ function renderSettings(container) {
     data.settings.llmProxyUrl = this.value.trim();
     storage.set(data);
     toast(data.settings.llmProxyUrl ? 'Đã lưu LLM proxy' : 'Đã xóa LLM proxy (dùng heuristic offline)');
+  };
+  var tmdbKeyInput = document.getElementById('__uvd_tmdb_key__');
+  if (tmdbKeyInput) tmdbKeyInput.onchange = function() {
+    data.settings.tmdbApiKey = this.value.trim();
+    storage.set(data);
+    toast(data.settings.tmdbApiKey ? 'Đã lưu TMDB key trên máy này' : 'Đã xóa TMDB key');
   };
 
   var copyConfigBtn = document.getElementById('__uvd_copy_config_link__');

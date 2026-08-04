@@ -776,3 +776,9 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **TMDB (tuỳ chọn):** thêm ô nhập TMDB v3 API key trong Cài đặt; key chỉ lưu local, không sync/cloud/link. Khi có key, module lấy logo phim TMDB, overview, score và cast có ảnh/nhân vật.
 - **An toàn:** TMDB key đi thẳng từ browser tới TMDB, không qua Render/Supabase.
 - **Kết quả:** `node --check` OK cho bookmarklet/module/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`.
+
+### Patch #43 — KPhim luôn có ở popup đào + intro trước khi duyệt phim — 2026-08-04
+
+- **Popup đào:** hai nút **Vào UI** và **KPhim** luôn hiện chung một hàng, dù đã có link hay chưa. Nút **Vào link ♡** giữ riêng một hàng và chỉ hiện khi có nguồn.
+- **KPhim intro:** trước danh sách phim hiện màn giới thiệu “KKPhim cùng Mèo cào”, người dùng bấm **Vào KKPhim ✦** mới bắt đầu duyệt/tìm phim.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.

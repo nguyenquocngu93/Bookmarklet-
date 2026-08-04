@@ -5573,6 +5573,41 @@ var __uvdTabMeta = {
   history: { mascot: __uvdTabMascotHamster, bg: 'linear-gradient(150deg,#fff4d6,#ffd38a)', name: 'Lịch sử', sub: 'hamster giữ hạt 🐹' }
 };
 
+// ========== KKPHIM / PHIMAPI COMPANION ==========
+function __uvdOpenKkphim() {
+  window.__uvdKkphimBridge = {
+    hideUi: __uvdHideUiForPopup,
+    restoreUi: __uvdRestoreUiAfterPopup,
+    openEpisode: function(movie, episode) {
+      var mediaUrl = episode && episode.link_m3u8;
+      if (!mediaUrl) { toast('KKPhim chưa có link M3U8 cho tập này'); return; }
+      __uvdAddDetectedMediaUrl(mediaUrl, 'M3U8', 'kkphim:' + ((movie && movie.slug) || 'movie'));
+      addToHistory(mediaUrl, 'M3U8');
+      var entry = (data.history || []).find(function(item) { return item.url === mediaUrl; });
+      if (entry && movie) {
+        entry.title = (movie.name || 'KKPhim') + (episode.name ? ' · ' + episode.name : '');
+        entry.host = 'phimapi.com';
+        entry.pageUrl = 'https://phimapi.com/phim/' + encodeURIComponent(movie.slug || '');
+        storage.set(data);
+      }
+      debouncedBuildUI();
+      setTimeout(function() {
+        playerState.launchFromThumbnail = true;
+        showVideoPlayer(mediaUrl, 'M3U8', false, false, false, entry && entry.title);
+      }, 80);
+    }
+  };
+  if (window.__uvdKkphim && typeof window.__uvdKkphim.open === 'function') { window.__uvdKkphim.open(); return; }
+  var old = document.getElementById('__uvd_kkphim_loader__');
+  if (old) { toast('Đang mở góc phim KKPhim...'); return; }
+  var script = document.createElement('script');
+  script.id = '__uvd_kkphim_loader__';
+  script.src = RENDER_PROXY_BASE.replace(/\/$/, '') + '/kkphim.js?v=' + encodeURIComponent(VERSION + '_' + Date.now());
+  script.onload = function() { if (window.__uvdKkphim && window.__uvdKkphim.open) window.__uvdKkphim.open(); else toast('Không thể mở KKPhim lúc này'); };
+  script.onerror = function() { script.remove(); toast('Không tải được góc phim KKPhim'); };
+  document.head.appendChild(script);
+}
+
 // ========== BUILD UI ==========
 
 function __uvdGetUrlResolution(url) {
@@ -5639,6 +5674,7 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
       '<button class="uvd-btn-icon" id="__uvd_iframe_btn__" title="Mở popup iframe">▣</button>' +
+      '<button class="uvd-btn-icon" id="__uvd_kkphim_btn__" title="Khám phá phim từ KKPhim">K</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng Mèo cào media">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
@@ -5848,6 +5884,8 @@ function buildUI() {
     }, 2600);
   };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
+  var kkphimBtn = document.getElementById('__uvd_kkphim_btn__');
+  if (kkphimBtn) kkphimBtn.onclick = __uvdOpenKkphim;
 
   var iframeBtn = document.getElementById('__uvd_iframe_btn__');
   if (iframeBtn) {

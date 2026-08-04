@@ -413,6 +413,14 @@ app.get('/bookmarklet.js', (_req, res) => {
   res.sendFile(path.join(__dirname, 'bookmarklet.js'));
 });
 
+// Optional on-demand KKPhim companion. Kept separate so the core bookmarklet
+// stays light for users who only want capture/player features.
+app.get('/kkphim.js', (_req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.sendFile(path.join(__dirname, 'kkphim.js'));
+});
+
 app.get('/proxy', async (req, res) => {
   if (!authorized(req)) return res.status(401).json({ error: 'Thiếu hoặc sai PROXY_KEY' });
   let target;

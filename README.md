@@ -761,3 +761,11 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Lưu trữ:** localStorage theo key bookmarklet; nếu có Sync Profile ID thì 100 mục cũng được gộp/đồng bộ vào payload Supabase.
 - **Preview:** card chỉ nhận class preview thật khi lấy được frame video; khi đó tự giãn thumbnail lớn hơn. Không có frame/preview vẫn giữ kích thước gọn hiện tại.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #41 — Tích hợp KKPhim / PhimAPI bằng module JS riêng — 2026-08-04
+
+- **File mới:** `kkphim.js` (đồng bộ thành `render-header-proxy/kkphim.js`), chỉ tải khi người dùng bấm nút `K` trên header.
+- **Nguồn dữ liệu:** `https://phimapi.com/danh-sach/phim-moi-cap-nhat` và `https://phimapi.com/phim/{slug}`.
+- **Tính năng:** xem phim mới, tìm phim, xem chi tiết/tập và mở `link_m3u8` API trả về bằng player Mèo cào; tập được thêm vào Streams và Lịch sử.
+- **Render:** thêm route `/kkphim.js`, không dùng API key hoặc proxy key, không can thiệp pipeline capture hiện có.
+- **Kết quả:** `node --check` OK cho bookmarklet/module/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`.

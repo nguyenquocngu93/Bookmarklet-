@@ -815,7 +815,38 @@ function __uvdSortStreamsForPopup(direct) {
     return (sb - sa) || ((urls.get(b.url) ? (urls.get(b.url).timestamp || 0) : 0) - (urls.get(a.url) ? (urls.get(a.url).timestamp || 0) : 0));
   });
 }
+// Once one useful stream is fully described, more background harvesting is
+// usually just duplicate HLS variants/ads. Manual Preload/Refresh still works.
+var __uvdAutoScanPaused = false;
+function __uvdHasUsefulStreamInList() {
+  return [...urls.entries()].some(function(entry) {
+    var item = entry[1] || {};
+    if (!__uvdIsDiggingDirectType(item.type) || item.demo === true) return false;
+    return (Number(item.qualityCount) || 0) > 0 || item.isMaster === true ||
+      item.hasThumbnail === true || !!item.thumbnail || !!item.resolution ||
+      (Number(item.videoWidth || 0) > 0 && Number(item.videoHeight || 0) > 0) ||
+      Number(item.durationSeconds || 0) > 0;
+  });
+}
+function __uvdPauseAutomaticScanningIfReady() {
+  if (__uvdAutoScanPaused || !__uvdHasUsefulStreamInList()) return false;
+  __uvdAutoScanPaused = true;
+  // Stop passive network hooks and recurring digging/one-shot timers only.
+  // Explicit user actions (Preload, Refresh, Play) can still request a rescan.
+  try { stopLiveMonitorOnly(); } catch(e) {}
+  try { __uvdStopDiggingRealtimeCapture(); } catch(e) {}
+  if (typeof __uvdEpornerGateTimer !== 'undefined' && __uvdEpornerGateTimer) { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; }
+  if (typeof __uvdOneShotCaptureTimer !== 'undefined' && __uvdOneShotCaptureTimer) { clearTimeout(__uvdOneShotCaptureTimer); __uvdOneShotCaptureTimer = null; }
+  if (typeof __uvdOneShotCaptureActive !== 'undefined') __uvdOneShotCaptureActive = false;
+  if (typeof __uvdLiveCaptureMode !== 'undefined') __uvdLiveCaptureMode = false;
+  return true;
+}
+function __uvdBeginManualCaptureWindow() {
+  // Manual buttons are an explicit request, so briefly re-enable capture.
+  __uvdAutoScanPaused = false;
+}
 function __uvdRefreshCapture() {
+  __uvdBeginManualCaptureWindow();
   if (__uvdIsMatthewHost()) __uvdMatthewFrozen = false;
   document.documentElement.classList.remove('uvd-page-frozen');
   installMonitor();
@@ -824,6 +855,7 @@ function __uvdRefreshCapture() {
   if (data.settings.autoClickPlay) setTimeout(function() { runAutoClickAndRescan(true); }, 500);
   installPopupBlock();
   try { scan(document, 'manual-refresh'); performance.getEntriesByType('resource').forEach(function(e) { if (e.name && !isAdUrl(e.name)) findUrls(e.name, 'manual-refresh:performance'); }); } catch(e) {}
+  __uvdPauseAutomaticScanningIfReady();
   debouncedBuildUI();
   toast('↻ Đã quét lại nguồn video');
 }
@@ -1662,7 +1694,7 @@ var __uvdPerformanceObserver = null;
 var monitorActive = false;
 
 function installMonitor() {
-  if (monitorActive) return;
+  if (__uvdAutoScanPaused || monitorActive) return;
   monitorActive = true;
   window.fetch = function() {
     var url = arguments[0];
@@ -1855,6 +1887,7 @@ function __uvdStartEpornerAdGate() {
   var gateClick = function() { __uvdGrantPagePlayback(30000); };
   document.addEventListener('click', gateClick, true);
   function tick() {
+    if (__uvdAutoScanPaused) { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; return; }
     if (Date.now() - startedAt > 180000 || (playerState && playerState.overlay)) return;
     try {
       document.querySelectorAll('video').forEach(function(video) {
@@ -1881,7 +1914,7 @@ function __uvdStartEpornerAdGate() {
     } catch(e) {}
   }
   tick();
-  __uvdEpornerGateTimer = setInterval(tick, 1200);
+  if (!__uvdAutoScanPaused) __uvdEpornerGateTimer = setInterval(tick, 1200);
   addCleanup(function() { clearInterval(__uvdEpornerGateTimer); __uvdEpornerGateTimer = null; document.removeEventListener('click', gateClick, true); });
 }
 
@@ -2034,6 +2067,7 @@ function __uvdStartEmbedDirectCapture() {
   var timer = null;
   var poll = null;
   var scanMedia = function() {
+    if (__uvdAutoScanPaused) { clearTimeout(timer); clearInterval(poll); return; }
     try {
       document.querySelectorAll('video,source,audio').forEach(function(el) {
         var u = el.currentSrc || el.src || el.getAttribute('src') || el.getAttribute('data-src') || '';
@@ -2175,6 +2209,7 @@ function scheduleLiveUiRefresh() {
 }
 
 function runAutoClickAndRescan(silent) {
+  if (silent && __uvdAutoScanPaused) return;
   var beforeCount = urls.size;
   var lastCount = beforeCount;
   var clicked = 0;
@@ -2184,7 +2219,7 @@ function runAutoClickAndRescan(silent) {
   var reportedAt = -1;
   delays.forEach(function(delay, idx) {
     setTimeout(function() {
-      if (playerState.overlay) return;
+      if (playerState.overlay || (silent && __uvdAutoScanPaused)) return;
       scan(document, 'autoclick-rescan');
       var afterCount = urls.size;
       var newSinceLast = afterCount - lastCount;
@@ -2211,6 +2246,7 @@ function runAutoClickAndRescan(silent) {
 }
 
 function runPreloadCapture() {
+  __uvdBeginManualCaptureWindow();
   __uvdStartHardEmbedBlocker();
   installMonitor();
   installPopupBlock();
@@ -2229,6 +2265,7 @@ function runPreloadCapture() {
       } catch(e) {}
       if (delay === delays[delays.length - 1]) {
         __uvdLiveCaptureMode = false;
+        __uvdPauseAutomaticScanningIfReady();
         if (__uvdLiveUiDirty) {
           __uvdLiveUiDirty = false;
           scheduleLiveUiRefresh();
@@ -2615,7 +2652,7 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   var up = bar.querySelector('[data-tmdb-vote="up"]');
   var down = bar.querySelector('[data-tmdb-vote="down"]');
   if (up) up.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'up'); refreshVotes(); toast('Cảm ơn cưng đã xác nhận thông tin phim ♡'); };
-  if (down) down.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'down'); refreshVotes(); toast('Đã ghi nhận phim chưa đúng — lần sau Mèo sẽ ưu tiên khác hơn nha.'); };
+  if (down) down.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'down'); bar.hidden = true; bar.textContent = ''; };
   refreshVotes();
   bar.hidden = false;
 }
@@ -4548,6 +4585,7 @@ style.textContent = `
 
 /* ===== COMMUNITY FEEDBACK — video, iframe and TMDB recognition ===== */
 .uvd-feedback-note{margin:8px 0 5px;padding:7px 9px;border:1px solid rgba(194,150,255,.23);border-radius:11px;background:rgba(255,255,255,.62);color:#8a6ab0;font-size:10px;font-weight:700;line-height:1.4;text-align:left}.uvd-popup-feedback{margin:0 0 10px}.uvd-feedback-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.uvd-feedback-vote{appearance:none;padding:5px 7px;border:1px solid transparent;border-radius:999px;background:#fff;color:#8a6ab0;font:800 9px/1.15 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .14s ease,filter .14s ease}.uvd-feedback-vote:active{transform:scale(.94)}.uvd-feedback-vote:hover{filter:brightness(.98)}.uvd-feedback-vote-up{border-color:rgba(247,108,140,.27);background:rgba(255,225,237,.76);color:#c95073}.uvd-feedback-vote-down{border-color:rgba(194,150,255,.28);background:rgba(242,233,255,.82);color:#7d5ca5}.uvd-plplain-body .uvd-feedback-actions{margin:7px 0 1px}.uvd-iframe-cute-row .uvd-feedback-actions{margin:7px 0 0}.uvd-player-tmdb-copy .uvd-tmdb-feedback{margin:7px 0 5px;padding:6px 7px;font-size:9px}.uvd-player-tmdb-copy .uvd-tmdb-feedback-actions{margin-top:4px}
+.uvd-stream-end{display:flex;align-items:center;justify-content:center;gap:9px;margin:14px 3px 5px;padding:11px 14px;border:1px dashed rgba(194,150,255,.34);border-radius:18px;background:linear-gradient(135deg,rgba(255,248,252,.82),rgba(246,238,255,.82));color:#8a6ab0;text-align:left}.uvd-stream-end-animal{display:flex;flex:0 0 42px;width:42px;height:42px;align-items:center;justify-content:center;filter:drop-shadow(0 4px 7px rgba(247,108,140,.18));animation:uvdMascotHop 2s ease-in-out infinite}.uvd-stream-end-animal svg{width:100%;height:100%;display:block}.uvd-stream-end strong{display:block;color:#c95073;font-size:11px;font-weight:900}.uvd-stream-end span:not(.uvd-stream-end-animal){display:block;margin-top:2px;font-size:9.5px;font-weight:700;line-height:1.35}
 
 
 `;
@@ -5018,7 +5056,7 @@ function __uvdStartDiggingRealtimeCapture() {
   try { __uvdStartHardEmbedBlocker(); installMonitor(); installPopupBlock(); } catch(e) {}
   __uvdLiveCaptureMode = true;
   function sweep() {
-    if (!flow.active) { __uvdStopDiggingRealtimeCapture(); return; }
+    if (!flow.active || __uvdAutoScanPaused) { __uvdStopDiggingRealtimeCapture(); return; }
     try {
       scan(document, 'dig-realtime', true);
       performance.getEntriesByType('resource').forEach(function(entry) {
@@ -6402,6 +6440,7 @@ function __uvdDescribeHlsLevels(card, levels, media) {
     streamItem.qualityOnly = false;
     streamItem.qualityLabel = labels.length > 1 ? 'ĐA CHẤT LƯỢNG' : '';
   }
+  __uvdPauseAutomaticScanningIfReady();
   var top = levels.slice().sort(function(a, b) { return (b.height || 0) - (a.height || 0); })[0] || {};
   __uvdUpdateCardFromMedia(card, media, {
     quality: quality,
@@ -6654,6 +6693,15 @@ function hydrateVideoThumbnails(root) {
       preview.classList.add('uvd-thumb-real-preview');
       if (card) card.classList.add('uvd-card-has-real-preview');
       __uvdUpdateCardFromMedia(card, media);
+      var cardItem = card && card.dataset.url && urls.get(card.dataset.url);
+      if (cardItem) {
+        cardItem.hasThumbnail = true;
+        cardItem.videoWidth = media.videoWidth || cardItem.videoWidth || 0;
+        cardItem.videoHeight = media.videoHeight || cardItem.videoHeight || 0;
+        if (media.videoWidth && media.videoHeight) cardItem.resolution = media.videoWidth + '×' + media.videoHeight;
+        if (isFinite(media.duration) && media.duration > 0) cardItem.durationSeconds = media.duration;
+      }
+      __uvdPauseAutomaticScanningIfReady();
       var verifiedUrl = preview.getAttribute('data-thumb-url');
       if (isVerificationStage) __uvdPromoteVerifiedMedia(verifiedUrl, media);
       __uvdSaveHistoryMetadata(verifiedUrl, media, card);
@@ -6805,6 +6853,15 @@ function renderStreams(container, arr) {
   container.appendChild(listWrap);
   var rendered = 0;
   var moreBtn = null;
+  var endNote = null;
+  function showEndNote() {
+    if (endNote) endNote.remove();
+    endNote = document.createElement('div');
+    endNote.className = 'uvd-stream-end';
+    var animal = typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹';
+    endNote.innerHTML = '<span class="uvd-stream-end-animal">' + animal + '</span><div><strong>Hết nội dung rồi nè ♡</strong><span>Mèo đã gom hết link trong phiên này cho cưng rồi.</span></div>';
+    container.appendChild(endNote);
+  }
 
   function renderNextBatch() {
     var end = Math.min(rendered + UVD_LAZY_BATCH, arr.length);
@@ -6828,6 +6885,8 @@ function renderStreams(container, arr) {
       moreBtn.textContent = 'Xem thêm (' + (arr.length - rendered) + ')';
       moreBtn.onclick = function() { renderNextBatch(); };
       container.appendChild(moreBtn);
+    } else {
+      showEndNote();
     }
   }
   renderNextBatch();

@@ -853,3 +853,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - Tắt backdrop-filter/glass stack cũ trong Settings, sheet/card/details dùng nền pastel solid + shadow nhẹ.
 - Giảm padding/margin trên mobile, bo sheet/hero mềm hơn, nhóm settings/danh sách hướng dẫn gọn hơn.
 - Đợt 3 sẽ cleanup Player CSS legacy sau khi kiểm tra lại main/settings.
+
+### Patch #54 — CSS Cleanup đợt 3: Player skin sạch, giữ bo góc + bóng — 2026-08-04
+
+- Scope: `uvd-player-clean`, không đụng Main UI/Settings/Popup.
+- Player sheet thống nhất một skin: card bo 32px, video bo 22px, shadow mềm, header/info pastel nhẹ.
+- Tắt backdrop/layer legacy mâu thuẫn trong player, giữ Video.js/native skin và fullscreen bo góc 0 đúng chuẩn.
+- Mobile dùng sheet 90dvh bo 28px, video bo 18px.

@@ -817,3 +817,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **TMDB search:** Render thêm `/tmdb/search?query=` dùng bearer token server-side; key local vẫn là fallback.
 - **An toàn:** không phát/không import link qua KPhim nữa; capture/player core Mèo cào là hướng chính.
 - **Kết quả:** `node --check` OK cho bookmarklet/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`.
+
+### Patch #49 — Popup đào tự bật quét realtime 20 giây — 2026-08-04
+
+- Khi popup đào mở, Mèo cào tự bật monitor realtime, quét DOM nhẹ + Performance resources mỗi 1.1 giây trong cửa sổ đào 20 giây.
+- Không cần bấm Preload riêng để bắt request M3U8/MP4 vừa sinh ra trong lúc đào.
+- Status popup đổi thành **⚡ Đang quét realtime**; khi thấy video/iframe sẽ đổi status như cũ.
+- Timer được dọn khi đóng popup, bay sang popup link/iframe hoặc hết cửa sổ đào.

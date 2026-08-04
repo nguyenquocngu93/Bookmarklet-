@@ -415,6 +415,8 @@ var __uvdDiggingFlow = {
   transitionTimer: null,
   waitTimer: null,
   runTimer: null,
+  realtimeTimer: null,
+  realtimeEndTimer: null,
   removeTimer: null
 };
 // One-shot handoff flag: target popups use it to rise from below immediately
@@ -4725,6 +4727,38 @@ function __uvdSetDiggingReady(kind, subtitle) {
     ? 'Bấm vào để chọn player iframe mèo đã tìm thấy nha ♡'
     : 'Bấm vào để mở danh sách link video mèo vừa đào được nha ♡';
 }
+function __uvdStopDiggingRealtimeCapture() {
+  var flow = __uvdDiggingFlow;
+  if (flow.realtimeTimer) clearInterval(flow.realtimeTimer);
+  if (flow.realtimeEndTimer) clearTimeout(flow.realtimeEndTimer);
+  flow.realtimeTimer = null;
+  flow.realtimeEndTimer = null;
+  if (__uvdLiveCaptureMode) {
+    __uvdLiveCaptureMode = false;
+    if (__uvdLiveUiDirty) { __uvdLiveUiDirty = false; scheduleLiveUiRefresh(); }
+  }
+}
+function __uvdStartDiggingRealtimeCapture() {
+  var flow = __uvdDiggingFlow;
+  __uvdStopDiggingRealtimeCapture();
+  try { __uvdStartHardEmbedBlocker(); installMonitor(); installPopupBlock(); } catch(e) {}
+  __uvdLiveCaptureMode = true;
+  function sweep() {
+    if (!flow.active) { __uvdStopDiggingRealtimeCapture(); return; }
+    try {
+      scan(document, 'dig-realtime', true);
+      performance.getEntriesByType('resource').forEach(function(entry) {
+        if (!entry || !entry.name || isAdUrl(entry.name) || __uvdIsLikelyHlsSegmentUrl(entry.name)) return;
+        if (/\.m3u8(?:[?#]|$)/i.test(entry.name)) __uvdAddDetectedMediaUrl(entry.name, 'M3U8', 'dig-realtime:performance');
+        else findUrls(entry.name, 'dig-realtime:performance');
+      });
+    } catch(e) {}
+  }
+  sweep();
+  flow.realtimeTimer = setInterval(sweep, 1100);
+  flow.realtimeEndTimer = setTimeout(__uvdStopDiggingRealtimeCapture, __uvdDiggingWaitMs + 1500);
+}
+
 function __uvdStartDiggingPopup() {
   var flow = __uvdDiggingFlow;
   if (flow.active || flow.completed || playerState.overlay) return;
@@ -4834,6 +4868,9 @@ function __uvdStartDiggingPopup() {
 
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
+  var initialStatus = overlay.querySelector('#__uvd_dig_status__');
+  if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
+  __uvdStartDiggingRealtimeCapture();
   clearTimeout(flow.waitTimer);
   // At the 20-second mark, do not dismiss this popup. On an iframe-only page
   // it simply changes to an explicit “Vào link” route for the user to choose.
@@ -4908,6 +4945,7 @@ function __uvdFlyDiggingPopupUp(onDone) {
   clearTimeout(flow.transitionTimer);
   clearTimeout(flow.waitTimer);
   clearTimeout(flow.runTimer);
+  __uvdStopDiggingRealtimeCapture();
   clearTimeout(flow.removeTimer);
   flow.transitionTimer = null;
   flow.waitTimer = null;
@@ -4932,6 +4970,7 @@ function __uvdStopDiggingPopup(keepUiHidden) {
   clearTimeout(flow.transitionTimer);
   clearTimeout(flow.waitTimer);
   clearTimeout(flow.runTimer);
+  __uvdStopDiggingRealtimeCapture();
   clearTimeout(flow.removeTimer);
   flow.transitionTimer = null;
   flow.waitTimer = null;

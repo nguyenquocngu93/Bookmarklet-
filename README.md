@@ -797,3 +797,9 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Fix intro:** module KPhim dùng version `4`; bookmarklet xóa module/script cũ trong page rồi tải lại bản mới, tránh cache khiến bỏ qua intro.
 - **Fix giao diện:** CSS KPhim được cô lập bằng selector `#__uvd_kkphim` + `!important` cho sheet, button, category row, hàng phim ngang, card/poster/detail/tập. Sửa lỗi button tối, chữ quá lớn, category xuống dòng và poster/card bị giãn dọc do CSS trang chủ đè.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.
+
+### Patch #46 — Fix CSS KPhim parse error + bump module cache — 2026-08-04
+
+- **Bug:** keyframes `uvdKkHop` thiếu dấu đóng `}`, làm browser nuốt toàn bộ CSS KPhim phía sau; vì vậy host CSS đè thành button đen, category wrap và poster khổng lồ.
+- **Fix:** đóng đúng keyframe và bump KPhim module version lên `5` để xóa module/style cũ trong page, buộc tải skin mới + intro mới.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.

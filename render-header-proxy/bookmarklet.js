@@ -5578,7 +5578,7 @@ var __uvdTabMeta = {
 };
 
 // ========== KKPHIM / PHIMAPI COMPANION ==========
-var __uvdKkphimModuleVersion = '4';
+var __uvdKkphimModuleVersion = '5';
 function __uvdOpenKkphim() {
   window.__uvdKkphimBridge = {
     hideUi: __uvdHideUiForPopup,

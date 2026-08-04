@@ -19,6 +19,7 @@ const MAX_REDIRECTS = Number(process.env.MAX_REDIRECTS || 5);
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const TMDB_BEARER_TOKEN = process.env.TMDB_BEARER_TOKEN || '';
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '512kb' }));
@@ -419,6 +420,23 @@ app.get('/kkphim.js', (_req, res) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   res.sendFile(path.join(__dirname, 'kkphim.js'));
+});
+
+// Optional TMDB metadata bridge. Its bearer token is a Render environment
+// variable, so browser users never receive it. Restrict endpoint to movie/tv
+// metadata identified by a numeric TMDB id.
+app.get('/tmdb/:kind/:id', async (req, res) => {
+  const kind = req.params.kind;
+  const id = req.params.id;
+  if (!['movie', 'tv'].includes(kind) || !/^\d+$/.test(id)) return res.status(400).json({ error: 'TMDB path không hợp lệ' });
+  if (!TMDB_BEARER_TOKEN) return res.status(503).json({ error: 'TMDB chưa được cấu hình trên Render' });
+  try {
+    const tmdbUrl = `https://api.themoviedb.org/3/${kind}/${id}?append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN`;
+    const response = await fetch(tmdbUrl, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}`, accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+    const body = await response.text();
+    if (!response.ok) return res.status(response.status).send(body);
+    res.type('application/json').send(body);
+  } catch (error) { res.status(502).json({ error: 'Không lấy được TMDB: ' + error.message }); }
 });
 
 app.get('/proxy', async (req, res) => {

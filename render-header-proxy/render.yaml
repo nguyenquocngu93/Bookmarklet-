@@ -15,5 +15,7 @@ services:
         sync: false
       - key: MAX_REDIRECTS
         value: "5"
+      - key: TMDB_BEARER_TOKEN
+        sync: false
       - key: PUBLIC_BASE_URL
         value: "https://render-header-proxy.onrender.com"

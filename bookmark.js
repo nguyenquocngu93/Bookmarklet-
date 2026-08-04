@@ -5578,11 +5578,13 @@ var __uvdTabMeta = {
 };
 
 // ========== KKPHIM / PHIMAPI COMPANION ==========
+var __uvdKkphimModuleVersion = '3';
 function __uvdOpenKkphim() {
   window.__uvdKkphimBridge = {
     hideUi: __uvdHideUiForPopup,
     restoreUi: __uvdRestoreUiAfterPopup,
     tmdbKey: function() { return String(data.settings.tmdbApiKey || '').trim(); },
+    tmdbProxyBase: function() { return RENDER_PROXY_BASE.replace(/\/$/, '') + '/tmdb'; },
     openEpisode: function(movie, episode) {
       var mediaUrl = episode && episode.link_m3u8;
       if (!mediaUrl) { toast('KKPhim chưa có link M3U8 cho tập này'); return; }
@@ -5602,12 +5604,13 @@ function __uvdOpenKkphim() {
       }, 80);
     }
   };
-  if (window.__uvdKkphim && typeof window.__uvdKkphim.open === 'function') { window.__uvdKkphim.open(); return; }
+  if (window.__uvdKkphim && window.__uvdKkphim.version === __uvdKkphimModuleVersion && typeof window.__uvdKkphim.open === 'function') { window.__uvdKkphim.open(); return; }
   var old = document.getElementById('__uvd_kkphim_loader__');
-  if (old) { toast('Đang mở góc phim KKPhim...'); return; }
+  if (old) old.remove();
+  try { delete window.__uvdKkphim; } catch(e) { window.__uvdKkphim = null; }
   var script = document.createElement('script');
   script.id = '__uvd_kkphim_loader__';
-  script.src = RENDER_PROXY_BASE.replace(/\/$/, '') + '/kkphim.js?v=' + encodeURIComponent(VERSION + '_' + Date.now());
+  script.src = RENDER_PROXY_BASE.replace(/\/$/, '') + '/kkphim.js?v=' + encodeURIComponent(__uvdKkphimModuleVersion + '_' + Date.now());
   script.onload = function() { if (window.__uvdKkphim && window.__uvdKkphim.open) window.__uvdKkphim.open(); else toast('Không thể mở KKPhim lúc này'); };
   script.onerror = function() { script.remove(); toast('Không tải được góc phim KKPhim'); };
   document.head.appendChild(script);

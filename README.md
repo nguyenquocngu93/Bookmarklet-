@@ -782,3 +782,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Popup đào:** hai nút **Vào UI** và **KPhim** luôn hiện chung một hàng, dù đã có link hay chưa. Nút **Vào link ♡** giữ riêng một hàng và chỉ hiện khi có nguồn.
 - **KPhim intro:** trước danh sách phim hiện màn giới thiệu “KKPhim cùng Mèo cào”, người dùng bấm **Vào KKPhim ✦** mới bắt đầu duyệt/tìm phim.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.
+
+### Patch #44 — KKPhim chuyên nghiệp: trang chủ hàng phim, thể loại, TMDB proxy — 2026-08-04
+
+- **Trang chủ KKPhim:** Phim lẻ / Phim bộ / Phim mới / Phim anime là 4 hàng ngang, mỗi hàng tối đa 10 phim và nút Xem thêm để vào danh sách duyệt phim.
+- **Thể loại:** lấy từ `/the-loai`, bấm được để duyệt phim theo thể loại.
+- **TMDB server-side (tuỳ chọn):** Render route `/tmdb/:kind/:id` đọc `TMDB_BEARER_TOKEN` từ environment; token không xuất hiện trên browser/source. Nếu env chưa cấu hình, module fallback sang TMDB key local trong Cài đặt (nếu có).
+- **KPhim intro:** module versioned để ép tải bản mới, sửa trường hợp popup giới thiệu bị cache module cũ bỏ qua.
+- **Bảo mật:** không đưa bearer token vào repository hoặc tài liệu; đặt token đã rotate vào Render Environment Variables bằng key `TMDB_BEARER_TOKEN`.
+- **Kết quả:** `node --check` OK cho bookmarklet/module/server; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `kkphim.js` = `render-header-proxy/kkphim.js`.

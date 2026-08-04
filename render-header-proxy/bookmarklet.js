@@ -185,7 +185,7 @@ function __uvdMergeHistory(localList, remoteList) {
   (Array.isArray(localList) ? localList : []).forEach(add);
   return Object.keys(byUrl).map(function(key) { return byUrl[key]; })
     .sort(function(a, b) { return (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0); })
-    .slice(0, 50);
+    .slice(0, 100);
 }
 function __uvdPersistLocalOnly() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
@@ -2156,7 +2156,7 @@ function addToHistory(url, type) {
   entry.pageUrl = pageInfo.url;
   entry.timestamp = Date.now();
   data.history.unshift(entry);
-  if (data.history.length > 50) data.history = data.history.slice(0, 50);
+  if (data.history.length > 100) data.history = data.history.slice(0, 100);
   storage.set(data);
 }
 
@@ -4186,7 +4186,7 @@ style.textContent = `
 /* ===== MOBILE COMFORT + HISTORY/SETTINGS POLISH ===== */
 .uvd-dig-status-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:8px}.uvd-dig-status-row span{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.66);border:1px solid rgba(194,150,255,.24);color:#8a6ab0;font-size:9.5px;font-weight:850}
 .uvd-history-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px;padding:4px 2px}.uvd-history-toolbar-title{font-size:15px;font-weight:900;color:#c95073}.uvd-history-filter-row{display:flex;gap:5px;flex-wrap:wrap;width:100%}.uvd-history-filter{padding:5px 9px;border:1px solid rgba(194,150,255,.28);border-radius:999px;background:rgba(255,255,255,.64);color:#8a6ab0;font-size:10px;font-weight:800;cursor:pointer}.uvd-history-filter-active{background:linear-gradient(135deg,#ff9fb4,#b385f2);border-color:transparent;color:#fff}.uvd-history-sync-chip{margin-left:auto;padding:4px 8px;border-radius:999px;background:rgba(194,150,255,.12);color:#8a6ab0;font-size:9px;font-weight:800}.uvd-history-title-row{display:flex;align-items:center;gap:6px}.uvd-history-title-row strong{flex:1;min-width:0}.uvd-history-star{width:28px;height:28px;border:1px solid rgba(255,159,180,.28);border-radius:10px;background:#fff;color:#d85c7a;font-size:16px;line-height:1;cursor:pointer}.uvd-history-star-on{background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff}.uvd-history-clear{width:100%;margin-top:10px!important;background:rgba(255,93,114,.14)!important;color:#d85c7a!important}.uvd-settings-group-title{display:flex;align-items:center;gap:8px;margin:18px 2px 8px;color:#a05f86;font-size:12px;font-weight:900;letter-spacing:.04em}.uvd-settings-group-title::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,rgba(255,159,180,.34),transparent)}.uvd-settings-tutorial-card{display:flex;align-items:center;gap:10px;padding:12px!important;background:linear-gradient(135deg,rgba(255,239,247,.92),rgba(244,235,255,.9))!important}.uvd-settings-tutorial-card .uvd-settings-tutorial-mascot{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-settings-tutorial-card .uvd-settings-tutorial-mascot svg{width:100%;height:100%}.uvd-settings-tutorial-card .uvd-btn{margin-left:auto;white-space:nowrap}
-@keyframes uvdTutorialSlideRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}@keyframes uvdTutorialSlideLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}.uvd-tutorial-slide-next{animation:uvdTutorialSlideRight .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-slide-prev{animation:uvdTutorialSlideLeft .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-mute{margin-top:7px;border:0;background:transparent;color:#a47ca8;font-size:10px;font-weight:750;text-decoration:underline;cursor:pointer}.uvd-resume-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(28,14,40,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:uvdFadeIn .24s ease both}.uvd-resume-card{width:min(100%,360px);padding:22px 20px 18px;border-radius:30px;text-align:center;background:linear-gradient(155deg,#fff8fc,#fff0f7 58%,#f4ebff);border:1px solid rgba(255,255,255,.9);box-shadow:0 24px 60px rgba(108,46,92,.35),0 0 0 6px rgba(255,255,255,.24) inset;animation:uvdScaleIn .3s cubic-bezier(.22,1,.36,1) both}.uvd-resume-mascot{width:70px;height:70px;margin:0 auto 2px;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-resume-mascot svg{width:100%;height:100%;display:block}.uvd-resume-kicker{font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#b68bea}.uvd-resume-title{margin-top:5px;color:#d85c7a;font-size:21px;font-weight:900}.uvd-resume-copy{margin-top:7px;color:#805e83;font-size:12.5px;line-height:1.55}.uvd-resume-copy b{color:#9a6ce0}.uvd-resume-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin-top:16px}.uvd-resume-actions button{padding:11px 8px;border-radius:14px;border:1px solid rgba(194,150,255,.28);background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}.uvd-resume-actions #__uvd_resume_continue__{border:0;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;box-shadow:0 6px 14px rgba(247,108,140,.25)}
+@keyframes uvdTutorialSlideRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}@keyframes uvdTutorialSlideLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}.uvd-tutorial-slide-next{animation:uvdTutorialSlideRight .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-slide-prev{animation:uvdTutorialSlideLeft .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-mute{margin-top:7px;border:0;background:transparent;color:#a47ca8;font-size:10px;font-weight:750;text-decoration:underline;cursor:pointer}.uvd-resume-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(28,14,40,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:uvdFadeIn .24s ease both}.uvd-resume-card{width:min(100%,360px);padding:22px 20px 18px;border-radius:30px;text-align:center;background:linear-gradient(155deg,#fff8fc,#fff0f7 58%,#f4ebff);border:1px solid rgba(255,255,255,.9);box-shadow:0 24px 60px rgba(108,46,92,.35),0 0 0 6px rgba(255,255,255,.24) inset;animation:uvdScaleIn .3s cubic-bezier(.22,1,.36,1) both}.uvd-resume-mascot{width:70px;height:70px;margin:0 auto 2px;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-resume-mascot svg{width:100%;height:100%;display:block}.uvd-resume-kicker{font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#b68bea}.uvd-resume-title{margin-top:5px;color:#d85c7a;font-size:21px;font-weight:900}.uvd-resume-copy{margin-top:7px;color:#805e83;font-size:12.5px;line-height:1.55}.uvd-resume-copy b{color:#9a6ce0}.uvd-resume-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin-top:16px}.uvd-resume-actions button{padding:11px 8px;border-radius:14px;border:1px solid rgba(194,150,255,.28);background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}.uvd-resume-actions #__uvd_resume_continue__{border:0;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;box-shadow:0 6px 14px rgba(247,108,140,.25)}.uvd-history-pager{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;color:#8a6ab0;font-size:10px;font-weight:850}.uvd-history-pager button{width:30px;height:28px;border:1px solid rgba(194,150,255,.28);border-radius:9px;background:#fff;color:#8a6ab0;font-size:15px;font-weight:900;cursor:pointer}.uvd-history-pager button:disabled{opacity:.35;cursor:default}.uvd-card-preview.uvd-thumb-real-preview{height:220px!important;box-shadow:0 10px 22px rgba(247,108,140,.18),0 0 0 2px rgba(255,255,255,.58) inset!important}.uvd-card-preview.uvd-thumb-real-preview.uvd-thumb-portrait{height:285px!important}@media (max-width:560px){.uvd-card-preview.uvd-thumb-real-preview{height:178px!important}.uvd-card-preview.uvd-thumb-real-preview.uvd-thumb-portrait{height:235px!important}}
 @media (max-width:560px){.uvd-app-shell{padding:10px!important}.uvd-app-shell>.uvd-panel-content{gap:7px}.uvd-app-shell #__uvd_header__{padding:8px 10px!important;gap:8px!important;border-radius:22px!important}.uvd-brand{gap:6px!important}.uvd-brand-mark,.uvd-brand-mark.uvd-brand-mark-hero{width:62px!important;height:62px!important;flex:0 0 62px!important;transform:none!important}.uvd-brand-name{font-size:17px!important;white-space:nowrap}.uvd-brand-version{font-size:10px!important;white-space:nowrap;margin-top:2px!important}.uvd-header-actions{width:94px!important;min-width:94px!important;max-width:94px!important;flex-basis:94px!important;grid-template-columns:repeat(3,29px)!important;grid-auto-rows:29px!important;gap:3px!important}.uvd-header-actions .uvd-btn-icon{width:29px!important;height:29px!important;font-size:12px!important}.uvd-context-bar{padding:10px!important;border-radius:18px!important}.uvd-context-title{font-size:13px!important}.uvd-context-meta{gap:4px!important;margin-top:7px!important}.uvd-meta-chip{padding:5px 7px!important;font-size:9px!important;max-width:49%!important}.uvd-tabbar{padding:6px!important;gap:3px!important;border-radius:22px!important}.uvd-tab{min-width:0!important;padding:6px 4px 7px!important;gap:2px!important}.uvd-tab-mascot{width:30px!important;height:30px!important}.uvd-tab-text{font-size:9px!important}.uvd-bubble{padding:10px!important;border-radius:22px!important}.uvd-bubble-title{margin-bottom:6px!important}.uvd-bubble-tmascot{width:36px!important;height:36px!important;flex-basis:36px!important}.uvd-bubble-tname{font-size:15px!important}.uvd-app-shell #__uvd_stream_list__{padding:8px!important}.uvd-card{padding:10px!important}.uvd-card-preview{height:122px!important;margin-bottom:9px!important}.uvd-card-preview.uvd-thumb-portrait{height:175px!important}.uvd-history-thumb{flex-basis:82px!important;height:62px!important}.uvd-history-actions .uvd-btn{padding:5px 7px!important;font-size:9px!important}.uvd-profile-footer{font-size:9px!important}.uvd-digging-box{min-height:0!important;padding:22px 18px 18px!important}.uvd-dig-art{transform:scale(.86)!important;margin:-18px auto -28px!important}.uvd-tutorial-mascot-stage{height:180px!important}.uvd-tutorial-mascot-art{width:150px!important;height:158px!important}}
 @media (max-height:740px) and (max-width:560px){.uvd-brand-sub{display:none!important}.uvd-card-preview{height:110px!important}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer{padding-top:7px!important}.uvd-context-kicker{display:none}.uvd-dig-fact-wrap{display:none!important}}
 `;
@@ -6190,6 +6190,8 @@ function hydrateVideoThumbnails(root) {
     preview.__thumbVideo = media;
     if (reusedBlobThumb) {
       preview.dataset.thumbState = 'ready';
+      preview.classList.add('uvd-thumb-real-preview');
+      if (card) card.classList.add('uvd-card-has-real-preview');
       __uvdUpdateCardFromMedia(card, media);
       __uvdSetCardStatus(card, 'BLOB READY', 'uvd-status-ok');
       return;
@@ -6203,6 +6205,8 @@ function hydrateVideoThumbnails(root) {
     function showFrame() {
       if (preview.dataset.thumbState === 'demo') return;
       preview.dataset.thumbState = 'ready';
+      preview.classList.add('uvd-thumb-real-preview');
+      if (card) card.classList.add('uvd-card-has-real-preview');
       __uvdUpdateCardFromMedia(card, media);
       __uvdSaveHistoryMetadata(preview.getAttribute('data-thumb-url'), media, card);
       var status = card && card.querySelector('.uvd-card-status');
@@ -6675,6 +6679,8 @@ function renderHistory(container) {
   container.innerHTML = '';
   var allEntries = (data.history || []).slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
   var filter = 'all';
+  var page = 0;
+  var pageSize = 10;
   var controls = document.createElement('div');
   controls.className = 'uvd-history-toolbar';
   controls.innerHTML = '<div class="uvd-history-toolbar-title">🕘 Lịch sử xem</div><div class="uvd-history-filter-row">' +
@@ -6707,7 +6713,9 @@ function renderHistory(container) {
       wrap.innerHTML = '<div class="uvd-empty-state uvd-history-empty"><strong>Chưa có mục ở nhóm này</strong><span>Bấm Xem hoặc Mở nguồn để lưu lại nè ♡</span></div>';
       return;
     }
-    entries.slice(0, 30).forEach(function(item) {
+    var totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+    page = Math.max(0, Math.min(page, totalPages - 1));
+    entries.slice(page * pageSize, (page + 1) * pageSize).forEach(function(item) {
       var card = document.createElement('article');
       card.className = 'uvd-history-card uvd-cute';
       var type = item.type || 'MEDIA';
@@ -6727,9 +6735,17 @@ function renderHistory(container) {
       card.querySelector('.uvd-history-star').onclick = function() { toast(__uvdToggleFavorite(item.url) ? 'Đã ghim vào yêu thích ♡' : 'Đã bỏ ghim'); draw(); };
       wrap.appendChild(card);
     });
+    if (totalPages > 1) {
+      var pager = document.createElement('div');
+      pager.className = 'uvd-history-pager';
+      pager.innerHTML = '<button type="button" class="uvd-history-page-prev"' + (page === 0 ? ' disabled' : '') + '>←</button><span>Trang ' + (page + 1) + ' / ' + totalPages + '</span><button type="button" class="uvd-history-page-next"' + (page >= totalPages - 1 ? ' disabled' : '') + '>→</button>';
+      pager.querySelector('.uvd-history-page-prev').onclick = function() { if (page > 0) { page--; draw(); } };
+      pager.querySelector('.uvd-history-page-next').onclick = function() { if (page < totalPages - 1) { page++; draw(); } };
+      wrap.appendChild(pager);
+    }
   }
   controls.querySelectorAll('[data-history-filter]').forEach(function(btn) {
-    btn.onclick = function() { filter = this.dataset.historyFilter; controls.querySelectorAll('[data-history-filter]').forEach(function(b) { b.classList.toggle('uvd-history-filter-active', b === btn); }); draw(); };
+    btn.onclick = function() { filter = this.dataset.historyFilter; page = 0; controls.querySelectorAll('[data-history-filter]').forEach(function(b) { b.classList.toggle('uvd-history-filter-active', b === btn); }); draw(); };
   });
   clear.onclick = function() { if (confirm('Xóa toàn bộ lịch sử xem?')) { data.history = []; storage.set(data); allEntries = []; draw(); } };
   draw();

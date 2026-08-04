@@ -754,3 +754,10 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Vào UI:** sau khi đóng popup đào, ép panel chính hiển thị lại/khi cần tự rebuild để xử lý lỗi bấm mà UI không mở.
 - **Mobile/history/tutorial/settings:** hoàn thiện compact layout, status đào link, History có filter/ghim/thời gian tương đối, tutorial replay/mute và nhóm Cài đặt.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #40 — Lịch sử 100 mục + phân trang + preview thật tự giãn — 2026-08-04
+
+- **Lịch sử:** tăng giới hạn local/cloud từ 50 lên 100 mục; hiển thị 10 mục/trang với nút qua lại.
+- **Lưu trữ:** localStorage theo key bookmarklet; nếu có Sync Profile ID thì 100 mục cũng được gộp/đồng bộ vào payload Supabase.
+- **Preview:** card chỉ nhận class preview thật khi lấy được frame video; khi đó tự giãn thumbnail lớn hơn. Không có frame/preview vẫn giữ kích thước gọn hiện tại.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

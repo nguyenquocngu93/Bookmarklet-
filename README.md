@@ -838,3 +838,11 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - **Bây giờ:** sau ~1.8 giây, iframe PLAYER/score cao được hiện route **Vào link** ngay; iframe UNKNOWN có thêm ~3.5 giây lấy evidence rồi cũng hiện route nếu còn hợp lệ.
 - **Không thêm popup mới:** bấm Vào link vẫn chuyển vào popup iframe hiện có.
 - **An toàn:** iframe rác vẫn không được promote; realtime video link tìm thấy sau đó luôn ghi đè ưu tiên iframe.
+
+### Patch #52 — CSS Cleanup đợt 1: Main UI nhẹ hơn — 2026-08-04
+
+- Scope: chỉ `uvd-main-clean` (header/session/tab/body/footer), không đụng popup, player hoặc Settings.
+- Tắt backdrop-filter/liquid background cũ ở Main UI, giảm shadow/card lồng nhau, chuẩn hoá gap 8px và dùng một lớp visual pastel sạch.
+- Card Streams/body giữ cute nhưng shadow nhẹ hơn; mobile override gọn hơn.
+- Đợt sau sẽ cleanup Settings rồi Player CSS legacy.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

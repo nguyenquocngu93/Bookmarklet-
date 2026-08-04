@@ -204,6 +204,12 @@ function rewritePlaylist(text, playlistUrl, req, referer) {
 function validProfileId(id) {
   return /^[A-Za-z0-9_-]{8,80}$/.test(id || '');
 }
+function withoutHistory(payload) {
+  const safe = payload && typeof payload === 'object' ? { ...payload } : {};
+  delete safe.history;
+  delete safe.playbackPositions;
+  return safe;
+}
 
 async function syncRequest(method, profileId, body) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -239,7 +245,9 @@ app.get('/sync/:profileId', async (req, res) => {
   if (!validProfileId(profileId)) return res.status(400).json({ error: 'Profile ID không hợp lệ' });
   try {
     const rows = await syncRequest('GET', profileId);
-    res.json(rows && rows[0] ? rows[0] : { profile_id: profileId, payload: {}, updated_at: null });
+    const record = rows && rows[0] ? rows[0] : { profile_id: profileId, payload: {}, updated_at: null };
+    record.payload = withoutHistory(record.payload);
+    res.json(record);
   } catch (error) {
     res.status(error.status || 502).json({ error: error.message });
   }
@@ -252,7 +260,7 @@ app.put('/sync/:profileId', async (req, res) => {
   try {
     const rows = await syncRequest('PUT', profileId, {
       profile_id: profileId,
-      payload: req.body,
+      payload: withoutHistory(req.body),
       updated_at: new Date().toISOString()
     });
     res.json(rows && rows[0] ? rows[0] : { ok: true });
@@ -269,6 +277,102 @@ app.delete('/sync/:profileId', async (req, res) => {
     res.json({ ok: true });
   } catch (error) {
     res.status(error.status || 502).json({ error: error.message });
+  }
+});
+
+
+// ========== ANONYMOUS COMMUNITY LEARNING ==========
+// This store deliberately never receives browsing history, page titles, media
+// URLs, cookies or profile IDs. It contains only aggregate votes keyed by a
+// normalized hostname (or public TMDB id) and safe, host-only ad block rules.
+const LEARNING_MIN_BLOCK_VOTES = Math.max(1, Number(process.env.LEARNING_MIN_BLOCK_VOTES || 3));
+const LEARNING_MAX_RULES = Math.max(20, Math.min(500, Number(process.env.LEARNING_MAX_RULES || 200)));
+const LEARNING_RATE_LIMIT = Math.max(5, Number(process.env.LEARNING_RATE_LIMIT || 40));
+const learningRateBuckets = new Map();
+
+function learningHeaders() {
+  return {
+    apikey: SUPABASE_SERVICE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation'
+  };
+}
+
+function validLearningHost(subject) {
+  const host = String(subject || '').trim().toLowerCase().replace(/^www\./, '');
+  if (!host || host.length > 253 || !host.includes('.')) return '';
+  if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host)) return '';
+  return host;
+}
+
+function normalizeLearningSubject(kind, subject) {
+  if (kind === 'tmdb') return /^(?:movie|tv):\d{1,12}$/.test(String(subject || '')) ? String(subject) : '';
+  return validLearningHost(subject);
+}
+
+function allowLearningWrite(req) {
+  const key = String(req.ip || req.get('x-forwarded-for') || 'unknown').slice(0, 128);
+  const now = Date.now();
+  const bucket = learningRateBuckets.get(key) || { startedAt: now, count: 0 };
+  if (now - bucket.startedAt > 60 * 60 * 1000) { bucket.startedAt = now; bucket.count = 0; }
+  bucket.count += 1;
+  learningRateBuckets.set(key, bucket);
+  return bucket.count <= LEARNING_RATE_LIMIT;
+}
+
+async function submitLearningVote(kind, subject, vote) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    const error = new Error('Kho học cộng đồng chưa được cấu hình');
+    error.status = 503;
+    throw error;
+  }
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/umpdl_apply_learning_vote`, {
+    method: 'POST', headers: learningHeaders(),
+    body: JSON.stringify({ p_kind: kind, p_subject: subject, p_vote: vote })
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    const error = new Error(`Supabase learning ${response.status}: ${text.slice(0, 300)}`);
+    error.status = 502;
+    throw error;
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+app.post('/learning/vote', async (req, res) => {
+  const body = req.body || {};
+  const kind = String(body.kind || '').toLowerCase();
+  const vote = String(body.vote || '').toLowerCase();
+  const subject = normalizeLearningSubject(kind, body.subject);
+  if (!['video', 'iframe', 'ad', 'tmdb'].includes(kind) || !['up', 'down'].includes(vote) || !subject) {
+    return res.status(400).json({ error: 'Vote học cộng đồng không hợp lệ' });
+  }
+  if (!allowLearningWrite(req)) return res.status(429).json({ error: 'Đã giới hạn vote tạm thời, thử lại sau nha' });
+  try {
+    const rows = await submitLearningVote(kind, subject, vote);
+    res.json({ ok: true, aggregate: Array.isArray(rows) ? rows[0] || null : rows || null });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message });
+  }
+});
+
+app.get('/learning/rules', async (_req, res) => {
+  // Only vetted aggregate ad hosts are returned. No user history or URLs are
+  // ever read from this endpoint, and no remote JavaScript is executed.
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return res.json({ configured: false, blockHosts: [] });
+  try {
+    const endpoint = `${SUPABASE_URL}/rest/v1/umpdl_learning?kind=eq.ad&down_votes=gte.${encodeURIComponent(LEARNING_MIN_BLOCK_VOTES)}&select=subject,up_votes,down_votes&order=down_votes.desc&limit=${LEARNING_MAX_RULES}`;
+    const response = await fetch(endpoint, { headers: learningHeaders() });
+    const text = await response.text();
+    if (!response.ok) throw new Error(`Supabase learning ${response.status}: ${text.slice(0, 300)}`);
+    const rows = text ? JSON.parse(text) : [];
+    const blockHosts = (Array.isArray(rows) ? rows : [])
+      .filter((row) => validLearningHost(row.subject) && Number(row.down_votes || 0) > Number(row.up_votes || 0))
+      .map((row) => validLearningHost(row.subject));
+    res.json({ configured: true, blockHosts, minVotes: LEARNING_MIN_BLOCK_VOTES });
+  } catch (error) {
+    res.status(502).json({ error: error.message, blockHosts: [] });
   }
 });
 

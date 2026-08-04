@@ -41,6 +41,15 @@ https://YOUR-APP.onrender.com/hls?key=YOUR_KEY&url=https%3A%2F%2Fcdn.example.com
 
 The `/hls` route rewrites relative playlist, segment and `EXT-X-KEY` URLs back through `/proxy`, so the headers are applied to segments too.
 
+## Anonymous community learning (votes + ad rules)
+
+Run the complete `sync.sql` once in **Supabase SQL Editor**. It creates a separate aggregate table, `umpdl_learning`, and these Render routes:
+
+- `POST /learning/vote` — accepts only an up/down vote for a normalized hostname or a public TMDB ID.
+- `GET /learning/rules` — returns only aggregated ad-host rules after the configured vote threshold.
+
+It **never stores watch history, page title, page URL, media URL path/query, cookies, profile ID, or executable JavaScript**. The bookmarklet sends only hostnames/IDs; downloaded ad improvements are host rules, not remotely executed functions. Set `LEARNING_MIN_BLOCK_VOTES=3` (or your preferred threshold) and keep `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` only in Render.
+
 ## Security notes
 
 - Keep `PROXY_KEY` private; query-string keys are visible in browser history and URLs.

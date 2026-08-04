@@ -17,5 +17,15 @@ services:
         value: "5"
       - key: TMDB_BEARER_TOKEN
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: LEARNING_MIN_BLOCK_VOTES
+        value: "3"
+      - key: LEARNING_MAX_RULES
+        value: "200"
+      - key: LEARNING_RATE_LIMIT
+        value: "40"
       - key: PUBLIC_BASE_URL
         value: "https://render-header-proxy.onrender.com"

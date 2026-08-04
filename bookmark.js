@@ -201,7 +201,8 @@ function __uvdSyncPayload() {
     settings: settings,
     siteProfiles: data.siteProfiles,
     filterlist: data.filterlist,
-    history: __uvdMergeHistory(data.history, []),
+    // Privacy: watch history never leaves this device. Anonymous votes/ad
+    // rules use the separate aggregate /learning store instead.
     favorites: data.favorites,
     userVotes: data.userVotes,
     tmdbVotes: data.tmdbVotes,
@@ -217,18 +218,9 @@ function __uvdSyncUploadMerged() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
     }).then(function(r) { return r.ok; });
   }
-  // Read first, merge histories, then write the combined payload. This makes
-  // concurrent device usage additive rather than last-write-wins for history.
-  return fetch(syncUrl, { cache: 'no-store' })
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(remote) {
-      if (remote && remote.payload && Array.isArray(remote.payload.history)) {
-        data.history = __uvdMergeHistory(data.history, remote.payload.history);
-        __uvdPersistLocalOnly();
-      }
-      return upload();
-    })
-    .catch(function() { return upload().catch(function() { return false; }); });
+  // History is intentionally device-local. The profile only carries settings,
+  // safe site preferences and learning votes; upload directly with no history read.
+  return upload().catch(function() { return false; });
 }
 function __uvdSyncSchedule() {
   if (!data || !data.settings || !data.settings.syncProfileId) return;
@@ -250,7 +242,6 @@ function __uvdSyncLoad() {
       if (payload.settings) data.settings = Object.assign({}, data.settings, payload.settings, { syncProfileId: data.settings.syncProfileId });
       if (payload.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, payload.siteProfiles);
       if (Array.isArray(payload.filterlist)) data.filterlist = payload.filterlist.slice();
-      if (Array.isArray(payload.history)) data.history = __uvdMergeHistory(data.history, payload.history);
       if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
       if (payload.userVotes) data.userVotes = Object.assign({}, data.userVotes, payload.userVotes);
       if (payload.tmdbVotes) data.tmdbVotes = Object.assign({}, data.tmdbVotes, payload.tmdbVotes);
@@ -381,12 +372,58 @@ var DEFAULT_AD_MARKERS = [
   'doubleclick.net', 'googlesyndication.com', 'adservice.google.com',
   'adsterra', 'trafficjunky', 'exoclick', 'onclickads', 'redirect-ad'
 ];
+// ========== ANONYMOUS COMMUNITY LEARNING ==========
+// Only normalized hostnames (or public TMDB ids) leave the browser. Never send
+// watch history, page/title, media URL path/query, cookies or profile ID.
+var __uvdSharedAdHosts = [];
+var __uvdSharedAdRulesLoaded = false;
+function __uvdLearningHost(value) {
+  var raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  raw = raw.replace(/^\|\|/, '').replace(/\^.*$/, '').replace(/^\*\./, '').replace(/^www\./, '');
+  try { if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = new URL(raw).hostname.toLowerCase().replace(/^www\./, ''); } catch(e) { return ''; }
+  if (!raw || raw.length > 253 || !raw.includes('.') || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(raw)) return '';
+  return raw;
+}
+function __uvdIsSharedAdHost(url) {
+  var host = __uvdLearningHost(url);
+  return !!host && __uvdSharedAdHosts.some(function(rule) { return host === rule || host.endsWith('.' + rule); });
+}
+function __uvdSubmitCommunityVote(kind, subject, vote) {
+  if (!['video','iframe','ad','tmdb'].includes(kind) || !['up','down'].includes(vote)) return;
+  if (kind === 'tmdb') {
+    if (!/^(?:movie|tv):\d{1,12}$/.test(String(subject || ''))) return;
+  } else {
+    subject = __uvdLearningHost(subject);
+    if (!subject) return;
+  }
+  try {
+    fetch(RENDER_PROXY_BASE.replace(/\/$/, '') + '/learning/vote', {
+      method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: kind, subject: subject, vote: vote })
+    }).catch(function() {});
+  } catch(e) {}
+}
+function __uvdLoadSharedAdRules() {
+  if (__uvdSharedAdRulesLoaded) return;
+  __uvdSharedAdRulesLoaded = true;
+  try {
+    fetch(RENDER_PROXY_BASE.replace(/\/$/, '') + '/learning/rules', { cache: 'no-store' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(payload) {
+        var hosts = payload && Array.isArray(payload.blockHosts) ? payload.blockHosts : [];
+        __uvdSharedAdHosts = hosts.map(__uvdLearningHost).filter(Boolean).filter(function(host, index, list) { return list.indexOf(host) === index; }).slice(0, 200);
+      }).catch(function() {});
+  } catch(e) {}
+}
+
 function isAdUrl(url) {
   var lowerUrl = String(url || '').toLowerCase();
   for (var ex = 0; ex < compiledExceptions.length; ex++) {
     var allow = compiledExceptions[ex];
     if (allow.type === 'regex' ? allow.re.test(url) : lowerUrl.indexOf(allow.value) !== -1) return false;
   }
+  if (__uvdIsSharedAdHost(url)) return true;
   for (var d = 0; d < DEFAULT_AD_MARKERS.length; d++) {
     if (lowerUrl.indexOf(DEFAULT_AD_MARKERS[d]) !== -1) return true;
   }
@@ -705,7 +742,7 @@ function __uvdVote(url) {
   var rec = data.userVotes['d:' + host];
   return rec ? { up: rec.up || 0, down: rec.down || 0 } : { up: 0, down: 0 };
 }
-function __uvdCastVote(url, kind) {
+function __uvdCastVote(url, kind, context) {
   var host = __uvdVoteDomainKey(url);
   if (!host) return;
   var key = 'd:' + host;
@@ -723,6 +760,8 @@ function __uvdCastVote(url, kind) {
   }
   data.learnedVideos = data.learnedVideos || {};
   storage.set(data);
+  var localItem = urls.get(url);
+  __uvdSubmitCommunityVote(context || (localItem && localItem.type === 'IFRAME' ? 'iframe' : 'video'), host, kind);
 }
 // Shared feedback copy. Votes are stored locally/synced with the user's
 // profile and feed the existing host/iframe learning signals.
@@ -746,8 +785,8 @@ function __uvdCreateDetectionVoteControls(url, context) {
     up.textContent = labels.up + ' (' + (tally.up || 0) + ')';
     down.textContent = labels.down + ' (' + (tally.down || 0) + ')';
   }
-  up.onclick = function(e) { e.stopPropagation(); __uvdCastVote(url, 'up'); refresh(); toast('Cảm ơn cưng đã xác nhận ' + labels.subject + ' ♡'); };
-  down.onclick = function(e) { e.stopPropagation(); __uvdCastVote(url, 'down'); refresh(); toast('Đã ghi nhận ' + labels.subject + ' chưa đúng — Mèo sẽ né dần nha.'); };
+  up.onclick = function(e) { e.stopPropagation(); __uvdCastVote(url, 'up', context); refresh(); toast('Cảm ơn cưng đã xác nhận ' + labels.subject + ' ♡'); };
+  down.onclick = function(e) { e.stopPropagation(); __uvdCastVote(url, 'down', context); refresh(); toast('Đã ghi nhận ' + labels.subject + ' chưa đúng — Mèo sẽ né dần nha.'); };
   wrap.appendChild(up); wrap.appendChild(down); refresh();
   return wrap;
 }
@@ -2391,6 +2430,7 @@ function addToFilterlist(pattern) {
     data.filterlist.push(pattern);
     storage.set(data);
     compileAdFilters();
+    __uvdSubmitCommunityVote('ad', pattern, 'down');
     toast('Đã thêm "' + pattern + '" vào filter');
     debouncedBuildUI();
   } else {
@@ -2596,6 +2636,7 @@ function __uvdCastTmdbVote(sourceTitle, movie, kind) {
   else if (kind === 'down') rec.down = (rec.down || 0) + 1;
   rec.updatedAt = Date.now();
   storage.set(data);
+  __uvdSubmitCommunityVote('tmdb', __uvdTmdbKindOf(movie) + ':' + movie.id, kind);
   return rec;
 }
 function __uvdFindTmdbMovie(title) {
@@ -4586,6 +4627,9 @@ style.textContent = `
 /* ===== COMMUNITY FEEDBACK — video, iframe and TMDB recognition ===== */
 .uvd-feedback-note{margin:8px 0 5px;padding:7px 9px;border:1px solid rgba(194,150,255,.23);border-radius:11px;background:rgba(255,255,255,.62);color:#8a6ab0;font-size:10px;font-weight:700;line-height:1.4;text-align:left}.uvd-popup-feedback{margin:0 0 10px}.uvd-feedback-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.uvd-feedback-vote{appearance:none;padding:5px 7px;border:1px solid transparent;border-radius:999px;background:#fff;color:#8a6ab0;font:800 9px/1.15 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .14s ease,filter .14s ease}.uvd-feedback-vote:active{transform:scale(.94)}.uvd-feedback-vote:hover{filter:brightness(.98)}.uvd-feedback-vote-up{border-color:rgba(247,108,140,.27);background:rgba(255,225,237,.76);color:#c95073}.uvd-feedback-vote-down{border-color:rgba(194,150,255,.28);background:rgba(242,233,255,.82);color:#7d5ca5}.uvd-plplain-body .uvd-feedback-actions{margin:7px 0 1px}.uvd-iframe-cute-row .uvd-feedback-actions{margin:7px 0 0}.uvd-player-tmdb-copy .uvd-tmdb-feedback{margin:7px 0 5px;padding:6px 7px;font-size:9px}.uvd-player-tmdb-copy .uvd-tmdb-feedback-actions{margin-top:4px}
 .uvd-stream-end{display:flex;align-items:center;justify-content:center;gap:9px;margin:14px 3px 5px;padding:11px 14px;border:1px dashed rgba(194,150,255,.34);border-radius:18px;background:linear-gradient(135deg,rgba(255,248,252,.82),rgba(246,238,255,.82));color:#8a6ab0;text-align:left}.uvd-stream-end-animal{display:flex;flex:0 0 42px;width:42px;height:42px;align-items:center;justify-content:center;filter:drop-shadow(0 4px 7px rgba(247,108,140,.18));animation:uvdMascotHop 2s ease-in-out infinite}.uvd-stream-end-animal svg{width:100%;height:100%;display:block}.uvd-stream-end strong{display:block;color:#c95073;font-size:11px;font-weight:900}.uvd-stream-end span:not(.uvd-stream-end-animal){display:block;margin-top:2px;font-size:9.5px;font-weight:700;line-height:1.35}
+/* ===== POPUP SCROLL SAFETY =====
+   Short phones must be able to reach both the close button and the final action. */
+#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_resume_prompt__,#__uvd_tutorial__,#__uvd_farewell_popup__,.uvd-digging-overlay{overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;align-items:flex-start!important}#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div,#__uvd_farewell_popup__>.uvd-digging-box,.uvd-digging-overlay>.uvd-digging-box{flex:0 0 auto!important;max-height:calc(100dvh - 24px)!important;margin:auto!important;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-digging-overlay>.uvd-digging-box,.uvd-farewell-box{min-height:0!important}@media (max-width:560px){#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_resume_prompt__,#__uvd_tutorial__,#__uvd_farewell_popup__,.uvd-digging-overlay{padding:10px!important}#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div,#__uvd_farewell_popup__>.uvd-digging-box,.uvd-digging-overlay>.uvd-digging-box{max-height:calc(100dvh - 20px)!important}}
 
 
 `;
@@ -7753,6 +7797,7 @@ function __uvdStartUserscriptUi() {
   if (__uvdUserscriptMode) setTimeout(function() { __uvdSetHidden(true); }, 0);
 }
 try {
+  __uvdLoadSharedAdRules();
   if (!__uvdUserscriptFrameMode) {
     if (!__uvdUserscriptMode || __uvdUserscriptPageHasTarget()) {
       __uvdStartUserscriptUi();

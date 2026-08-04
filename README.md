@@ -729,3 +729,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Thêm spotlight radial và tia đèn quét nhẹ phía sau mỗi mascot tutorial.
   - Nút **Vào UI** thu nhỏ, nằm song song bên phải nút **Vào link ♡** khi đã có link.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #37 — Hoàn thiện trải nghiệm mobile, đào link, History, tutorial và Settings — 2026-08-04
+
+- **Mobile:** header/session/tab/card được nén lại theo màn hình hẹp, giảm chiều cao thumbnail và chữ version không còn xuống hàng lộn xộn.
+- **Popup đào:** thêm chip trạng thái quét nguồn + số link/player tìm được.
+- **History:** thêm lọc Tất cả/Video/Iframe/Đã ghim, nút ghim, thời gian tương đối và trạng thái sync.
+- **Tutorial:** slide chuyển ngang, nút “Đừng tự nhắc tutorial nữa”, nút xem lại trong Cài đặt.
+- **Settings:** chia thành nhóm Cơ bản / Đào link nâng cao / Đồng bộ & lịch sử / Bảo vệ & lọc rác / Hướng dẫn nhanh.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

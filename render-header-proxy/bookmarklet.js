@@ -129,7 +129,8 @@ data.settings = Object.assign({
   subdlApiKey: '',
   syncProfileId: '',
   aiIframeFilter: true,
-  llmProxyUrl: ''
+  llmProxyUrl: '',
+  tutorialMuted: false
 }, data.settings || {});
 if (__uvdLinkConfig) {
   if (__uvdLinkConfig.settings) data.settings = Object.assign({}, data.settings, __uvdLinkConfig.settings);
@@ -4142,6 +4143,12 @@ style.textContent = `
 .uvd-app-shell>.uvd-panel-content{gap:8px}.uvd-app-shell #__uvd_header__,.uvd-app-shell .uvd-context-bar,.uvd-app-shell .uvd-tabbar{margin:0!important}.uvd-app-shell #__uvd_header__{box-shadow:0 4px 13px rgba(247,108,140,.12),0 0 0 1px rgba(255,255,255,.62) inset!important}.uvd-app-shell .uvd-context-bar{box-shadow:0 3px 11px rgba(150,90,220,.1),0 0 0 1px rgba(255,255,255,.55) inset!important}.uvd-app-shell .uvd-tabbar{box-shadow:0 4px 12px rgba(247,108,140,.11),0 0 0 1px rgba(255,255,255,.65) inset!important}.uvd-app-shell .uvd-bubble-wrap{min-height:0;margin:0!important}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer{flex:0 0 auto;margin:8px 6px 0!important;padding:10px 0 3px!important;border-top:1px solid rgba(255,159,180,.22)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#9a7488!important;font-size:10px!important;line-height:1.45;text-align:center}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer::before{display:none!important}
 /* 6 slide tutorial: mỗi slide một thú đeo kính, có nhãn nhận diện rõ ràng. */
 @keyframes uvdTutorialSpotlight{0%,100%{opacity:.48;transform:scale(.9) translateY(4px)}50%{opacity:.82;transform:scale(1.08) translateY(-3px)}}@keyframes uvdTutorialBeam{0%,100%{opacity:.28;transform:rotate(-8deg) scaleX(.92)}50%{opacity:.56;transform:rotate(8deg) scaleX(1.08)}}.uvd-tutorial-mascot-stage{position:relative;width:228px;height:206px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:4px auto 8px;background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible;isolation:isolate}.uvd-tutorial-mascot-stage::before{content:'';position:absolute;z-index:-2;left:20px;right:20px;top:24px;bottom:16px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.95) 0%,rgba(255,218,238,.55) 42%,rgba(204,178,255,0) 74%);filter:blur(5px);animation:uvdTutorialSpotlight 2.4s ease-in-out infinite}.uvd-tutorial-mascot-stage::after{content:'';position:absolute;z-index:-1;width:142px;height:188px;top:4px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.68) 42%,rgba(255,218,239,.3) 58%,transparent 100%);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);filter:blur(2px);animation:uvdTutorialBeam 2.8s ease-in-out infinite}.uvd-tutorial-mascot-art{width:176px;height:184px;line-height:0;filter:drop-shadow(0 12px 16px rgba(247,108,140,.22));animation:uvdMascotHop 1.9s ease-in-out infinite}.uvd-tutorial-mascot-art svg{width:100%;height:100%;display:block;animation:uvdMascotWiggle 1.45s ease-in-out infinite}.uvd-tutorial-mascot-label{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);margin:0;padding:5px 11px;border-radius:999px;background:linear-gradient(135deg,#fff,#f4e8ff);border:1px solid rgba(194,150,255,.3);box-shadow:0 4px 10px rgba(150,90,220,.12);color:#8a6ab0;font-size:10px;font-weight:900;white-space:nowrap;letter-spacing:.03em}
+/* ===== MOBILE COMFORT + HISTORY/SETTINGS POLISH ===== */
+.uvd-dig-status-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:8px}.uvd-dig-status-row span{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.66);border:1px solid rgba(194,150,255,.24);color:#8a6ab0;font-size:9.5px;font-weight:850}
+.uvd-history-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px;padding:4px 2px}.uvd-history-toolbar-title{font-size:15px;font-weight:900;color:#c95073}.uvd-history-filter-row{display:flex;gap:5px;flex-wrap:wrap;width:100%}.uvd-history-filter{padding:5px 9px;border:1px solid rgba(194,150,255,.28);border-radius:999px;background:rgba(255,255,255,.64);color:#8a6ab0;font-size:10px;font-weight:800;cursor:pointer}.uvd-history-filter-active{background:linear-gradient(135deg,#ff9fb4,#b385f2);border-color:transparent;color:#fff}.uvd-history-sync-chip{margin-left:auto;padding:4px 8px;border-radius:999px;background:rgba(194,150,255,.12);color:#8a6ab0;font-size:9px;font-weight:800}.uvd-history-title-row{display:flex;align-items:center;gap:6px}.uvd-history-title-row strong{flex:1;min-width:0}.uvd-history-star{width:28px;height:28px;border:1px solid rgba(255,159,180,.28);border-radius:10px;background:#fff;color:#d85c7a;font-size:16px;line-height:1;cursor:pointer}.uvd-history-star-on{background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff}.uvd-history-clear{width:100%;margin-top:10px!important;background:rgba(255,93,114,.14)!important;color:#d85c7a!important}.uvd-settings-group-title{display:flex;align-items:center;gap:8px;margin:18px 2px 8px;color:#a05f86;font-size:12px;font-weight:900;letter-spacing:.04em}.uvd-settings-group-title::after{content:'';height:1px;flex:1;background:linear-gradient(90deg,rgba(255,159,180,.34),transparent)}.uvd-settings-tutorial-card{display:flex;align-items:center;gap:10px;padding:12px!important;background:linear-gradient(135deg,rgba(255,239,247,.92),rgba(244,235,255,.9))!important}.uvd-settings-tutorial-card .uvd-settings-tutorial-mascot{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-settings-tutorial-card .uvd-settings-tutorial-mascot svg{width:100%;height:100%}.uvd-settings-tutorial-card .uvd-btn{margin-left:auto;white-space:nowrap}
+@keyframes uvdTutorialSlideRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}@keyframes uvdTutorialSlideLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}.uvd-tutorial-slide-next{animation:uvdTutorialSlideRight .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-slide-prev{animation:uvdTutorialSlideLeft .3s cubic-bezier(.22,1,.36,1) both}.uvd-tutorial-mute{margin-top:7px;border:0;background:transparent;color:#a47ca8;font-size:10px;font-weight:750;text-decoration:underline;cursor:pointer}
+@media (max-width:560px){.uvd-app-shell{padding:10px!important}.uvd-app-shell>.uvd-panel-content{gap:7px}.uvd-app-shell #__uvd_header__{padding:8px 10px!important;gap:8px!important;border-radius:22px!important}.uvd-brand{gap:6px!important}.uvd-brand-mark,.uvd-brand-mark.uvd-brand-mark-hero{width:62px!important;height:62px!important;flex:0 0 62px!important;transform:none!important}.uvd-brand-name{font-size:17px!important;white-space:nowrap}.uvd-brand-version{font-size:10px!important;white-space:nowrap;margin-top:2px!important}.uvd-header-actions{width:94px!important;min-width:94px!important;max-width:94px!important;flex-basis:94px!important;grid-template-columns:repeat(3,29px)!important;grid-auto-rows:29px!important;gap:3px!important}.uvd-header-actions .uvd-btn-icon{width:29px!important;height:29px!important;font-size:12px!important}.uvd-context-bar{padding:10px!important;border-radius:18px!important}.uvd-context-title{font-size:13px!important}.uvd-context-meta{gap:4px!important;margin-top:7px!important}.uvd-meta-chip{padding:5px 7px!important;font-size:9px!important;max-width:49%!important}.uvd-tabbar{padding:6px!important;gap:3px!important;border-radius:22px!important}.uvd-tab{min-width:0!important;padding:6px 4px 7px!important;gap:2px!important}.uvd-tab-mascot{width:30px!important;height:30px!important}.uvd-tab-text{font-size:9px!important}.uvd-bubble{padding:10px!important;border-radius:22px!important}.uvd-bubble-title{margin-bottom:6px!important}.uvd-bubble-tmascot{width:36px!important;height:36px!important;flex-basis:36px!important}.uvd-bubble-tname{font-size:15px!important}.uvd-app-shell #__uvd_stream_list__{padding:8px!important}.uvd-card{padding:10px!important}.uvd-card-preview{height:122px!important;margin-bottom:9px!important}.uvd-card-preview.uvd-thumb-portrait{height:175px!important}.uvd-history-thumb{flex-basis:82px!important;height:62px!important}.uvd-history-actions .uvd-btn{padding:5px 7px!important;font-size:9px!important}.uvd-profile-footer{font-size:9px!important}.uvd-digging-box{min-height:0!important;padding:22px 18px 18px!important}.uvd-dig-art{transform:scale(.86)!important;margin:-18px auto -28px!important}.uvd-tutorial-mascot-stage{height:180px!important}.uvd-tutorial-mascot-art{width:150px!important;height:158px!important}}
+@media (max-height:740px) and (max-width:560px){.uvd-brand-sub{display:none!important}.uvd-card-preview{height:110px!important}.uvd-bubble .uvd-profile-footer.uvd-bubble-footer{padding-top:7px!important}.uvd-context-kicker{display:none}.uvd-dig-fact-wrap{display:none!important}}
 `;
 
 
@@ -4584,6 +4591,10 @@ function __uvdSetDiggingReady(kind, subtitle) {
   var sub = overlay.querySelector('#__uvd_dig_sub__');
   if (title) title.textContent = 'Vào link ♡';
   if (sub) sub.textContent = subtitle;
+  var status = overlay.querySelector('#__uvd_dig_status__');
+  var count = overlay.querySelector('#__uvd_dig_count__');
+  if (status) status.textContent = kind === 'iframe' ? '🖼️ Đã thấy player iframe' : '✨ Đã đào được video';
+  if (count) count.textContent = kind === 'iframe' ? '1 player' : (__uvdHasRealDirectStreams().length + ' link');
   var routeHint = overlay.querySelector('#__uvd_dig_route_hint__');
   if (routeHint) routeHint.textContent = kind === 'iframe'
     ? 'Bấm vào để chọn player iframe mèo đã tìm thấy nha ♡'
@@ -4620,6 +4631,7 @@ function __uvdStartDiggingPopup() {
       '<div class="uvd-dig-kicker">mèo cào media</div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
+      '<div class="uvd-dig-status-row" id="__uvd_dig_status_row__"><span id="__uvd_dig_status__">🔎 Đang quét nguồn</span><span id="__uvd_dig_count__">0 link</span></div>' +
       '<div class="uvd-dig-action-row">' +
         '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
         '<button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button>' +
@@ -4640,6 +4652,7 @@ function __uvdStartDiggingPopup() {
   var help = overlay.querySelector('#__uvd_dig_help__');
   if (help) help.onclick = function(e){ 
     e.stopPropagation(); 
+    if (data.settings.tutorialMuted) { toast('Đã tắt nhắc tutorial — mở lại trong Cài đặt nha ♡'); return; }
     // An popup dao truoc khi mo tutorial, giu UI an de tutorial noi len tren
     try { __uvdStopDiggingPopup(true); } catch(ex){}
     if (typeof __uvdShowTutorialSlides === 'function') __uvdShowTutorialSlides();
@@ -4990,6 +5003,7 @@ function __uvdShowTutorialSlides() {
   box.className = 'uvd-digging-box';
   box.style.cssText = 'position:relative;width:min(100%,460px);min-height:580px;display:flex;flex-direction:column;text-align:center;padding:26px 22px 18px;border-radius:36px;background:linear-gradient(155deg,rgba(255,250,253,.99),rgba(255,231,242,.98) 56%,rgba(245,232,255,.98));border:1px solid rgba(255,255,255,.9);box-shadow:0 30px 80px rgba(108,46,92,.44),0 0 0 7px rgba(255,255,255,.26) inset;animation:uvdScaleIn .42s cubic-bezier(.22,1,.36,1) both;overflow:hidden';
   var idx = 0;
+  var direction = 'next';
   function getMascotBig(i){
     // Six brand-new tutorial animals. Every one wears the same cute study
     // glasses, but their silhouette, ears/tail and colors stay distinct.
@@ -5017,17 +5031,21 @@ function __uvdShowTutorialSlides() {
     var animalName = animalNames[idx] || '🐾 Thú cưng học bài';
     box.innerHTML =
       '<button id="__uvd_tut_close__" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,159,180,.28);background:rgba(255,255,255,.75);color:#d85c7a;font-size:18px;cursor:pointer;z-index:2">✕</button>' +
-      '<div class="uvd-tutorial-mascot-stage"><div class="uvd-tutorial-mascot-art">' + bigMascot + '</div><span class="uvd-tutorial-mascot-label">' + animalName + '</span></div>' +
+      '<div class="uvd-tutorial-mascot-stage uvd-tutorial-slide-' + direction + '"><div class="uvd-tutorial-mascot-art">' + bigMascot + '</div><span class="uvd-tutorial-mascot-label">' + animalName + '</span></div>' +
       '<div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;text-align:center">' + slide.sub + '</div>' +
       '<div style="font-size:22px;font-weight:900;color:#d85c7a;line-height:1.2;text-align:center;margin:4px 0 10px">' + slide.title + '</div>' +
       '<div style="flex:1;overflow-y:auto;padding:0 4px"><div style="font-size:13.5px;color:#6b4d85;line-height:1.6;text-align:left;background:rgba(255,255,255,.7);border:1px solid rgba(255,159,180,.22);border-radius:16px;padding:12px 14px">' + slide.text + '</div>' +
       '<div style="margin-top:10px;padding:10px 12px;border-radius:14px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);border:1px dashed rgba(255,159,180,.3);font-size:11.5px;color:#9a6ce0;text-align:left"><span style="font-weight:800">💡 Tip:</span> ' + slide.tips + '</div></div>' +
       '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="display:flex;gap:6px">' + __uvdTutorialSlides.map(function(_,i){return '<span style="width:8px;height:8px;border-radius:50%;background:' + (i===idx ? '#f76c8c' : 'rgba(255,159,180,.25)') + ';display:inline-block"></span>'}).join('') + '</div><div style="display:flex;gap:8px"><button id="__uvd_tut_prev__" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(255,159,180,.25);background:#fff;color:#d85c7a;font-weight:700;font-size:12px;cursor:pointer' + (idx===0 ? ';opacity:.4;pointer-events:none' : '') + '">← Trước</button><button id="__uvd_tut_next__" style="padding:10px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 6px 16px rgba(247,108,140,.28)">' + (idx===__uvdTutorialSlides.length-1 ? 'Xong ♡' : 'Tiếp →') + '</button></div></div>';
+    var mute = document.createElement('button');
+    mute.type = 'button'; mute.className = 'uvd-tutorial-mute'; mute.textContent = 'Đừng tự nhắc tutorial nữa';
+    mute.onclick = function(){ data.settings.tutorialMuted = true; storage.set(data); toast('Đã tắt nhắc tutorial — xem lại trong Cài đặt nha ♡'); try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); }catch(e){} };
+    box.appendChild(mute);
     box.querySelector('#__uvd_tut_close__').onclick = function(){ try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(e){} };
     var prev = box.querySelector('#__uvd_tut_prev__');
-    if (prev) prev.onclick = function(){ if(idx>0){idx--; render();} };
+    if (prev) prev.onclick = function(){ if(idx>0){direction='prev'; idx--; render();} };
     var next = box.querySelector('#__uvd_tut_next__');
-    if (next) next.onclick = function(){ if(idx<__uvdTutorialSlides.length-1){idx++; render();} else { try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); }catch(e){} } };
+    if (next) next.onclick = function(){ if(idx<__uvdTutorialSlides.length-1){direction='next'; idx++; render();} else { try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); }catch(e){} } };
   }
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
@@ -6583,29 +6601,68 @@ function __uvdSaveHistoryMetadata(url, media, card) {
 }
 
 // ========== RENDER HISTORY ==========
+function __uvdHistoryRelativeTime(timestamp) {
+  var delta = Math.max(0, Date.now() - (Number(timestamp) || 0));
+  var mins = Math.floor(delta / 60000);
+  if (mins < 1) return 'vừa xong';
+  if (mins < 60) return mins + ' phút trước';
+  var hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + ' giờ trước';
+  return Math.floor(hours / 24) + ' ngày trước';
+}
+function __uvdIsFavorite(url) { return (data.favorites || []).indexOf(url) !== -1; }
+function __uvdToggleFavorite(url) {
+  data.favorites = data.favorites || [];
+  var idx = data.favorites.indexOf(url);
+  if (idx === -1) data.favorites.unshift(url); else data.favorites.splice(idx, 1);
+  storage.set(data);
+  return idx === -1;
+}
 function renderHistory(container) {
   container.innerHTML = '';
-  var entries = (data.history || []).slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
-  if (!entries.length) {
-    container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa có lịch sử xem</strong><span>Các link bạn bấm Xem sẽ được lưu tại đây.</span></div>';
-    return;
-  }
+  var allEntries = (data.history || []).slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+  var filter = 'all';
+  var controls = document.createElement('div');
+  controls.className = 'uvd-history-toolbar';
+  controls.innerHTML = '<div class="uvd-history-toolbar-title">🕘 Lịch sử xem</div><div class="uvd-history-filter-row">' +
+    '<button data-history-filter="all" class="uvd-history-filter uvd-history-filter-active">Tất cả</button>' +
+    '<button data-history-filter="video" class="uvd-history-filter">Video</button>' +
+    '<button data-history-filter="iframe" class="uvd-history-filter">Iframe</button>' +
+    '<button data-history-filter="favorite" class="uvd-history-filter">♡ Đã ghim</button></div>' +
+    '<div class="uvd-history-sync-chip">☁ ' + (data.settings.syncProfileId ? 'Lịch sử đang đồng bộ' : 'Chỉ lưu trên máy này') + '</div>';
+  container.appendChild(controls);
   var wrap = document.createElement('div');
   wrap.className = 'uvd-history-list';
-  var rendered = 0;
-  var batch = 12;
-  function renderMore() {
-    var end = Math.min(rendered + batch, entries.length);
-    for (let i = rendered; i < end; i++) {
-      let item = entries[i];
-      let card = document.createElement('article');
+  container.appendChild(wrap);
+  var clear = document.createElement('button');
+  clear.className = 'uvd-btn uvd-btn-sm uvd-history-clear';
+  clear.textContent = 'Xóa toàn bộ lịch sử';
+  container.appendChild(clear);
+  function visibleEntries() {
+    return allEntries.filter(function(item) {
+      var type = String(item.type || '').toUpperCase();
+      if (filter === 'video') return type !== 'IFRAME';
+      if (filter === 'iframe') return type === 'IFRAME';
+      if (filter === 'favorite') return __uvdIsFavorite(item.url);
+      return true;
+    });
+  }
+  function draw() {
+    wrap.innerHTML = '';
+    var entries = visibleEntries();
+    if (!entries.length) {
+      wrap.innerHTML = '<div class="uvd-empty-state uvd-history-empty"><strong>Chưa có mục ở nhóm này</strong><span>Bấm Xem hoặc Mở nguồn để lưu lại nè ♡</span></div>';
+      return;
+    }
+    entries.slice(0, 30).forEach(function(item) {
+      var card = document.createElement('article');
       card.className = 'uvd-history-card uvd-cute';
-      var date = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Không rõ thời gian';
-      let type = item.type || 'MEDIA';
+      var type = item.type || 'MEDIA';
+      var starred = __uvdIsFavorite(item.url);
       var thumb = item.thumbnail ? '<img src="' + escapeHtml(item.thumbnail) + '" alt="">' : '<span>▶</span>';
       card.innerHTML = '<div class="uvd-history-thumb">' + thumb + '<small>' + escapeHtml(type) + '</small></div>' +
-        '<div class="uvd-history-body"><strong>' + escapeHtml(item.title || 'Video không có tên') + '</strong>' +
-        '<div class="uvd-history-meta">' + escapeHtml(item.host || '') + ' · ' + escapeHtml(date) + '</div>' +
+        '<div class="uvd-history-body"><div class="uvd-history-title-row"><strong>' + escapeHtml(item.title || 'Video không có tên') + '</strong><button class="uvd-history-star' + (starred ? ' uvd-history-star-on' : '') + '">' + (starred ? '♥' : '♡') + '</button></div>' +
+        '<div class="uvd-history-meta">' + escapeHtml(item.host || '') + ' · ' + __uvdHistoryRelativeTime(item.timestamp) + '</div>' +
         '<div class="uvd-history-meta">' + escapeHtml([item.quality, item.resolution, item.duration].filter(Boolean).join(' · ')) + '</div>' +
         '<div class="uvd-history-url">' + escapeHtml(item.url || '') + '</div>' +
         '<div class="uvd-history-actions"><button class="uvd-btn uvd-btn-sm history-play">' + (String(type).toUpperCase() === 'IFRAME' ? 'Mở nguồn' : 'Xem lại') + '</button><button class="uvd-btn uvd-btn-sm history-source"' + (item.pageUrl ? '' : ' disabled') + '>Nguồn gốc</button><button class="uvd-btn uvd-btn-sm history-copy">Sao chép</button><button class="uvd-btn uvd-btn-sm history-delete">Xóa</button></div></div>';
@@ -6613,29 +6670,16 @@ function renderHistory(container) {
       var sourceBtn = card.querySelector('.history-source');
       if (sourceBtn && item.pageUrl) sourceBtn.onclick = function() { __uvdSafeOpen(item.pageUrl); };
       card.querySelector('.history-copy').onclick = function() { copy(item.url); toast('Đã sao chép link lịch sử'); };
-      card.querySelector('.history-delete').onclick = function() { data.history = data.history.filter(function(x) { return x.url !== item.url; }); storage.set(data); renderHistory(container); };
+      card.querySelector('.history-delete').onclick = function() { data.history = data.history.filter(function(x) { return x.url !== item.url; }); storage.set(data); allEntries = allEntries.filter(function(x) { return x.url !== item.url; }); draw(); };
+      card.querySelector('.uvd-history-star').onclick = function() { toast(__uvdToggleFavorite(item.url) ? 'Đã ghim vào yêu thích ♡' : 'Đã bỏ ghim'); draw(); };
       wrap.appendChild(card);
-    }
-    rendered = end;
-    if (moreBtn) moreBtn.remove();
-    if (rendered < entries.length) {
-      moreBtn = document.createElement('button');
-      moreBtn.className = 'uvd-btn uvd-btn-sm';
-      moreBtn.style.cssText = 'width:100%;margin:4px 0 10px;';
-      moreBtn.textContent = 'Cảnh khác / Xem thêm lịch sử (' + (entries.length - rendered) + ')';
-      moreBtn.onclick = renderMore;
-      container.appendChild(moreBtn);
-    }
+    });
   }
-  var moreBtn = null;
-  renderMore();
-  var clear = document.createElement('button');
-  clear.className = 'uvd-btn uvd-btn-sm';
-  clear.style.cssText = 'width:100%;margin-top:4px;background:var(--danger);';
-  clear.textContent = 'Xóa toàn bộ lịch sử';
-  clear.onclick = function() { if (confirm('Xóa toàn bộ lịch sử xem?')) { data.history = []; storage.set(data); renderHistory(container); } };
-  container.appendChild(wrap);
-  container.appendChild(clear);
+  controls.querySelectorAll('[data-history-filter]').forEach(function(btn) {
+    btn.onclick = function() { filter = this.dataset.historyFilter; controls.querySelectorAll('[data-history-filter]').forEach(function(b) { b.classList.toggle('uvd-history-filter-active', b === btn); }); draw(); };
+  });
+  clear.onclick = function() { if (confirm('Xóa toàn bộ lịch sử xem?')) { data.history = []; storage.set(data); allEntries = []; draw(); } };
+  draw();
 }
 
 // ========== RENDER PLAYER SETTINGS ==========
@@ -6843,6 +6887,7 @@ function renderSettings(container) {
       '<div class="uvd-stat"><div class="uvd-stat-num" style="color:#ff5d72;">' + __uvdBlockedCount + '</div><div class="uvd-stat-label">Đã chặn popup</div></div>' +
     '</div>' +
 
+    '<div class="uvd-settings-group-title">🌷 Cơ bản cho cưng</div>' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">⚡ Hiệu năng</div>' +
       buildToggleRow('__uvd_toggle_reducemotion__', 'Bật chế độ hiệu suất (giảm hiệu ứng)', data.settings.reduceMotion) +
@@ -6867,6 +6912,7 @@ function renderSettings(container) {
       '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Tắt hoàn toàn nếu đã bật chế độ hiệu suất ở trên.</div>' +
     '</div>' +
 
+    '<div class="uvd-settings-group-title">🔎 Đào link nâng cao</div>' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🌐 Header proxy</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tự thử Render proxy khi MP4/HLS lỗi do thiếu Referer hoặc User-Agent.</div>' +
@@ -6882,6 +6928,7 @@ function renderSettings(container) {
       '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Dán URL proxy (vd Render của bạn) để bật tầng AI: UMP gửi danh sách iframe lên <b>/classify</b>, server dùng <b>GEMINI_API_KEY</b> (hoặc <b>OPENAI_API_KEY</b>) đặt ở env để chốt verdict PLAYER/JUNK. Không có key server thì tự dùng heuristic offline.</div>' +
     '</div>' +
 
+    '<div class="uvd-settings-group-title">☁ Đồng bộ & lịch sử</div>' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🔗 Bookmarklet riêng</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Tạo link chạy với các cài đặt hiện tại. Link không chứa Proxy key hoặc SubDL API key.</div>' +
@@ -6896,6 +6943,7 @@ function renderSettings(container) {
       '<div class="uvd-grid-2" style="margin-top:8px;"><button class="uvd-btn uvd-btn-sm" id="__uvd_sync_create__">Tạo profile</button><button class="uvd-btn uvd-btn-sm" id="__uvd_sync_now__">Đồng bộ ngay</button></div>' +
     '</div>' +
 
+    '<div class="uvd-settings-group-title">🛡️ Bảo vệ & lọc rác</div>' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">⛔ Chặn tự phát</div>' +
       buildToggleRow('__uvd_toggle_blockautoplay__', 'Chặn mạnh web tự mở/phát video sau khi chạy script', data.settings.blockAutoplay) +
@@ -6916,6 +6964,8 @@ function renderSettings(container) {
       '<div style="margin-top:6px;font-size:11px;color:var(--text3);">Đã chặn <span id="__uvd_blocked_ads__">' + __uvdAdBlockedCount + '</span> URL quảng cáo trong phiên này.</div>' +
     '</div>' +
 
+    '<div class="uvd-settings-group-title">📚 Hướng dẫn nhanh</div>' +
+    '<div class="uvd-card uvd-settings-tutorial-card"><span class="uvd-settings-tutorial-mascot">' + __uvdTabMascotRabbit + '</span><div style="min-width:0;flex:1"><div style="font-weight:900;color:#c95073">Xem lại 6 slide hướng dẫn</div><div style="font-size:10.5px;color:#8a6ab0;margin-top:2px">Mở lại bất cứ lúc nào, không làm phiền nha ♡</div></div><button class="uvd-btn uvd-btn-sm" id="__uvd_tutorial_reopen__">Xem lại</button></div>' +
     '<details class="uvd-settings-details"><summary><span class="uvd-section-num">1</span><span>Cài đặt Bookmarklet</span><span class="uvd-details-chevron">⌄</span></summary>' +
     '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('rabbit', 'Cài đặt Bookmarklet', 'Thỏ giữ bảng, cưng làm theo từng bước nha 🐰') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở một trang web bất kỳ, bấm vào biểu tượng <strong>⭐ Bookmark</strong> trên thanh địa chỉ nhé.</span></div>' +
@@ -7039,6 +7089,12 @@ function renderSettings(container) {
 
   var copyConfigBtn = document.getElementById('__uvd_copy_config_link__');
   if (copyConfigBtn) copyConfigBtn.onclick = function() { copy(__uvdBuildConfigLink()); toast('Đã copy link bookmarklet riêng'); };
+  var tutorialReopen = document.getElementById('__uvd_tutorial_reopen__');
+  if (tutorialReopen) tutorialReopen.onclick = function() {
+    data.settings.tutorialMuted = false;
+    storage.set(data);
+    __uvdShowTutorialSlides();
+  };
 
   document.getElementById('__uvd_toggle_autoclick__').onclick = function() {
     var isOn = this.classList.toggle('uvd-toggle-on');

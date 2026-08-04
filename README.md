@@ -683,3 +683,13 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Chuẩn hoá khoảng cách giữa header, session, tabbar và body thành 8px; giảm shadow của các lớp phụ để chỉ còn body là khối nội dung chính.
   - Giữ nguyên bố cục tab, không dùng lại cục nhô/cầu nối.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #32 — Chỉnh footer, màu popup link, thú hướng dẫn và hint Vào link — 2026-08-04
+
+- **Mục tiêu:** hoàn thiện các chi tiết UI nhỏ còn lệch tông và làm luồng đào link rõ hơn.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Divider footer được inset và cách body 8px, không còn dính sát nội dung.
+  - Câu hướng dẫn đỏ dưới URL ở popup video chuyển hoàn toàn sang tím (`#8a6ab0`).
+  - Slide hướng dẫn dùng 3 thú không trùng: thỏ / hamster / gấu mèo; mỗi mascot có nhãn tên nhỏ để nhận diện rõ trên mobile.
+  - Popup đào có thêm một dòng hint dưới nút **Vào link**, tự đổi lời nhắc cho link video hoặc iframe.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

@@ -102,6 +102,7 @@ data.filterlist = data.filterlist || [];
 data.playbackPositions = data.playbackPositions || {};
 data.clickedButtons = data.clickedButtons || {};
 data.userVotes = data.userVotes || {};        // { host|url: { up: n, down: n } } cute votes
+data.tmdbVotes = data.tmdbVotes || {};        // { normalized title + tmdb id: { up, down, updatedAt } }
 data.learnedVideos = data.learnedVideos || {}; // { host: { player, junk, up, down, updatedAt } }
 data.settings = Object.assign({
   defaultSpeed: 1,
@@ -203,6 +204,7 @@ function __uvdSyncPayload() {
     history: __uvdMergeHistory(data.history, []),
     favorites: data.favorites,
     userVotes: data.userVotes,
+    tmdbVotes: data.tmdbVotes,
     learnedHosts: data.learnedHosts,
     learnedVideos: data.learnedVideos
   };
@@ -251,6 +253,7 @@ function __uvdSyncLoad() {
       if (Array.isArray(payload.history)) data.history = __uvdMergeHistory(data.history, payload.history);
       if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
       if (payload.userVotes) data.userVotes = Object.assign({}, data.userVotes, payload.userVotes);
+      if (payload.tmdbVotes) data.tmdbVotes = Object.assign({}, data.tmdbVotes, payload.tmdbVotes);
       if (payload.learnedHosts) data.learnedHosts = Object.assign({}, data.learnedHosts || {}, payload.learnedHosts);
       if (payload.learnedVideos) data.learnedVideos = Object.assign({}, data.learnedVideos || {}, payload.learnedVideos);
       __uvdLearnedHosts = data.learnedHosts || {};
@@ -720,6 +723,33 @@ function __uvdCastVote(url, kind) {
   }
   data.learnedVideos = data.learnedVideos || {};
   storage.set(data);
+}
+// Shared feedback copy. Votes are stored locally/synced with the user's
+// profile and feed the existing host/iframe learning signals.
+var __uvdFeedbackNotice = '⚠️ Script không thể nhận diện chính xác 100%. Hãy chung tay vote để cải thiện script nha ♡';
+function __uvdFeedbackNoticeHtml(extraClass) {
+  return '<div class="uvd-feedback-note' + (extraClass ? ' ' + extraClass : '') + '">' + __uvdFeedbackNotice + '</div>';
+}
+function __uvdCreateDetectionVoteControls(url, context) {
+  var labels = context === 'iframe'
+    ? { up: '♥ Đúng player', down: '💩 Không phải player', subject: 'iframe' }
+    : { up: '♥ Video đúng', down: '💩 Video sai', subject: 'video' };
+  var wrap = document.createElement('div');
+  wrap.className = 'uvd-feedback-actions';
+  var up = document.createElement('button');
+  var down = document.createElement('button');
+  up.type = down.type = 'button';
+  up.className = 'uvd-feedback-vote uvd-feedback-vote-up';
+  down.className = 'uvd-feedback-vote uvd-feedback-vote-down';
+  function refresh() {
+    var tally = __uvdVote(url);
+    up.textContent = labels.up + ' (' + (tally.up || 0) + ')';
+    down.textContent = labels.down + ' (' + (tally.down || 0) + ')';
+  }
+  up.onclick = function(e) { e.stopPropagation(); __uvdCastVote(url, 'up'); refresh(); toast('Cảm ơn cưng đã xác nhận ' + labels.subject + ' ♡'); };
+  down.onclick = function(e) { e.stopPropagation(); __uvdCastVote(url, 'down'); refresh(); toast('Đã ghi nhận ' + labels.subject + ' chưa đúng — Mèo sẽ né dần nha.'); };
+  wrap.appendChild(up); wrap.appendChild(down); refresh();
+  return wrap;
 }
 function __uvdVideoScore(url, type) {
   var host = __uvdMediaHostOf(url);
@@ -2472,6 +2502,30 @@ function __uvdTmdbSearchCandidates(queries, key, index) {
     return results.length ? { query: query, results: results } : __uvdTmdbSearchCandidates(queries, key, index + 1);
   });
 }
+function __uvdTmdbKindOf(movie) {
+  return movie && movie.media_type === 'tv' ? 'tv' : (movie && movie.media_type === 'movie' ? 'movie' : (movie && movie.first_air_date ? 'tv' : 'movie'));
+}
+function __uvdTmdbVoteKey(sourceTitle, movie) {
+  var normalized = __uvdTmdbCleanTitle(sourceTitle).toLowerCase().slice(0, 160) || 'untitled';
+  return normalized + '|' + __uvdTmdbKindOf(movie) + ':' + String(movie && movie.id || '');
+}
+function __uvdTmdbVoteTally(sourceTitle, movie) {
+  return data.tmdbVotes[__uvdTmdbVoteKey(sourceTitle, movie)] || { up: 0, down: 0 };
+}
+function __uvdTmdbFeedbackScore(sourceTitle, movie) {
+  var vote = __uvdTmdbVoteTally(sourceTitle, movie);
+  return Math.max(-0.42, Math.min(0.24, (vote.up || 0) * 0.08 - (vote.down || 0) * 0.21));
+}
+function __uvdCastTmdbVote(sourceTitle, movie, kind) {
+  if (!movie || !movie.id) return { up: 0, down: 0 };
+  var key = __uvdTmdbVoteKey(sourceTitle, movie);
+  var rec = data.tmdbVotes[key] = data.tmdbVotes[key] || { up: 0, down: 0, updatedAt: 0 };
+  if (kind === 'up') rec.up = (rec.up || 0) + 1;
+  else if (kind === 'down') rec.down = (rec.down || 0) + 1;
+  rec.updatedAt = Date.now();
+  storage.set(data);
+  return rec;
+}
 function __uvdFindTmdbMovie(title) {
   var clean = __uvdTmdbCleanTitle(title);
   if (clean.length < 3) return Promise.resolve(null);
@@ -2490,15 +2544,16 @@ function __uvdFindTmdbMovie(title) {
       var itemYear = String(item.release_date || item.first_air_date || '').slice(0, 4);
       if (year && itemYear === year) score += 0.24;
       if (item.popularity) score += Math.min(0.05, Number(item.popularity) / 2000);
+      score += __uvdTmdbFeedbackScore(title, item);
       if (score > bestScore) { best = item; bestScore = score; }
     });
     if (!best || bestScore < 0.58) return null;
-    var kind = best.media_type === 'tv' ? 'tv' : (best.media_type === 'movie' ? 'movie' : (best.first_air_date ? 'tv' : 'movie'));
+    var kind = __uvdTmdbKindOf(best);
     var detailLocal = key ? 'https://api.themoviedb.org/3/' + kind + '/' + best.id + '?api_key=' + encodeURIComponent(key) + '&append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN' : '';
     return __uvdTmdbJson(kind + '/' + best.id, detailLocal).then(function(detail) { return detail || null; });
   });
 }
-function __uvdRenderPlayerTmdb(bar, movie) {
+function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   if (!bar || !movie) return;
   var logos = movie.images && movie.images.logos || [];
   var logo = logos.filter(function(x) { return x && x.file_path; }).sort(function(a, b) { return (a.iso_639_1 === 'vi' ? -1 : 0) || (a.iso_639_1 === 'en' ? -1 : 0); })[0];
@@ -2512,7 +2567,21 @@ function __uvdRenderPlayerTmdb(bar, movie) {
     (logo ? '<img class="uvd-player-tmdb-logo" src="https://image.tmdb.org/t/p/w500' + escapeHtml(logo.file_path) + '" alt="' + escapeHtml(title) + '">' : '<div class="uvd-player-tmdb-title">' + escapeHtml(title) + '</div>') +
     '<div class="uvd-player-tmdb-meta">TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (year ? ' · ' + escapeHtml(year) : '') + (genres ? ' · ' + escapeHtml(genres) : '') + '</div>' +
     (castText ? '<div class="uvd-player-tmdb-cast">' + escapeHtml(castText) + '</div>' : '') +
+    __uvdFeedbackNoticeHtml('uvd-tmdb-feedback') +
+    '<div class="uvd-feedback-actions uvd-tmdb-feedback-actions"><button type="button" class="uvd-feedback-vote uvd-feedback-vote-up" data-tmdb-vote="up"></button><button type="button" class="uvd-feedback-vote uvd-feedback-vote-down" data-tmdb-vote="down"></button></div>' +
   '</div>';
+  function refreshVotes() {
+    var tally = __uvdTmdbVoteTally(sourceTitle, movie);
+    var up = bar.querySelector('[data-tmdb-vote="up"]');
+    var down = bar.querySelector('[data-tmdb-vote="down"]');
+    if (up) up.textContent = '♥ Đúng phim (' + (tally.up || 0) + ')';
+    if (down) down.textContent = '💩 Sai phim (' + (tally.down || 0) + ')';
+  }
+  var up = bar.querySelector('[data-tmdb-vote="up"]');
+  var down = bar.querySelector('[data-tmdb-vote="down"]');
+  if (up) up.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'up'); refreshVotes(); toast('Cảm ơn cưng đã xác nhận thông tin phim ♡'); };
+  if (down) down.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'down'); refreshVotes(); toast('Đã ghi nhận phim chưa đúng — lần sau Mèo sẽ ưu tiên khác hơn nha.'); };
+  refreshVotes();
   bar.hidden = false;
 }
 function __uvdRecognizePlayerMovie(title, bar) {
@@ -2523,7 +2592,7 @@ function __uvdRecognizePlayerMovie(title, bar) {
   __uvdFindTmdbMovie(title).then(function(movie) {
     if (!movie) { bar.hidden = true; return; }
     bar.classList.remove('uvd-player-tmdb-loading');
-    __uvdRenderPlayerTmdb(bar, movie);
+    __uvdRenderPlayerTmdb(bar, movie, title);
   }).catch(function() { bar.hidden = true; });
 }
 
@@ -4442,6 +4511,10 @@ style.textContent = `
 @media (max-width:560px){.uvd-player-card-v2{padding:10px!important}.uvd-player-card-v2 .uvd-player-sheet{width:100%!important;height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important;border-radius:25px!important}.uvd-player-card-v2 .uvd-player-sheet .uvd-settings-header.uvd-player-header{min-height:68px!important;padding:10px 12px!important}.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-panel{padding:11px 12px 12px!important}}
 
 
+/* ===== COMMUNITY FEEDBACK — video, iframe and TMDB recognition ===== */
+.uvd-feedback-note{margin:8px 0 5px;padding:7px 9px;border:1px solid rgba(194,150,255,.23);border-radius:11px;background:rgba(255,255,255,.62);color:#8a6ab0;font-size:10px;font-weight:700;line-height:1.4;text-align:left}.uvd-popup-feedback{margin:0 0 10px}.uvd-feedback-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.uvd-feedback-vote{appearance:none;padding:5px 7px;border:1px solid transparent;border-radius:999px;background:#fff;color:#8a6ab0;font:800 9px/1.15 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .14s ease,filter .14s ease}.uvd-feedback-vote:active{transform:scale(.94)}.uvd-feedback-vote:hover{filter:brightness(.98)}.uvd-feedback-vote-up{border-color:rgba(247,108,140,.27);background:rgba(255,225,237,.76);color:#c95073}.uvd-feedback-vote-down{border-color:rgba(194,150,255,.28);background:rgba(242,233,255,.82);color:#7d5ca5}.uvd-plplain-body .uvd-feedback-actions{margin:7px 0 1px}.uvd-iframe-cute-row .uvd-feedback-actions{margin:7px 0 0}.uvd-player-tmdb-copy .uvd-tmdb-feedback{margin:7px 0 5px;padding:6px 7px;font-size:9px}.uvd-player-tmdb-copy .uvd-tmdb-feedback-actions{margin-top:4px}
+
+
 `;
 
 
@@ -5493,7 +5566,8 @@ function __uvdOpenMediaLinksPopup(streams) {
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
       '<div style="font-size:18px;font-weight:800;color:#9a6ce0;margin-bottom:4px;">Tìm thấy ' + streams.length + ' link video rồi nè 🐰</div>' +
-      '<div style="font-size:12px;color:#8a6ab0;margin-bottom:14px;">Đã lọc bỏ link rác. Bấm <b style="color:#9a6ce0;">Xem</b> để mở video thật.</div>' +
+      '<div style="font-size:12px;color:#8a6ab0;margin-bottom:8px;">Đã lọc bỏ link rác. Bấm <b style="color:#9a6ce0;">Xem</b> để mở video thật.</div>' +
+      __uvdFeedbackNoticeHtml('uvd-popup-feedback') +
       '<div id="__uvd_media_links_list__" style="max-height:44vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
       '<button class="uvd-btn uvd-btn-sm" id="__uvd_media_links_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:700;">Để sau</button>' +
     '</div>';
@@ -5522,6 +5596,7 @@ function __uvdOpenMediaLinksPopup(streams) {
     body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
       '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>' +
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
+    body.appendChild(__uvdCreateDetectionVoteControls(stream.url, 'video'));
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
     play.textContent = 'Xem ♡';
@@ -5629,6 +5704,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
           ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm Mèo cào media lại trên tab đó để lấy link thật.'
           : 'Trang này chưa để lộ link video trực tiếp, chỉ có iframe embed. 👉 Bạn hãy <b style="color:#d85c7a;">bấm vào iframe</b> bên dưới, đợi nó phát, rồi <b style="color:#d85c7a;">chạy Mèo cào media lại một lần nữa</b> để lấy link video thật.') +
       '</div>' +
+      __uvdFeedbackNoticeHtml('uvd-popup-feedback') +
       '<div id="__uvd_iframe_workflow_list__" style="max-height:42vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
       '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);border:none;color:#fff;font-weight:700;">Để sau</button>' +
     '</div>';
@@ -5649,6 +5725,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     var badgeColor = candidate.verdict === 'PLAYER' ? '#3aa97f' : (candidate.verdict === 'JUNK' ? '#ff5d72' : '#c9862a');
     var badgeText = candidate.verdict === 'PLAYER' ? 'PLAYER ✓' : (candidate.verdict === 'JUNK' ? 'JUNK ✗' : 'UNKNOWN ?');
     label.innerHTML = '<div style="margin-bottom:2px;"><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:' + badgeColor + ';">' + badgeText + '</span> <span style="color:#c95073;font-weight:700;">#' + (index + 1) + '</span></div>' + escapeHtml(candidate.url);
+    label.appendChild(__uvdCreateDetectionVoteControls(candidate.url, 'iframe'));
     if (candidate.verdict === 'JUNK') row.style.opacity = '0.55';
     var open = document.createElement('button');
     open.className = 'uvd-btn uvd-btn-sm';

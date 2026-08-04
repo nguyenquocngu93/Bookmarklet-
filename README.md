@@ -720,3 +720,12 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
   - Cả 6 đeo kính học giả, có silhouette và màu riêng.
   - Bỏ toàn bộ sân khấu bo góc, border, background và capsule bao quanh thú; chỉ giữ illustration có shadow mềm + nhãn chữ mảnh.
 - **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.
+
+### Patch #36 — Capsule tên thú + đèn sân khấu tutorial + nút UI song song — 2026-08-04
+
+- **Mục tiêu:** hoàn thiện presentation của mascot tutorial và cân lại hai nút trong popup đào.
+- **Nội dung thay đổi** (`bookmark.js` và bản Render đồng bộ):
+  - Tên thú quay lại capsule pastel như bản trước; thú vẫn không bị đặt trong khung.
+  - Thêm spotlight radial và tia đèn quét nhẹ phía sau mỗi mascot tutorial.
+  - Nút **Vào UI** thu nhỏ, nằm song song bên phải nút **Vào link ♡** khi đã có link.
+- **Kết quả:** `node --check` OK; `bookmark.js` = `render-header-proxy/bookmarklet.js`; `git diff --check` sạch.

@@ -860,3 +860,9 @@ main                        →  425b066 (nhánh chính, có thể cũ hơn)
 - Player sheet thống nhất một skin: card bo 32px, video bo 22px, shadow mềm, header/info pastel nhẹ.
 - Tắt backdrop/layer legacy mâu thuẫn trong player, giữ Video.js/native skin và fullscreen bo góc 0 đúng chuẩn.
 - Mobile dùng sheet 90dvh bo 28px, video bo 18px.
+
+### Patch #55 — Fix góc nền đen + menu teal cũ trong Player — 2026-08-04
+
+- Overlay player `uvd-player-clean` đổi từ nền đen sang gradient pastel hồng/tím, giữ card player bo góc/bóng.
+- Menu ⋮ và quality panel gắn class `uvd-player-clean-menu`, override toàn bộ teal legacy sang pastel hồng/tím (background, text, hover, active, mũi menu).
+- Video surface vẫn dark để tương phản video/controls, fullscreen vẫn bo góc 0.

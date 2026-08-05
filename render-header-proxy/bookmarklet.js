@@ -2293,7 +2293,7 @@ try {
 }
 
 var panelObserver = new MutationObserver(function() {
-  if (!document.getElementById('__uvd__')) {
+  if (!__uvdPopupHomeMode && !document.getElementById('__uvd__')) {
     stopMonitor();
     panelObserver.disconnect();
     runCleanup();
@@ -2305,6 +2305,7 @@ addCleanup(function() { panelObserver.disconnect(); });
 // ========== DEBOUNCE BUILDUI ==========
 var __uvdBuildUIDebounce = null;
 function debouncedBuildUI() {
+  if (__uvdPopupHomeMode && !__uvdLegacyUiRequested) return;
   clearTimeout(__uvdBuildUIDebounce);
   __uvdBuildUIDebounce = setTimeout(buildUI, 700);
 }
@@ -4764,6 +4765,14 @@ style.textContent = `
 .uvd-popup-hide-btn{position:absolute;top:12px;right:88px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:20px;line-height:25px;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-hide-btn:active{transform:scale(.94)}.uvd-dig-hide-btn{top:13px!important;right:95px!important;width:34px!important;height:34px!important;line-height:28px!important}
 
 
+/* ===== POPUP HOME COMMON HEADER ===== */
+.uvd-popup-home-btn{position:absolute;top:12px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:13px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-home-btn:active{transform:scale(.94)}#__uvd_media_links_home__,#__uvd_iframe_links_home__{right:126px}#__uvd_media_activity_home__,#__uvd_iframe_activity_home__{right:164px}.uvd-dig-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}.uvd-dig-collapsed .uvd-digging-box{height:auto!important;min-height:0!important;max-height:none!important;padding:11px 14px!important;overflow:hidden!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}.uvd-dig-collapsed .uvd-digging-box>*:not(.uvd-dig-topline):not(.uvd-dig-home-dock):not(.uvd-dig-close):not(.uvd-dig-settings-btn):not(.uvd-dig-hide-btn){display:none!important}.uvd-dig-collapsed .uvd-dig-home-dock{margin:7px 40px 0 0!important}.uvd-dig-collapsed .uvd-dig-topline{padding-right:112px!important}
+
+
+/* ===== COLLAPSED POPUP HOME HEADERS ===== */
+#__uvd_media_links_prompt__.uvd-popup-collapsed,#__uvd_iframe_workflow_prompt__.uvd-popup-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}#__uvd_media_links_prompt__.uvd-popup-collapsed .uvd-media-choice-popup,#__uvd_iframe_workflow_prompt__.uvd-popup-collapsed .uvd-glass-panel{width:min(100%,500px)!important;margin:0 auto!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}#__uvd_media_links_prompt__ .uvd-popup-panel-collapsed>div:not(:first-child),#__uvd_iframe_workflow_prompt__ .uvd-popup-panel-collapsed>div:not(:first-child){display:none!important}#__uvd_media_links_prompt__ .uvd-popup-panel-collapsed>div:first-child,#__uvd_iframe_workflow_prompt__ .uvd-popup-panel-collapsed>div:first-child{padding-bottom:10px!important}
+
+
 `;
 
 
@@ -4874,6 +4883,8 @@ function __uvdShowPopupReopenBtn(kind) {
 }
 // Hide the whole UMP panel (cute popup takes priority and must not be covered).
 var __uvdPopupActive = false;
+var __uvdPopupHomeMode = true;
+var __uvdLegacyUiRequested = false;
 function __uvdHideUiForPopup() {
   __uvdPopupActive = true;
   var p = document.getElementById('__uvd__');
@@ -4882,7 +4893,7 @@ function __uvdHideUiForPopup() {
 function __uvdRestoreUiAfterPopup() {
   __uvdPopupActive = false;
   var p = document.getElementById('__uvd__');
-  if (p && p.__uvdPopupHidden) { p.__uvdPopupHidden = false; p.style.display = ''; }
+  if (p && p.__uvdPopupHidden) { p.__uvdPopupHidden = false; p.style.display = __uvdPopupHomeMode && !__uvdLegacyUiRequested ? 'none' : ''; }
   __uvdRemovePopupReopenBtn();
 }
 function __uvdPopupDismiss() {
@@ -5374,7 +5385,6 @@ function __uvdStartDiggingPopup() {
         '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
       '</div>' +
       '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
-      '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button></div>' +
       '<div class="uvd-dig-help">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
       '<div id="__uvd_dig_fact_wrap__" style="margin-top:12px;display:none;text-align:center;">' +
         '<button type="button" id="__uvd_dig_fact_btn__" style="padding:8px 14px;border-radius:999px;border:1px dashed rgba(255,159,180,.4);background:linear-gradient(135deg,#fff6fb,#ffe9f3);color:#d85c7a;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 3px 10px rgba(247,108,140,.12);">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
@@ -5391,17 +5401,6 @@ function __uvdStartDiggingPopup() {
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
   var watchFirst = overlay.querySelector('#__uvd_dig_watch_first__');
   if (watchFirst) watchFirst.onclick = __uvdWatchFirstDiggingStream;
-  var goUi = overlay.querySelector('#__uvd_dig_ui__');
-  if (goUi) goUi.onclick = function() {
-    __uvdStopDiggingPopup(false);
-    // Some pages rebuild the panel while the digging overlay is active. Force
-    // the restored panel back to a visible state instead of leaving it hidden.
-    requestAnimationFrame(function() {
-      var panel = document.getElementById('__uvd__');
-      if (!panel && typeof buildUI === 'function') { buildUI(); panel = document.getElementById('__uvd__'); }
-      if (panel) { __uvdPopupActive = false; panel.__uvdPopupHidden = false; panel.style.display = ''; panel.style.visibility = ''; }
-    });
-  };
   var help = overlay.querySelector('#__uvd_dig_help__');
   if (help) help.onclick = function(e){
     e.stopPropagation();
@@ -5454,7 +5453,11 @@ function __uvdStartDiggingPopup() {
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdRequestExit(); };
   var digHide = overlay.querySelector('#__uvd_dig_hide__');
-  if (digHide) digHide.onclick = function() { __uvdStopDiggingPopup(false); };
+  if (digHide) digHide.onclick = function() {
+    var collapsed = overlay.classList.toggle('uvd-dig-collapsed');
+    digHide.textContent = collapsed ? '+' : '−';
+    digHide.title = collapsed ? 'Mở Home Mèo' : 'Thu gọn còn header';
+  };
   var digSettings = overlay.querySelector('#__uvd_dig_settings__');
   if (digSettings) digSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   var digLinks = overlay.querySelector('#__uvd_dig_links__');
@@ -5646,9 +5649,11 @@ function __uvdRequestExit() {
   if (document.getElementById('__uvd_farewell_popup__')) return;
   __uvdShowFarewellPopup(function() {
     if (typeof __uvdExitHandler === 'function') { __uvdExitHandler(); return; }
-    ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
+    ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__','__uvd_settings_overlay__','__uvd_dig_drawer__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
+    try { stopMonitor(); runCleanup(); urls.clear(); } catch(e) {}
     var root = document.getElementById('__uvd__');
     if (root) root.remove();
+    try { if (typeof style !== 'undefined' && style.parentNode) style.remove(); } catch(e) {}
   });
 }
 
@@ -6037,6 +6042,7 @@ function __uvdOpenMediaLinksPopup(streams) {
     '<div style="padding:16px 16px 2px;position:relative;">' +
       '<button id="__uvd_media_links_close__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_media_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
+      '<button id="__uvd_media_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_media_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
       '<button id="__uvd_media_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
     '</div>' +
@@ -6114,22 +6120,32 @@ function __uvdOpenMediaLinksPopup(streams) {
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
   }
-  // "Để sau"/ẩn → thu popup thành nút nổi, không thoát tool.
-  function hideMedia() {
+  // Top hide collapses to the common header; "Để sau" still creates a
+  // floating reopen chip for people who want the popup fully out of the way.
+  function collapseMedia() {
+    var collapsed = panel.classList.toggle('uvd-popup-panel-collapsed');
+    overlay.classList.toggle('uvd-popup-collapsed', collapsed);
+    if (mediaHide) { mediaHide.textContent = collapsed ? '+' : '−'; mediaHide.title = collapsed ? 'Mở popup' : 'Thu gọn còn header'; }
+  }
+  function stashMedia() {
     __uvdMediaPopupDismissedAt = Date.now();
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     __uvdShowPopupReopenBtn('media');
   }
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
-  if (cancel) cancel.onclick = hideMedia;
+  if (cancel) cancel.onclick = stashMedia;
   var mediaHide = panel.querySelector('#__uvd_media_hide__');
-  if (mediaHide) mediaHide.onclick = hideMedia;
+  if (mediaHide) mediaHide.onclick = collapseMedia;
   // X is reserved for leaving the whole tool and always confirms first.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
   if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
   var mediaSettings = panel.querySelector('#__uvd_media_settings__');
   if (mediaSettings) mediaSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  var mediaLinksHome = panel.querySelector('#__uvd_media_links_home__');
+  if (mediaLinksHome) mediaLinksHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('links'); };
+  var mediaActivityHome = panel.querySelector('#__uvd_media_activity_home__');
+  if (mediaActivityHome) mediaActivityHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('activity'); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Make sure the popup sits above everything (including the main UMP panel).
@@ -6211,6 +6227,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     '<div style="padding:18px 18px 4px;position:relative;">' +
       '<button id="__uvd_iframe_workflow_close_x__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_iframe_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
+      '<button id="__uvd_iframe_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_iframe_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
       '<button id="__uvd_iframe_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
     '</div>' +
@@ -6305,21 +6322,30 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
   }
-  // "Để sau"/ẩn → thu popup thành nút nổi, không thoát tool.
-  function hideIframe() {
+  // Top hide leaves only the common iframe header; "Để sau" stashes it.
+  function collapseIframe() {
+    var collapsed = panel.classList.toggle('uvd-popup-panel-collapsed');
+    overlay.classList.toggle('uvd-popup-collapsed', collapsed);
+    if (iframeHide) { iframeHide.textContent = collapsed ? '+' : '−'; iframeHide.title = collapsed ? 'Mở popup' : 'Thu gọn còn header'; }
+  }
+  function stashIframe() {
     __uvdIframeWorkflowDismissedAt = Date.now();
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     __uvdShowPopupReopenBtn('iframe');
   }
   var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
-  if (cancel) cancel.onclick = hideIframe;
+  if (cancel) cancel.onclick = stashIframe;
   var iframeHide = panel.querySelector('#__uvd_iframe_hide__');
-  if (iframeHide) iframeHide.onclick = hideIframe;
+  if (iframeHide) iframeHide.onclick = collapseIframe;
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
   if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
   var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
   if (iframeSettings) iframeSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  var iframeLinksHome = panel.querySelector('#__uvd_iframe_links_home__');
+  if (iframeLinksHome) iframeLinksHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('links'); };
+  var iframeActivityHome = panel.querySelector('#__uvd_iframe_activity_home__');
+  if (iframeActivityHome) iframeActivityHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('activity'); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Keep iframe popup above the main panel too.
@@ -8370,7 +8396,7 @@ function __uvdUserscriptPageHasTarget() {
 function __uvdStartUserscriptUi() {
   if (document.getElementById('__uvd__')) return;
   window.__uvdBootPhase = 'build-ui';
-  buildUI();
+  if (!__uvdPopupHomeMode) buildUI();
   setTimeout(function() { __uvdStartDiggingPopup(); }, 140);
   setTimeout(__uvdSyncLoad, 350);
   if (__uvdUserscriptMode) setTimeout(function() { __uvdSetHidden(true); }, 0);

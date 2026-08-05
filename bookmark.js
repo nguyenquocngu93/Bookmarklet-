@@ -5466,8 +5466,8 @@ function __uvdStartDiggingPopup() {
 
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) {
-    close.onclick = function(e) { if (e) e.stopPropagation(); __uvdRequestExit(); };
-    close.addEventListener('click', function(e) { e.stopPropagation(); __uvdRequestExit(); });
+    close.onclick = function(e) { if (e) e.stopPropagation(); __uvdRequestExit(overlay); };
+    close.addEventListener('click', function(e) { e.stopPropagation(); __uvdRequestExit(overlay); });
   }
   var digHide = overlay.querySelector('#__uvd_dig_hide__');
   if (digHide) digHide.onclick = function() {
@@ -5670,10 +5670,21 @@ function __uvdShutdownEverything() {
   if (root) root.remove();
   try { if (typeof style !== 'undefined' && style.parentNode) style.remove(); } catch(e) {}
 }
-function __uvdRequestExit() {
+function __uvdRequestExit(sourceOverlay) {
   if (document.getElementById('__uvd_farewell_popup__')) return;
-  try { __uvdShowFarewellPopup(function() { __uvdShutdownEverything(); }); }
-  catch(e) { __uvdShutdownEverything(); }
+  var source = sourceOverlay && sourceOverlay.isConnected ? sourceOverlay : null;
+  var previousDisplay = source ? source.style.display : '';
+  // Hide the current surface first. Farewell must never sit underneath an
+  // existing max-z-index popup or leave the user unable to press its buttons.
+  if (source) source.style.display = 'none';
+  try {
+    __uvdShowFarewellPopup(function() { __uvdShutdownEverything(); }, function() {
+      if (source && source.isConnected) source.style.display = previousDisplay;
+    });
+  } catch(e) {
+    if (source && source.isConnected) source.style.display = previousDisplay;
+    __uvdShutdownEverything();
+  }
 }
 var __uvdExitDelegationInstalled = false;
 function __uvdInstallExitDelegation() {
@@ -5684,7 +5695,8 @@ function __uvdInstallExitDelegation() {
     var target = e.target && e.target.closest ? e.target.closest(selector) : null;
     if (!target) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    __uvdRequestExit();
+    var surface = target.closest('#__uvd_digging_popup__,#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd__');
+    __uvdRequestExit(surface);
   };
   document.addEventListener('click', handler, true);
   document.addEventListener('pointerup', handler, true);
@@ -5715,7 +5727,7 @@ function __uvdGetFarewellMascotsHtml(){
   var pick = animals[Math.floor(Math.random() * animals.length)];
   return '<div class="uvd-farewell-mascots uvd-farewell-one"><span class="uvd-fm uvd-fm-big-full">' + pick.art + '</span><div class="uvd-farewell-animal-name">' + pick.name + '</div></div>';
 }
-function __uvdShowFarewellPopup(onConfirm) {
+function __uvdShowFarewellPopup(onConfirm, onCancel) {
   var old = document.getElementById('__uvd_farewell_popup__');
   if (old) old.remove();
   __uvdHideUiForPopup();
@@ -5747,6 +5759,7 @@ function __uvdShowFarewellPopup(onConfirm) {
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     if(confirm && typeof onConfirm==='function') onConfirm();
+    else if(!confirm && typeof onCancel==='function') onCancel();
   }
   box.querySelector('#__uvd_farewell_stay__').onclick = function(){ closeFarewell(false); };
   box.querySelector('#__uvd_farewell_bye__').onclick = function(){ closeFarewell(true); };
@@ -6183,7 +6196,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   if (mediaHide) mediaHide.onclick = collapseMedia;
   // X is reserved for leaving the whole tool and always confirms first.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
-  if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
+  if (closeX) closeX.onclick = function() { __uvdRequestExit(overlay); };
   var mediaBack = panel.querySelector('#__uvd_media_back__');
   if (mediaBack) mediaBack.onclick = function(e) { e.stopPropagation(); __uvdReturnToDiggingHome(overlay); };
   var mediaSettings = panel.querySelector('#__uvd_media_settings__');
@@ -6386,7 +6399,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   var iframeHide = panel.querySelector('#__uvd_iframe_hide__');
   if (iframeHide) iframeHide.onclick = collapseIframe;
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
-  if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
+  if (closeX) closeX.onclick = function() { __uvdRequestExit(overlay); };
   var iframeBack = panel.querySelector('#__uvd_iframe_back__');
   if (iframeBack) iframeBack.onclick = function(e) { e.stopPropagation(); __uvdReturnToDiggingHome(overlay); };
   var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
@@ -6914,7 +6927,7 @@ function buildUI() {
   }
   __uvdExitHandler = __uvdRealClose;
   document.getElementById('__uvd_close__').onclick = function() {
-    __uvdRequestExit();
+    __uvdRequestExit(panel);
   };
   document.getElementById('__uvd_hide__').onclick = function() {
     var isCollapsed = panel.classList.contains('uvd-panel-collapsed');

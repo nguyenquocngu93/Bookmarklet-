@@ -4717,6 +4717,10 @@ style.textContent = `
 .uvd-dig-watch-first-btn{display:block;flex:1;min-width:0;max-height:0;margin:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#b385f2,#9a6ce0);color:#fff;font-size:15px;font-weight:850;box-shadow:0 8px 18px rgba(150,90,220,.28);transition:max-height .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-watch-first-btn:active{transform:scale(.97)}.uvd-digging-overlay.uvd-dig-found .uvd-dig-watch-first-btn{max-height:60px;padding:14px 16px;opacity:1}.uvd-plplain-actions{flex:0 0 auto;display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:112px}.uvd-plplain-actions .uvd-plrow-watch{width:100%;padding:9px 8px!important}.uvd-plrow-preview{width:100%;padding:7px 6px;border:1px solid rgba(194,150,255,.32);border-radius:11px;background:rgba(255,255,255,.72);color:#8a6ab0;font-size:9.5px;font-weight:850;cursor:pointer}.uvd-plrow-preview:active{transform:scale(.97)}.uvd-plrow-preview-box{position:relative;width:112px;height:63px;overflow:hidden;border:1px solid rgba(194,150,255,.28);border-radius:10px;background:linear-gradient(135deg,#f5edff,#ffeaf4);box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-plrow-preview-box[hidden]{display:none!important}.uvd-plrow-preview-box .uvd-plrow-thumbimg{display:block;width:100%;height:100%;object-fit:cover}.uvd-plrow-preview-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:5px;color:#8a6ab0;font-size:9px;font-weight:800;text-align:center;line-height:1.3}@media (max-width:390px){.uvd-plplain{gap:7px;padding:10px}.uvd-plplain-actions{min-width:94px}.uvd-plrow-preview-box{width:94px;height:53px}.uvd-dig-watch-first-btn{font-size:13px}}
 
 
+/* ===== DIGGING POPUP REDESIGN ===== */
+.uvd-digging-overlay{padding:16px!important;background:radial-gradient(circle at 50% 14%,rgba(255,230,242,.72),rgba(103,58,108,.48) 58%,rgba(39,24,49,.66))!important;backdrop-filter:blur(5px)!important;-webkit-backdrop-filter:blur(5px)!important}.uvd-digging-box{width:min(100%,448px)!important;min-height:0!important;max-height:calc(100dvh - 32px)!important;justify-content:flex-start!important;gap:0!important;padding:16px 18px 17px!important;border:1px solid rgba(255,255,255,.88)!important;border-radius:32px!important;background:linear-gradient(160deg,#fffafd 0%,#fff0f6 54%,#f1e9ff 100%)!important;box-shadow:0 26px 64px rgba(65,32,70,.34),0 0 0 5px rgba(255,255,255,.22) inset!important}.uvd-dig-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:1px 45px 0 2px}.uvd-dig-brand{color:#c95073;font-size:10px;font-weight:950;letter-spacing:.1em;text-transform:uppercase}.uvd-dig-mode{padding:4px 8px;border:1px solid rgba(194,150,255,.24);border-radius:999px;background:rgba(255,255,255,.68);color:#8a6ab0;font-size:9px;font-weight:850}.uvd-dig-close{top:13px!important;right:13px!important;width:34px!important;height:34px!important;border-color:rgba(255,159,180,.28)!important;background:rgba(255,255,255,.84)!important;color:#c95073!important;box-shadow:0 4px 12px rgba(247,108,140,.13)!important}.uvd-dig-art{width:218px!important;height:196px!important;margin:0 auto -7px!important;transform:none!important;filter:drop-shadow(0 11px 14px rgba(247,108,140,.2))!important}.uvd-dig-title{margin-top:4px!important;color:#c95073!important;font-size:25px!important;letter-spacing:-.03em}.uvd-dig-sub{min-height:0!important;margin-top:7px!important;max-width:330px;color:#805e83!important;font-size:12.5px!important}.uvd-dig-status-row{justify-content:center!important;gap:6px!important;margin-top:11px!important}.uvd-dig-status-row span{padding:5px 9px!important;border:1px solid rgba(194,150,255,.22)!important;border-radius:999px!important;background:rgba(255,255,255,.67)!important;color:#8a6ab0!important;font-size:9.5px!important;font-weight:850!important}.uvd-dig-action-row{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}.uvd-dig-watch-first-btn,.uvd-dig-enter-btn{border-radius:14px!important;font-size:13px!important;box-shadow:0 7px 15px rgba(150,90,220,.18)!important}.uvd-dig-watch-first-btn{background:linear-gradient(135deg,#b385f2,#9a6ce0)!important}.uvd-dig-enter-btn{background:linear-gradient(135deg,#ff9fb4,#ef6689)!important}.uvd-dig-route-hint{max-height:42px!important;margin-top:8px!important;color:#9a6ce0!important;font-size:10px!important}.uvd-dig-utility-row{margin-top:8px!important}.uvd-dig-ui-btn{padding:8px 10px!important;border-radius:12px!important;background:rgba(255,255,255,.62)!important;border-color:rgba(194,150,255,.25)!important;color:#8a6ab0!important;font-size:10px!important;box-shadow:none!important}.uvd-dig-help{margin-top:10px;color:#9a6ce0;font-size:10.5px}.uvd-dig-help button{color:#c95073!important}.uvd-dig-tip{margin-top:9px;color:#a47ca8;font-size:9px;line-height:1.4}.uvd-digging-overlay.uvd-dig-found .uvd-dig-art{width:154px!important;height:138px!important;margin:0 auto -5px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-title{font-size:23px!important;color:#9a6ce0!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-action-row{max-height:72px!important;margin-top:13px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-watch-first-btn,.uvd-digging-overlay.uvd-dig-found .uvd-dig-enter-btn{max-height:60px!important;padding:13px 8px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-route-hint{opacity:1!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-tip{display:none!important}@media (max-width:390px){.uvd-digging-box{padding:14px 14px 15px!important;border-radius:27px!important}.uvd-dig-art{width:188px!important;height:170px!important}.uvd-dig-title{font-size:22px!important}.uvd-dig-sub{font-size:11.5px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-art{width:132px!important;height:119px!important}.uvd-dig-watch-first-btn,.uvd-dig-enter-btn{font-size:11.5px!important}}
+
+
 `;
 
 
@@ -5157,7 +5161,7 @@ function __uvdSetDiggingReady(kind, subtitle) {
   overlay.classList.add('uvd-dig-found');
   var title = overlay.querySelector('#__uvd_dig_title__');
   var sub = overlay.querySelector('#__uvd_dig_sub__');
-  if (title) title.textContent = 'Vào link ♡';
+  if (title) title.textContent = kind === 'media' ? 'Mèo tìm được video!' : 'Mèo thấy player!';
   if (sub) sub.textContent = subtitle;
   // The primary path must never be squeezed out by an optional fact card.
   // Set the reveal inline as well as in CSS so host styles cannot collapse it.
@@ -5182,7 +5186,7 @@ function __uvdSetDiggingReady(kind, subtitle) {
   var routeHint = overlay.querySelector('#__uvd_dig_route_hint__');
   if (routeHint) routeHint.textContent = kind === 'iframe'
     ? 'Bấm vào để chọn player iframe mèo đã tìm thấy nha ♡'
-    : 'Bấm vào để mở danh sách link video mèo vừa đào được nha ♡';
+    : 'Xem ngay để phát link đầu tiên · Vào link để so sánh & vote nha ♡';
 }
 function __uvdStopDiggingRealtimeCapture() {
   var flow = __uvdDiggingFlow;
@@ -5268,8 +5272,8 @@ function __uvdStartDiggingPopup() {
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
       '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
+      '<div class="uvd-dig-topline"><span class="uvd-dig-brand">Mèo cào media</span><span class="uvd-dig-mode">✦ Đào link</span></div>' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
-      '<div class="uvd-dig-kicker">mèo cào media</div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
       '<div class="uvd-dig-status-row" id="__uvd_dig_status_row__"><span id="__uvd_dig_status__">🔎 Đang quét nguồn</span><span id="__uvd_dig_count__">0 link</span></div>' +
@@ -5279,12 +5283,12 @@ function __uvdStartDiggingPopup() {
       '</div>' +
       '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
       '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button></div>' +
-      '<div style="margin-top:14px;font-size:11.5px;color:#9a6ce0;">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
+      '<div class="uvd-dig-help">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
       '<div id="__uvd_dig_fact_wrap__" style="margin-top:12px;display:none;text-align:center;">' +
         '<button type="button" id="__uvd_dig_fact_btn__" style="padding:8px 14px;border-radius:999px;border:1px dashed rgba(255,159,180,.4);background:linear-gradient(135deg,#fff6fb,#ffe9f3);color:#d85c7a;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 3px 10px rgba(247,108,140,.12);">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
         '<div id="__uvd_dig_fact_box__" style="display:none;margin-top:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#fffdfd,#fff0f5);border:1px solid rgba(255,159,180,.28);box-shadow:0 6px 16px rgba(247,108,140,.12);font-size:12px;color:#7a5f9e;line-height:1.5;text-align:left;position:relative;overflow:hidden"><div style="position:absolute;right:8px;top:6px;font-size:12px">✨</div><div id="__uvd_dig_fact_text__" style="padding-right:16px">Đang lấy fact vui...</div></div>' +
       '</div>' +
-      '<div style="margin-top:8px;font-size:10px;color:#b68bea;opacity:.8">Tip: Mở video rồi bấm Play thật trên trang để mèo bắt link nhanh hơn nha!</div>' +
+      '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
   var enter = overlay.querySelector('#__uvd_dig_enter__');

@@ -3248,6 +3248,22 @@ function findSourceVideoElement(url) {
   return searchDoc(document);
 }
 
+function openPlayerSettingsOverlay() {
+  if (document.getElementById('__uvd_player_settings_overlay__')) return;
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_player_settings_overlay__';
+  overlay.className = 'uvd-settings-overlay uvd-player-settings-overlay';
+  overlay.innerHTML = '<div class="uvd-settings-sheet uvd-player-settings-sheet"><div class="uvd-settings-header"><button class="uvd-back-btn" type="button">←</button><span class="uvd-player-settings-mascot">' + (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹') + '</span><div class="uvd-settings-title-wrap"><span class="uvd-settings-title">⚙ Cài đặt Player</span><span class="uvd-settings-subtitle">Chỉ áp dụng cho trình phát</span></div></div><div class="uvd-settings-body"></div></div>';
+  __uvdAppendRoot(overlay);
+  var sheet = overlay.querySelector('.uvd-player-settings-sheet');
+  var body = overlay.querySelector('.uvd-settings-body');
+  renderPlayerSettings(body);
+  function close() { overlay.classList.remove('uvd-open'); setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 220); }
+  overlay.querySelector('.uvd-back-btn').onclick = close;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+  requestAnimationFrame(function() { overlay.classList.add('uvd-open'); });
+}
+
 // ========== SHOW VIDEO PLAYER ==========
 function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOverride) {
   // forceHlsJs is used only after native HLS has failed. It must be a real
@@ -3332,7 +3348,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   playerSettingsBtn.textContent = '⚙';
   playerSettingsBtn.title = 'Cài đặt';
   playerSettingsBtn.setAttribute('aria-label', 'Mở cài đặt');
-  playerSettingsBtn.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  playerSettingsBtn.onclick = function(e) { e.stopPropagation(); openPlayerSettingsOverlay(); };
 
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
@@ -4750,6 +4766,10 @@ style.textContent = `
 
 /* ===== POPUP CORNER SETTINGS ===== */
 .uvd-popup-settings-btn{position:absolute;top:12px;right:50px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-settings-btn:active{transform:scale(.94)}.uvd-dig-settings-btn{top:13px!important;right:54px!important;width:34px!important;height:34px!important;color:#8a6ab0!important}.uvd-preview-settings-btn{top:12px;right:52px}.uvd-player-header .uvd-player-settings-btn{width:38px!important;height:38px!important;padding:0!important;border-radius:13px!important;background:rgba(255,255,255,.78)!important;border:1px solid rgba(194,150,255,.28)!important;color:#8a6ab0!important;box-shadow:0 4px 10px rgba(150,90,220,.1)!important;font-size:16px!important}
+
+
+/* ===== 90% POPUP RHYTHM + PLAYER SETTINGS ===== */
+#__uvd_media_links_prompt__>.uvd-media-choice-popup,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel{height:90dvh!important;max-height:90dvh!important;display:flex!important;flex-direction:column!important}#__uvd_media_links_prompt__>.uvd-media-choice-popup>div:nth-child(2),#__uvd_iframe_workflow_prompt__>.uvd-glass-panel>div:nth-child(2){flex:1!important;min-height:0!important;overflow-y:auto!important;padding:14px 20px 18px!important}#__uvd_media_links_prompt__ .uvd-media-choice-popup>div:nth-child(2)>div:first-child,#__uvd_iframe_workflow_prompt__ .uvd-glass-panel>div:nth-child(2)>div:first-child{font-size:21px!important;line-height:1.25!important}#__uvd_media_preview__>.uvd-media-preview-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div{height:90dvh!important;max-height:90dvh!important;display:flex!important;flex-direction:column!important;justify-content:space-evenly!important}.uvd-player-settings-overlay{z-index:2147483649!important;background:rgba(42,23,52,.54)!important;backdrop-filter:blur(7px)!important}.uvd-player-settings-sheet{width:min(100%,560px)!important;max-height:90dvh!important;margin:auto auto 0!important;border:1px solid rgba(255,255,255,.82)!important;border-radius:30px 30px 0 0!important;background:linear-gradient(160deg,#fffafd,#fff0f7 54%,#f2ebff)!important;box-shadow:0 -16px 44px rgba(65,32,70,.26)!important}.uvd-player-settings-sheet .uvd-settings-header{min-height:92px!important;padding:12px 16px!important;background:linear-gradient(135deg,#fff1f7,#f4eaff)!important;border-bottom:0!important}.uvd-player-settings-mascot{display:flex;width:64px;height:64px;flex:0 0 64px;align-items:flex-end;justify-content:center;filter:drop-shadow(0 6px 12px rgba(247,108,140,.18));animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-player-settings-mascot svg{width:100%;height:100%}.uvd-player-settings-sheet .uvd-settings-body{padding:14px!important;overflow-y:auto!important}.uvd-player-settings-sheet .uvd-card{border-radius:16px!important;box-shadow:0 4px 11px rgba(150,90,220,.08)!important}@media (max-width:390px){#__uvd_media_links_prompt__>.uvd-media-choice-popup,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_media_preview__>.uvd-media-preview-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div{height:94dvh!important;max-height:94dvh!important}.uvd-player-settings-sheet{max-height:94dvh!important;border-radius:25px 25px 0 0!important}.uvd-player-settings-mascot{width:54px;height:54px;flex-basis:54px}}
 
 
 `;

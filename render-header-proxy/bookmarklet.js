@@ -1956,9 +1956,48 @@ addCleanup(function() {
 });
 
 // ========== AD GATE CAPTURE (EPORNER) ==========
+// First inspect only data that the page already exposes (DOM scripts, source
+// tags and resource timing). No ad/play click is synthesized and no protected
+// API is guessed. If a public playlist is not exposed, the normal post-gate
+// watcher below remains the safe fallback.
+var __uvdEpornerPreAdProbeTimer = null;
+var __uvdEpornerPreAdFound = false;
+function __uvdStartEpornerPreAdProbe() {
+  if (!/eporner\./i.test(pageInfo.host) || __uvdEpornerPreAdProbeTimer) return;
+  var startedAt = Date.now();
+  function stop() {
+    if (__uvdEpornerPreAdProbeTimer) clearInterval(__uvdEpornerPreAdProbeTimer);
+    __uvdEpornerPreAdProbeTimer = null;
+  }
+  function probe() {
+    if (__uvdAutoScanPaused || Date.now() - startedAt > 9000 || (playerState && playerState.overlay)) { stop(); return; }
+    try {
+      // Light scan includes <video>, <source>, data-* and inline player config
+      // without walking/clicking an ad gate.
+      scan(document, 'eporner:pre-ad', true);
+      document.querySelectorAll('script').forEach(function(script) {
+        var text = script.textContent || '';
+        if (/m3u8|master|playlist|hls/i.test(text)) findUrls(text, 'eporner:pre-ad:script');
+      });
+      performance.getEntriesByType('resource').forEach(function(entry) {
+        var name = entry && entry.name || '';
+        if (!name || isAdUrl(name) || __uvdIsLikelyHlsSegmentUrl(name)) return;
+        if (/\.m3u8(?:[?#]|$)|(?:master|playlist|manifest)/i.test(name)) __uvdAddDetectedMediaUrl(name, 'M3U8', 'eporner:pre-ad:resource');
+      });
+      var publicPlaylist = [...urls.entries()].some(function(entry) {
+        var item = entry[1] || {};
+        return item.type === 'M3U8' && (/eporner:pre-ad:script/i.test(item.source || '') || /master|playlist|manifest/i.test(entry[0]));
+      });
+      if (publicPlaylist) { __uvdEpornerPreAdFound = true; stop(); }
+    } catch(e) {}
+  }
+  probe();
+  if (!__uvdEpornerPreAdFound) __uvdEpornerPreAdProbeTimer = setInterval(probe, 650);
+  addCleanup(stop);
+}
 var __uvdEpornerGateTimer = null;
 function __uvdStartEpornerAdGate() {
-  if (!/eporner\./i.test(pageInfo.host) || __uvdEpornerGateTimer) return;
+  if (!/eporner\./i.test(pageInfo.host) || __uvdEpornerPreAdFound || __uvdEpornerGateTimer) return;
   var seen = {};
   var startedAt = Date.now();
   __uvdGrantPagePlayback(30000);
@@ -2228,6 +2267,8 @@ try {
   window.__uvdBootPhase = 'monitor';
   installMonitor();
   installPopupBlock();
+  __uvdStartEpornerPreAdProbe();
+  setTimeout(function() { if (!__uvdEpornerPreAdFound) __uvdStartEpornerAdGate(); }, 1800);
   __uvdStartJavhubAdGuard();
   __uvdStartEmbedDirectCapture();
   installUniversalOverlayBlocker();
@@ -3380,7 +3421,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     return !!(fe && (fe === videoWrapper || videoWrapper.contains(fe) || fe.contains(videoWrapper)));
   }
   var PORTRAIT_INSET = 12;
-  var FLOAT_SHADOW = '10px 14px 28px rgba(15,58,56,.22), 4px 6px 0 rgba(6,182,212,.10)';
+  var FLOAT_SHADOW = '0 16px 34px rgba(201,80,115,.24),0 7px 18px rgba(179,133,242,.22),0 0 0 1px rgba(255,255,255,.72) inset';
   videoWrapper.style.position = 'relative';
   videoWrapper.style.overflow = 'hidden';
   function __uvdApplyPlayerLayout() {

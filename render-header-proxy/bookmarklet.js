@@ -2293,7 +2293,7 @@ try {
 }
 
 var panelObserver = new MutationObserver(function() {
-  if (!__uvdPopupHomeMode && !document.getElementById('__uvd__')) {
+  if (!document.getElementById('__uvd__')) {
     stopMonitor();
     panelObserver.disconnect();
     runCleanup();
@@ -2305,7 +2305,6 @@ addCleanup(function() { panelObserver.disconnect(); });
 // ========== DEBOUNCE BUILDUI ==========
 var __uvdBuildUIDebounce = null;
 function debouncedBuildUI() {
-  if (__uvdPopupHomeMode && !__uvdLegacyUiRequested) return;
   clearTimeout(__uvdBuildUIDebounce);
   __uvdBuildUIDebounce = setTimeout(buildUI, 700);
 }
@@ -2604,7 +2603,6 @@ var playerState = {
   hideTimeout: null,
   controlsVisible: true,
   launchFromThumbnail: false,
-  returnRoute: '',
   timeMode: 0
 };
 
@@ -3270,11 +3268,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   // When hls.js is loaded lazily, the player shell already exists. Allow the
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;
-  if (playerState.overlay) {
-    // Re-initializing/quality switching is not a user back action.
-    playerState.returnRoute = '';
-    closePlayer();
-  }
+  if (playerState.overlay) closePlayer();
   // Khi đổi quality bằng URL variant, giữ lại catalog của master để menu
   // vẫn có toàn bộ các mức ở player kế tiếp.
   var preservedQualityCatalog = window.__uvdQualitySwitchCatalog || null;
@@ -3616,7 +3610,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
         if (value && value.url) {
           toast('Đang chuyển sang ' + value.label + '…');
           window.__uvdQualitySwitchCatalog = (playerState.qualities || []).slice();
-          __uvdOpenPlayerSurface(value.url, 'M3U8', false, true, true);
+          window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
         } else {
           toast('HLS chưa sẵn sàng — playlist không cung cấp URL chất lượng');
         }
@@ -3641,7 +3635,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       } else if (value && value.url) {
         window.__uvdQualitySwitchCatalog = (playerState.qualities || []).slice();
         toast('Đang chuyển sang ' + value.label + '…');
-        __uvdOpenPlayerSurface(value.url, 'M3U8', false, true, true);
+        window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
       } else toast('Không tìm thấy level ' + value.label);
     });
   }
@@ -4045,20 +4039,12 @@ function closePlayer() {
     playerState.qualities = [];
     playerState.resolution = '';
     playerState.bandwidth = 0;
-    var returnRoute = playerState.returnRoute;
-    playerState.returnRoute = '';
 
     data.settings.reduceMotion = playerState.wasReduceMotion;
     var __uvdMainPanel = document.getElementById('__uvd__');
     applyMotionPref(__uvdMainPanel);
     if (__uvdMainPanel) __uvdMainPanel.style.visibility = '';
     storage.set(data);
-    if (!window.__uvdShuttingDown && returnRoute) {
-      setTimeout(function() {
-        if (returnRoute === 'media' && __uvdLastMediaPopupStreams.length) __uvdOpenMediaLinksPopup(__uvdLastMediaPopupStreams);
-        else if (returnRoute === 'digging') __uvdReturnToDiggingHome();
-      }, 300);
-    }
   }
 }
 
@@ -4766,42 +4752,6 @@ style.textContent = `
 .uvd-popup-settings-btn{position:absolute;top:12px;right:50px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-settings-btn:active{transform:scale(.94)}.uvd-dig-settings-btn{top:13px!important;right:54px!important;width:34px!important;height:34px!important;color:#8a6ab0!important}.uvd-preview-settings-btn{top:12px;right:52px}.uvd-player-header .uvd-player-settings-btn{width:38px!important;height:38px!important;padding:0!important;border-radius:13px!important;background:rgba(255,255,255,.78)!important;border:1px solid rgba(194,150,255,.28)!important;color:#8a6ab0!important;box-shadow:0 4px 10px rgba(150,90,220,.1)!important;font-size:16px!important}
 
 
-/* ===== DIGGING HOME DOCK + DRAWERS ===== */
-.uvd-dig-home-dock{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0 2px}.uvd-dig-home-dock button{display:flex;align-items:center;gap:5px;min-width:0;padding:8px 9px;border:1px solid rgba(194,150,255,.25);border-radius:13px;background:rgba(255,255,255,.68);color:#8a6ab0;font-size:10px;font-weight:850;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.08)}.uvd-dig-home-dock button:active{transform:scale(.98)}.uvd-dig-home-dock span{min-width:0;flex:1;overflow:hidden;text-align:left;text-overflow:ellipsis;white-space:nowrap}.uvd-dig-home-dock b{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:8px}.uvd-dig-drawer-overlay{z-index:2147483648!important;background:rgba(46,25,57,.5)!important;backdrop-filter:blur(6px)!important;-webkit-backdrop-filter:blur(6px)!important}.uvd-dig-drawer-sheet{width:min(100%,620px)!important;max-height:86dvh!important;margin:auto auto 0!important;border:1px solid rgba(255,255,255,.82)!important;border-radius:30px 30px 0 0!important;background:linear-gradient(160deg,#fffafd,#fff0f7 54%,#f2ebff)!important;box-shadow:0 -16px 44px rgba(65,32,70,.24)!important}.uvd-dig-drawer-body{padding:12px!important;overflow-y:auto!important}.uvd-dig-drawer-tool{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;margin-bottom:12px;border:1px solid rgba(194,150,255,.23);border-radius:15px;background:rgba(255,255,255,.68)}.uvd-dig-drawer-tool strong{display:block;color:#c95073;font-size:11px}.uvd-dig-drawer-tool span{display:block;margin-top:3px;max-width:220px;overflow:hidden;color:#8a6ab0;font:9px ui-monospace,SFMono-Regular,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}.uvd-dig-drawer-tool button{padding:7px 10px;border:0;border-radius:10px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:10px;font-weight:850;cursor:pointer}.uvd-dig-drawer-section{margin:15px 3px 7px;color:#8a6ab0;font-size:10px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}.uvd-dig-drawer-body .uvd-history-card{box-shadow:0 3px 10px rgba(150,90,220,.08)!important}@media (max-width:390px){.uvd-dig-home-dock button{padding:7px 6px;font-size:9px}.uvd-dig-drawer-sheet{max-height:90dvh!important;border-radius:25px 25px 0 0!important}.uvd-dig-drawer-body{padding:10px!important}}
-
-
-/* ===== DIGGING HOME 90% + RICH DRAWERS ===== */
-.uvd-digging-overlay{padding:5dvh 14px!important;align-items:center!important}.uvd-digging-box{width:min(100%,500px)!important;height:90dvh!important;min-height:0!important;max-height:90dvh!important;padding:20px 22px 18px!important;overflow-y:auto!important;scrollbar-width:none}.uvd-digging-box::-webkit-scrollbar{display:none}.uvd-dig-art{margin:8px auto 5px!important}.uvd-dig-title{margin-top:8px!important}.uvd-dig-sub{margin-top:8px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-art{width:220px!important;height:198px!important;margin:7px auto 4px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-title{margin-top:6px!important}.uvd-dig-drawer-sheet{max-height:90dvh!important}.uvd-dig-drawer-header{min-height:104px!important;padding:12px 16px!important;background:linear-gradient(135deg,#fff1f7,#f4eaff)!important;border-bottom:1px solid rgba(255,159,180,.22)!important}.uvd-dig-drawer-mascot{display:flex;width:74px;height:74px;flex:0 0 74px;align-items:flex-end;justify-content:center;filter:drop-shadow(0 7px 13px rgba(247,108,140,.2));animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-dig-drawer-mascot svg{width:100%;height:100%}.uvd-dig-drawer-header .uvd-settings-title{font-size:18px!important;color:#c95073!important}.uvd-dig-drawer-header .uvd-settings-subtitle{font-size:10.5px!important;color:#8a6ab0!important}.uvd-dig-drawer-body{padding:14px!important;background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(249,241,255,.66))!important}.uvd-dig-drawer-hero{display:flex;align-items:center;gap:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,159,180,.25);border-radius:18px;background:linear-gradient(135deg,#fff,#fff0f7 56%,#f2ebff);box-shadow:0 5px 13px rgba(247,108,140,.1)}.uvd-dig-drawer-hero>span{display:flex;width:54px;height:54px;align-items:center;justify-content:center;border-radius:16px;background:rgba(255,255,255,.7);font-size:32px}.uvd-dig-drawer-hero strong{display:block;color:#c95073;font-size:13px}.uvd-dig-drawer-hero small{display:block;margin-top:3px;color:#8a6ab0;font-size:10px;line-height:1.4}.uvd-dig-drawer-body .uvd-card{border-radius:16px!important;box-shadow:0 4px 11px rgba(150,90,220,.08)!important}.uvd-dig-drawer-body .uvd-history-toolbar{padding:9px 10px!important;border:1px solid rgba(194,150,255,.2);border-radius:15px;background:rgba(255,255,255,.65)}.uvd-dig-drawer-body .uvd-history-toolbar-title{color:#c95073!important}.uvd-dig-drawer-body .uvd-history-card{border-radius:16px!important}.uvd-dig-drawer-body .uvd-stream-end{margin-bottom:5px!important}@media (max-width:390px){.uvd-digging-overlay{padding:3dvh 9px!important}.uvd-digging-box{height:94dvh!important;max-height:94dvh!important;padding:16px 16px 15px!important}.uvd-dig-art{width:238px!important;height:214px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-art{width:185px!important;height:166px!important}.uvd-dig-drawer-header{min-height:90px!important}.uvd-dig-drawer-mascot{width:62px;height:62px;flex-basis:62px}.uvd-dig-drawer-body{padding:10px!important}}
-
-
-/* ===== HIDE VS EXIT CONTROLS ===== */
-.uvd-popup-hide-btn{position:absolute;top:12px;right:88px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:20px;line-height:25px;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-hide-btn:active{transform:scale(.94)}.uvd-dig-hide-btn{top:13px!important;right:95px!important;width:34px!important;height:34px!important;line-height:28px!important}
-
-
-/* ===== POPUP HOME COMMON HEADER ===== */
-.uvd-popup-home-btn{position:absolute;top:12px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:13px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-home-btn:active{transform:scale(.94)}#__uvd_media_links_home__,#__uvd_iframe_links_home__{right:126px}#__uvd_media_activity_home__,#__uvd_iframe_activity_home__{right:164px}.uvd-dig-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}.uvd-dig-collapsed .uvd-digging-box{height:auto!important;min-height:0!important;max-height:none!important;padding:11px 14px!important;overflow:hidden!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}.uvd-dig-collapsed .uvd-dig-home-dock{margin:7px 40px 0 0!important}.uvd-dig-collapsed .uvd-dig-topline{padding-right:112px!important}
-
-
-/* ===== COLLAPSED POPUP HOME HEADERS ===== */
-#__uvd_media_links_prompt__.uvd-popup-collapsed,#__uvd_iframe_workflow_prompt__.uvd-popup-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}#__uvd_media_links_prompt__.uvd-popup-collapsed .uvd-media-choice-popup,#__uvd_iframe_workflow_prompt__.uvd-popup-collapsed .uvd-glass-panel{width:min(100%,500px)!important;margin:0 auto!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}#__uvd_media_links_prompt__ .uvd-popup-panel-collapsed>div:not(:first-child),#__uvd_iframe_workflow_prompt__ .uvd-popup-panel-collapsed>div:not(:first-child){display:none!important}#__uvd_media_links_prompt__ .uvd-popup-panel-collapsed>div:first-child,#__uvd_iframe_workflow_prompt__ .uvd-popup-panel-collapsed>div:first-child{padding-bottom:10px!important}
-
-
-/* ===== POPUP RHYTHM + COMMON HEADERS ===== */
-.uvd-popup-common-header{min-height:104px!important;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(135deg,rgba(255,245,250,.72),rgba(246,238,255,.62));border-bottom:1px solid rgba(255,159,180,.15)}.uvd-popup-common-header .uvd-media-popup-mascot,.uvd-popup-common-header .uvd-iframe-popup-mascot{transform:scale(1.3)!important}.uvd-dig-home-dock button{min-height:42px!important;padding:9px 11px!important;font-size:11px!important;border-radius:15px!important;background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(248,238,255,.85))!important}.uvd-farewell-box{height:90dvh!important;min-height:0!important;max-height:90dvh!important;display:flex!important;flex-direction:column!important;justify-content:space-evenly!important;padding:22px 24px!important}.uvd-farewell-art{margin:0 auto!important}.uvd-farewell-title{color:#d85c7a;font-size:30px;font-weight:950;letter-spacing:-.035em;line-height:1.12}.uvd-farewell-subtitle{margin-top:2px;color:#9a6ce0;font-size:17px;font-weight:850}.uvd-farewell-copy{margin:8px auto;color:#805e83;font-size:14px;font-weight:650;line-height:1.7;max-width:420px}.uvd-farewell-actions{display:flex;gap:12px;margin-top:6px}.uvd-farewell-actions button{min-height:58px;font-size:16px!important}@media (max-width:390px){.uvd-popup-common-header{min-height:84px!important}.uvd-farewell-box{height:94dvh!important;max-height:94dvh!important;padding:17px!important}.uvd-farewell-art{transform:scale(.9)}.uvd-farewell-title{font-size:26px}.uvd-farewell-subtitle{font-size:15px}.uvd-farewell-copy{font-size:12px}.uvd-farewell-actions button{min-height:52px;font-size:14px!important}}
-
-
-/* ===== DIGGING HEADER = COMMON POPUP HEADER ===== */
-.uvd-dig-common-header{min-height:82px!important;padding:12px 0 12px 2px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;background:linear-gradient(135deg,rgba(255,245,250,.82),rgba(246,238,255,.72))!important;border-bottom:1px solid rgba(255,159,180,.16)!important}.uvd-dig-common-brand strong{display:block;color:#c95073;font-size:14px;font-weight:950;letter-spacing:.05em;text-transform:uppercase}.uvd-dig-common-brand small{display:block;margin-top:3px;color:#9a6ce0;font-size:10px;font-weight:850}.uvd-dig-common-actions{display:flex;align-items:center;gap:5px}.uvd-dig-common-actions button{position:relative!important;top:auto!important;right:auto!important;display:inline-flex!important;width:34px!important;height:34px!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid rgba(194,150,255,.25)!important;border-radius:50%!important;background:rgba(255,255,255,.82)!important;color:#8a6ab0!important;font-size:15px!important;line-height:1!important;box-shadow:0 3px 9px rgba(150,90,220,.1)!important;cursor:pointer}.uvd-dig-common-actions .uvd-dig-close{color:#c95073!important;font-size:23px!important}.uvd-dig-common-actions b{position:absolute;right:-4px;top:-5px;display:flex;min-width:17px;height:17px;align-items:center;justify-content:center;padding:0 4px;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:8px;font-weight:900}.uvd-dig-collapsed .uvd-digging-box{padding:0 14px!important}.uvd-dig-collapsed .uvd-dig-common-header{display:flex!important;margin:0!important;border-bottom:0!important}.uvd-dig-collapsed .uvd-dig-common-brand{display:none}.uvd-dig-collapsed .uvd-dig-common-header{justify-content:flex-end!important;min-height:52px!important}@media (max-width:390px){.uvd-dig-common-header{min-height:70px!important}.uvd-dig-common-brand strong{font-size:12px}.uvd-dig-common-actions{gap:3px}.uvd-dig-common-actions button{width:30px!important;height:30px!important;font-size:13px!important}}
-
-
-/* ===== POPUP BACK + FLAT COMMON HEADER ===== */
-.uvd-popup-common-header{border-bottom:0!important}.uvd-popup-back-btn{position:absolute;left:12px;top:12px;z-index:4;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-back-btn:active{transform:scale(.94)}
-
-
-/* ===== RELIABLE DIGGING COLLAPSE ===== */
-.uvd-dig-common-header{min-height:56px!important;padding:6px 0!important;background:transparent!important;border:0!important}.uvd-dig-content{display:block;max-height:calc(90dvh - 62px);overflow:hidden;opacity:1;transform:translateY(0);transition:max-height .48s cubic-bezier(.22,1,.36,1),opacity .26s ease,transform .38s ease}.uvd-dig-collapsed .uvd-digging-box>.uvd-dig-common-header{display:flex!important;min-height:52px!important}.uvd-dig-collapsed .uvd-digging-box>.uvd-dig-content{display:block!important;max-height:0!important;opacity:0!important;transform:translateY(-20px)!important;pointer-events:none!important}.uvd-dig-collapsed .uvd-digging-box{height:auto!important;min-height:0!important;padding:4px 14px!important}.uvd-dig-collapsed .uvd-dig-common-actions{margin-left:auto}.uvd-dig-collapsed .uvd-dig-header-spacer{display:none}
-
-
 `;
 
 
@@ -4912,8 +4862,6 @@ function __uvdShowPopupReopenBtn(kind) {
 }
 // Hide the whole UMP panel (cute popup takes priority and must not be covered).
 var __uvdPopupActive = false;
-var __uvdPopupHomeMode = true;
-var __uvdLegacyUiRequested = false;
 function __uvdHideUiForPopup() {
   __uvdPopupActive = true;
   var p = document.getElementById('__uvd__');
@@ -4922,7 +4870,7 @@ function __uvdHideUiForPopup() {
 function __uvdRestoreUiAfterPopup() {
   __uvdPopupActive = false;
   var p = document.getElementById('__uvd__');
-  if (p && p.__uvdPopupHidden) { p.__uvdPopupHidden = false; p.style.display = __uvdPopupHomeMode && !__uvdLegacyUiRequested ? 'none' : ''; }
+  if (p && p.__uvdPopupHidden) { p.__uvdPopupHidden = false; p.style.display = ''; }
   __uvdRemovePopupReopenBtn();
 }
 function __uvdPopupDismiss() {
@@ -5264,10 +5212,6 @@ function __uvdSetDiggingReady(kind, subtitle) {
   if (factWrap) factWrap.style.display = 'none';
   var status = overlay.querySelector('#__uvd_dig_status__');
   var count = overlay.querySelector('#__uvd_dig_count__');
-  var allLinkCount = overlay.querySelector('#__uvd_dig_links_count__');
-  var activityCount = overlay.querySelector('#__uvd_dig_activity_count__');
-  if (allLinkCount) allLinkCount.textContent = String(urls.size || 0);
-  if (activityCount) activityCount.textContent = String(Object.keys(data.clickedButtons[pageInfo.host] || {}).length + (data.history || []).length);
   if (status) status.textContent = kind === 'iframe' ? '🖼️ Đã thấy player iframe' : '✨ Đã đào được video';
   if (count) count.textContent = kind === 'iframe' ? '1 player' : (__uvdQualifiedDirectEntries().length + ' video đã kiểm chứng');
   var routeHint = overlay.querySelector('#__uvd_dig_route_hint__');
@@ -5332,48 +5276,6 @@ function __uvdProbeIframeDuringDig(stage) {
   }
 }
 
-function __uvdDiggingStreamSnapshot() {
-  return [...urls.entries()].map(function(entry) {
-    var item = entry[1] || {};
-    return { url: entry[0], type: item.type, source: item.source, priority: item.priority, timestamp: item.timestamp || 0, sequence: item.sequence || 0, qualityCount: item.qualityCount || 0, isMaster: !!item.isMaster, resolution: item.resolution || __uvdGetUrlResolution(entry[0]), aiVerdict: item.aiVerdict || '', aiScore: item.aiScore == null ? null : item.aiScore, aiReasons: item.aiReasons || [] };
-  }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
-}
-function __uvdOpenDiggingDrawer(kind) {
-  var old = document.getElementById('__uvd_dig_drawer__');
-  if (old) old.remove();
-  var overlay = document.createElement('div');
-  overlay.id = '__uvd_dig_drawer__';
-  overlay.className = 'uvd-settings-overlay uvd-dig-drawer-overlay';
-  var title = kind === 'activity' ? 'Hoạt động & lịch sử' : 'Tất cả link đã bắt';
-  var subtitle = kind === 'activity' ? 'Nút đã bấm ở trên · lịch sử ở dưới' : 'Nhật ký kỹ thuật · copy và vote link';
-  var mascot = kind === 'activity' ? (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹') : (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : '🐼');
-  overlay.innerHTML = '<div class="uvd-settings-sheet uvd-dig-drawer-sheet"><div class="uvd-settings-header uvd-dig-drawer-header"><button class="uvd-back-btn" type="button">←</button><span class="uvd-dig-drawer-mascot">' + mascot + '</span><div class="uvd-settings-title-wrap"><span class="uvd-settings-title">' + escapeHtml(title) + '</span><span class="uvd-settings-subtitle">' + escapeHtml(subtitle) + '</span></div></div><div class="uvd-settings-body uvd-dig-drawer-body"></div></div>';
-  __uvdAppendRoot(overlay);
-  var body = overlay.querySelector('.uvd-dig-drawer-body');
-  function close() { overlay.classList.remove('uvd-open'); setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 220); }
-  overlay.querySelector('.uvd-back-btn').onclick = close;
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
-  if (kind === 'activity') {
-    var current = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
-    body.innerHTML = '<div class="uvd-dig-drawer-hero"><span>🐹</span><div><strong>Nhật ký hoạt động của Mèo</strong><small>Chỉnh Play, xem nút đã thử và lịch sử ở một chỗ.</small></div></div><div class="uvd-dig-drawer-tool"><div><strong>◉ Class nút Play</strong><span>' + escapeHtml(current || 'Chưa đặt · Mèo sẽ tự đoán') + '</span></div><button type="button">Chỉnh</button></div><div class="uvd-dig-drawer-section">Nút đã bấm</div><div id="__uvd_dig_clicked__"></div><div class="uvd-dig-drawer-section">Lịch sử xem</div><div id="__uvd_dig_history__"></div>';
-    body.querySelector('.uvd-dig-drawer-tool button').onclick = function() {
-      var next = prompt('CSS selector của nút Play (ví dụ: .video-play-button):', current);
-      if (next === null) return;
-      next = next.trim();
-      data.siteProfiles[pageInfo.host] = Object.assign({}, data.siteProfiles[pageInfo.host], { playSelector: next });
-      storage.set(data);
-      toast(next ? 'Đã lưu class Play' : 'Đã xóa class Play');
-      close();
-    };
-    renderClickedButtons(body.querySelector('#__uvd_dig_clicked__'));
-    renderHistory(body.querySelector('#__uvd_dig_history__'));
-  } else {
-    body.innerHTML = '<div class="uvd-dig-drawer-hero"><span>🐼</span><div><strong>Kho link Mèo đã bắt</strong><small>Thông tin kỹ thuật gọn, copy và vote khi cần.</small></div></div><div id="__uvd_dig_links_list__"></div>';
-    renderStreams(body.querySelector('#__uvd_dig_links_list__'), __uvdDiggingStreamSnapshot());
-  }
-  requestAnimationFrame(function() { overlay.classList.add('uvd-open'); });
-}
-
 function __uvdStartDiggingPopup() {
   var flow = __uvdDiggingFlow;
   if (flow.active || flow.completed || playerState.overlay) return;
@@ -5400,8 +5302,9 @@ function __uvdStartDiggingPopup() {
   overlay.className = 'uvd-digging-overlay';
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
-      '<div class="uvd-popup-common-header uvd-dig-common-header"><span class="uvd-dig-header-spacer" aria-hidden="true"></span><div class="uvd-dig-common-actions"><button type="button" id="__uvd_dig_links__" title="Tất cả link">☷<b id="__uvd_dig_links_count__">0</b></button><button type="button" id="__uvd_dig_activity__" title="Hoạt động & lịch sử">🕘<b id="__uvd_dig_activity_count__">0</b></button><button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button><button type="button" class="uvd-popup-hide-btn uvd-dig-hide-btn" id="__uvd_dig_hide__" title="Ẩn popup">−</button><button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Thoát Mèo cào media">×</button></div></div>' +
-      '<div class="uvd-dig-content">' +
+      '<button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button>' +
+      '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
+      '<div class="uvd-dig-topline"><span class="uvd-dig-brand">Mèo cào media</span><span class="uvd-dig-mode">✦ Đào link</span></div>' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
@@ -5411,23 +5314,30 @@ function __uvdStartDiggingPopup() {
         '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
       '</div>' +
       '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
+      '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button></div>' +
       '<div class="uvd-dig-help">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
       '<div id="__uvd_dig_fact_wrap__" style="margin-top:12px;display:none;text-align:center;">' +
         '<button type="button" id="__uvd_dig_fact_btn__" style="padding:8px 14px;border-radius:999px;border:1px dashed rgba(255,159,180,.4);background:linear-gradient(135deg,#fff6fb,#ffe9f3);color:#d85c7a;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 3px 10px rgba(247,108,140,.12);">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
         '<div id="__uvd_dig_fact_box__" style="display:none;margin-top:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#fffdfd,#fff0f5);border:1px solid rgba(255,159,180,.28);box-shadow:0 6px 16px rgba(247,108,140,.12);font-size:12px;color:#7a5f9e;line-height:1.5;text-align:left;position:relative;overflow:hidden"><div style="position:absolute;right:8px;top:6px;font-size:12px">✨</div><div id="__uvd_dig_fact_text__" style="padding-right:16px">Đang lấy fact vui...</div></div>' +
       '</div>' +
       '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
-      '</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
-  var dockLinkCount = overlay.querySelector('#__uvd_dig_links_count__');
-  var dockActivityCount = overlay.querySelector('#__uvd_dig_activity_count__');
-  if (dockLinkCount) dockLinkCount.textContent = String(urls.size || 0);
-  if (dockActivityCount) dockActivityCount.textContent = String(Object.keys(data.clickedButtons[pageInfo.host] || {}).length + (data.history || []).length);
   var enter = overlay.querySelector('#__uvd_dig_enter__');
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
   var watchFirst = overlay.querySelector('#__uvd_dig_watch_first__');
   if (watchFirst) watchFirst.onclick = __uvdWatchFirstDiggingStream;
+  var goUi = overlay.querySelector('#__uvd_dig_ui__');
+  if (goUi) goUi.onclick = function() {
+    __uvdStopDiggingPopup(false);
+    // Some pages rebuild the panel while the digging overlay is active. Force
+    // the restored panel back to a visible state instead of leaving it hidden.
+    requestAnimationFrame(function() {
+      var panel = document.getElementById('__uvd__');
+      if (!panel && typeof buildUI === 'function') { buildUI(); panel = document.getElementById('__uvd__'); }
+      if (panel) { __uvdPopupActive = false; panel.__uvdPopupHidden = false; panel.style.display = ''; panel.style.visibility = ''; }
+    });
+  };
   var help = overlay.querySelector('#__uvd_dig_help__');
   if (help) help.onclick = function(e){
     e.stopPropagation();
@@ -5470,25 +5380,17 @@ function __uvdStartDiggingPopup() {
       tryNext();
     };
   }
-  var close = overlay.querySelector('#__uvd_dig_close__');
-  if (close) {
-    close.onclick = function(e) { if (e) e.stopPropagation(); __uvdRequestExit(overlay); };
-    close.addEventListener('pointerdown', function(e) { e.preventDefault(); e.stopImmediatePropagation(); __uvdRequestExit(overlay); }, true);
-    close.addEventListener('touchend', function(e) { e.preventDefault(); e.stopImmediatePropagation(); __uvdRequestExit(overlay); }, true);
-    close.addEventListener('click', function(e) { e.stopPropagation(); __uvdRequestExit(overlay); });
+  // Clear timer when popup closes
+  var origClose = overlay.querySelector('#__uvd_dig_close__');
+  if (origClose) {
+    var origCloseFn = origClose.onclick;
+    origClose.onclick = function(){ clearTimeout(factTimer); if(origCloseFn) origCloseFn(); };
   }
-  var digHide = overlay.querySelector('#__uvd_dig_hide__');
-  if (digHide) digHide.onclick = function() {
-    var collapsed = overlay.classList.toggle('uvd-dig-collapsed');
-    digHide.textContent = collapsed ? '+' : '−';
-    digHide.title = collapsed ? 'Mở Home Mèo' : 'Thu gọn còn header';
-  };
+
+  var close = overlay.querySelector('#__uvd_dig_close__');
+  if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
   var digSettings = overlay.querySelector('#__uvd_dig_settings__');
   if (digSettings) digSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
-  var digLinks = overlay.querySelector('#__uvd_dig_links__');
-  if (digLinks) digLinks.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('links'); };
-  var digActivity = overlay.querySelector('#__uvd_dig_activity__');
-  if (digActivity) digActivity.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('activity'); };
   var initialStatus = overlay.querySelector('#__uvd_dig_status__');
   if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
   __uvdStartDiggingRealtimeCapture();
@@ -5535,7 +5437,6 @@ function __uvdWatchFirstDiggingStream() {
   __uvdRunDiggingCatThenFly(function() {
     addToHistory(first.url, first.type || 'MP4');
     playerState.launchFromThumbnail = true;
-    playerState.returnRoute = 'digging';
     showVideoPlayer(first.url, first.type || 'MP4');
   });
 }
@@ -5627,16 +5528,8 @@ function __uvdStopDiggingPopup(keepUiHidden) {
 
 var __uvdMediaPopupShown = false;
 var __uvdMediaPopupDismissedAt = 0;
-// Open the real player without relying on the legacy main UI to have been built.
-function __uvdOpenPlayerSurface(url, type, fromProxy, forceReinit, forceHlsJs, titleOverride) {
-  if (typeof showVideoPlayer === 'function') return showVideoPlayer(url, type || 'MP4', fromProxy, forceReinit, forceHlsJs, titleOverride);
-  if (window.__uvd_showPlayer) return window.__uvd_showPlayer(url, type || 'MP4');
-  throw new Error('Player chưa sẵn sàng');
-}
-
 // Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
 function __uvdShowPlayIntro(url, type) {
-  playerState.returnRoute = 'media';
   var anyPopup = document.getElementById('__uvd_media_links_prompt__');
   if (anyPopup) { anyPopup.remove(); __uvdPopupDismiss(); }
   var old = document.getElementById('__uvd_play_intro__');
@@ -5669,73 +5562,12 @@ function __uvdShowPlayIntro(url, type) {
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     playerState.launchFromThumbnail = true;
-    try { __uvdOpenPlayerSurface(url, type || 'MP4'); } catch(e) { toast('Không mở được player: ' + (e.message || 'lỗi không rõ')); }
+    try { window.__uvd_showPlayer(url, type || 'MP4'); } catch(e) {}
   }
   var openBtn = box.querySelector('#__uvd_play_intro_open__');
   if (openBtn) openBtn.onclick = function(e) { e.stopPropagation(); openIt(); };
   setTimeout(openIt, 3200);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) openIt(); });
-}
-
-// All destructive close buttons use the same farewell confirmation.
-var __uvdExitHandler = null;
-function __uvdShutdownEverything() {
-  window.__uvdShuttingDown = true;
-  try { if (playerState && playerState.overlay) closePlayer(); } catch(e) {}
-  ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__','__uvd_settings_overlay__','__uvd_dig_drawer__','__uvd_popup_reopen__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
-  try { stopMonitor(); runCleanup(); urls.clear(); } catch(e) {}
-  var root = document.getElementById('__uvd__');
-  if (root) root.remove();
-  try { if (typeof style !== 'undefined' && style.parentNode) style.remove(); } catch(e) {}
-}
-function __uvdRequestExit(sourceOverlay) {
-  if (document.getElementById('__uvd_farewell_popup__')) return;
-  var source = sourceOverlay && sourceOverlay.isConnected ? sourceOverlay : null;
-  var previousDisplay = source ? source.style.display : '';
-  // Hide the current surface first. Farewell must never sit underneath an
-  // existing max-z-index popup or leave the user unable to press its buttons.
-  if (source) source.style.display = 'none';
-  try {
-    __uvdShowFarewellPopup(function() { __uvdShutdownEverything(); }, function() {
-      if (source && source.isConnected) source.style.display = previousDisplay;
-    });
-  } catch(e) {
-    if (source && source.isConnected) source.style.display = previousDisplay;
-    __uvdShutdownEverything();
-  }
-}
-var __uvdExitDelegationInstalled = false;
-function __uvdInstallExitDelegation() {
-  if (__uvdExitDelegationInstalled) return;
-  __uvdExitDelegationInstalled = true;
-  var selector = '#__uvd_dig_close__,#__uvd_media_links_close__,#__uvd_iframe_workflow_close_x__,#__uvd_close__';
-  var handler = function(e) {
-    var target = e.target && e.target.closest ? e.target.closest(selector) : null;
-    if (!target) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    var surface = target.closest('#__uvd_digging_popup__,#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd__');
-    __uvdRequestExit(surface);
-  };
-  document.addEventListener('pointerdown', handler, true);
-  document.addEventListener('pointerup', handler, true);
-  document.addEventListener('touchend', handler, true);
-  document.addEventListener('click', handler, true);
-  addCleanup(function() {
-    document.removeEventListener('pointerdown', handler, true);
-    document.removeEventListener('pointerup', handler, true);
-    document.removeEventListener('touchend', handler, true);
-    document.removeEventListener('click', handler, true);
-    __uvdExitDelegationInstalled = false;
-  });
-}
-__uvdInstallExitDelegation();
-function __uvdReturnToDiggingHome(sourceOverlay) {
-  if (sourceOverlay) { try { sourceOverlay.remove(); } catch(e) {} }
-  __uvdPopupActive = false;
-  __uvdRemovePopupReopenBtn();
-  var flow = __uvdDiggingFlow;
-  flow.active = false; flow.completed = false; flow.released = false;
-  setTimeout(function() { __uvdStartDiggingPopup(); }, 40);
 }
 
 // ========== FAREWELL POPUP - gom het thu lai tam biet de thuong khi bam X (fix undefined + to nhu digging popup) ==========
@@ -5753,7 +5585,7 @@ function __uvdGetFarewellMascotsHtml(){
   var pick = animals[Math.floor(Math.random() * animals.length)];
   return '<div class="uvd-farewell-mascots uvd-farewell-one"><span class="uvd-fm uvd-fm-big-full">' + pick.art + '</span><div class="uvd-farewell-animal-name">' + pick.name + '</div></div>';
 }
-function __uvdShowFarewellPopup(onConfirm, onCancel) {
+function __uvdShowFarewellPopup(onConfirm) {
   var old = document.getElementById('__uvd_farewell_popup__');
   if (old) old.remove();
   __uvdHideUiForPopup();
@@ -5768,10 +5600,10 @@ function __uvdShowFarewellPopup(onConfirm, onCancel) {
   box.innerHTML =
     '<div class="uvd-farewell-art" style="width:280px;height:200px;margin:0 auto 14px;line-height:0;">' + __uvdGetFarewellMascotsHtml() + '</div>' +
     '<div class="uvd-farewell-kicker" style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;margin-bottom:6px;">mèo cào media</div>' +
-    '<div class="uvd-farewell-title">Tạm biệt cưng iu ♡</div>' +
-    '<div class="uvd-farewell-subtitle">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
-    '<div class="uvd-farewell-copy">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
-    '<div class="uvd-farewell-actions">' +
+    '<div style="font-size:26px;font-weight:900;color:#d85c7a;margin-bottom:6px;">Tạm biệt cưng iu ♡</div>' +
+    '<div style="font-size:14px;font-weight:700;color:#9a6ce0;margin-bottom:8px;">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
+    '<div style="font-size:12.5px;color:#8a6ab0;line-height:1.65;margin-bottom:18px;">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+    '<div style="display:flex;gap:10px;">' +
       '<button id="__uvd_farewell_stay__" style="flex:1;padding:13px;border-radius:16px;border:none;background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#d85c7a;font-weight:800;font-size:13.5px;cursor:pointer;">Ở lại ♡</button>' +
       '<button id="__uvd_farewell_bye__" style="flex:1;padding:13px;border-radius:16px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 8px 20px rgba(247,108,140,.35);">Tạm biệt 🐾</button>' +
     '</div>';
@@ -5785,19 +5617,9 @@ function __uvdShowFarewellPopup(onConfirm, onCancel) {
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     if(confirm && typeof onConfirm==='function') onConfirm();
-    else if(!confirm && typeof onCancel==='function') onCancel();
   }
-  var farewellStay = box.querySelector('#__uvd_farewell_stay__');
-  var farewellBye = box.querySelector('#__uvd_farewell_bye__');
-  function bindFarewellTap(button, confirm) {
-    if (!button) return;
-    var act = function(e) { if (e) { e.preventDefault(); e.stopImmediatePropagation(); } closeFarewell(confirm); };
-    button.onclick = act;
-    button.addEventListener('pointerdown', act, true);
-    button.addEventListener('touchend', act, true);
-  }
-  bindFarewellTap(farewellStay, false);
-  bindFarewellTap(farewellBye, true);
+  box.querySelector('#__uvd_farewell_stay__').onclick = function(){ closeFarewell(false); };
+  box.querySelector('#__uvd_farewell_bye__').onclick = function(){ closeFarewell(true); };
   overlay.addEventListener('click', function(e){ if(e.target===overlay) closeFarewell(false); });
 }
 
@@ -6109,14 +5931,12 @@ function __uvdCompactPopupUrl(raw) {
     return raw.length > 76 ? raw.slice(0, 73) + '…' : raw;
   }
 }
-var __uvdLastMediaPopupStreams = [];
 function __uvdOpenMediaLinksPopup(streams) {
   __uvdSyncPopupMetadataFromStreamTab();
   streams = __uvdSortStreamsForPopup(streams || []).filter(function(stream) {
     return __uvdIsQualifiedMediaItem(stream && (stream.item || urls.get(stream.url)));
   });
   if (!streams.length) return false;
-  __uvdLastMediaPopupStreams = streams.slice();
   var old = document.getElementById('__uvd_media_links_prompt__');
   if (old) old.remove();
   // Hide the UMP panel so this popup is never covered by the UI.
@@ -6132,11 +5952,8 @@ function __uvdOpenMediaLinksPopup(streams) {
     'box-shadow:0 28px 72px rgba(150,90,220,.36),0 0 0 6px rgba(255,255,255,.35) inset;' +
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   panel.innerHTML =
-    '<div class="uvd-popup-common-header" style="padding:16px 16px 2px;position:relative;">' +
-      '<button id="__uvd_media_back__" class="uvd-popup-back-btn" title="Quay lại Home Đào">←</button>' +
-      '<button id="__uvd_media_links_close__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
-      '<button id="__uvd_media_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
-      '<button id="__uvd_media_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_media_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
+    '<div style="padding:16px 16px 2px;position:relative;">' +
+      '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_media_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
     '</div>' +
@@ -6214,34 +6031,19 @@ function __uvdOpenMediaLinksPopup(streams) {
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
   }
-  // Top hide collapses to the common header; "Để sau" still creates a
-  // floating reopen chip for people who want the popup fully out of the way.
-  function collapseMedia() {
-    var collapsed = panel.classList.toggle('uvd-popup-panel-collapsed');
-    overlay.classList.toggle('uvd-popup-collapsed', collapsed);
-    if (mediaHide) { mediaHide.textContent = collapsed ? '+' : '−'; mediaHide.title = collapsed ? 'Mở popup' : 'Thu gọn còn header'; }
-  }
-  function stashMedia() {
+  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
+  var cancel = panel.querySelector('#__uvd_media_links_cancel__');
+  if (cancel) cancel.onclick = function() {
     __uvdMediaPopupDismissedAt = Date.now();
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     __uvdShowPopupReopenBtn('media');
-  }
-  var cancel = panel.querySelector('#__uvd_media_links_cancel__');
-  if (cancel) cancel.onclick = stashMedia;
-  var mediaHide = panel.querySelector('#__uvd_media_hide__');
-  if (mediaHide) mediaHide.onclick = collapseMedia;
-  // X is reserved for leaving the whole tool and always confirms first.
+  };
+  // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
-  if (closeX) closeX.onclick = function() { __uvdRequestExit(overlay); };
-  var mediaBack = panel.querySelector('#__uvd_media_back__');
-  if (mediaBack) mediaBack.onclick = function(e) { e.stopPropagation(); __uvdReturnToDiggingHome(overlay); };
+  if (closeX) closeX.onclick = closeMedia;
   var mediaSettings = panel.querySelector('#__uvd_media_settings__');
   if (mediaSettings) mediaSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
-  var mediaLinksHome = panel.querySelector('#__uvd_media_links_home__');
-  if (mediaLinksHome) mediaLinksHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('links'); };
-  var mediaActivityHome = panel.querySelector('#__uvd_media_activity_home__');
-  if (mediaActivityHome) mediaActivityHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('activity'); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Make sure the popup sits above everything (including the main UMP panel).
@@ -6320,11 +6122,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML =
-    '<div class="uvd-popup-common-header" style="padding:18px 18px 4px;position:relative;">' +
-      '<button id="__uvd_iframe_back__" class="uvd-popup-back-btn" title="Quay lại Home Đào">←</button>' +
-      '<button id="__uvd_iframe_workflow_close_x__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
-      '<button id="__uvd_iframe_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
-      '<button id="__uvd_iframe_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_iframe_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
+    '<div style="padding:18px 18px 4px;position:relative;">' +
+      '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_iframe_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
     '</div>' +
@@ -6419,32 +6218,19 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
   }
-  // Top hide leaves only the common iframe header; "Để sau" stashes it.
-  function collapseIframe() {
-    var collapsed = panel.classList.toggle('uvd-popup-panel-collapsed');
-    overlay.classList.toggle('uvd-popup-collapsed', collapsed);
-    if (iframeHide) { iframeHide.textContent = collapsed ? '+' : '−'; iframeHide.title = collapsed ? 'Mở popup' : 'Thu gọn còn header'; }
-  }
-  function stashIframe() {
+  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
+  var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
+  if (cancel) cancel.onclick = function() {
     __uvdIframeWorkflowDismissedAt = Date.now();
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     __uvdShowPopupReopenBtn('iframe');
-  }
-  var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
-  if (cancel) cancel.onclick = stashIframe;
-  var iframeHide = panel.querySelector('#__uvd_iframe_hide__');
-  if (iframeHide) iframeHide.onclick = collapseIframe;
+  };
+  // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
-  if (closeX) closeX.onclick = function() { __uvdRequestExit(overlay); };
-  var iframeBack = panel.querySelector('#__uvd_iframe_back__');
-  if (iframeBack) iframeBack.onclick = function(e) { e.stopPropagation(); __uvdReturnToDiggingHome(overlay); };
+  if (closeX) closeX.onclick = closeIframe;
   var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
   if (iframeSettings) iframeSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
-  var iframeLinksHome = panel.querySelector('#__uvd_iframe_links_home__');
-  if (iframeLinksHome) iframeLinksHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('links'); };
-  var iframeActivityHome = panel.querySelector('#__uvd_iframe_activity_home__');
-  if (iframeActivityHome) iframeActivityHome.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('activity'); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Keep iframe popup above the main panel too.
@@ -6948,7 +6734,6 @@ function buildUI() {
 
   function __uvdRealClose(){
     if (playerState.overlay) closePlayer();
-    ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_settings_overlay__','__uvd_dig_drawer__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
     stopMonitor();
     if (window.__uvdPanelResizeHandler) {
       window.removeEventListener('resize', window.__uvdPanelResizeHandler);
@@ -6962,9 +6747,8 @@ function buildUI() {
     urls.clear();
     if (typeof style !== 'undefined' && style.parentNode) style.remove();
   }
-  __uvdExitHandler = __uvdRealClose;
   document.getElementById('__uvd_close__').onclick = function() {
-    __uvdRequestExit(panel);
+    __uvdShowFarewellPopup(function(){ __uvdRealClose(); });
   };
   document.getElementById('__uvd_hide__').onclick = function() {
     var isCollapsed = panel.classList.contains('uvd-panel-collapsed');
@@ -7865,7 +7649,7 @@ function showQualityPicker(url) {
       playBtn.className = 'uvd-btn uvd-btn-sm';
       playBtn.style.background = 'rgba(255,159,180,.22)';
       playBtn.textContent = 'Xem';
-      playBtn.onclick = function() { overlay.remove(); __uvdOpenPlayerSurface(q.url, 'M3U8'); };
+      playBtn.onclick = function() { overlay.remove(); window.__uvd_showPlayer(q.url, 'M3U8'); };
       grid.appendChild(playBtn);
       var cmdBtn = document.createElement('button');
       cmdBtn.className = 'uvd-btn uvd-btn-sm';
@@ -8495,7 +8279,7 @@ function __uvdUserscriptPageHasTarget() {
 function __uvdStartUserscriptUi() {
   if (document.getElementById('__uvd__')) return;
   window.__uvdBootPhase = 'build-ui';
-  if (!__uvdPopupHomeMode) buildUI();
+  buildUI();
   setTimeout(function() { __uvdStartDiggingPopup(); }, 140);
   setTimeout(__uvdSyncLoad, 350);
   if (__uvdUserscriptMode) setTimeout(function() { __uvdSetHidden(true); }, 0);

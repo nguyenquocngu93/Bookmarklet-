@@ -406,7 +406,7 @@ function parseResults(content) {
   return Array.isArray(results) ? results : [];
 }
 
-async function callGemini(userPrompt) {
+async function callGemini(userPrompt, systemPrompt) {
   const resp = await fetch(
     `${GEMINI_BASE_URL}/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
     {
@@ -414,7 +414,7 @@ async function callGemini(userPrompt) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [
-          { role: 'user', parts: [{ text: `${classifySystemPrompt()}\n\n${userPrompt}` }] }
+          { role: 'user', parts: [{ text: `${systemPrompt || classifySystemPrompt()}\n\n${userPrompt}` }] }
         ],
         generationConfig: { temperature: 0 }
       }),
@@ -433,7 +433,7 @@ async function callGemini(userPrompt) {
   return parseResults(content);
 }
 
-async function callOpenAI(userPrompt) {
+async function callOpenAI(userPrompt, systemPrompt) {
   const resp = await fetch(`${AI_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -444,7 +444,7 @@ async function callOpenAI(userPrompt) {
       model: AI_MODEL,
       temperature: 0,
       messages: [
-        { role: 'system', content: classifySystemPrompt() },
+        { role: 'system', content: systemPrompt || classifySystemPrompt() },
         { role: 'user', content: userPrompt }
       ]
     }),
@@ -486,6 +486,47 @@ app.post('/classify', async (req, res) => {
         return res.status(502).json({ configured: true, results: [], error: e.message });
       }
     }
+    res.status(502).json({ configured: true, results: [], error: error.message });
+  }
+});
+
+function mediaAnalysisSystemPrompt() {
+  return [
+    'Bạn là bộ lọc media cho bookmarklet. Đầu vào chỉ có metadata kỹ thuật đã được browser đo: host, loại stream, resolution, thời lượng, bitrate/dung lượng ước tính, số quality và nguồn bắt được.',
+    'Không có file video, không đo hoặc bịa dung lượng. Hãy phân loại từng mục thành đúng một nhãn: "VIDEO" (video/phim thật), "JUNK" (quảng cáo, teaser ngắn, telemetry/tracker, download rác), hoặc "UNKNOWN".',
+    'Chỉ gắn JUNK khi tín hiệu mạnh. Nếu thiếu bằng chứng, dùng UNKNOWN.',
+    'Chỉ trả về JSON thuần: {"results":[{"id":"m1","verdict":"VIDEO|JUNK|UNKNOWN","confidence":0.0,"reason":"ngắn gọn"}]}.'
+  ].join(' ');
+}
+
+app.post('/analyze-media', async (req, res) => {
+  if (!OPENAI_API_KEY && !GEMINI_API_KEY) return res.json({ configured: false, results: null });
+  const body = req.body || {};
+  const candidates = (Array.isArray(body.candidates) ? body.candidates : []).slice(0, 12)
+    .map((candidate) => ({
+      id: String(candidate && candidate.id || '').slice(0, 24),
+      host: String(candidate && candidate.host || '').toLowerCase().slice(0, 253),
+      type: String(candidate && candidate.type || '').toUpperCase().slice(0, 12),
+      qualityCount: Math.max(0, Math.min(20, Number(candidate && candidate.qualityCount) || 0)),
+      isMaster: Boolean(candidate && candidate.isMaster),
+      resolution: String(candidate && candidate.resolution || '').slice(0, 32),
+      durationSeconds: Math.max(0, Math.min(86400, Number(candidate && candidate.durationSeconds) || 0)),
+      estimatedBytes: Math.max(0, Math.min(1e13, Number(candidate && candidate.estimatedBytes) || 0)),
+      source: String(candidate && candidate.source || '').replace(/https?:\/\/\S+/gi, '').slice(0, 80)
+    }))
+    .filter((candidate) => /^m[\w-]{1,20}$/i.test(candidate.id) && /^[a-z0-9.-]+$/.test(candidate.host));
+  if (!candidates.length) return res.json({ configured: true, results: [] });
+  const listText = candidates.map((candidate) =>
+    `${candidate.id}: host=${candidate.host}; type=${candidate.type}; qualities=${candidate.qualityCount}; master=${candidate.isMaster}; resolution=${candidate.resolution || '-'}; duration=${candidate.durationSeconds || '-'}s; estimatedBytes=${candidate.estimatedBytes || '-'}; source=${candidate.source || '-'}`
+  ).join('\n');
+  try {
+    const prompt = `Danh sách metadata media:\n${listText}\n\nTrả kết quả cho từng id.`;
+    const results = GEMINI_API_KEY
+      ? await callGemini(prompt, mediaAnalysisSystemPrompt())
+      : await callOpenAI(prompt, mediaAnalysisSystemPrompt());
+    res.json({ configured: true, provider: GEMINI_API_KEY ? 'gemini' : 'openai', results });
+  } catch (error) {
+    console.error('[analyze-media error]', error.message);
     res.status(502).json({ configured: true, results: [], error: error.message });
   }
 });

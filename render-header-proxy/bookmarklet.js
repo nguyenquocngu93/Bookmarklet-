@@ -498,7 +498,7 @@ function __uvdIsQualifiedMediaItem(item) {
 }
 function __uvdQualifiedDirectEntries() {
   return __uvdHasRealDirectStreams().filter(function(entry) {
-    return !__uvdIsLearnedJunkVideo(entry[0]) && __uvdIsQualifiedMediaItem(entry[1]);
+    return !__uvdIsRejectedVideo(entry[0]) && __uvdIsQualifiedMediaItem(entry[1]);
   });
 }
 function __uvdCaptureVerifiedThumbnail(media) {
@@ -539,7 +539,7 @@ function __uvdPromoteVerifiedMedia(url, media) {
 }
 function __uvdVerificationPriority(url) {
   var item = urls.get(url) || {};
-  if (__uvdIsLearnedJunkVideo(url)) return -1000;
+  if (__uvdIsRejectedVideo(url)) return -1000;
   var score = __uvdLearnedVideoVerdict(url) === 'PLAYER' ? 100 : 0;
   if (item.isMaster || (Number(item.qualityCount) || 0) > 1) score += 45;
   if (item.resolution || item.hasThumbnail || item.thumbnail) score += 25;
@@ -548,7 +548,7 @@ function __uvdVerificationPriority(url) {
 }
 function __uvdQueueMediaVerification(url) {
   var item = urls.get(url);
-  if (!item || !__uvdIsDiggingDirectType(item.type) || __uvdIsLearnedJunkVideo(url) || __uvdIsQualifiedMediaItem(item) || item.demo === true) return;
+  if (!item || !__uvdIsDiggingDirectType(item.type) || __uvdIsRejectedVideo(url) || __uvdIsQualifiedMediaItem(item) || item.demo === true) return;
   if (item.verification === 'queued' || item.verification === 'checking') return;
   if (item.verification === 'failed' && Date.now() - (item.verificationFailedAt || 0) < __uvdVerificationRetryMs) return;
   item.verification = 'queued';
@@ -564,7 +564,7 @@ function __uvdPumpMediaVerification() {
   while (__uvdVerificationQueue.length && !item) {
     url = __uvdVerificationQueue.shift();
     var candidate = urls.get(url);
-    if (candidate && !__uvdIsLearnedJunkVideo(url) && !__uvdIsQualifiedMediaItem(candidate) && candidate.demo !== true) item = candidate;
+    if (candidate && !__uvdIsRejectedVideo(url) && !__uvdIsQualifiedMediaItem(candidate) && candidate.demo !== true) item = candidate;
   }
   if (!item) return;
   __uvdVerificationRunning += 1;
@@ -831,7 +831,7 @@ function __uvdIsLearnedJunkVideo(url) {
 function __uvdVideoScore(url, type) {
   var host = __uvdMediaHostOf(url);
   var v = host && (data.learnedVideos || {})[host];
-  var score = __uvdIsLearnedJunkVideo(url) ? -100 : 0;
+  var score = __uvdIsRejectedVideo(url) ? -100 : 0;
   if (v) score += ((v.up || 0) * 8) - ((v.down || 0) * 12);
   // Metadata & preview bonus: a link that already has resolution/quality or a
   // thumbnail is treated as more "real" than a bare URL.
@@ -963,7 +963,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   else if (__uvdIsEmbedMediaUrl(url)) type = 'IFRAME';
   else if (__uvdLooksLikeHlsUrl(url) || String(type || '').toUpperCase() === 'M3U8') type = 'M3U8';
   type = type || 'MP4';
-  if (__uvdIsDiggingDirectType(type) && __uvdIsLearnedJunkVideo(url)) return false;
+  if (__uvdIsDiggingDirectType(type) && __uvdIsRejectedVideo(url)) return false;
   if (__uvdIsMatthewHost() && type === 'M3U8') setTimeout(__uvdFreezeMatthewPage, 0);
   var priorityMap = { M3U8: 1, MPD: 2, MP4: 3, WEBM: 4, BLOB: 8, IFRAME: 99 };
   var priority = priorityMap[type] || 6;
@@ -6007,7 +6007,7 @@ function installIframeWorkflowVideoWatcher() {
 // final PLAYER/JUNK/UNKNOWN verdict. If the proxy is missing, unreachable, or
 // returns configured:false, we keep the local heuristic ranking unchanged.
 function __uvdAskAiClassifyIframes(candidates, cb) {
-  var proxy = String(data.settings.llmProxyUrl || '').trim().replace(/\/$/, '');
+  var proxy = __uvdAiProxyBase();
   if (!proxy || !data.settings.aiIframeFilter) { cb(candidates); return; }
   var payload = {
     pageUrl: location.href,
@@ -6040,6 +6040,87 @@ function __uvdAskAiClassifyIframes(candidates, cb) {
     settle(candidates);
   })
   .catch(function() { settle(candidates); });
+}
+
+// Gemini sees only host + technical metadata here, never the media URL,
+// source title, page title, cookie, token, or the video binary itself.
+var __uvdAiMediaPending = {};
+var __uvdAiMediaTimer = null;
+var __uvdAiMediaAvailable = null;
+function __uvdAiProxyBase() {
+  return String(data.settings.llmProxyUrl || RENDER_PROXY_BASE || '').trim().replace(/\/$/, '');
+}
+function __uvdEstimateMediaBytes(item) {
+  if (!item) return 0;
+  if (Number(item.contentLength) > 0) return Number(item.contentLength);
+  if (Number(item.bandwidth) > 0 && Number(item.durationSeconds) > 0) return Math.round((Number(item.bandwidth) / 8) * Number(item.durationSeconds));
+  return 0;
+}
+function __uvdIsAiJunkVideo(url) {
+  var item = urls.get(url);
+  return !!(item && item.aiMediaVerdict === 'JUNK' && Number(item.aiMediaConfidence || 0) >= .72);
+}
+function __uvdIsRejectedVideo(url) {
+  return __uvdIsLearnedJunkVideo(url) || __uvdIsAiJunkVideo(url);
+}
+function __uvdQueueAiMediaAnalysis(url) {
+  var item = urls.get(url);
+  if (!item || !__uvdIsDiggingDirectType(item.type) || __uvdIsRejectedVideo(url) || data.settings.aiIframeFilter === false || __uvdAiMediaAvailable === false) return;
+  if (!(item.hasThumbnail || item.resolution || item.isMaster || (Number(item.qualityCount) || 0) > 0 || Number(item.durationSeconds) > 0)) return;
+  if (item.aiMediaPending || (item.aiMediaAnalyzedAt && Date.now() - item.aiMediaAnalyzedAt < 15 * 60 * 1000)) return;
+  item.aiMediaPending = true;
+  __uvdAiMediaPending[url] = true;
+  clearTimeout(__uvdAiMediaTimer);
+  __uvdAiMediaTimer = setTimeout(__uvdFlushAiMediaAnalysis, 850);
+}
+function __uvdFlushAiMediaAnalysis() {
+  __uvdAiMediaTimer = null;
+  var proxy = __uvdAiProxyBase();
+  var urlsToCheck = Object.keys(__uvdAiMediaPending).slice(0, 12);
+  __uvdAiMediaPending = {};
+  if (!proxy || !urlsToCheck.length) return;
+  var lookup = {};
+  var candidates = urlsToCheck.map(function(url, index) {
+    var item = urls.get(url) || {};
+    var id = 'm' + index;
+    lookup[id] = url;
+    return {
+      id: id,
+      host: __uvdMediaHostOf(url),
+      type: item.type || '',
+      qualityCount: item.qualityCount || 0,
+      isMaster: !!item.isMaster,
+      resolution: item.resolution || '',
+      durationSeconds: item.durationSeconds || 0,
+      estimatedBytes: __uvdEstimateMediaBytes(item),
+      source: String(item.source || '').replace(/https?:\/\/\S+/gi, '')
+    };
+  }).filter(function(candidate) { return !!candidate.host; });
+  if (!candidates.length) return;
+  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = setTimeout(function() { if (controller) controller.abort(); }, 9000);
+  fetch(proxy + '/analyze-media', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ candidates: candidates }), signal: controller ? controller.signal : undefined
+  }).then(function(r) { return r.ok ? r.json() : null; }).then(function(json) {
+    clearTimeout(timer);
+    if (!json || json.configured === false) { __uvdAiMediaAvailable = false; return; }
+    __uvdAiMediaAvailable = true;
+    (Array.isArray(json.results) ? json.results : []).forEach(function(result) {
+      var url = lookup[result && result.id];
+      var item = url && urls.get(url);
+      if (!item || !result || !/^(VIDEO|JUNK|UNKNOWN)$/.test(result.verdict)) return;
+      item.aiMediaVerdict = result.verdict;
+      item.aiMediaConfidence = Math.max(0, Math.min(1, Number(result.confidence) || 0));
+      item.aiMediaReason = String(result.reason || '').slice(0, 140);
+      item.aiMediaAnalyzedAt = Date.now();
+      item.aiMediaPending = false;
+    });
+    if (typeof debouncedBuildUI === 'function') debouncedBuildUI();
+  }).catch(function() {
+    clearTimeout(timer);
+    urlsToCheck.forEach(function(url) { var item = urls.get(url); if (item) item.aiMediaPending = false; });
+  });
 }
 
 function __uvdMaybeOfferIframeWorkflow(force) {
@@ -6525,13 +6606,19 @@ function __uvdDescribeHlsLevels(card, levels, media) {
     streamItem.qualityLabel = labels.length > 1 ? 'ĐA CHẤT LƯỢNG' : '';
   }
   __uvdPauseAutomaticScanningIfReady();
+  if (card && card.dataset.url) __uvdQueueAiMediaAnalysis(card.dataset.url);
   var top = levels.slice().sort(function(a, b) { return (b.height || 0) - (a.height || 0); })[0] || {};
-  __uvdUpdateCardFromMedia(card, media, {
-    quality: quality,
+  if (card && card.dataset.url && urls.has(card.dataset.url)) {
+    var sizedItem = urls.get(card.dataset.url);
+    sizedItem.bandwidth = top.bitrate || sizedItem.bandwidth || 0;
+    if (sizedItem.bandwidth && media && isFinite(media.duration) && media.duration > 0) sizedItem.estimatedBytes = Math.round((sizedItem.bandwidth / 8) * media.duration);
+  }
+  __uvdUpdateCardFromMedia(card, media, {    quality: quality,
     resolution: top.width && top.height ? (top.width + '×' + top.height + ' (' + __uvdResolutionLabel(top.width, top.height) + ')') : ''
   });
   var learnedJunk = card && card.dataset.url && __uvdIsLearnedJunkVideo(card.dataset.url);
-  __uvdSetCardStatus(card, learnedJunk ? 'RÁC ĐÃ HỌC' : (labels.length > 1 ? 'MASTER · ' + labels.length + ' QUALITY' : 'PREVIEW…'), learnedJunk ? 'uvd-status-muted' : (labels.length > 1 ? 'uvd-status-ok' : 'uvd-status-loading'));
+  var aiJunk = card && card.dataset.url && __uvdIsAiJunkVideo(card.dataset.url);
+  __uvdSetCardStatus(card, learnedJunk ? 'RÁC ĐÃ HỌC' : (aiJunk ? 'AI NGHI RÁC' : (labels.length > 1 ? 'MASTER · ' + labels.length + ' QUALITY' : 'PREVIEW…')), (learnedJunk || aiJunk) ? 'uvd-status-muted' : (labels.length > 1 ? 'uvd-status-ok' : 'uvd-status-loading'));
 }
 
 // ========== RENDER STREAMS ==========
@@ -6584,9 +6671,12 @@ function buildStreamCardHTML(item, i) {
       '</div>';
   }
   var learnedVideoVerdict = __uvdLearnedVideoVerdict(item.url);
+  var aiMediaItem = urls.get(item.url) || item;
   var isLearnedVideoJunk = learnedVideoVerdict === 'JUNK';
+  var isAiMediaJunk = !isLearnedVideoJunk && __uvdIsAiJunkVideo(item.url);
+  var isRejectedVideo = isLearnedVideoJunk || isAiMediaJunk;
   var actionsHtml;
-  if (isLearnedVideoJunk) {
+  if (isRejectedVideo) {
     actionsHtml = '<span class="uvd-junk-advice">🚫 Domain này đã bị học là rác — không nên xem</span>' +
       '<button class="uvd-btn uvd-btn-sm" data-action="copy" data-url="' + encodeURIComponent(item.url) + '">sao chép</button>';
   } else if (type === 'BLOB') {
@@ -6608,19 +6698,20 @@ function buildStreamCardHTML(item, i) {
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
-  var statusText = isLearnedVideoJunk ? 'RÁC ĐÃ HỌC' : ((type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview');
-  var statusClass = isLearnedVideoJunk ? 'uvd-status-muted' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
+  var statusText = isRejectedVideo ? (isAiMediaJunk ? 'AI NGHI RÁC' : 'RÁC ĐÃ HỌC') : ((type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview');
+  var statusClass = isRejectedVideo ? 'uvd-status-muted' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
   var guideText;
   if (isLearnedVideoJunk) guideText = '🚫 Domain này đã nhận 2+ vote 💩. Mèo sẽ không gọi đây là link thật và sẽ tự bỏ qua ở lần quét sau.';
+  else if (isAiMediaJunk) guideText = '🤖 Gemini thấy metadata giống quảng cáo/rác' + (aiMediaItem.aiMediaReason ? ': ' + escapeHtml(aiMediaItem.aiMediaReason) : '') + '. Mèo tạm ẩn khỏi kết quả tự động.';
   else if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
   else if (type === 'MP4' || type === 'WEBM') guideText = 'Link video thật nè 📼 — bấm Xem để phát ngay nha.';
   else if (type === 'BLOB') guideText = 'Blob MediaSource nè 🌀 — bấm Xem để phát trực tiếp.';
   else guideText = 'Link media nè — bấm Xem để phát thử nha.';
-  var previewAction = isLearnedVideoJunk
-    ? '<span class="uvd-thumb-play uvd-thumb-play-blocked" title="Đã học là link rác">🚫</span>'
+  var previewAction = isRejectedVideo
+    ? '<span class="uvd-thumb-play uvd-thumb-play-blocked" title="Đã lọc là link rác">🚫</span>'
     : '<button class="uvd-btn uvd-thumb-play" data-action="play" data-url="' + encodeURIComponent(item.url) + '" data-type="' + escapeHtml(item.type) + '" title="Xem video">▶</button>';
   return (
-    '<div class="uvd-card uvd-cute' + (isLearnedVideoJunk ? ' uvd-card-learned-junk' : '') + '" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
+    '<div class="uvd-card uvd-cute' + (isRejectedVideo ? ' uvd-card-learned-junk' : '') + '" data-type="' + escapeHtml(item.type) + '" data-url="' + escapeHtml(item.url) + '">' +
       '<div class="uvd-card-preview" data-thumb-url="' + escapeHtml(item.url) + '">' +
         '<div class="uvd-thumb-image"></div>' +
         '<div class="uvd-thumb-sheen"></div>' +
@@ -6796,12 +6887,14 @@ function hydrateVideoThumbnails(root) {
         if (isFinite(media.duration) && media.duration > 0) cardItem.durationSeconds = media.duration;
       }
       __uvdPauseAutomaticScanningIfReady();
+      if (card && card.dataset.url) __uvdQueueAiMediaAnalysis(card.dataset.url);
       var verifiedUrl = preview.getAttribute('data-thumb-url');
       if (isVerificationStage) __uvdPromoteVerifiedMedia(verifiedUrl, media);
       __uvdSaveHistoryMetadata(verifiedUrl, media, card);
       var status = card && card.querySelector('.uvd-card-status');
       var learnedJunk = card && card.dataset.url && __uvdIsLearnedJunkVideo(card.dataset.url);
-      if (status) { status.textContent = learnedJunk ? 'RÁC ĐÃ HỌC' : 'PREVIEW OK'; status.className = 'uvd-card-status ' + (learnedJunk ? 'uvd-status-muted' : 'uvd-status-ok'); }
+      var aiJunk = card && card.dataset.url && __uvdIsAiJunkVideo(card.dataset.url);
+      if (status) { status.textContent = learnedJunk ? 'RÁC ĐÃ HỌC' : (aiJunk ? 'AI NGHI RÁC' : 'PREVIEW OK'); status.className = 'uvd-card-status ' + ((learnedJunk || aiJunk) ? 'uvd-status-muted' : 'uvd-status-ok'); }
       if (media.videoWidth && media.videoHeight) {
         preview.classList.toggle('uvd-thumb-portrait', media.videoHeight > media.videoWidth);
         preview.classList.toggle('uvd-thumb-landscape', media.videoWidth >= media.videoHeight);
@@ -7596,8 +7689,8 @@ function renderSettings(container) {
       '<div style="font-weight:600;margin-bottom:8px;">🤖 AI lọc iframe rác</div>' +
       buildToggleRow('__uvd_toggle_aiframe__', 'Bật AI/heuristic phân loại iframe (giữ player thật, gắn nhãn rác)', data.settings.aiIframeFilter) +
       '<div style="font-size:12px;color:var(--text2);margin:10px 0 6px;">LLM proxy (tuỳ chọn, hybrid)</div>' +
-      '<input id="__uvd_llm_proxy__" type="url" autocomplete="off" placeholder="https://render-header-proxy.onrender.com (để trống = dùng heuristic offline)" value="' + escapeHtml(data.settings.llmProxyUrl || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:#d85c7a;font-size:12px;">' +
-      '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Dán URL proxy (vd Render của bạn) để bật tầng AI: UMP gửi danh sách iframe lên <b>/classify</b>, server dùng <b>GEMINI_API_KEY</b> (hoặc <b>OPENAI_API_KEY</b>) đặt ở env để chốt verdict PLAYER/JUNK. Không có key server thì tự dùng heuristic offline.</div>' +
+      '<input id="__uvd_llm_proxy__" type="url" autocomplete="off" placeholder="https://render-header-proxy.onrender.com (để trống = Render mặc định)" value="' + escapeHtml(data.settings.llmProxyUrl || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:#d85c7a;font-size:12px;">' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:6px;">Tầng AI dùng <b>GEMINI_API_KEY</b> trên Render để lọc iframe qua <b>/classify</b> và lọc media qua <b>/analyze-media</b>. Media chỉ gửi host + loại + resolution + thời lượng + dung lượng ước tính kỹ thuật; không gửi file video, URL đầy đủ hay key.</div>' +
     '</div>' +
 
     '<div class="uvd-settings-group-title">☁ Đồng bộ & lịch sử</div>' +
@@ -7762,7 +7855,7 @@ function renderSettings(container) {
   if (llmProxyInput) llmProxyInput.onchange = function() {
     data.settings.llmProxyUrl = this.value.trim();
     storage.set(data);
-    toast(data.settings.llmProxyUrl ? 'Đã lưu LLM proxy' : 'Đã xóa LLM proxy (dùng heuristic offline)');
+    toast(data.settings.llmProxyUrl ? 'Đã lưu LLM proxy' : 'Dùng Render mặc định cho tầng AI');
   };
   var tmdbKeyInput = document.getElementById('__uvd_tmdb_key__');
   if (tmdbKeyInput) tmdbKeyInput.onchange = function() {

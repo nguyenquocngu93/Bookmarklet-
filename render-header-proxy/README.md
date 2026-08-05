@@ -17,9 +17,13 @@ DEFAULT_USER_AGENT=Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120
 ALLOW_INSECURE_TLS=false
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_KEY=your-service-role-key
+GEMINI_API_KEY=your-google-ai-studio-key
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 `ALLOWED_HOSTS` is optional, but strongly recommended. Do not leave a public unrestricted proxy online.
+
+When `GEMINI_API_KEY` is configured, `/classify` filters iframe candidates and `/analyze-media` filters video candidates. The media endpoint receives only host + technical metadata (type, resolution, duration, quality count and estimated size); it does not receive the video file or a full media URL.
 
 ## Test
 

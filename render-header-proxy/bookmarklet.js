@@ -4773,6 +4773,10 @@ style.textContent = `
 #__uvd_media_links_prompt__.uvd-popup-collapsed,#__uvd_iframe_workflow_prompt__.uvd-popup-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}#__uvd_media_links_prompt__.uvd-popup-collapsed .uvd-media-choice-popup,#__uvd_iframe_workflow_prompt__.uvd-popup-collapsed .uvd-glass-panel{width:min(100%,500px)!important;margin:0 auto!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}#__uvd_media_links_prompt__ .uvd-popup-panel-collapsed>div:not(:first-child),#__uvd_iframe_workflow_prompt__ .uvd-popup-panel-collapsed>div:not(:first-child){display:none!important}#__uvd_media_links_prompt__ .uvd-popup-panel-collapsed>div:first-child,#__uvd_iframe_workflow_prompt__ .uvd-popup-panel-collapsed>div:first-child{padding-bottom:10px!important}
 
 
+/* ===== POPUP RHYTHM + COMMON HEADERS ===== */
+.uvd-popup-common-header{min-height:104px!important;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(135deg,rgba(255,245,250,.72),rgba(246,238,255,.62));border-bottom:1px solid rgba(255,159,180,.15)}.uvd-popup-common-header .uvd-media-popup-mascot,.uvd-popup-common-header .uvd-iframe-popup-mascot{transform:scale(1.3)!important}.uvd-dig-home-dock button{min-height:42px!important;padding:9px 11px!important;font-size:11px!important;border-radius:15px!important;background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(248,238,255,.85))!important}.uvd-farewell-box{height:90dvh!important;min-height:0!important;max-height:90dvh!important;display:flex!important;flex-direction:column!important;justify-content:space-evenly!important;padding:22px 24px!important}.uvd-farewell-art{margin:0 auto!important}.uvd-farewell-title{color:#d85c7a;font-size:30px;font-weight:950;letter-spacing:-.035em;line-height:1.12}.uvd-farewell-subtitle{margin-top:2px;color:#9a6ce0;font-size:17px;font-weight:850}.uvd-farewell-copy{margin:8px auto;color:#805e83;font-size:14px;font-weight:650;line-height:1.7;max-width:420px}.uvd-farewell-actions{display:flex;gap:12px;margin-top:6px}.uvd-farewell-actions button{min-height:58px;font-size:16px!important}@media (max-width:390px){.uvd-popup-common-header{min-height:84px!important}.uvd-farewell-box{height:94dvh!important;max-height:94dvh!important;padding:17px!important}.uvd-farewell-art{transform:scale(.9)}.uvd-farewell-title{font-size:26px}.uvd-farewell-subtitle{font-size:15px}.uvd-farewell-copy{font-size:12px}.uvd-farewell-actions button{min-height:52px;font-size:14px!important}}
+
+
 `;
 
 
@@ -5687,10 +5691,10 @@ function __uvdShowFarewellPopup(onConfirm) {
   box.innerHTML =
     '<div class="uvd-farewell-art" style="width:280px;height:200px;margin:0 auto 14px;line-height:0;">' + __uvdGetFarewellMascotsHtml() + '</div>' +
     '<div class="uvd-farewell-kicker" style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;margin-bottom:6px;">mèo cào media</div>' +
-    '<div style="font-size:26px;font-weight:900;color:#d85c7a;margin-bottom:6px;">Tạm biệt cưng iu ♡</div>' +
-    '<div style="font-size:14px;font-weight:700;color:#9a6ce0;margin-bottom:8px;">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
-    '<div style="font-size:12.5px;color:#8a6ab0;line-height:1.65;margin-bottom:18px;">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
-    '<div style="display:flex;gap:10px;">' +
+    '<div class="uvd-farewell-title">Tạm biệt cưng iu ♡</div>' +
+    '<div class="uvd-farewell-subtitle">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
+    '<div class="uvd-farewell-copy">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+    '<div class="uvd-farewell-actions">' +
       '<button id="__uvd_farewell_stay__" style="flex:1;padding:13px;border-radius:16px;border:none;background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#d85c7a;font-weight:800;font-size:13.5px;cursor:pointer;">Ở lại ♡</button>' +
       '<button id="__uvd_farewell_bye__" style="flex:1;padding:13px;border-radius:16px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 8px 20px rgba(247,108,140,.35);">Tạm biệt 🐾</button>' +
     '</div>';
@@ -6039,7 +6043,7 @@ function __uvdOpenMediaLinksPopup(streams) {
     'box-shadow:0 28px 72px rgba(150,90,220,.36),0 0 0 6px rgba(255,255,255,.35) inset;' +
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   panel.innerHTML =
-    '<div style="padding:16px 16px 2px;position:relative;">' +
+    '<div class="uvd-popup-common-header" style="padding:16px 16px 2px;position:relative;">' +
       '<button id="__uvd_media_links_close__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_media_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
       '<button id="__uvd_media_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_media_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
@@ -6224,7 +6228,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML =
-    '<div style="padding:18px 18px 4px;position:relative;">' +
+    '<div class="uvd-popup-common-header" style="padding:18px 18px 4px;position:relative;">' +
       '<button id="__uvd_iframe_workflow_close_x__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_iframe_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
       '<button id="__uvd_iframe_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_iframe_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +

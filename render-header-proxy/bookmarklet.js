@@ -5672,8 +5672,25 @@ function __uvdShutdownEverything() {
 }
 function __uvdRequestExit() {
   if (document.getElementById('__uvd_farewell_popup__')) return;
-  __uvdShowFarewellPopup(function() { __uvdShutdownEverything(); });
+  try { __uvdShowFarewellPopup(function() { __uvdShutdownEverything(); }); }
+  catch(e) { __uvdShutdownEverything(); }
 }
+var __uvdExitDelegationInstalled = false;
+function __uvdInstallExitDelegation() {
+  if (__uvdExitDelegationInstalled) return;
+  __uvdExitDelegationInstalled = true;
+  var selector = '#__uvd_dig_close__,#__uvd_media_links_close__,#__uvd_iframe_workflow_close_x__,#__uvd_close__';
+  var handler = function(e) {
+    var target = e.target && e.target.closest ? e.target.closest(selector) : null;
+    if (!target) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    __uvdRequestExit();
+  };
+  document.addEventListener('click', handler, true);
+  document.addEventListener('pointerup', handler, true);
+  addCleanup(function() { document.removeEventListener('click', handler, true); document.removeEventListener('pointerup', handler, true); __uvdExitDelegationInstalled = false; });
+}
+__uvdInstallExitDelegation();
 function __uvdReturnToDiggingHome(sourceOverlay) {
   if (sourceOverlay) { try { sourceOverlay.remove(); } catch(e) {} }
   __uvdPopupActive = false;

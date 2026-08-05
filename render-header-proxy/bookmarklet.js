@@ -4760,6 +4760,10 @@ style.textContent = `
 .uvd-digging-overlay{padding:5dvh 14px!important;align-items:center!important}.uvd-digging-box{width:min(100%,500px)!important;height:90dvh!important;min-height:0!important;max-height:90dvh!important;padding:20px 22px 18px!important;overflow-y:auto!important;scrollbar-width:none}.uvd-digging-box::-webkit-scrollbar{display:none}.uvd-dig-art{margin:8px auto 5px!important}.uvd-dig-title{margin-top:8px!important}.uvd-dig-sub{margin-top:8px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-art{width:220px!important;height:198px!important;margin:7px auto 4px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-title{margin-top:6px!important}.uvd-dig-drawer-sheet{max-height:90dvh!important}.uvd-dig-drawer-header{min-height:104px!important;padding:12px 16px!important;background:linear-gradient(135deg,#fff1f7,#f4eaff)!important;border-bottom:1px solid rgba(255,159,180,.22)!important}.uvd-dig-drawer-mascot{display:flex;width:74px;height:74px;flex:0 0 74px;align-items:flex-end;justify-content:center;filter:drop-shadow(0 7px 13px rgba(247,108,140,.2));animation:uvdMascotHop 1.8s ease-in-out infinite}.uvd-dig-drawer-mascot svg{width:100%;height:100%}.uvd-dig-drawer-header .uvd-settings-title{font-size:18px!important;color:#c95073!important}.uvd-dig-drawer-header .uvd-settings-subtitle{font-size:10.5px!important;color:#8a6ab0!important}.uvd-dig-drawer-body{padding:14px!important;background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(249,241,255,.66))!important}.uvd-dig-drawer-hero{display:flex;align-items:center;gap:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,159,180,.25);border-radius:18px;background:linear-gradient(135deg,#fff,#fff0f7 56%,#f2ebff);box-shadow:0 5px 13px rgba(247,108,140,.1)}.uvd-dig-drawer-hero>span{display:flex;width:54px;height:54px;align-items:center;justify-content:center;border-radius:16px;background:rgba(255,255,255,.7);font-size:32px}.uvd-dig-drawer-hero strong{display:block;color:#c95073;font-size:13px}.uvd-dig-drawer-hero small{display:block;margin-top:3px;color:#8a6ab0;font-size:10px;line-height:1.4}.uvd-dig-drawer-body .uvd-card{border-radius:16px!important;box-shadow:0 4px 11px rgba(150,90,220,.08)!important}.uvd-dig-drawer-body .uvd-history-toolbar{padding:9px 10px!important;border:1px solid rgba(194,150,255,.2);border-radius:15px;background:rgba(255,255,255,.65)}.uvd-dig-drawer-body .uvd-history-toolbar-title{color:#c95073!important}.uvd-dig-drawer-body .uvd-history-card{border-radius:16px!important}.uvd-dig-drawer-body .uvd-stream-end{margin-bottom:5px!important}@media (max-width:390px){.uvd-digging-overlay{padding:3dvh 9px!important}.uvd-digging-box{height:94dvh!important;max-height:94dvh!important;padding:16px 16px 15px!important}.uvd-dig-art{width:238px!important;height:214px!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-art{width:185px!important;height:166px!important}.uvd-dig-drawer-header{min-height:90px!important}.uvd-dig-drawer-mascot{width:62px;height:62px;flex-basis:62px}.uvd-dig-drawer-body{padding:10px!important}}
 
 
+/* ===== HIDE VS EXIT CONTROLS ===== */
+.uvd-popup-hide-btn{position:absolute;top:12px;right:88px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:20px;line-height:25px;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-hide-btn:active{transform:scale(.94)}.uvd-dig-hide-btn{top:13px!important;right:95px!important;width:34px!important;height:34px!important;line-height:28px!important}
+
+
 `;
 
 
@@ -5356,8 +5360,9 @@ function __uvdStartDiggingPopup() {
   overlay.className = 'uvd-digging-overlay';
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
+      '<button type="button" class="uvd-popup-hide-btn uvd-dig-hide-btn" id="__uvd_dig_hide__" title="Ẩn popup">−</button>' +
       '<button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button>' +
-      '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
+      '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Thoát Mèo cào media">×</button>' +
       '<div class="uvd-dig-topline"><span class="uvd-dig-brand">Mèo cào media</span><span class="uvd-dig-mode">✦ Đào link</span></div>' +
       '<div class="uvd-dig-home-dock"><button type="button" id="__uvd_dig_links__">☷ <span>Tất cả link</span><b id="__uvd_dig_links_count__">0</b></button><button type="button" id="__uvd_dig_activity__">🕘 <span>Hoạt động</span><b id="__uvd_dig_activity_count__">0</b></button></div>' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
@@ -5447,7 +5452,9 @@ function __uvdStartDiggingPopup() {
   }
 
   var close = overlay.querySelector('#__uvd_dig_close__');
-  if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
+  if (close) close.onclick = function() { __uvdRequestExit(); };
+  var digHide = overlay.querySelector('#__uvd_dig_hide__');
+  if (digHide) digHide.onclick = function() { __uvdStopDiggingPopup(false); };
   var digSettings = overlay.querySelector('#__uvd_dig_settings__');
   if (digSettings) digSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   var digLinks = overlay.querySelector('#__uvd_dig_links__');
@@ -5631,6 +5638,18 @@ function __uvdShowPlayIntro(url, type) {
   if (openBtn) openBtn.onclick = function(e) { e.stopPropagation(); openIt(); };
   setTimeout(openIt, 3200);
   overlay.addEventListener('click', function(e) { if (e.target === overlay) openIt(); });
+}
+
+// All destructive close buttons use the same farewell confirmation.
+var __uvdExitHandler = null;
+function __uvdRequestExit() {
+  if (document.getElementById('__uvd_farewell_popup__')) return;
+  __uvdShowFarewellPopup(function() {
+    if (typeof __uvdExitHandler === 'function') { __uvdExitHandler(); return; }
+    ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
+    var root = document.getElementById('__uvd__');
+    if (root) root.remove();
+  });
 }
 
 // ========== FAREWELL POPUP - gom het thu lai tam biet de thuong khi bam X (fix undefined + to nhu digging popup) ==========
@@ -6016,7 +6035,8 @@ function __uvdOpenMediaLinksPopup(streams) {
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   panel.innerHTML =
     '<div style="padding:16px 16px 2px;position:relative;">' +
-      '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<button id="__uvd_media_links_close__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<button id="__uvd_media_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
       '<button id="__uvd_media_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
     '</div>' +
@@ -6094,17 +6114,20 @@ function __uvdOpenMediaLinksPopup(streams) {
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
   }
-  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
-  var cancel = panel.querySelector('#__uvd_media_links_cancel__');
-  if (cancel) cancel.onclick = function() {
+  // "Để sau"/ẩn → thu popup thành nút nổi, không thoát tool.
+  function hideMedia() {
     __uvdMediaPopupDismissedAt = Date.now();
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     __uvdShowPopupReopenBtn('media');
-  };
-  // Nút X → đóng hẳn, mất luôn.
+  }
+  var cancel = panel.querySelector('#__uvd_media_links_cancel__');
+  if (cancel) cancel.onclick = hideMedia;
+  var mediaHide = panel.querySelector('#__uvd_media_hide__');
+  if (mediaHide) mediaHide.onclick = hideMedia;
+  // X is reserved for leaving the whole tool and always confirms first.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
-  if (closeX) closeX.onclick = closeMedia;
+  if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
   var mediaSettings = panel.querySelector('#__uvd_media_settings__');
   if (mediaSettings) mediaSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   overlay.appendChild(panel);
@@ -6186,7 +6209,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML =
     '<div style="padding:18px 18px 4px;position:relative;">' +
-      '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<button id="__uvd_iframe_workflow_close_x__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<button id="__uvd_iframe_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
       '<button id="__uvd_iframe_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
     '</div>' +
@@ -6281,17 +6305,19 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
   }
-  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
-  var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
-  if (cancel) cancel.onclick = function() {
+  // "Để sau"/ẩn → thu popup thành nút nổi, không thoát tool.
+  function hideIframe() {
     __uvdIframeWorkflowDismissedAt = Date.now();
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     __uvdShowPopupReopenBtn('iframe');
-  };
-  // Nút X → đóng hẳn, mất luôn.
+  }
+  var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
+  if (cancel) cancel.onclick = hideIframe;
+  var iframeHide = panel.querySelector('#__uvd_iframe_hide__');
+  if (iframeHide) iframeHide.onclick = hideIframe;
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
-  if (closeX) closeX.onclick = closeIframe;
+  if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
   var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
   if (iframeSettings) iframeSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   overlay.appendChild(panel);
@@ -6797,6 +6823,7 @@ function buildUI() {
 
   function __uvdRealClose(){
     if (playerState.overlay) closePlayer();
+    ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_settings_overlay__','__uvd_dig_drawer__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
     stopMonitor();
     if (window.__uvdPanelResizeHandler) {
       window.removeEventListener('resize', window.__uvdPanelResizeHandler);
@@ -6810,8 +6837,9 @@ function buildUI() {
     urls.clear();
     if (typeof style !== 'undefined' && style.parentNode) style.remove();
   }
+  __uvdExitHandler = __uvdRealClose;
   document.getElementById('__uvd_close__').onclick = function() {
-    __uvdShowFarewellPopup(function(){ __uvdRealClose(); });
+    __uvdRequestExit();
   };
   document.getElementById('__uvd_hide__').onclick = function() {
     var isCollapsed = panel.classList.contains('uvd-panel-collapsed');

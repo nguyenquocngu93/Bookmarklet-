@@ -3327,6 +3327,12 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   menuBtn.textContent = '⋮';
   menuBtn.title = 'Tuỳ chọn';
   menuBtn.setAttribute('aria-label', 'Mở tuỳ chọn player');
+  var playerSettingsBtn = document.createElement('button');
+  playerSettingsBtn.className = 'uvd-icon-btn uvd-player-settings-btn';
+  playerSettingsBtn.textContent = '⚙';
+  playerSettingsBtn.title = 'Cài đặt';
+  playerSettingsBtn.setAttribute('aria-label', 'Mở cài đặt');
+  playerSettingsBtn.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
 
   var playerHeaderTitle = document.createElement('div');
   playerHeaderTitle.className = 'uvd-player-header-title';
@@ -3334,6 +3340,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   playerHeaderTitle.innerHTML = '<span class="uvd-player-moving-mascot">' + (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : __uvdHeaderMascot) + '</span><div class="uvd-player-title-copy"><strong>Hamster mở video nè ♡</strong><small><span class="uvd-player-type-badge">' + escapeHtml(type || 'Media') + '</span><span>Mèo cào media · dễ thương</span></small></div>';
   sheetHeader.appendChild(backBtn);
   sheetHeader.appendChild(playerHeaderTitle);
+  sheetHeader.appendChild(playerSettingsBtn);
   sheetHeader.appendChild(menuBtn);
   sheet.appendChild(sheetHeader);
 
@@ -4741,6 +4748,10 @@ style.textContent = `
 .uvd-scroll-hide-header #__uvd_header__{max-height:none!important;min-height:0!important;opacity:1!important;overflow:visible!important;padding-top:10px!important;padding-bottom:10px!important;margin:0!important;border-width:1px!important;pointer-events:auto!important;transform:none!important}.uvd-stream-row{padding:10px 11px;margin:0 0 7px;border:1px solid rgba(194,150,255,.22);border-radius:15px;background:linear-gradient(135deg,rgba(255,255,255,.82),rgba(252,243,255,.78));box-shadow:0 3px 9px rgba(150,90,220,.07)}.uvd-stream-row-muted{opacity:.68}.uvd-stream-row-head{display:flex;align-items:center;justify-content:space-between;gap:7px}.uvd-stream-row-type{min-width:0;color:#8a6ab0;font-size:9.5px;font-weight:900}.uvd-stream-row-status{max-width:52%;overflow:hidden;padding:3px 6px;border-radius:999px;background:rgba(255,159,180,.12);color:#c95073;font-size:8.5px;font-weight:850;white-space:nowrap;text-overflow:ellipsis}.uvd-stream-row-url{display:block;width:100%;margin-top:6px;overflow:hidden;padding:7px 8px;border:1px solid rgba(194,150,255,.2);border-radius:10px;background:rgba(244,237,255,.66);color:#8a6ab0;font:750 10.5px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:left;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}.uvd-stream-row-meta{margin-top:5px;overflow:hidden;color:#a0789d;font-size:9.5px;font-weight:750;white-space:nowrap;text-overflow:ellipsis}.uvd-stream-row-votes{margin:7px 0 0!important}.uvd-stream-row-votes .uvd-votechip{padding:4px 8px!important;font-size:9px!important}
 
 
+/* ===== POPUP CORNER SETTINGS ===== */
+.uvd-popup-settings-btn{position:absolute;top:12px;right:50px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-settings-btn:active{transform:scale(.94)}.uvd-dig-settings-btn{top:13px!important;right:54px!important;width:34px!important;height:34px!important;color:#8a6ab0!important}.uvd-preview-settings-btn{top:12px;right:52px}.uvd-player-header .uvd-player-settings-btn{width:38px!important;height:38px!important;padding:0!important;border-radius:13px!important;background:rgba(255,255,255,.78)!important;border:1px solid rgba(194,150,255,.28)!important;color:#8a6ab0!important;box-shadow:0 4px 10px rgba(150,90,220,.1)!important;font-size:16px!important}
+
+
 `;
 
 
@@ -5291,6 +5302,7 @@ function __uvdStartDiggingPopup() {
   overlay.className = 'uvd-digging-overlay';
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
+      '<button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button>' +
       '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
       '<div class="uvd-dig-topline"><span class="uvd-dig-brand">Mèo cào media</span><span class="uvd-dig-mode">✦ Đào link</span></div>' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
@@ -5377,6 +5389,8 @@ function __uvdStartDiggingPopup() {
 
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
+  var digSettings = overlay.querySelector('#__uvd_dig_settings__');
+  if (digSettings) digSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   var initialStatus = overlay.querySelector('#__uvd_dig_status__');
   if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
   __uvdStartDiggingRealtimeCapture();
@@ -5770,7 +5784,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   var panel = document.createElement('div');
   panel.className = 'uvd-media-preview-panel';
   var compact = __uvdCompactPopupUrl(url);
-  panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button>' +
+  panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button><button type="button" class="uvd-popup-settings-btn uvd-preview-settings-btn" title="Cài đặt">⚙</button>' +
     '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
     '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · kiểm tra trước khi vote</div>' +
     '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
@@ -5900,6 +5914,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   }
   panel.querySelector('.uvd-media-preview-close').onclick = close;
   panel.querySelector('.uvd-media-preview-back').onclick = close;
+  panel.querySelector('.uvd-preview-settings-btn').onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   panel.querySelector('.uvd-media-preview-play').onclick = playThisLink;
   overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
 }
@@ -5939,6 +5954,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   panel.innerHTML =
     '<div style="padding:16px 16px 2px;position:relative;">' +
       '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<button id="__uvd_media_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
@@ -6026,6 +6042,8 @@ function __uvdOpenMediaLinksPopup(streams) {
   // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
   if (closeX) closeX.onclick = closeMedia;
+  var mediaSettings = panel.querySelector('#__uvd_media_settings__');
+  if (mediaSettings) mediaSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Make sure the popup sits above everything (including the main UMP panel).
@@ -6106,6 +6124,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   panel.innerHTML =
     '<div style="padding:18px 18px 4px;position:relative;">' +
       '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+      '<button id="__uvd_iframe_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
       '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
@@ -6210,6 +6229,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
   if (closeX) closeX.onclick = closeIframe;
+  var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
+  if (iframeSettings) iframeSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Keep iframe popup above the main panel too.

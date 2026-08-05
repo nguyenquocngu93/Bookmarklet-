@@ -7353,25 +7353,6 @@ function hydrateVideoThumbnails(root) {
   });
 }
 
-function __uvdStreamRowHtml(item, index) {
-  var type = String(item.type || 'MEDIA').toUpperCase();
-  var source = urls.get(item.url) || item || {};
-  var votes = __uvdVoteChips(item.url);
-  var kind = type === 'IFRAME' ? '🖼️' : (type === 'M3U8' ? '📺' : '📼');
-  var quality = source.qualityOnly ? 'QUALITY ONLY' : ((source.isMaster || (Number(source.qualityCount) || 0) > 1) ? 'Đa chất lượng' : '');
-  var resolution = source.resolution || item.resolution || '';
-  var duration = source.durationSeconds ? __uvdFormatDuration(source.durationSeconds) : '';
-  var ai = type === 'IFRAME' && source.aiVerdict ? (' · ' + source.aiVerdict) : '';
-  var meta = [quality, resolution, duration].filter(Boolean).join(' · ') || 'Đang chờ metadata';
-  var verdict = __uvdIsRejectedVideo(item.url) ? 'RÁC ĐÃ HỌC' : (source.aiMediaVerdict === 'JUNK' ? 'AI NGHI RÁC' : '');
-  return '<div class="uvd-stream-row' + (verdict ? ' uvd-stream-row-muted' : '') + '" data-url="' + encodeURIComponent(item.url) + '">' +
-    '<div class="uvd-stream-row-head"><span class="uvd-stream-row-type">' + kind + ' #' + (index + 1) + ' · ' + escapeHtml(type) + '</span><span class="uvd-stream-row-status">' + escapeHtml(verdict || quality || 'Đã bắt') + '</span></div>' +
-    '<button type="button" class="uvd-stream-row-url" title="Bấm để sao chép link đầy đủ">↗ ' + escapeHtml(__uvdCompactPopupUrl(item.url)) + '</button>' +
-    '<div class="uvd-stream-row-meta">' + escapeHtml(meta + ai) + '</div>' +
-    '<div class="uvd-cute-votes uvd-stream-row-votes">' + votes + '</div>' +
-  '</div>';
-}
-
 function renderStreams(container, arr) {
   if (!arr.length) {
     container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
@@ -7397,10 +7378,15 @@ function renderStreams(container, arr) {
   function renderNextBatch() {
     var end = Math.min(rendered + UVD_LAZY_BATCH, arr.length);
     var html = '';
-    for (var i = rendered; i < end; i++) html += __uvdStreamRowHtml(arr[i], i);
+    for (var i = rendered; i < end; i++) html += buildStreamCardHTML(arr[i], i);
     var frag = document.createElement('div');
     frag.innerHTML = html;
     while (frag.firstChild) listWrap.appendChild(frag.firstChild);
+    if (rendered === 0) {
+      var firstCard = listWrap.querySelector('.uvd-card');
+      if (firstCard) firstCard.classList.add('uvd-stream-first');
+    }
+    hydrateVideoThumbnails(listWrap);
     rendered = end;
 
     if (moreBtn) { moreBtn.remove(); moreBtn = null; }
@@ -7434,12 +7420,6 @@ function renderStreams(container, arr) {
       __uvdCastVote(vdUrl, 'down');
       toast('Cảm ơn cưng! Đã đánh dấu rác domain ' + vdUrl + ' 💩');
       debouncedBuildUI();
-      return;
-    }
-    var compactUrl = e.target.closest('.uvd-stream-row-url');
-    if (compactUrl) {
-      copy(decodeURIComponent(compactUrl.closest('.uvd-stream-row').dataset.url || ''));
-      toast('Đã sao chép URL đầy đủ!');
       return;
     }
     var urlBox = e.target.closest('.uvd-url-box');

@@ -4766,7 +4766,7 @@ style.textContent = `
 
 
 /* ===== POPUP HOME COMMON HEADER ===== */
-.uvd-popup-home-btn{position:absolute;top:12px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:13px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-home-btn:active{transform:scale(.94)}#__uvd_media_links_home__,#__uvd_iframe_links_home__{right:126px}#__uvd_media_activity_home__,#__uvd_iframe_activity_home__{right:164px}.uvd-dig-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}.uvd-dig-collapsed .uvd-digging-box{height:auto!important;min-height:0!important;max-height:none!important;padding:11px 14px!important;overflow:hidden!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}.uvd-dig-collapsed .uvd-digging-box>*:not(.uvd-dig-topline):not(.uvd-dig-home-dock):not(.uvd-dig-close):not(.uvd-dig-settings-btn):not(.uvd-dig-hide-btn){display:none!important}.uvd-dig-collapsed .uvd-dig-home-dock{margin:7px 40px 0 0!important}.uvd-dig-collapsed .uvd-dig-topline{padding-right:112px!important}
+.uvd-popup-home-btn{position:absolute;top:12px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:13px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-home-btn:active{transform:scale(.94)}#__uvd_media_links_home__,#__uvd_iframe_links_home__{right:126px}#__uvd_media_activity_home__,#__uvd_iframe_activity_home__{right:164px}.uvd-dig-collapsed{background:transparent!important;pointer-events:none;align-items:flex-start!important;padding:10px!important}.uvd-dig-collapsed .uvd-digging-box{height:auto!important;min-height:0!important;max-height:none!important;padding:11px 14px!important;overflow:hidden!important;pointer-events:auto;box-shadow:0 8px 24px rgba(65,32,70,.24)!important}.uvd-dig-collapsed .uvd-dig-home-dock{margin:7px 40px 0 0!important}.uvd-dig-collapsed .uvd-dig-topline{padding-right:112px!important}
 
 
 /* ===== COLLAPSED POPUP HOME HEADERS ===== */
@@ -4778,11 +4778,15 @@ style.textContent = `
 
 
 /* ===== DIGGING HEADER = COMMON POPUP HEADER ===== */
-.uvd-dig-common-header{min-height:82px!important;padding:12px 0 12px 2px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;background:linear-gradient(135deg,rgba(255,245,250,.82),rgba(246,238,255,.72))!important;border-bottom:1px solid rgba(255,159,180,.16)!important}.uvd-dig-common-brand strong{display:block;color:#c95073;font-size:14px;font-weight:950;letter-spacing:.05em;text-transform:uppercase}.uvd-dig-common-brand small{display:block;margin-top:3px;color:#9a6ce0;font-size:10px;font-weight:850}.uvd-dig-common-actions{display:flex;align-items:center;gap:5px}.uvd-dig-common-actions button{position:relative!important;top:auto!important;right:auto!important;display:inline-flex!important;width:34px!important;height:34px!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid rgba(194,150,255,.25)!important;border-radius:50%!important;background:rgba(255,255,255,.82)!important;color:#8a6ab0!important;font-size:15px!important;line-height:1!important;box-shadow:0 3px 9px rgba(150,90,220,.1)!important;cursor:pointer}.uvd-dig-common-actions .uvd-dig-close{color:#c95073!important;font-size:23px!important}.uvd-dig-common-actions b{position:absolute;right:-4px;top:-5px;display:flex;min-width:17px;height:17px;align-items:center;justify-content:center;padding:0 4px;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:8px;font-weight:900}.uvd-dig-collapsed .uvd-digging-box{padding:0 14px!important}.uvd-dig-collapsed .uvd-digging-box>*:not(.uvd-dig-common-header){display:none!important}.uvd-dig-collapsed .uvd-dig-common-header{display:flex!important;margin:0!important;border-bottom:0!important}.uvd-dig-collapsed .uvd-dig-common-brand{display:none}.uvd-dig-collapsed .uvd-dig-common-header{justify-content:flex-end!important;min-height:52px!important}@media (max-width:390px){.uvd-dig-common-header{min-height:70px!important}.uvd-dig-common-brand strong{font-size:12px}.uvd-dig-common-actions{gap:3px}.uvd-dig-common-actions button{width:30px!important;height:30px!important;font-size:13px!important}}
+.uvd-dig-common-header{min-height:82px!important;padding:12px 0 12px 2px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;background:linear-gradient(135deg,rgba(255,245,250,.82),rgba(246,238,255,.72))!important;border-bottom:1px solid rgba(255,159,180,.16)!important}.uvd-dig-common-brand strong{display:block;color:#c95073;font-size:14px;font-weight:950;letter-spacing:.05em;text-transform:uppercase}.uvd-dig-common-brand small{display:block;margin-top:3px;color:#9a6ce0;font-size:10px;font-weight:850}.uvd-dig-common-actions{display:flex;align-items:center;gap:5px}.uvd-dig-common-actions button{position:relative!important;top:auto!important;right:auto!important;display:inline-flex!important;width:34px!important;height:34px!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid rgba(194,150,255,.25)!important;border-radius:50%!important;background:rgba(255,255,255,.82)!important;color:#8a6ab0!important;font-size:15px!important;line-height:1!important;box-shadow:0 3px 9px rgba(150,90,220,.1)!important;cursor:pointer}.uvd-dig-common-actions .uvd-dig-close{color:#c95073!important;font-size:23px!important}.uvd-dig-common-actions b{position:absolute;right:-4px;top:-5px;display:flex;min-width:17px;height:17px;align-items:center;justify-content:center;padding:0 4px;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:8px;font-weight:900}.uvd-dig-collapsed .uvd-digging-box{padding:0 14px!important}.uvd-dig-collapsed .uvd-dig-common-header{display:flex!important;margin:0!important;border-bottom:0!important}.uvd-dig-collapsed .uvd-dig-common-brand{display:none}.uvd-dig-collapsed .uvd-dig-common-header{justify-content:flex-end!important;min-height:52px!important}@media (max-width:390px){.uvd-dig-common-header{min-height:70px!important}.uvd-dig-common-brand strong{font-size:12px}.uvd-dig-common-actions{gap:3px}.uvd-dig-common-actions button{width:30px!important;height:30px!important;font-size:13px!important}}
 
 
 /* ===== POPUP BACK + FLAT COMMON HEADER ===== */
 .uvd-popup-common-header{border-bottom:0!important}.uvd-popup-back-btn{position:absolute;left:12px;top:12px;z-index:4;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-back-btn:active{transform:scale(.94)}
+
+
+/* ===== RELIABLE DIGGING COLLAPSE ===== */
+.uvd-dig-common-header{min-height:56px!important;padding:6px 0!important;background:transparent!important;border:0!important}.uvd-dig-content{display:block;max-height:calc(90dvh - 62px);overflow:hidden;opacity:1;transform:translateY(0);transition:max-height .48s cubic-bezier(.22,1,.36,1),opacity .26s ease,transform .38s ease}.uvd-dig-collapsed .uvd-digging-box>.uvd-dig-common-header{display:flex!important;min-height:52px!important}.uvd-dig-collapsed .uvd-digging-box>.uvd-dig-content{display:block!important;max-height:0!important;opacity:0!important;transform:translateY(-20px)!important;pointer-events:none!important}.uvd-dig-collapsed .uvd-digging-box{height:auto!important;min-height:0!important;padding:4px 14px!important}.uvd-dig-collapsed .uvd-dig-common-actions{margin-left:auto}.uvd-dig-collapsed .uvd-dig-header-spacer{display:none}
 
 
 `;
@@ -5384,6 +5388,7 @@ function __uvdStartDiggingPopup() {
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
       '<div class="uvd-popup-common-header uvd-dig-common-header"><span class="uvd-dig-header-spacer" aria-hidden="true"></span><div class="uvd-dig-common-actions"><button type="button" id="__uvd_dig_links__" title="Tất cả link">☷<b id="__uvd_dig_links_count__">0</b></button><button type="button" id="__uvd_dig_activity__" title="Hoạt động & lịch sử">🕘<b id="__uvd_dig_activity_count__">0</b></button><button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button><button type="button" class="uvd-popup-hide-btn uvd-dig-hide-btn" id="__uvd_dig_hide__" title="Ẩn popup">−</button><button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Thoát Mèo cào media">×</button></div></div>' +
+      '<div class="uvd-dig-content">' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
@@ -5399,6 +5404,7 @@ function __uvdStartDiggingPopup() {
         '<div id="__uvd_dig_fact_box__" style="display:none;margin-top:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#fffdfd,#fff0f5);border:1px solid rgba(255,159,180,.28);box-shadow:0 6px 16px rgba(247,108,140,.12);font-size:12px;color:#7a5f9e;line-height:1.5;text-align:left;position:relative;overflow:hidden"><div style="position:absolute;right:8px;top:6px;font-size:12px">✨</div><div id="__uvd_dig_fact_text__" style="padding-right:16px">Đang lấy fact vui...</div></div>' +
       '</div>' +
       '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
+      '</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
   var dockLinkCount = overlay.querySelector('#__uvd_dig_links_count__');
@@ -5459,7 +5465,10 @@ function __uvdStartDiggingPopup() {
   }
 
   var close = overlay.querySelector('#__uvd_dig_close__');
-  if (close) close.onclick = function() { __uvdRequestExit(); };
+  if (close) {
+    close.onclick = function(e) { if (e) e.stopPropagation(); __uvdRequestExit(); };
+    close.addEventListener('click', function(e) { e.stopPropagation(); __uvdRequestExit(); });
+  }
   var digHide = overlay.querySelector('#__uvd_dig_hide__');
   if (digHide) digHide.onclick = function() {
     var collapsed = overlay.classList.toggle('uvd-dig-collapsed');

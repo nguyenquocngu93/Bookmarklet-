@@ -4713,6 +4713,10 @@ style.textContent = `
 #__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_resume_prompt__,#__uvd_tutorial__,#__uvd_farewell_popup__,.uvd-digging-overlay{overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;align-items:flex-start!important}#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div,#__uvd_farewell_popup__>.uvd-digging-box,.uvd-digging-overlay>.uvd-digging-box{flex:0 0 auto!important;max-height:calc(100dvh - 24px)!important;margin:auto!important;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.uvd-digging-overlay>.uvd-digging-box,.uvd-farewell-box{min-height:0!important}@media (max-width:560px){#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_resume_prompt__,#__uvd_tutorial__,#__uvd_farewell_popup__,.uvd-digging-overlay{padding:10px!important}#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>div,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_tutorial__>div,#__uvd_farewell_popup__>.uvd-digging-box,.uvd-digging-overlay>.uvd-digging-box{max-height:calc(100dvh - 20px)!important}}.uvd-digging-overlay.uvd-dig-found #__uvd_dig_fact_wrap__{display:none!important}.uvd-digging-overlay.uvd-dig-found .uvd-dig-action-row{position:sticky;bottom:0;z-index:8;flex-shrink:0;max-height:72px!important;margin-top:16px!important;overflow:visible!important;opacity:1!important}.uvd-digging-overlay.uvd-dig-found #__uvd_dig_enter__{display:block!important;max-height:60px!important;padding:14px 16px!important;opacity:1!important;background:linear-gradient(135deg,#ff91ae,#ef6689)!important}
 
 
+/* ===== QUICK WATCH + POPUP FRAME PREVIEW ===== */
+.uvd-dig-watch-first-btn{display:block;flex:1;min-width:0;max-height:0;margin:0;padding:0;overflow:hidden;opacity:0;border:0;border-radius:16px;background:linear-gradient(135deg,#b385f2,#9a6ce0);color:#fff;font-size:15px;font-weight:850;box-shadow:0 8px 18px rgba(150,90,220,.28);transition:max-height .28s ease,padding .28s ease,opacity .22s ease,transform .18s ease}.uvd-dig-watch-first-btn:active{transform:scale(.97)}.uvd-digging-overlay.uvd-dig-found .uvd-dig-watch-first-btn{max-height:60px;padding:14px 16px;opacity:1}.uvd-plplain-actions{flex:0 0 auto;display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:112px}.uvd-plplain-actions .uvd-plrow-watch{width:100%;padding:9px 8px!important}.uvd-plrow-preview{width:100%;padding:7px 6px;border:1px solid rgba(194,150,255,.32);border-radius:11px;background:rgba(255,255,255,.72);color:#8a6ab0;font-size:9.5px;font-weight:850;cursor:pointer}.uvd-plrow-preview:active{transform:scale(.97)}.uvd-plrow-preview-box{position:relative;width:112px;height:63px;overflow:hidden;border:1px solid rgba(194,150,255,.28);border-radius:10px;background:linear-gradient(135deg,#f5edff,#ffeaf4);box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-plrow-preview-box[hidden]{display:none!important}.uvd-plrow-preview-box .uvd-plrow-thumbimg{display:block;width:100%;height:100%;object-fit:cover}.uvd-plrow-preview-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:5px;color:#8a6ab0;font-size:9px;font-weight:800;text-align:center;line-height:1.3}@media (max-width:390px){.uvd-plplain{gap:7px;padding:10px}.uvd-plplain-actions{min-width:94px}.uvd-plrow-preview-box{width:94px;height:53px}.uvd-dig-watch-first-btn{font-size:13px}}
+
+
 `;
 
 
@@ -5159,8 +5163,16 @@ function __uvdSetDiggingReady(kind, subtitle) {
   // Set the reveal inline as well as in CSS so host styles cannot collapse it.
   var actionRow = overlay.querySelector('.uvd-dig-action-row');
   var enterButton = overlay.querySelector('#__uvd_dig_enter__');
+  var watchFirstButton = overlay.querySelector('#__uvd_dig_watch_first__');
   if (actionRow) { actionRow.style.maxHeight = '72px'; actionRow.style.marginTop = '16px'; actionRow.style.opacity = '1'; actionRow.style.overflow = 'visible'; }
   if (enterButton) { enterButton.style.display = 'block'; enterButton.style.maxHeight = '60px'; enterButton.style.padding = '14px 16px'; enterButton.style.opacity = '1'; enterButton.style.background = 'linear-gradient(135deg,#ff91ae,#ef6689)'; }
+  if (watchFirstButton) {
+    var canWatchFirst = kind === 'media';
+    watchFirstButton.style.display = canWatchFirst ? 'block' : 'none';
+    watchFirstButton.style.maxHeight = canWatchFirst ? '60px' : '0';
+    watchFirstButton.style.padding = canWatchFirst ? '14px 16px' : '0';
+    watchFirstButton.style.opacity = canWatchFirst ? '1' : '0';
+  }
   var factWrap = overlay.querySelector('#__uvd_dig_fact_wrap__');
   if (factWrap) factWrap.style.display = 'none';
   var status = overlay.querySelector('#__uvd_dig_status__');
@@ -5262,6 +5274,7 @@ function __uvdStartDiggingPopup() {
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
       '<div class="uvd-dig-status-row" id="__uvd_dig_status_row__"><span id="__uvd_dig_status__">🔎 Đang quét nguồn</span><span id="__uvd_dig_count__">0 link</span></div>' +
       '<div class="uvd-dig-action-row">' +
+        '<button type="button" class="uvd-dig-watch-first-btn" id="__uvd_dig_watch_first__">▶ Xem ngay</button>' +
         '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
       '</div>' +
       '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
@@ -5276,6 +5289,8 @@ function __uvdStartDiggingPopup() {
   __uvdAppendRoot(overlay);
   var enter = overlay.querySelector('#__uvd_dig_enter__');
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
+  var watchFirst = overlay.querySelector('#__uvd_dig_watch_first__');
+  if (watchFirst) watchFirst.onclick = __uvdWatchFirstDiggingStream;
   var goUi = overlay.querySelector('#__uvd_dig_ui__');
   if (goUi) goUi.onclick = function() {
     __uvdStopDiggingPopup(false);
@@ -5373,6 +5388,19 @@ function __uvdUpdateDiggingIframeReady() {
   clearTimeout(flow.waitTimer);
   flow.waitTimer = null;
   __uvdSetDiggingReady('iframe', 'Mèo tìm thấy player iframe rồi nè — bấm vào link để chọn nha!');
+}
+function __uvdWatchFirstDiggingStream() {
+  var flow = __uvdDiggingFlow;
+  if (!flow.active) return;
+  var direct = __uvdQualifiedDirectEntries();
+  if (!direct.length) { __uvdOpenDiggingDestination(); return; }
+  var first = __uvdSortStreamsForPopup(direct.map(function(entry) { return { url: entry[0], type: entry[1].type, item: entry[1] }; }))[0];
+  if (!first) return;
+  __uvdRunDiggingCatThenFly(function() {
+    addToHistory(first.url, first.type || 'MP4');
+    playerState.launchFromThumbnail = true;
+    showVideoPlayer(first.url, first.type || 'MP4');
+  });
 }
 function __uvdOpenDiggingDestination() {
   var flow = __uvdDiggingFlow;
@@ -5710,41 +5738,56 @@ function __uvdShowTutorialSlides() {
 
 // Load a real video thumbnail (muted, capture first frame) for quality links.
 function __uvdPopupThumb(thumbEl, url, type) {
-  if (!thumbEl || !url) return;
+  if (!thumbEl || !url || thumbEl.dataset.previewState === 'loading' || thumbEl.dataset.previewState === 'ready') return;
+  thumbEl.dataset.previewState = 'loading';
+  thumbEl.innerHTML = '<span class="uvd-plrow-preview-label">Đang lấy thumbnail…</span>';
   var media = document.createElement('video');
   media.muted = true; media.defaultMuted = true; media.playsInline = true;
   media.preload = 'metadata'; media.crossOrigin = 'anonymous';
   media.setAttribute('aria-hidden', 'true');
   media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;';
   thumbEl.appendChild(media);
+  var done = false, hls = null;
+  function finish(ok) {
+    if (done) return;
+    done = true;
+    try { if (hls) hls.destroy(); media.pause(); media.remove(); } catch(e) {}
+    thumbEl.dataset.previewState = ok ? 'ready' : 'failed';
+    if (!ok) thumbEl.innerHTML = '<span class="uvd-plrow-preview-label">Không lấy được thumbnail</span>';
+  }
   function paint() {
+    if (done) return;
     try {
       var canvas = document.createElement('canvas');
-      canvas.width = 120; canvas.height = 68;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(media, 0, 0, 120, 68);
-      thumbEl.querySelector('.uvd-plrow-thumbimg') && thumbEl.querySelector('.uvd-plrow-thumbimg').remove();
+      canvas.width = 160; canvas.height = 90;
+      canvas.getContext('2d').drawImage(media, 0, 0, canvas.width, canvas.height);
       var im = document.createElement('img');
       im.className = 'uvd-plrow-thumbimg';
-      im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;';
-      im.src = canvas.toDataURL('image/jpeg', .6);
+      im.src = canvas.toDataURL('image/jpeg', .64);
+      thumbEl.innerHTML = '';
       thumbEl.appendChild(im);
-    } catch(e) {}
+      finish(true);
+    } catch(e) { finish(false); }
   }
-  media.addEventListener('loadeddata', paint);
-  media.addEventListener('seeked', paint);
-  var done = false;
-  function timeout(){ if(!done){ done=true; try{ media.remove(); }catch(e){} } }
-  setTimeout(timeout, 6000);
-  var isHls = String(type||'').toUpperCase()==='M3U8' || /m3u8/i.test(url);
-  if (isHls && window.Hls && Hls.isSupported()) {
-    var hls = new Hls(); hls.loadSource(url); hls.attachMedia(media);
-    hls.on(Hls.Events.MANIFEST_PARSED, function(){ try{ media.play().catch(function(){}); }catch(e){} });
-    media.addEventListener('timeupdate', function(){ if(media.currentTime>=0.5){ paint(); hls.destroy(); try{media.pause();}catch(e){} } });
+  media.addEventListener('loadeddata', paint, { once: true });
+  media.addEventListener('seeked', paint, { once: true });
+  media.addEventListener('error', function() { finish(false); }, { once: true });
+  var isHls = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(url);
+  if (isHls) {
+    __uvdEnsureHls(function(HlsCtor) {
+      if (!HlsCtor || !HlsCtor.isSupported()) { finish(false); return; }
+      try {
+        hls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 2, maxMaxBufferLength: 4 }));
+        hls.loadSource(url); hls.attachMedia(media);
+        hls.on(HlsCtor.Events.MANIFEST_PARSED, function() { try { media.currentTime = .5; media.play().catch(function() {}); } catch(e) {} });
+        hls.on(HlsCtor.Events.ERROR, function(_, data) { if (data && data.fatal) finish(false); });
+      } catch(e) { finish(false); }
+    }, function() { finish(false); });
   } else {
     media.src = url;
-    media.addEventListener('loadedmetadata', function(){ try{ media.currentTime = Math.min(0.5, (media.duration||1)/3); }catch(e){} });
+    media.addEventListener('loadedmetadata', function() { try { media.currentTime = Math.min(1, Math.max(.1, (media.duration || 1) / 4)); } catch(e) {} }, { once: true });
   }
+  setTimeout(function() { finish(false); }, 7500);
 }
 function __uvdOpenMediaLinksPopup(streams) {
   __uvdSyncPopupMetadataFromStreamTab();
@@ -5811,6 +5854,8 @@ function __uvdOpenMediaLinksPopup(streams) {
       '<div class="uvd-plplain-url">' + escapeHtml(stream.url) + '</div>' +
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
     body.appendChild(__uvdCreateDetectionVoteControls(stream.url, 'video'));
+    var actions = document.createElement('div');
+    actions.className = 'uvd-plplain-actions';
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
     play.textContent = 'Xem ♡';
@@ -5820,8 +5865,19 @@ function __uvdOpenMediaLinksPopup(streams) {
       overlay.remove(); __uvdPopupDismiss();
       setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
     };
+    var preview = document.createElement('button');
+    preview.type = 'button';
+    preview.className = 'uvd-plrow-preview';
+    preview.textContent = '⌁ Xem trước';
+    var previewBox = document.createElement('div');
+    previewBox.className = 'uvd-plrow-preview-box';
+    previewBox.hidden = true;
+    preview.onclick = function(e) { e.stopPropagation(); previewBox.hidden = false; __uvdPopupThumb(previewBox, stream.url, stream.type); };
+    actions.appendChild(play);
+    actions.appendChild(preview);
+    actions.appendChild(previewBox);
     row.appendChild(body);
-    row.appendChild(play);
+    row.appendChild(actions);
     list.appendChild(row);
   });
   function closeMedia() { 

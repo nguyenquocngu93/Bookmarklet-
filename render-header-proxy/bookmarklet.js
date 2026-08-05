@@ -5457,16 +5457,11 @@ function __uvdStartDiggingPopup() {
       tryNext();
     };
   }
-  // Clear timer when popup closes
-  var origClose = overlay.querySelector('#__uvd_dig_close__');
-  if (origClose) {
-    var origCloseFn = origClose.onclick;
-    origClose.onclick = function(){ clearTimeout(factTimer); if(origCloseFn) origCloseFn(); };
-  }
-
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) {
     close.onclick = function(e) { if (e) e.stopPropagation(); __uvdRequestExit(overlay); };
+    close.addEventListener('pointerdown', function(e) { e.preventDefault(); e.stopImmediatePropagation(); __uvdRequestExit(overlay); }, true);
+    close.addEventListener('touchend', function(e) { e.preventDefault(); e.stopImmediatePropagation(); __uvdRequestExit(overlay); }, true);
     close.addEventListener('click', function(e) { e.stopPropagation(); __uvdRequestExit(overlay); });
   }
   var digHide = overlay.querySelector('#__uvd_dig_hide__');
@@ -5698,9 +5693,17 @@ function __uvdInstallExitDelegation() {
     var surface = target.closest('#__uvd_digging_popup__,#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd__');
     __uvdRequestExit(surface);
   };
-  document.addEventListener('click', handler, true);
+  document.addEventListener('pointerdown', handler, true);
   document.addEventListener('pointerup', handler, true);
-  addCleanup(function() { document.removeEventListener('click', handler, true); document.removeEventListener('pointerup', handler, true); __uvdExitDelegationInstalled = false; });
+  document.addEventListener('touchend', handler, true);
+  document.addEventListener('click', handler, true);
+  addCleanup(function() {
+    document.removeEventListener('pointerdown', handler, true);
+    document.removeEventListener('pointerup', handler, true);
+    document.removeEventListener('touchend', handler, true);
+    document.removeEventListener('click', handler, true);
+    __uvdExitDelegationInstalled = false;
+  });
 }
 __uvdInstallExitDelegation();
 function __uvdReturnToDiggingHome(sourceOverlay) {
@@ -5761,8 +5764,17 @@ function __uvdShowFarewellPopup(onConfirm, onCancel) {
     if(confirm && typeof onConfirm==='function') onConfirm();
     else if(!confirm && typeof onCancel==='function') onCancel();
   }
-  box.querySelector('#__uvd_farewell_stay__').onclick = function(){ closeFarewell(false); };
-  box.querySelector('#__uvd_farewell_bye__').onclick = function(){ closeFarewell(true); };
+  var farewellStay = box.querySelector('#__uvd_farewell_stay__');
+  var farewellBye = box.querySelector('#__uvd_farewell_bye__');
+  function bindFarewellTap(button, confirm) {
+    if (!button) return;
+    var act = function(e) { if (e) { e.preventDefault(); e.stopImmediatePropagation(); } closeFarewell(confirm); };
+    button.onclick = act;
+    button.addEventListener('pointerdown', act, true);
+    button.addEventListener('touchend', act, true);
+  }
+  bindFarewellTap(farewellStay, false);
+  bindFarewellTap(farewellBye, true);
   overlay.addEventListener('click', function(e){ if(e.target===overlay) closeFarewell(false); });
 }
 

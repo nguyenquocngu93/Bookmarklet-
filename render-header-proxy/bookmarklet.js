@@ -3611,7 +3611,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
         if (value && value.url) {
           toast('Đang chuyển sang ' + value.label + '…');
           window.__uvdQualitySwitchCatalog = (playerState.qualities || []).slice();
-          window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
+          __uvdOpenPlayerSurface(value.url, 'M3U8', false, true, true);
         } else {
           toast('HLS chưa sẵn sàng — playlist không cung cấp URL chất lượng');
         }
@@ -3636,7 +3636,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
       } else if (value && value.url) {
         window.__uvdQualitySwitchCatalog = (playerState.qualities || []).slice();
         toast('Đang chuyển sang ' + value.label + '…');
-        window.__uvd_showPlayer(value.url, 'M3U8', false, true, true);
+        __uvdOpenPlayerSurface(value.url, 'M3U8', false, true, true);
       } else toast('Không tìm thấy level ' + value.label);
     });
   }
@@ -5613,6 +5613,13 @@ function __uvdStopDiggingPopup(keepUiHidden) {
 
 var __uvdMediaPopupShown = false;
 var __uvdMediaPopupDismissedAt = 0;
+// Open the real player without relying on the legacy main UI to have been built.
+function __uvdOpenPlayerSurface(url, type, fromProxy, forceReinit, forceHlsJs, titleOverride) {
+  if (typeof showVideoPlayer === 'function') return showVideoPlayer(url, type || 'MP4', fromProxy, forceReinit, forceHlsJs, titleOverride);
+  if (window.__uvd_showPlayer) return window.__uvd_showPlayer(url, type || 'MP4');
+  throw new Error('Player chưa sẵn sàng');
+}
+
 // Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
 function __uvdShowPlayIntro(url, type) {
   var anyPopup = document.getElementById('__uvd_media_links_prompt__');
@@ -5647,7 +5654,7 @@ function __uvdShowPlayIntro(url, type) {
     overlay.remove();
     __uvdRestoreUiAfterPopup();
     playerState.launchFromThumbnail = true;
-    try { window.__uvd_showPlayer(url, type || 'MP4'); } catch(e) {}
+    try { __uvdOpenPlayerSurface(url, type || 'MP4'); } catch(e) { toast('Không mở được player: ' + (e.message || 'lỗi không rõ')); }
   }
   var openBtn = box.querySelector('#__uvd_play_intro_open__');
   if (openBtn) openBtn.onclick = function(e) { e.stopPropagation(); openIt(); };
@@ -7840,7 +7847,7 @@ function showQualityPicker(url) {
       playBtn.className = 'uvd-btn uvd-btn-sm';
       playBtn.style.background = 'rgba(255,159,180,.22)';
       playBtn.textContent = 'Xem';
-      playBtn.onclick = function() { overlay.remove(); window.__uvd_showPlayer(q.url, 'M3U8'); };
+      playBtn.onclick = function() { overlay.remove(); __uvdOpenPlayerSurface(q.url, 'M3U8'); };
       grid.appendChild(playBtn);
       var cmdBtn = document.createElement('button');
       cmdBtn.className = 'uvd-btn uvd-btn-sm';

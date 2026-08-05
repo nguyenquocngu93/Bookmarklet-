@@ -5779,6 +5779,8 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   media.preload = 'metadata'; media.crossOrigin = 'anonymous';
   media.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
   panel.appendChild(media);
+  var cachedItem = urls.get(url) || {};
+  var hasCompleteCachedScenes = !!(cachedItem.previewThumbnail || cachedItem.thumbnail) && Array.isArray(cachedItem.sceneThumbnails) && cachedItem.sceneThumbnails.length >= 8;
   var hls = null, closed = false, captured = {};
   function close() {
     if (closed) return;
@@ -5807,8 +5809,9 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     setTimeout(draw, 1600);
   }
   function addScene(time, dataUrl) {
-    if (!dataUrl || captured[Math.round(time * 10)]) return;
-    captured[Math.round(time * 10)] = true;
+    var key = __uvdSceneKey(time);
+    if (!dataUrl || captured[key]) return;
+    captured[key] = true;
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'uvd-media-preview-scene';
@@ -5819,39 +5822,48 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   }
   function captureScenes() {
     var duration = Number(media.duration || 0);
-    var times = isFinite(duration) && duration > 1
-      ? [Math.min(1, Math.max(.15, duration * .04)), duration * .22, duration * .5, Math.max(.2, duration * .78)]
-      : [.3, 1, 2, 3];
-    times = times.map(function(t) { return Math.max(0, t); }).filter(function(t, i, a) { return a.indexOf(t) === i; });
+    var times = __uvdSceneTimes(duration, 8);
+    if (!times.length) times = [.3, 1, 2, 3, 4, 5, 6, 7];
     var index = 0;
     function next() {
       if (closed || index >= times.length) return;
       var time = times[index++];
+      if (captured[__uvdSceneKey(time)]) { next(); return; }
       imageAt(time, function(dataUrl) {
-        if (!dataUrl) { if (index === 1) fail('Link này không cho đọc frame preview'); return; }
-        if (index === 1) { stage.innerHTML = '<img alt="">'; stage.querySelector('img').src = dataUrl; }
+        if (!dataUrl) { if (!stage.querySelector('img')) fail('Link này không cho đọc frame preview'); return; }
+        if (!stage.querySelector('img')) { stage.innerHTML = '<img alt="">'; stage.querySelector('img').src = dataUrl; }
         addScene(time, dataUrl);
+        __uvdCacheStreamScene(url, time, dataUrl);
         next();
       });
     }
     next();
   }
+  if (cachedItem.previewThumbnail || cachedItem.thumbnail) {
+    stage.innerHTML = '<img alt="">';
+    stage.querySelector('img').src = cachedItem.previewThumbnail || cachedItem.thumbnail;
+  }
+  (Array.isArray(cachedItem.sceneThumbnails) ? cachedItem.sceneThumbnails : []).forEach(function(scene) {
+    if (scene && scene.image) addScene(scene.time, scene.image);
+  });
   media.addEventListener('loadedmetadata', captureScenes, { once: true });
   media.addEventListener('error', function() { fail('Không tải được preview của link này'); }, { once: true });
   var isHls = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(url);
-  if (isHls) {
-    __uvdEnsureHls(function(HlsCtor) {
-      if (!HlsCtor || !HlsCtor.isSupported()) { fail('Thiết bị chưa tải được HLS preview'); return; }
-      try {
-        hls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 3, maxMaxBufferLength: 5 }));
-        hls.loadSource(url); hls.attachMedia(media);
-        hls.on(HlsCtor.Events.ERROR, function(_, data) { if (data && data.fatal) fail('Không tải được HLS preview'); });
-      } catch(e) { fail('Không tải được HLS preview'); }
-    }, function() { fail('Không tải được HLS preview'); });
-  } else {
-    media.src = url;
+  if (!hasCompleteCachedScenes) {
+    if (isHls) {
+      __uvdEnsureHls(function(HlsCtor) {
+        if (!HlsCtor || !HlsCtor.isSupported()) { fail('Thiết bị chưa tải được HLS preview'); return; }
+        try {
+          hls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 3, maxMaxBufferLength: 5 }));
+          hls.loadSource(url); hls.attachMedia(media);
+          hls.on(HlsCtor.Events.ERROR, function(_, data) { if (data && data.fatal) fail('Không tải được HLS preview'); });
+        } catch(e) { fail('Không tải được HLS preview'); }
+      }, function() { fail('Không tải được HLS preview'); });
+    } else {
+      media.src = url;
+    }
+    setTimeout(function() { if (!closed && !stage.querySelector('img')) fail('Preview mất quá lâu, thử link khác nha'); }, 12000);
   }
-  setTimeout(function() { if (!closed && !stage.querySelector('img')) fail('Preview mất quá lâu, thử link khác nha'); }, 12000);
   panel.querySelector('.uvd-media-preview-close').onclick = close;
   panel.querySelector('.uvd-media-preview-back').onclick = close;
   panel.querySelector('.uvd-media-preview-play').onclick = function() {
@@ -6968,6 +6980,39 @@ function buildStreamCardHTML(item, i) {
   );
 }
 
+function __uvdSceneTimes(duration, count) {
+  count = count || 8;
+  duration = Number(duration || 0);
+  if (!isFinite(duration) || duration <= 1) return [];
+  // Eight evenly distributed interior points: avoid the opening/closing frame.
+  var times = [];
+  for (var i = 1; i <= count; i++) times.push(Math.max(.1, Math.min(duration - .2, duration * i / (count + 1))));
+  return times.filter(function(time, index, list) { return list.indexOf(time) === index; });
+}
+function __uvdSceneKey(time) { return String(Math.round(Number(time || 0) * 10)); }
+function __uvdCacheStreamMainFrame(url, dataUrl) {
+  var item = urls.get(url);
+  if (item && dataUrl) item.previewThumbnail = dataUrl;
+}
+function __uvdCacheStreamScene(url, time, dataUrl) {
+  var item = urls.get(url);
+  if (!item || !dataUrl) return;
+  item.sceneThumbnails = Array.isArray(item.sceneThumbnails) ? item.sceneThumbnails : [];
+  var key = __uvdSceneKey(time);
+  if (!item.sceneThumbnails.some(function(scene) { return __uvdSceneKey(scene.time) === key; })) {
+    item.sceneThumbnails.push({ time: Number(time), image: dataUrl });
+    item.sceneThumbnails.sort(function(a, b) { return a.time - b.time; });
+    if (item.sceneThumbnails.length > 8) item.sceneThumbnails = item.sceneThumbnails.slice(0, 8);
+  }
+}
+function __uvdCanvasFrame(media, width, height, quality) {
+  try {
+    var canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(media, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality || .68);
+  } catch(e) { return ''; }
+}
 function loadExtraVideoThumbnails(preview) {
   if (!preview || preview.dataset.extraThumbs === 'loading' || preview.dataset.extraThumbs === 'ready') return;
   var media = preview.__thumbVideo;
@@ -6986,9 +7031,7 @@ function loadExtraVideoThumbnails(preview) {
   var card = preview.closest('.uvd-card');
   if (!card) return;
   preview.dataset.extraThumbs = 'loading';
-  var times = [12, 30, 60, 90, 120].map(function(t) {
-    return Math.min(t, Math.max(0, media.duration - .5));
-  }).filter(function(t, i, a) { return a.indexOf(t) === i; });
+  var times = __uvdSceneTimes(media.duration, 8);
   var strip = document.createElement('div');
   strip.className = 'uvd-thumb-strip';
   strip.innerHTML = '<span class="uvd-thumb-strip-label">CẢNH KHÁC</span>';
@@ -7015,7 +7058,9 @@ function loadExtraVideoThumbnails(preview) {
         item.type = 'button';
         item.title = 'Xem từ giây ' + Math.round(time);
         item.innerHTML = '<img alt=""><span>' + Math.round(time) + 's</span>';
-        item.querySelector('img').src = canvas.toDataURL('image/jpeg', .72);
+        var sceneImage = canvas.toDataURL('image/jpeg', .72);
+        item.querySelector('img').src = sceneImage;
+        if (card.dataset.url) __uvdCacheStreamScene(card.dataset.url, time, sceneImage);
         item.onclick = function() {
           try { media.currentTime = time; } catch(e) {}
           if (card.dataset.url) {
@@ -7117,6 +7162,8 @@ function hydrateVideoThumbnails(root) {
       var cardItem = card && card.dataset.url && urls.get(card.dataset.url);
       if (cardItem) {
         cardItem.hasThumbnail = true;
+        var mainFrame = __uvdCanvasFrame(media, 320, 180, .64);
+        if (mainFrame) __uvdCacheStreamMainFrame(card.dataset.url, mainFrame);
         cardItem.videoWidth = media.videoWidth || cardItem.videoWidth || 0;
         cardItem.videoHeight = media.videoHeight || cardItem.videoHeight || 0;
         if (media.videoWidth && media.videoHeight) cardItem.resolution = media.videoWidth + '×' + media.videoHeight;

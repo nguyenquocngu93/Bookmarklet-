@@ -4737,6 +4737,10 @@ style.textContent = `
 .uvd-media-preview-stage .uvd-media-preview-format{position:absolute;top:9px;left:9px;padding:4px 7px;border:1px solid rgba(255,255,255,.52);border-radius:999px;background:rgba(48,27,58,.5);color:#fff;font-size:9px;font-weight:900;letter-spacing:.07em}.uvd-media-preview-stage-play{position:absolute;left:50%;top:50%;width:52px;height:52px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(255,255,255,.9);color:#d85c7a;font-size:21px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 8px 18px rgba(65,32,70,.22);cursor:pointer}.uvd-media-preview-scenes{display:flex!important;align-items:stretch;gap:8px}.uvd-media-preview-scenes>strong{display:flex!important;align-items:center;justify-content:center;align-self:stretch;flex:0 0 22px;margin:0!important;color:#8a6ab0!important;font-size:10px!important;font-weight:900!important;letter-spacing:.08em;writing-mode:vertical-rl;transform:rotate(180deg)}.uvd-media-preview-strip{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(54px,1fr));flex:1;gap:7px!important;overflow:visible!important;padding:0!important}.uvd-media-preview-scene{width:100%!important;height:auto!important;min-width:0!important;aspect-ratio:16/9;flex:none!important}.uvd-media-preview-scenes:has(.uvd-media-preview-strip[data-count="1"])>strong,.uvd-media-preview-scenes:has(.uvd-media-preview-strip[data-count="2"])>strong{min-height:calc(108px + 7px)}@media (max-width:420px){.uvd-media-preview-scenes{gap:6px}.uvd-media-preview-scenes>strong{flex-basis:18px;font-size:9px!important}.uvd-media-preview-strip{gap:5px!important;grid-template-rows:repeat(2,minmax(45px,1fr))}}
 
 
+/* ===== COMPACT STREAM LOG ===== */
+.uvd-scroll-hide-header #__uvd_header__{max-height:none!important;min-height:0!important;opacity:1!important;overflow:visible!important;padding-top:10px!important;padding-bottom:10px!important;margin:0!important;border-width:1px!important;pointer-events:auto!important;transform:none!important}.uvd-stream-row{padding:10px 11px;margin:0 0 7px;border:1px solid rgba(194,150,255,.22);border-radius:15px;background:linear-gradient(135deg,rgba(255,255,255,.82),rgba(252,243,255,.78));box-shadow:0 3px 9px rgba(150,90,220,.07)}.uvd-stream-row-muted{opacity:.68}.uvd-stream-row-head{display:flex;align-items:center;justify-content:space-between;gap:7px}.uvd-stream-row-type{min-width:0;color:#8a6ab0;font-size:9.5px;font-weight:900}.uvd-stream-row-status{max-width:52%;overflow:hidden;padding:3px 6px;border-radius:999px;background:rgba(255,159,180,.12);color:#c95073;font-size:8.5px;font-weight:850;white-space:nowrap;text-overflow:ellipsis}.uvd-stream-row-url{display:block;width:100%;margin-top:6px;overflow:hidden;padding:7px 8px;border:1px solid rgba(194,150,255,.2);border-radius:10px;background:rgba(244,237,255,.66);color:#8a6ab0;font:750 10.5px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:left;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}.uvd-stream-row-meta{margin-top:5px;overflow:hidden;color:#a0789d;font-size:9.5px;font-weight:750;white-space:nowrap;text-overflow:ellipsis}.uvd-stream-row-votes{margin:7px 0 0!important}.uvd-stream-row-votes .uvd-votechip{padding:4px 8px!important;font-size:9px!important}
+
+
 `;
 
 
@@ -6627,19 +6631,9 @@ function buildUI() {
   streamList.className = 'uvd-scroll';
   streamList.style.cssText = 'overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;padding:12px;min-width:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior:contain;';
   contentWrapper.appendChild(streamList);
-  // Cuộn xuống ẩn header để rộng chỗ; cuộn lên hiện lại (mượt, gộp bằng rAF để đỡ giật).
-  var __uvdStreamListScroll = { last: 0, ticking: false };
-  streamList.addEventListener('scroll', function() {
-    if (__uvdStreamListScroll.ticking) return;
-    __uvdStreamListScroll.ticking = true;
-    requestAnimationFrame(function() {
-      var st = streamList.scrollTop;
-      if (st > __uvdStreamListScroll.last && st > 70) content.classList.add('uvd-scroll-hide-header');
-      else if (st < __uvdStreamListScroll.last || st <= 40) content.classList.remove('uvd-scroll-hide-header');
-      __uvdStreamListScroll.last = st;
-      __uvdStreamListScroll.ticking = false;
-    });
-  }, { passive: true });
+  // Header stays fixed in the main panel. Stream rows are compact now, so
+  // hiding/revealing it no longer buys useful space and only causes jank.
+  content.classList.remove('uvd-scroll-hide-header');
 
   // Footer belongs to the selected tab body, not to a separate card under it.
   // This keeps the visual hierarchy to hero → session → one main content sheet.
@@ -7338,6 +7332,25 @@ function hydrateVideoThumbnails(root) {
   });
 }
 
+function __uvdStreamRowHtml(item, index) {
+  var type = String(item.type || 'MEDIA').toUpperCase();
+  var source = urls.get(item.url) || item || {};
+  var votes = __uvdVoteChips(item.url);
+  var kind = type === 'IFRAME' ? '🖼️' : (type === 'M3U8' ? '📺' : '📼');
+  var quality = source.qualityOnly ? 'QUALITY ONLY' : ((source.isMaster || (Number(source.qualityCount) || 0) > 1) ? 'Đa chất lượng' : '');
+  var resolution = source.resolution || item.resolution || '';
+  var duration = source.durationSeconds ? __uvdFormatDuration(source.durationSeconds) : '';
+  var ai = type === 'IFRAME' && source.aiVerdict ? (' · ' + source.aiVerdict) : '';
+  var meta = [quality, resolution, duration].filter(Boolean).join(' · ') || 'Đang chờ metadata';
+  var verdict = __uvdIsRejectedVideo(item.url) ? 'RÁC ĐÃ HỌC' : (source.aiMediaVerdict === 'JUNK' ? 'AI NGHI RÁC' : '');
+  return '<div class="uvd-stream-row' + (verdict ? ' uvd-stream-row-muted' : '') + '" data-url="' + encodeURIComponent(item.url) + '">' +
+    '<div class="uvd-stream-row-head"><span class="uvd-stream-row-type">' + kind + ' #' + (index + 1) + ' · ' + escapeHtml(type) + '</span><span class="uvd-stream-row-status">' + escapeHtml(verdict || quality || 'Đã bắt') + '</span></div>' +
+    '<button type="button" class="uvd-stream-row-url" title="Bấm để sao chép link đầy đủ">↗ ' + escapeHtml(__uvdCompactPopupUrl(item.url)) + '</button>' +
+    '<div class="uvd-stream-row-meta">' + escapeHtml(meta + ai) + '</div>' +
+    '<div class="uvd-cute-votes uvd-stream-row-votes">' + votes + '</div>' +
+  '</div>';
+}
+
 function renderStreams(container, arr) {
   if (!arr.length) {
     container.innerHTML = '<div class="uvd-empty-state"><strong>Chưa thấy nguồn video</strong><span>Bấm Preload rồi bấm Play thật trên trang. Nếu trang chỉ có iframe, UMP sẽ gợi ý mở iframe.</span><button class="uvd-btn uvd-btn-sm" id="__uvd_empty_preload__">⏺ Bắt link realtime</button></div>';
@@ -7363,15 +7376,10 @@ function renderStreams(container, arr) {
   function renderNextBatch() {
     var end = Math.min(rendered + UVD_LAZY_BATCH, arr.length);
     var html = '';
-    for (var i = rendered; i < end; i++) html += buildStreamCardHTML(arr[i], i);
+    for (var i = rendered; i < end; i++) html += __uvdStreamRowHtml(arr[i], i);
     var frag = document.createElement('div');
     frag.innerHTML = html;
     while (frag.firstChild) listWrap.appendChild(frag.firstChild);
-    if (rendered === 0) {
-      var firstCard = listWrap.querySelector('.uvd-card');
-      if (firstCard) firstCard.classList.add('uvd-stream-first');
-    }
-    hydrateVideoThumbnails(listWrap);
     rendered = end;
 
     if (moreBtn) { moreBtn.remove(); moreBtn = null; }
@@ -7405,6 +7413,12 @@ function renderStreams(container, arr) {
       __uvdCastVote(vdUrl, 'down');
       toast('Cảm ơn cưng! Đã đánh dấu rác domain ' + vdUrl + ' 💩');
       debouncedBuildUI();
+      return;
+    }
+    var compactUrl = e.target.closest('.uvd-stream-row-url');
+    if (compactUrl) {
+      copy(decodeURIComponent(compactUrl.closest('.uvd-stream-row').dataset.url || ''));
+      toast('Đã sao chép URL đầy đủ!');
       return;
     }
     var urlBox = e.target.closest('.uvd-url-box');

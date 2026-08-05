@@ -386,15 +386,46 @@ function allowIframeProbe(req) {
   return bucket.count <= IFRAME_PROBE_RATE_LIMIT;
 }
 
-function extractPublicMediaUrls(text) {
+function publicAbsolute(raw, base) {
+  try { return new URL(String(raw || '').trim().replace(/^['"]|['"]$/g, ''), base).toString(); } catch (_) { return ''; }
+}
+
+function extractPublicMediaUrls(text, base) {
   const normalized = String(text || '').replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&');
-  const matches = normalized.match(/https?:\/\/[^\s"'<>\\]+(?:\.m3u8|\.mpd|\.mp4|\.webm)(?:[^\s"'<>\\]*)?/gi) || [];
+  const raw = [];
+  const absolute = normalized.match(/https?:\/\/[^\s"'<>\\]+(?:\.m3u8|\.mpd|\.mp4|\.webm)(?:[^\s"'<>\\]*)?/gi) || [];
+  raw.push(...absolute);
+  // Public players often keep a relative manifest in a script config or a
+  // source tag. Resolve it against the iframe URL before returning it.
+  const relativeRe = /(?:["'])([^"'<>\\\s]+(?:\.m3u8|\.mpd|\.mp4|\.webm)(?:\?[^"'<>\\\s]*)?)(?:["'])/gi;
+  let match;
+  while ((match = relativeRe.exec(normalized))) raw.push(match[1]);
   const seen = new Set();
-  return matches.map((url) => url.replace(/[),.;]+$/, '')).filter((url) => {
-    if (seen.has(url)) return false;
+  return raw.map((url) => publicAbsolute(url.replace(/[),.;]+$/, ''), base)).filter((url) => {
+    if (!url || seen.has(url)) return false;
     seen.add(url);
     return true;
   }).slice(0, 12);
+}
+
+function extractPublicScriptUrls(text, base) {
+  const scripts = [];
+  const re = /<script[^>]+\bsrc\s*=\s*["']([^"']+)["']/gi;
+  let match;
+  while ((match = re.exec(String(text || '')))) {
+    const url = publicAbsolute(match[1], base);
+    if (url && !scripts.includes(url)) scripts.push(url);
+  }
+  return scripts.slice(0, 6);
+}
+
+async function readProbeText(target, req, referer) {
+  const response = await fetchSource(target, req, referer, true);
+  const contentLength = Number(response.headers.get('content-length') || 0);
+  // Never turn this convenience route into a bulk file downloader.
+  if (contentLength > 2 * 1024 * 1024) { try { if (response.body) await response.body.cancel(); } catch (_) {} return ''; }
+  const text = await response.text();
+  return text.slice(0, 2 * 1024 * 1024);
 }
 
 app.post('/iframe-probe', async (req, res) => {
@@ -409,18 +440,30 @@ app.post('/iframe-probe', async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
   try {
-    // Establish the normal public navigation order. We intentionally discard
-    // the parent body/cookies and use only the parent URL as a Referer.
+    // Establish the public navigation order, then inspect the iframe response
+    // plus its public external player scripts. No cookie jar or page JS runs.
     const parentResponse = await fetchSource(parent, req, undefined, true);
     try { if (parentResponse.body) await parentResponse.body.cancel(); } catch (_) {}
-    const response = await fetchSource(iframe, req, parent.toString(), true);
-    const contentType = response.headers.get('content-type') || '';
-    const text = /(?:text|json|javascript|xml)/i.test(contentType) ? await response.text() : '';
-    const media = extractPublicMediaUrls(text).map((url) => ({
+    const iframeText = await readProbeText(iframe, req, parent.toString());
+    const mediaUrls = extractPublicMediaUrls(iframeText, iframe);
+    const scripts = extractPublicScriptUrls(iframeText, iframe);
+    for (const scriptUrl of scripts) {
+      try {
+        const scriptTarget = parseTarget(scriptUrl);
+        const scriptText = await readProbeText(scriptTarget, req, iframe.toString());
+        mediaUrls.push(...extractPublicMediaUrls(scriptText, scriptTarget));
+      } catch (_) {}
+    }
+    const seen = new Set();
+    const media = mediaUrls.filter((url) => {
+      if (seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    }).slice(0, 12).map((url) => ({
       url,
       type: /\.m3u8(?:[?#]|$)/i.test(url) ? 'M3U8' : (/\.mpd(?:[?#]|$)/i.test(url) ? 'MPD' : (/\.webm(?:[?#]|$)/i.test(url) ? 'WEBM' : 'MP4'))
     }));
-    res.json({ ok: true, publicOnly: true, parent: parent.origin, iframe: iframe.origin, media });
+    res.json({ ok: true, publicOnly: true, parent: parent.origin, iframe: iframe.origin, scriptCount: scripts.length, media });
   } catch (error) {
     res.status(502).json({ error: 'Không dò được iframe công khai: ' + error.message, media: [] });
   }

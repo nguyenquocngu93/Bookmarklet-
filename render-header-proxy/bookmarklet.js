@@ -2604,6 +2604,7 @@ var playerState = {
   hideTimeout: null,
   controlsVisible: true,
   launchFromThumbnail: false,
+  returnRoute: '',
   timeMode: 0
 };
 
@@ -3269,7 +3270,11 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   // When hls.js is loaded lazily, the player shell already exists. Allow the
   // same URL to be re-initialized after the library finishes loading.
   if (playerState.overlay && playerState.url === url && !forceReinit) return;
-  if (playerState.overlay) closePlayer();
+  if (playerState.overlay) {
+    // Re-initializing/quality switching is not a user back action.
+    playerState.returnRoute = '';
+    closePlayer();
+  }
   // Khi đổi quality bằng URL variant, giữ lại catalog của master để menu
   // vẫn có toàn bộ các mức ở player kế tiếp.
   var preservedQualityCatalog = window.__uvdQualitySwitchCatalog || null;
@@ -4040,12 +4045,20 @@ function closePlayer() {
     playerState.qualities = [];
     playerState.resolution = '';
     playerState.bandwidth = 0;
+    var returnRoute = playerState.returnRoute;
+    playerState.returnRoute = '';
 
     data.settings.reduceMotion = playerState.wasReduceMotion;
     var __uvdMainPanel = document.getElementById('__uvd__');
     applyMotionPref(__uvdMainPanel);
     if (__uvdMainPanel) __uvdMainPanel.style.visibility = '';
     storage.set(data);
+    if (!window.__uvdShuttingDown && returnRoute) {
+      setTimeout(function() {
+        if (returnRoute === 'media' && __uvdLastMediaPopupStreams.length) __uvdOpenMediaLinksPopup(__uvdLastMediaPopupStreams);
+        else if (returnRoute === 'digging') __uvdReturnToDiggingHome();
+      }, 300);
+    }
   }
 }
 
@@ -5522,6 +5535,7 @@ function __uvdWatchFirstDiggingStream() {
   __uvdRunDiggingCatThenFly(function() {
     addToHistory(first.url, first.type || 'MP4');
     playerState.launchFromThumbnail = true;
+    playerState.returnRoute = 'digging';
     showVideoPlayer(first.url, first.type || 'MP4');
   });
 }
@@ -5622,6 +5636,7 @@ function __uvdOpenPlayerSurface(url, type, fromProxy, forceReinit, forceHlsJs, t
 
 // Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
 function __uvdShowPlayIntro(url, type) {
+  playerState.returnRoute = 'media';
   var anyPopup = document.getElementById('__uvd_media_links_prompt__');
   if (anyPopup) { anyPopup.remove(); __uvdPopupDismiss(); }
   var old = document.getElementById('__uvd_play_intro__');
@@ -5665,6 +5680,7 @@ function __uvdShowPlayIntro(url, type) {
 // All destructive close buttons use the same farewell confirmation.
 var __uvdExitHandler = null;
 function __uvdShutdownEverything() {
+  window.__uvdShuttingDown = true;
   try { if (playerState && playerState.overlay) closePlayer(); } catch(e) {}
   ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__','__uvd_settings_overlay__','__uvd_dig_drawer__','__uvd_popup_reopen__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
   try { stopMonitor(); runCleanup(); urls.clear(); } catch(e) {}
@@ -6093,12 +6109,14 @@ function __uvdCompactPopupUrl(raw) {
     return raw.length > 76 ? raw.slice(0, 73) + '…' : raw;
   }
 }
+var __uvdLastMediaPopupStreams = [];
 function __uvdOpenMediaLinksPopup(streams) {
   __uvdSyncPopupMetadataFromStreamTab();
   streams = __uvdSortStreamsForPopup(streams || []).filter(function(stream) {
     return __uvdIsQualifiedMediaItem(stream && (stream.item || urls.get(stream.url)));
   });
   if (!streams.length) return false;
+  __uvdLastMediaPopupStreams = streams.slice();
   var old = document.getElementById('__uvd_media_links_prompt__');
   if (old) old.remove();
   // Hide the UMP panel so this popup is never covered by the UI.

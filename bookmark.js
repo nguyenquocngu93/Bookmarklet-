@@ -4781,6 +4781,10 @@ style.textContent = `
 .uvd-dig-common-header{min-height:82px!important;padding:12px 0 12px 2px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;background:linear-gradient(135deg,rgba(255,245,250,.82),rgba(246,238,255,.72))!important;border-bottom:1px solid rgba(255,159,180,.16)!important}.uvd-dig-common-brand strong{display:block;color:#c95073;font-size:14px;font-weight:950;letter-spacing:.05em;text-transform:uppercase}.uvd-dig-common-brand small{display:block;margin-top:3px;color:#9a6ce0;font-size:10px;font-weight:850}.uvd-dig-common-actions{display:flex;align-items:center;gap:5px}.uvd-dig-common-actions button{position:relative!important;top:auto!important;right:auto!important;display:inline-flex!important;width:34px!important;height:34px!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid rgba(194,150,255,.25)!important;border-radius:50%!important;background:rgba(255,255,255,.82)!important;color:#8a6ab0!important;font-size:15px!important;line-height:1!important;box-shadow:0 3px 9px rgba(150,90,220,.1)!important;cursor:pointer}.uvd-dig-common-actions .uvd-dig-close{color:#c95073!important;font-size:23px!important}.uvd-dig-common-actions b{position:absolute;right:-4px;top:-5px;display:flex;min-width:17px;height:17px;align-items:center;justify-content:center;padding:0 4px;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:8px;font-weight:900}.uvd-dig-collapsed .uvd-digging-box{padding:0 14px!important}.uvd-dig-collapsed .uvd-digging-box>*:not(.uvd-dig-common-header){display:none!important}.uvd-dig-collapsed .uvd-dig-common-header{display:flex!important;margin:0!important;border-bottom:0!important}.uvd-dig-collapsed .uvd-dig-common-brand{display:none}.uvd-dig-collapsed .uvd-dig-common-header{justify-content:flex-end!important;min-height:52px!important}@media (max-width:390px){.uvd-dig-common-header{min-height:70px!important}.uvd-dig-common-brand strong{font-size:12px}.uvd-dig-common-actions{gap:3px}.uvd-dig-common-actions button{width:30px!important;height:30px!important;font-size:13px!important}}
 
 
+/* ===== POPUP BACK + FLAT COMMON HEADER ===== */
+.uvd-popup-common-header{border-bottom:0!important}.uvd-popup-back-btn{position:absolute;left:12px;top:12px;z-index:4;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-back-btn:active{transform:scale(.94)}
+
+
 `;
 
 
@@ -5649,16 +5653,25 @@ function __uvdShowPlayIntro(url, type) {
 
 // All destructive close buttons use the same farewell confirmation.
 var __uvdExitHandler = null;
+function __uvdShutdownEverything() {
+  try { if (playerState && playerState.overlay) closePlayer(); } catch(e) {}
+  ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__','__uvd_settings_overlay__','__uvd_dig_drawer__','__uvd_popup_reopen__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
+  try { stopMonitor(); runCleanup(); urls.clear(); } catch(e) {}
+  var root = document.getElementById('__uvd__');
+  if (root) root.remove();
+  try { if (typeof style !== 'undefined' && style.parentNode) style.remove(); } catch(e) {}
+}
 function __uvdRequestExit() {
   if (document.getElementById('__uvd_farewell_popup__')) return;
-  __uvdShowFarewellPopup(function() {
-    if (typeof __uvdExitHandler === 'function') { __uvdExitHandler(); return; }
-    ['__uvd_digging_popup__','__uvd_media_links_prompt__','__uvd_iframe_workflow_prompt__','__uvd_media_preview__','__uvd_player_overlay__','__uvd_settings_overlay__','__uvd_dig_drawer__'].forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
-    try { stopMonitor(); runCleanup(); urls.clear(); } catch(e) {}
-    var root = document.getElementById('__uvd__');
-    if (root) root.remove();
-    try { if (typeof style !== 'undefined' && style.parentNode) style.remove(); } catch(e) {}
-  });
+  __uvdShowFarewellPopup(function() { __uvdShutdownEverything(); });
+}
+function __uvdReturnToDiggingHome(sourceOverlay) {
+  if (sourceOverlay) { try { sourceOverlay.remove(); } catch(e) {} }
+  __uvdPopupActive = false;
+  __uvdRemovePopupReopenBtn();
+  var flow = __uvdDiggingFlow;
+  flow.active = false; flow.completed = false; flow.released = false;
+  setTimeout(function() { __uvdStartDiggingPopup(); }, 40);
 }
 
 // ========== FAREWELL POPUP - gom het thu lai tam biet de thuong khi bam X (fix undefined + to nhu digging popup) ==========
@@ -6044,6 +6057,7 @@ function __uvdOpenMediaLinksPopup(streams) {
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   panel.innerHTML =
     '<div class="uvd-popup-common-header" style="padding:16px 16px 2px;position:relative;">' +
+      '<button id="__uvd_media_back__" class="uvd-popup-back-btn" title="Quay lại Home Đào">←</button>' +
       '<button id="__uvd_media_links_close__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_media_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
       '<button id="__uvd_media_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_media_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
@@ -6144,6 +6158,8 @@ function __uvdOpenMediaLinksPopup(streams) {
   // X is reserved for leaving the whole tool and always confirms first.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
   if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
+  var mediaBack = panel.querySelector('#__uvd_media_back__');
+  if (mediaBack) mediaBack.onclick = function(e) { e.stopPropagation(); __uvdReturnToDiggingHome(overlay); };
   var mediaSettings = panel.querySelector('#__uvd_media_settings__');
   if (mediaSettings) mediaSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   var mediaLinksHome = panel.querySelector('#__uvd_media_links_home__');
@@ -6229,6 +6245,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML =
     '<div class="uvd-popup-common-header" style="padding:18px 18px 4px;position:relative;">' +
+      '<button id="__uvd_iframe_back__" class="uvd-popup-back-btn" title="Quay lại Home Đào">←</button>' +
       '<button id="__uvd_iframe_workflow_close_x__" title="Thoát Mèo cào media" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
       '<button id="__uvd_iframe_hide__" class="uvd-popup-hide-btn" title="Ẩn popup">−</button>' +
       '<button id="__uvd_iframe_links_home__" class="uvd-popup-home-btn" title="Tất cả link">☷</button><button id="__uvd_iframe_activity_home__" class="uvd-popup-home-btn" title="Hoạt động & lịch sử">🕘</button>' +
@@ -6344,6 +6361,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   if (iframeHide) iframeHide.onclick = collapseIframe;
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
   if (closeX) closeX.onclick = function() { __uvdRequestExit(); };
+  var iframeBack = panel.querySelector('#__uvd_iframe_back__');
+  if (iframeBack) iframeBack.onclick = function(e) { e.stopPropagation(); __uvdReturnToDiggingHome(overlay); };
   var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
   if (iframeSettings) iframeSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   var iframeLinksHome = panel.querySelector('#__uvd_iframe_links_home__');

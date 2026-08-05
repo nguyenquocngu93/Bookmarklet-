@@ -4733,6 +4733,10 @@ style.textContent = `
 .uvd-iframe-probe-actions{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;min-width:126px}.uvd-iframe-probe-btn{padding:8px 7px;border:1px solid rgba(194,150,255,.3);border-radius:11px;background:rgba(255,255,255,.76);color:#8a6ab0;font-size:9.5px;font-weight:850;cursor:pointer}.uvd-iframe-probe-btn:active{transform:scale(.97)}@media (max-width:390px){.uvd-iframe-probe-actions{min-width:105px}.uvd-iframe-probe-btn{font-size:8.5px;padding:7px 5px}}
 
 
+/* ===== PREVIEW SCENE GALLERY ===== */
+.uvd-media-preview-stage .uvd-media-preview-format{position:absolute;top:9px;left:9px;padding:4px 7px;border:1px solid rgba(255,255,255,.52);border-radius:999px;background:rgba(48,27,58,.5);color:#fff;font-size:9px;font-weight:900;letter-spacing:.07em}.uvd-media-preview-stage-play{position:absolute;left:50%;top:50%;width:52px;height:52px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(255,255,255,.9);color:#d85c7a;font-size:21px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 8px 18px rgba(65,32,70,.22);cursor:pointer}.uvd-media-preview-scenes{display:flex!important;align-items:stretch;gap:8px}.uvd-media-preview-scenes>strong{display:flex!important;align-items:center;justify-content:center;flex:0 0 18px;margin:0!important;color:#8a6ab0!important;font-size:9px!important;font-weight:900!important;letter-spacing:.07em;writing-mode:vertical-rl;transform:rotate(180deg)}.uvd-media-preview-strip{display:grid!important;grid-template-columns:repeat(var(--scene-columns,4),minmax(0,1fr));flex:1;gap:7px!important;overflow:visible!important;padding:0!important}.uvd-media-preview-scene{width:100%!important;height:auto!important;min-width:0!important;aspect-ratio:16/9;flex:none!important}.uvd-media-preview-strip[data-count="1"] .uvd-media-preview-scene{min-height:140px}.uvd-media-preview-strip[data-count="2"] .uvd-media-preview-scene{min-height:110px}@media (max-width:420px){.uvd-media-preview-scenes{gap:6px}.uvd-media-preview-scenes>strong{flex-basis:15px;font-size:8px!important}.uvd-media-preview-strip{gap:5px!important}.uvd-media-preview-strip[data-count="1"] .uvd-media-preview-scene{min-height:115px}.uvd-media-preview-strip[data-count="2"] .uvd-media-preview-scene{min-height:90px}}
+
+
 `;
 
 
@@ -5766,8 +5770,8 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
     '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · kiểm tra trước khi vote</div>' +
     '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
-    '<div class="uvd-media-preview-stage"><span>Đang lấy frame video…</span></div>' +
-    '<div class="uvd-media-preview-scenes"><strong>🎞 Cảnh khác</strong><div class="uvd-media-preview-strip"></div></div>' +
+    '<div class="uvd-media-preview-stage"><span>Đang lấy frame video…</span><span class="uvd-media-preview-format">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + '</span><button type="button" class="uvd-media-preview-stage-play" title="Xem link này">▶</button></div>' +
+    '<div class="uvd-media-preview-scenes"><strong>Cảnh khác</strong><div class="uvd-media-preview-strip"></div></div>' +
     '<div class="uvd-media-preview-actions"><button type="button" class="uvd-media-preview-play">▶ Xem link này</button><button type="button" class="uvd-media-preview-back">← Quay lại list</button></div>';
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
@@ -5787,6 +5791,23 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     closed = true;
     try { if (hls) hls.destroy(); media.pause(); media.remove(); } catch(e) {}
     try { overlay.remove(); } catch(e) {}
+  }
+  function playThisLink() {
+    close();
+    addToHistory(url, type || 'MP4');
+    setTimeout(function() { try { __uvdShowPlayIntro(url, type || 'MP4'); } catch(e) {} }, 40);
+  }
+  function showStage(dataUrl) {
+    if (!dataUrl || closed) return;
+    stage.innerHTML = '<img alt=""><span class="uvd-media-preview-format">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + '</span><button type="button" class="uvd-media-preview-stage-play" title="Xem link này">▶</button>';
+    stage.querySelector('img').src = dataUrl;
+    stage.querySelector('.uvd-media-preview-stage-play').onclick = playThisLink;
+  }
+  function refreshSceneLayout() {
+    var count = strip.querySelectorAll('.uvd-media-preview-scene').length;
+    var columns = count <= 1 ? 1 : (count <= 2 ? 2 : (count <= 4 ? 2 : (count <= 6 ? 3 : 4)));
+    strip.dataset.count = String(count);
+    strip.style.setProperty('--scene-columns', columns);
   }
   function fail(text) {
     if (closed || !stage) return;
@@ -5817,8 +5838,9 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     button.className = 'uvd-media-preview-scene';
     button.innerHTML = '<img alt=""><span>' + Math.round(time) + 's</span>';
     button.querySelector('img').src = dataUrl;
-    button.onclick = function() { stage.innerHTML = '<img alt="">'; stage.querySelector('img').src = dataUrl; };
+    button.onclick = function() { showStage(dataUrl); };
     strip.appendChild(button);
+    refreshSceneLayout();
   }
   function captureScenes() {
     var duration = Number(media.duration || 0);
@@ -5831,7 +5853,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
       if (captured[__uvdSceneKey(time)]) { next(); return; }
       imageAt(time, function(dataUrl) {
         if (!dataUrl) { if (!stage.querySelector('img')) fail('Link này không cho đọc frame preview'); return; }
-        if (!stage.querySelector('img')) { stage.innerHTML = '<img alt="">'; stage.querySelector('img').src = dataUrl; }
+        if (!stage.querySelector('img')) showStage(dataUrl);
         addScene(time, dataUrl);
         __uvdCacheStreamScene(url, time, dataUrl);
         next();
@@ -5840,8 +5862,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     next();
   }
   if (cachedItem.previewThumbnail || cachedItem.thumbnail) {
-    stage.innerHTML = '<img alt="">';
-    stage.querySelector('img').src = cachedItem.previewThumbnail || cachedItem.thumbnail;
+    showStage(cachedItem.previewThumbnail || cachedItem.thumbnail);
   }
   (Array.isArray(cachedItem.sceneThumbnails) ? cachedItem.sceneThumbnails : []).forEach(function(scene) {
     if (scene && scene.image) addScene(scene.time, scene.image);
@@ -5866,11 +5887,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   }
   panel.querySelector('.uvd-media-preview-close').onclick = close;
   panel.querySelector('.uvd-media-preview-back').onclick = close;
-  panel.querySelector('.uvd-media-preview-play').onclick = function() {
-    close();
-    addToHistory(url, type || 'MP4');
-    setTimeout(function() { try { __uvdShowPlayIntro(url, type || 'MP4'); } catch(e) {} }, 40);
-  };
+  panel.querySelector('.uvd-media-preview-play').onclick = playThisLink;
   overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
 }
 function __uvdCompactPopupUrl(raw) {

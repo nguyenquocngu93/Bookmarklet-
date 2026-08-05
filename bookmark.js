@@ -4725,6 +4725,10 @@ style.textContent = `
 #__uvd_media_links_prompt__ .uvd-media-choice-popup{max-width:560px!important}#__uvd_media_links_prompt__ .uvd-plplain{display:grid!important;grid-template-columns:minmax(0,1fr) 112px!important;align-items:start!important;gap:10px!important;padding:12px!important}#__uvd_media_links_prompt__ .uvd-plplain-body{min-width:0!important;padding-right:0!important}#__uvd_media_links_prompt__ .uvd-plplain-body::before{display:none!important}#__uvd_media_links_prompt__ .uvd-plplain-url{width:100%!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;word-break:normal!important;padding:7px 9px!important;border-radius:11px!important;font-size:10.5px!important;letter-spacing:.01em}#__uvd_media_links_prompt__ .uvd-plplain-actions{width:112px!important;min-width:112px!important}#__uvd_media_links_prompt__ .uvd-plplain-note{line-height:1.35!important}@media (max-width:390px){#__uvd_media_links_prompt__ .uvd-plplain{grid-template-columns:minmax(0,1fr) 94px!important;gap:7px!important}#__uvd_media_links_prompt__ .uvd-plplain-actions{width:94px!important;min-width:94px!important}#__uvd_media_links_prompt__ .uvd-plplain-url{font-size:9.5px!important;padding:6px 7px!important}}
 
 
+/* ===== LARGE VIDEO LINK PREVIEW ===== */
+.uvd-media-preview-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(38,22,48,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow-y:auto}.uvd-media-preview-panel{position:relative;width:min(100%,680px);max-height:calc(100dvh - 32px);margin:auto;overflow-y:auto;padding:20px;border:1px solid rgba(255,255,255,.82);border-radius:28px;background:linear-gradient(155deg,#fffafd,#fff0f7 54%,#f1e9ff);box-shadow:0 26px 68px rgba(65,32,70,.38),0 0 0 5px rgba(255,255,255,.18) inset;text-align:left}.uvd-media-preview-close{position:absolute;top:12px;right:12px;width:34px;height:34px;border:1px solid rgba(255,159,180,.3);border-radius:50%;background:rgba(255,255,255,.82);color:#c95073;font-size:17px;cursor:pointer}.uvd-media-preview-kicker{padding-right:42px;color:#b385f2;font-size:9px;font-weight:950;letter-spacing:.11em}.uvd-media-preview-title{margin-top:4px;color:#c95073;font-size:17px;font-weight:900}.uvd-media-preview-url{margin-top:8px;overflow:hidden;padding:7px 9px;border:1px solid rgba(194,150,255,.24);border-radius:11px;background:rgba(255,255,255,.64);color:#8a6ab0;font-size:10px;font-weight:750;white-space:nowrap;text-overflow:ellipsis}.uvd-media-preview-stage{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:180px;margin-top:12px;overflow:hidden;border:1px solid rgba(255,159,180,.28);border-radius:18px;background:linear-gradient(135deg,#f2e5ff,#ffdfea);color:#8a6ab0;font-size:11px;font-weight:800;aspect-ratio:16/9}.uvd-media-preview-stage img{display:block;width:100%;height:100%;object-fit:cover}.uvd-media-preview-scenes{margin-top:13px}.uvd-media-preview-scenes>strong{display:block;margin:0 0 7px 2px;color:#8a6ab0;font-size:11px}.uvd-media-preview-strip{display:flex;gap:7px;overflow-x:auto;padding-bottom:3px}.uvd-media-preview-scene{position:relative;flex:0 0 112px;height:63px;overflow:hidden;padding:0;border:1px solid rgba(194,150,255,.28);border-radius:10px;background:#f5edff;cursor:pointer}.uvd-media-preview-scene img{width:100%;height:100%;object-fit:cover}.uvd-media-preview-scene span{position:absolute;right:4px;bottom:3px;padding:2px 4px;border-radius:6px;background:rgba(48,27,58,.62);color:#fff;font-size:8px;font-weight:850}.uvd-media-preview-actions{display:grid;grid-template-columns:1.2fr .8fr;gap:8px;margin-top:15px}.uvd-media-preview-actions button{padding:11px 9px;border:1px solid rgba(194,150,255,.28);border-radius:13px;background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}.uvd-media-preview-actions .uvd-media-preview-play{border:0;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;box-shadow:0 7px 15px rgba(247,108,140,.22)}@media (max-width:420px){.uvd-media-preview-overlay{padding:10px}.uvd-media-preview-panel{padding:16px;border-radius:23px}.uvd-media-preview-stage{min-height:150px}.uvd-media-preview-scene{flex-basis:94px;height:53px}.uvd-media-preview-actions{grid-template-columns:1fr;gap:7px}}
+
+
 `;
 
 
@@ -5745,57 +5749,113 @@ function __uvdShowTutorialSlides() {
 // Load a real video thumbnail
 
 // Load a real video thumbnail (muted, capture first frame) for quality links.
-function __uvdPopupThumb(thumbEl, url, type) {
-  if (!thumbEl || !url || thumbEl.dataset.previewState === 'loading' || thumbEl.dataset.previewState === 'ready') return;
-  thumbEl.dataset.previewState = 'loading';
-  thumbEl.innerHTML = '<span class="uvd-plrow-preview-label">Đang lấy thumbnail…</span>';
+function __uvdOpenMediaPreviewPopup(url, type) {
+  var old = document.getElementById('__uvd_media_preview__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_media_preview__';
+  overlay.className = 'uvd-media-preview-overlay';
+  var panel = document.createElement('div');
+  panel.className = 'uvd-media-preview-panel';
+  var compact = __uvdCompactPopupUrl(url);
+  panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button>' +
+    '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
+    '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · kiểm tra trước khi vote</div>' +
+    '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
+    '<div class="uvd-media-preview-stage"><span>Đang lấy frame video…</span></div>' +
+    '<div class="uvd-media-preview-scenes"><strong>🎞 Cảnh khác</strong><div class="uvd-media-preview-strip"></div></div>' +
+    '<div class="uvd-media-preview-actions"><button type="button" class="uvd-media-preview-play">▶ Xem link này</button><button type="button" class="uvd-media-preview-back">← Quay lại list</button></div>';
+  overlay.appendChild(panel);
+  __uvdAppendRoot(overlay);
+  try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
+  var stage = panel.querySelector('.uvd-media-preview-stage');
+  var strip = panel.querySelector('.uvd-media-preview-strip');
   var media = document.createElement('video');
   media.muted = true; media.defaultMuted = true; media.playsInline = true;
   media.preload = 'metadata'; media.crossOrigin = 'anonymous';
-  media.setAttribute('aria-hidden', 'true');
-  media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;';
-  thumbEl.appendChild(media);
-  var done = false, hls = null;
-  function finish(ok) {
-    if (done) return;
-    done = true;
+  media.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+  panel.appendChild(media);
+  var hls = null, closed = false, captured = {};
+  function close() {
+    if (closed) return;
+    closed = true;
     try { if (hls) hls.destroy(); media.pause(); media.remove(); } catch(e) {}
-    thumbEl.dataset.previewState = ok ? 'ready' : 'failed';
-    if (!ok) thumbEl.innerHTML = '<span class="uvd-plrow-preview-label">Không lấy được thumbnail</span>';
+    try { overlay.remove(); } catch(e) {}
   }
-  function paint() {
-    if (done) return;
-    try {
-      var canvas = document.createElement('canvas');
-      canvas.width = 160; canvas.height = 90;
-      canvas.getContext('2d').drawImage(media, 0, 0, canvas.width, canvas.height);
-      var im = document.createElement('img');
-      im.className = 'uvd-plrow-thumbimg';
-      im.src = canvas.toDataURL('image/jpeg', .64);
-      thumbEl.innerHTML = '';
-      thumbEl.appendChild(im);
-      finish(true);
-    } catch(e) { finish(false); }
+  function fail(text) {
+    if (closed || !stage) return;
+    stage.innerHTML = '<span>' + escapeHtml(text || 'Không lấy được thumbnail của link này') + '</span>';
   }
-  media.addEventListener('loadeddata', paint, { once: true });
-  media.addEventListener('seeked', paint, { once: true });
-  media.addEventListener('error', function() { finish(false); }, { once: true });
+  function imageAt(time, callback) {
+    var done = false;
+    function draw() {
+      if (done || closed) return;
+      done = true;
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = 640; canvas.height = 360;
+        canvas.getContext('2d').drawImage(media, 0, 0, canvas.width, canvas.height);
+        callback(canvas.toDataURL('image/jpeg', .68));
+      } catch(e) { callback(''); }
+    }
+    media.addEventListener('seeked', draw, { once: true });
+    try { media.currentTime = time; } catch(e) { draw(); }
+    setTimeout(draw, 1600);
+  }
+  function addScene(time, dataUrl) {
+    if (!dataUrl || captured[Math.round(time * 10)]) return;
+    captured[Math.round(time * 10)] = true;
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'uvd-media-preview-scene';
+    button.innerHTML = '<img alt=""><span>' + Math.round(time) + 's</span>';
+    button.querySelector('img').src = dataUrl;
+    button.onclick = function() { stage.innerHTML = '<img alt="">'; stage.querySelector('img').src = dataUrl; };
+    strip.appendChild(button);
+  }
+  function captureScenes() {
+    var duration = Number(media.duration || 0);
+    var times = isFinite(duration) && duration > 1
+      ? [Math.min(1, Math.max(.15, duration * .04)), duration * .22, duration * .5, Math.max(.2, duration * .78)]
+      : [.3, 1, 2, 3];
+    times = times.map(function(t) { return Math.max(0, t); }).filter(function(t, i, a) { return a.indexOf(t) === i; });
+    var index = 0;
+    function next() {
+      if (closed || index >= times.length) return;
+      var time = times[index++];
+      imageAt(time, function(dataUrl) {
+        if (!dataUrl) { if (index === 1) fail('Link này không cho đọc frame preview'); return; }
+        if (index === 1) { stage.innerHTML = '<img alt="">'; stage.querySelector('img').src = dataUrl; }
+        addScene(time, dataUrl);
+        next();
+      });
+    }
+    next();
+  }
+  media.addEventListener('loadedmetadata', captureScenes, { once: true });
+  media.addEventListener('error', function() { fail('Không tải được preview của link này'); }, { once: true });
   var isHls = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(url);
   if (isHls) {
     __uvdEnsureHls(function(HlsCtor) {
-      if (!HlsCtor || !HlsCtor.isSupported()) { finish(false); return; }
+      if (!HlsCtor || !HlsCtor.isSupported()) { fail('Thiết bị chưa tải được HLS preview'); return; }
       try {
-        hls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 2, maxMaxBufferLength: 4 }));
+        hls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 3, maxMaxBufferLength: 5 }));
         hls.loadSource(url); hls.attachMedia(media);
-        hls.on(HlsCtor.Events.MANIFEST_PARSED, function() { try { media.currentTime = .5; media.play().catch(function() {}); } catch(e) {} });
-        hls.on(HlsCtor.Events.ERROR, function(_, data) { if (data && data.fatal) finish(false); });
-      } catch(e) { finish(false); }
-    }, function() { finish(false); });
+        hls.on(HlsCtor.Events.ERROR, function(_, data) { if (data && data.fatal) fail('Không tải được HLS preview'); });
+      } catch(e) { fail('Không tải được HLS preview'); }
+    }, function() { fail('Không tải được HLS preview'); });
   } else {
     media.src = url;
-    media.addEventListener('loadedmetadata', function() { try { media.currentTime = Math.min(1, Math.max(.1, (media.duration || 1) / 4)); } catch(e) {} }, { once: true });
   }
-  setTimeout(function() { finish(false); }, 7500);
+  setTimeout(function() { if (!closed && !stage.querySelector('img')) fail('Preview mất quá lâu, thử link khác nha'); }, 12000);
+  panel.querySelector('.uvd-media-preview-close').onclick = close;
+  panel.querySelector('.uvd-media-preview-back').onclick = close;
+  panel.querySelector('.uvd-media-preview-play').onclick = function() {
+    close();
+    addToHistory(url, type || 'MP4');
+    setTimeout(function() { try { __uvdShowPlayIntro(url, type || 'MP4'); } catch(e) {} }, 40);
+  };
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
 }
 function __uvdCompactPopupUrl(raw) {
   try {
@@ -5891,13 +5951,9 @@ function __uvdOpenMediaLinksPopup(streams) {
     preview.type = 'button';
     preview.className = 'uvd-plrow-preview';
     preview.textContent = '⌁ Xem trước';
-    var previewBox = document.createElement('div');
-    previewBox.className = 'uvd-plrow-preview-box';
-    previewBox.hidden = true;
-    preview.onclick = function(e) { e.stopPropagation(); previewBox.hidden = false; __uvdPopupThumb(previewBox, stream.url, stream.type); };
+    preview.onclick = function(e) { e.stopPropagation(); __uvdOpenMediaPreviewPopup(stream.url, stream.type); };
     actions.appendChild(play);
     actions.appendChild(preview);
-    actions.appendChild(previewBox);
     row.appendChild(body);
     row.appendChild(actions);
     list.appendChild(row);

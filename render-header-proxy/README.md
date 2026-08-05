@@ -25,6 +25,8 @@ GEMINI_MODEL=gemini-2.0-flash
 
 When `GEMINI_API_KEY` is configured, `/classify` filters iframe candidates and `/analyze-media` filters video candidates. The media endpoint receives only host + technical metadata (type, resolution, duration, quality count and estimated size); it does not receive the video file or a full media URL.
 
+`POST /iframe-probe` is a best-effort public parent-context probe: it fetches the public parent page first and then requests the iframe with that parent as Referer. It extracts only media URLs already present in public iframe HTML/JS; it does not execute site scripts, use user cookies, bypass DRM, or access a logged-in session.
+
 ## Test
 
 ```text

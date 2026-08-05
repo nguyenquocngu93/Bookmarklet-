@@ -4729,6 +4729,10 @@ style.textContent = `
 .uvd-media-preview-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(38,22,48,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow-y:auto}.uvd-media-preview-panel{position:relative;width:min(100%,680px);max-height:calc(100dvh - 32px);margin:auto;overflow-y:auto;padding:20px;border:1px solid rgba(255,255,255,.82);border-radius:28px;background:linear-gradient(155deg,#fffafd,#fff0f7 54%,#f1e9ff);box-shadow:0 26px 68px rgba(65,32,70,.38),0 0 0 5px rgba(255,255,255,.18) inset;text-align:left}.uvd-media-preview-close{position:absolute;top:12px;right:12px;width:34px;height:34px;border:1px solid rgba(255,159,180,.3);border-radius:50%;background:rgba(255,255,255,.82);color:#c95073;font-size:17px;cursor:pointer}.uvd-media-preview-kicker{padding-right:42px;color:#b385f2;font-size:9px;font-weight:950;letter-spacing:.11em}.uvd-media-preview-title{margin-top:4px;color:#c95073;font-size:17px;font-weight:900}.uvd-media-preview-url{margin-top:8px;overflow:hidden;padding:7px 9px;border:1px solid rgba(194,150,255,.24);border-radius:11px;background:rgba(255,255,255,.64);color:#8a6ab0;font-size:10px;font-weight:750;white-space:nowrap;text-overflow:ellipsis}.uvd-media-preview-stage{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:180px;margin-top:12px;overflow:hidden;border:1px solid rgba(255,159,180,.28);border-radius:18px;background:linear-gradient(135deg,#f2e5ff,#ffdfea);color:#8a6ab0;font-size:11px;font-weight:800;aspect-ratio:16/9}.uvd-media-preview-stage img{display:block;width:100%;height:100%;object-fit:cover}.uvd-media-preview-scenes{margin-top:13px}.uvd-media-preview-scenes>strong{display:block;margin:0 0 7px 2px;color:#8a6ab0;font-size:11px}.uvd-media-preview-strip{display:flex;gap:7px;overflow-x:auto;padding-bottom:3px}.uvd-media-preview-scene{position:relative;flex:0 0 112px;height:63px;overflow:hidden;padding:0;border:1px solid rgba(194,150,255,.28);border-radius:10px;background:#f5edff;cursor:pointer}.uvd-media-preview-scene img{width:100%;height:100%;object-fit:cover}.uvd-media-preview-scene span{position:absolute;right:4px;bottom:3px;padding:2px 4px;border-radius:6px;background:rgba(48,27,58,.62);color:#fff;font-size:8px;font-weight:850}.uvd-media-preview-actions{display:grid;grid-template-columns:1.2fr .8fr;gap:8px;margin-top:15px}.uvd-media-preview-actions button{padding:11px 9px;border:1px solid rgba(194,150,255,.28);border-radius:13px;background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}.uvd-media-preview-actions .uvd-media-preview-play{border:0;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;box-shadow:0 7px 15px rgba(247,108,140,.22)}@media (max-width:420px){.uvd-media-preview-overlay{padding:10px}.uvd-media-preview-panel{padding:16px;border-radius:23px}.uvd-media-preview-stage{min-height:150px}.uvd-media-preview-scene{flex-basis:94px;height:53px}.uvd-media-preview-actions{grid-template-columns:1fr;gap:7px}}
 
 
+/* ===== IFRAME PARENT-CONTEXT PROBE ===== */
+.uvd-iframe-probe-actions{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;min-width:126px}.uvd-iframe-probe-btn{padding:8px 7px;border:1px solid rgba(194,150,255,.3);border-radius:11px;background:rgba(255,255,255,.76);color:#8a6ab0;font-size:9.5px;font-weight:850;cursor:pointer}.uvd-iframe-probe-btn:active{transform:scale(.97)}@media (max-width:390px){.uvd-iframe-probe-actions{min-width:105px}.uvd-iframe-probe-btn{font-size:8.5px;padding:7px 5px}}
+
+
 `;
 
 
@@ -5315,8 +5319,8 @@ function __uvdStartDiggingPopup() {
     });
   };
   var help = overlay.querySelector('#__uvd_dig_help__');
-  if (help) help.onclick = function(e){ 
-    e.stopPropagation(); 
+  if (help) help.onclick = function(e){
+    e.stopPropagation();
     if (data.settings.tutorialMuted) { toast('Đã tắt nhắc tutorial — mở lại trong Cài đặt nha ♡'); return; }
     // An popup dao truoc khi mo tutorial, giu UI an de tutorial noi len tren
     try { __uvdStopDiggingPopup(true); } catch(ex){}
@@ -5958,10 +5962,10 @@ function __uvdOpenMediaLinksPopup(streams) {
     row.appendChild(actions);
     list.appendChild(row);
   });
-  function closeMedia() { 
-    __uvdMediaPopupDismissedAt = Date.now(); 
+  function closeMedia() {
+    __uvdMediaPopupDismissedAt = Date.now();
     try { overlay.remove(); } catch(e){}
-    __uvdPopupDismiss(); 
+    __uvdPopupDismiss();
     // Force restore UI - fix bug X khong hien lai UI
     try {
       __uvdRestoreUiAfterPopup();
@@ -6020,6 +6024,23 @@ function __uvdMaybeOfferMediaPopup(force) {
   __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
 }
 
+function __uvdProbeIframeThroughParent(iframeUrl, onReady) {
+  var proxy = __uvdAiProxyBase();
+  if (!proxy) { if (typeof onReady === 'function') onReady([]); return; }
+  var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timeout = setTimeout(function() { if (controller) controller.abort(); }, 12000);
+  fetch(proxy + '/iframe-probe', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parentUrl: location.href, iframeUrl: iframeUrl }),
+    signal: controller ? controller.signal : undefined
+  }).then(function(response) { return response.ok ? response.json() : null; }).then(function(payload) {
+    clearTimeout(timeout);
+    var media = payload && Array.isArray(payload.media) ? payload.media : [];
+    media.forEach(function(entry) { if (entry && entry.url) __uvdAddDetectedMediaUrl(entry.url, entry.type || 'MP4', 'iframe-parent-probe'); });
+    if (typeof onReady === 'function') onReady(media);
+  }).catch(function() { clearTimeout(timeout); if (typeof onReady === 'function') onReady([]); });
+}
+
 function __uvdOpenIframeWorkflowPrompt(candidates) {
   // The iframe helper replaces the initial digging state when no direct link
   // has appeared; do not leave two overlays competing for the screen.
@@ -6075,6 +6096,36 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     label.innerHTML = '<div style="margin-bottom:2px;"><span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:8.5px;font-weight:800;color:#fff;background:' + badgeColor + ';">' + badgeText + '</span> <span style="color:#c95073;font-weight:700;">#' + (index + 1) + '</span></div>' + escapeHtml(candidate.url);
     label.appendChild(__uvdCreateDetectionVoteControls(candidate.url, 'iframe'));
     if (candidate.verdict === 'JUNK') row.style.opacity = '0.55';
+    var actionStack = document.createElement('div');
+    actionStack.className = 'uvd-iframe-probe-actions';
+    var probe = document.createElement('button');
+    probe.type = 'button';
+    probe.className = 'uvd-iframe-probe-btn';
+    probe.textContent = '⚡ Dò qua trang mẹ';
+    probe.onclick = function() {
+      if (probe.dataset.busy === '1') return;
+      probe.dataset.busy = '1'; probe.textContent = '⏳ Đang dò…';
+      __uvdProbeIframeThroughParent(candidate.url, function(media) {
+        probe.dataset.busy = '';
+        if (!media.length) { probe.textContent = '⚡ Chưa thấy config'; return; }
+        probe.textContent = '✅ Đã thấy ' + media.length + ' link';
+        // Wait briefly for the normal strict verifier, then replace this
+        // workflow with the direct-media popup when it has enough evidence.
+        var tries = 0;
+        function promoteDirect() {
+          var direct = __uvdQualifiedDirectEntries();
+          if (direct.length) {
+            overlay.remove(); __uvdPopupDismiss();
+            var mapped = direct.map(function(entry) { return { url: entry[0], type: entry[1].type, item: entry[1] }; });
+            __uvdOpenMediaLinksPopup(__uvdSortStreamsForPopup(mapped));
+            return;
+          }
+          if (++tries < 6) setTimeout(promoteDirect, 1500);
+          else { probe.textContent = '✅ Đang kiểm chứng link…'; }
+        }
+        promoteDirect();
+      });
+    };
     var open = document.createElement('button');
     open.className = 'uvd-btn uvd-btn-sm';
     open.textContent = 'Mở + Copy';
@@ -6090,12 +6141,14 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       __uvdPopupDismiss();
       toast('Đã mở iframe và copy: ' + BOOKMARKLET_NAME);
     };
+    actionStack.appendChild(probe);
+    actionStack.appendChild(open);
     row.appendChild(label);
-    row.appendChild(open);
+    row.appendChild(actionStack);
     list.appendChild(row);
   });
-  function closeIframe() { 
-    __uvdIframeWorkflowDismissedAt = Date.now(); 
+  function closeIframe() {
+    __uvdIframeWorkflowDismissedAt = Date.now();
     try { overlay.remove(); } catch(e){}
     __uvdPopupDismiss();
     try {

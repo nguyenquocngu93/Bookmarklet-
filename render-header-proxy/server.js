@@ -368,6 +368,64 @@ app.get('/learning/rules', async (_req, res) => {
   }
 });
 
+// ========== PARENT-CONTEXT IFRAME PROBE ==========
+// Best-effort public-config probe: fetch the parent first, then request the
+// iframe with that parent as Referer and inspect only public HTML/JS text for
+// direct media URLs. It does not use browser cookies, execute page scripts,
+// defeat DRM, or access a logged-in session.
+const IFRAME_PROBE_RATE_LIMIT = Math.max(5, Number(process.env.IFRAME_PROBE_RATE_LIMIT || 20));
+const iframeProbeBuckets = new Map();
+
+function allowIframeProbe(req) {
+  const key = String(req.ip || req.get('x-forwarded-for') || 'unknown').slice(0, 128);
+  const now = Date.now();
+  const bucket = iframeProbeBuckets.get(key) || { startedAt: now, count: 0 };
+  if (now - bucket.startedAt > 60 * 60 * 1000) { bucket.startedAt = now; bucket.count = 0; }
+  bucket.count += 1;
+  iframeProbeBuckets.set(key, bucket);
+  return bucket.count <= IFRAME_PROBE_RATE_LIMIT;
+}
+
+function extractPublicMediaUrls(text) {
+  const normalized = String(text || '').replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&');
+  const matches = normalized.match(/https?:\/\/[^\s"'<>\\]+(?:\.m3u8|\.mpd|\.mp4|\.webm)(?:[^\s"'<>\\]*)?/gi) || [];
+  const seen = new Set();
+  return matches.map((url) => url.replace(/[),.;]+$/, '')).filter((url) => {
+    if (seen.has(url)) return false;
+    seen.add(url);
+    return true;
+  }).slice(0, 12);
+}
+
+app.post('/iframe-probe', async (req, res) => {
+  const body = req.body || {};
+  if (!allowIframeProbe(req)) return res.status(429).json({ error: 'Đã giới hạn dò iframe tạm thời, thử lại sau nha' });
+  let parent;
+  let iframe;
+  try {
+    parent = parseTarget(body.parentUrl);
+    iframe = parseTarget(body.iframeUrl);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  try {
+    // Establish the normal public navigation order. We intentionally discard
+    // the parent body/cookies and use only the parent URL as a Referer.
+    const parentResponse = await fetchSource(parent, req, undefined, true);
+    try { if (parentResponse.body) await parentResponse.body.cancel(); } catch (_) {}
+    const response = await fetchSource(iframe, req, parent.toString(), true);
+    const contentType = response.headers.get('content-type') || '';
+    const text = /(?:text|json|javascript|xml)/i.test(contentType) ? await response.text() : '';
+    const media = extractPublicMediaUrls(text).map((url) => ({
+      url,
+      type: /\.m3u8(?:[?#]|$)/i.test(url) ? 'M3U8' : (/\.mpd(?:[?#]|$)/i.test(url) ? 'MPD' : (/\.webm(?:[?#]|$)/i.test(url) ? 'WEBM' : 'MP4'))
+    }));
+    res.json({ ok: true, publicOnly: true, parent: parent.origin, iframe: iframe.origin, media });
+  } catch (error) {
+    res.status(502).json({ error: 'Không dò được iframe công khai: ' + error.message, media: [] });
+  }
+});
+
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'umpdl-header-proxy' }));
 
 // ========== HYBRID AI IFRAME CLASSIFIER ==========

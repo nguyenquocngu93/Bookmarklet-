@@ -4752,6 +4752,10 @@ style.textContent = `
 .uvd-popup-settings-btn{position:absolute;top:12px;right:50px;z-index:3;width:30px;height:30px;padding:0;border:1px solid rgba(194,150,255,.26);border-radius:50%;background:rgba(255,255,255,.78);color:#8a6ab0;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.1)}.uvd-popup-settings-btn:active{transform:scale(.94)}.uvd-dig-settings-btn{top:13px!important;right:54px!important;width:34px!important;height:34px!important;color:#8a6ab0!important}.uvd-preview-settings-btn{top:12px;right:52px}.uvd-player-header .uvd-player-settings-btn{width:38px!important;height:38px!important;padding:0!important;border-radius:13px!important;background:rgba(255,255,255,.78)!important;border:1px solid rgba(194,150,255,.28)!important;color:#8a6ab0!important;box-shadow:0 4px 10px rgba(150,90,220,.1)!important;font-size:16px!important}
 
 
+/* ===== DIGGING HOME DOCK + DRAWERS ===== */
+.uvd-dig-home-dock{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0 2px}.uvd-dig-home-dock button{display:flex;align-items:center;gap:5px;min-width:0;padding:8px 9px;border:1px solid rgba(194,150,255,.25);border-radius:13px;background:rgba(255,255,255,.68);color:#8a6ab0;font-size:10px;font-weight:850;cursor:pointer;box-shadow:0 3px 9px rgba(150,90,220,.08)}.uvd-dig-home-dock button:active{transform:scale(.98)}.uvd-dig-home-dock span{min-width:0;flex:1;overflow:hidden;text-align:left;text-overflow:ellipsis;white-space:nowrap}.uvd-dig-home-dock b{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:8px}.uvd-dig-drawer-overlay{z-index:2147483648!important;background:rgba(46,25,57,.5)!important;backdrop-filter:blur(6px)!important;-webkit-backdrop-filter:blur(6px)!important}.uvd-dig-drawer-sheet{width:min(100%,620px)!important;max-height:86dvh!important;margin:auto auto 0!important;border:1px solid rgba(255,255,255,.82)!important;border-radius:30px 30px 0 0!important;background:linear-gradient(160deg,#fffafd,#fff0f7 54%,#f2ebff)!important;box-shadow:0 -16px 44px rgba(65,32,70,.24)!important}.uvd-dig-drawer-body{padding:12px!important;overflow-y:auto!important}.uvd-dig-drawer-tool{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;margin-bottom:12px;border:1px solid rgba(194,150,255,.23);border-radius:15px;background:rgba(255,255,255,.68)}.uvd-dig-drawer-tool strong{display:block;color:#c95073;font-size:11px}.uvd-dig-drawer-tool span{display:block;margin-top:3px;max-width:220px;overflow:hidden;color:#8a6ab0;font:9px ui-monospace,SFMono-Regular,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}.uvd-dig-drawer-tool button{padding:7px 10px;border:0;border-radius:10px;background:linear-gradient(135deg,#ff9fb4,#b385f2);color:#fff;font-size:10px;font-weight:850;cursor:pointer}.uvd-dig-drawer-section{margin:15px 3px 7px;color:#8a6ab0;font-size:10px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}.uvd-dig-drawer-body .uvd-history-card{box-shadow:0 3px 10px rgba(150,90,220,.08)!important}@media (max-width:390px){.uvd-dig-home-dock button{padding:7px 6px;font-size:9px}.uvd-dig-drawer-sheet{max-height:90dvh!important;border-radius:25px 25px 0 0!important}.uvd-dig-drawer-body{padding:10px!important}}
+
+
 `;
 
 
@@ -5212,6 +5216,10 @@ function __uvdSetDiggingReady(kind, subtitle) {
   if (factWrap) factWrap.style.display = 'none';
   var status = overlay.querySelector('#__uvd_dig_status__');
   var count = overlay.querySelector('#__uvd_dig_count__');
+  var allLinkCount = overlay.querySelector('#__uvd_dig_links_count__');
+  var activityCount = overlay.querySelector('#__uvd_dig_activity_count__');
+  if (allLinkCount) allLinkCount.textContent = String(urls.size || 0);
+  if (activityCount) activityCount.textContent = String(Object.keys(data.clickedButtons[pageInfo.host] || {}).length + (data.history || []).length);
   if (status) status.textContent = kind === 'iframe' ? '🖼️ Đã thấy player iframe' : '✨ Đã đào được video';
   if (count) count.textContent = kind === 'iframe' ? '1 player' : (__uvdQualifiedDirectEntries().length + ' video đã kiểm chứng');
   var routeHint = overlay.querySelector('#__uvd_dig_route_hint__');
@@ -5276,6 +5284,46 @@ function __uvdProbeIframeDuringDig(stage) {
   }
 }
 
+function __uvdDiggingStreamSnapshot() {
+  return [...urls.entries()].map(function(entry) {
+    var item = entry[1] || {};
+    return { url: entry[0], type: item.type, source: item.source, priority: item.priority, timestamp: item.timestamp || 0, sequence: item.sequence || 0, qualityCount: item.qualityCount || 0, isMaster: !!item.isMaster, resolution: item.resolution || __uvdGetUrlResolution(entry[0]), aiVerdict: item.aiVerdict || '', aiScore: item.aiScore == null ? null : item.aiScore, aiReasons: item.aiReasons || [] };
+  }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
+}
+function __uvdOpenDiggingDrawer(kind) {
+  var old = document.getElementById('__uvd_dig_drawer__');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_dig_drawer__';
+  overlay.className = 'uvd-settings-overlay uvd-dig-drawer-overlay';
+  var title = kind === 'activity' ? 'Hoạt động & lịch sử' : 'Tất cả link đã bắt';
+  var subtitle = kind === 'activity' ? 'Nút đã bấm ở trên · lịch sử ở dưới' : 'Nhật ký kỹ thuật · copy và vote link';
+  overlay.innerHTML = '<div class="uvd-settings-sheet uvd-dig-drawer-sheet"><div class="uvd-settings-header"><button class="uvd-back-btn" type="button">←</button><div class="uvd-settings-title-wrap"><span class="uvd-settings-title">' + escapeHtml(title) + '</span><span class="uvd-settings-subtitle">' + escapeHtml(subtitle) + '</span></div></div><div class="uvd-settings-body uvd-dig-drawer-body"></div></div>';
+  __uvdAppendRoot(overlay);
+  var body = overlay.querySelector('.uvd-dig-drawer-body');
+  function close() { overlay.classList.remove('uvd-open'); setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 220); }
+  overlay.querySelector('.uvd-back-btn').onclick = close;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+  if (kind === 'activity') {
+    var current = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
+    body.innerHTML = '<div class="uvd-dig-drawer-tool"><div><strong>◉ Class nút Play</strong><span>' + escapeHtml(current || 'Chưa đặt · Mèo sẽ tự đoán') + '</span></div><button type="button">Chỉnh</button></div><div class="uvd-dig-drawer-section">Nút đã bấm</div><div id="__uvd_dig_clicked__"></div><div class="uvd-dig-drawer-section">Lịch sử xem</div><div id="__uvd_dig_history__"></div>';
+    body.querySelector('.uvd-dig-drawer-tool button').onclick = function() {
+      var next = prompt('CSS selector của nút Play (ví dụ: .video-play-button):', current);
+      if (next === null) return;
+      next = next.trim();
+      data.siteProfiles[pageInfo.host] = Object.assign({}, data.siteProfiles[pageInfo.host], { playSelector: next });
+      storage.set(data);
+      toast(next ? 'Đã lưu class Play' : 'Đã xóa class Play');
+      close();
+    };
+    renderClickedButtons(body.querySelector('#__uvd_dig_clicked__'));
+    renderHistory(body.querySelector('#__uvd_dig_history__'));
+  } else {
+    renderStreams(body, __uvdDiggingStreamSnapshot());
+  }
+  requestAnimationFrame(function() { overlay.classList.add('uvd-open'); });
+}
+
 function __uvdStartDiggingPopup() {
   var flow = __uvdDiggingFlow;
   if (flow.active || flow.completed || playerState.overlay) return;
@@ -5305,6 +5353,7 @@ function __uvdStartDiggingPopup() {
       '<button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button>' +
       '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
       '<div class="uvd-dig-topline"><span class="uvd-dig-brand">Mèo cào media</span><span class="uvd-dig-mode">✦ Đào link</span></div>' +
+      '<div class="uvd-dig-home-dock"><button type="button" id="__uvd_dig_links__">☷ <span>Tất cả link</span><b id="__uvd_dig_links_count__">0</b></button><button type="button" id="__uvd_dig_activity__">🕘 <span>Hoạt động</span><b id="__uvd_dig_activity_count__">0</b></button></div>' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
@@ -5323,6 +5372,10 @@ function __uvdStartDiggingPopup() {
       '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
+  var dockLinkCount = overlay.querySelector('#__uvd_dig_links_count__');
+  var dockActivityCount = overlay.querySelector('#__uvd_dig_activity_count__');
+  if (dockLinkCount) dockLinkCount.textContent = String(urls.size || 0);
+  if (dockActivityCount) dockActivityCount.textContent = String(Object.keys(data.clickedButtons[pageInfo.host] || {}).length + (data.history || []).length);
   var enter = overlay.querySelector('#__uvd_dig_enter__');
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
   var watchFirst = overlay.querySelector('#__uvd_dig_watch_first__');
@@ -5391,6 +5444,10 @@ function __uvdStartDiggingPopup() {
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
   var digSettings = overlay.querySelector('#__uvd_dig_settings__');
   if (digSettings) digSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  var digLinks = overlay.querySelector('#__uvd_dig_links__');
+  if (digLinks) digLinks.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('links'); };
+  var digActivity = overlay.querySelector('#__uvd_dig_activity__');
+  if (digActivity) digActivity.onclick = function(e) { e.stopPropagation(); __uvdOpenDiggingDrawer('activity'); };
   var initialStatus = overlay.querySelector('#__uvd_dig_status__');
   if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
   __uvdStartDiggingRealtimeCapture();

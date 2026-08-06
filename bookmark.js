@@ -260,23 +260,80 @@ function __uvdSyncResponse(response, label) {
   return response.text().catch(function() { return ''; }).then(function(text) {
     var detail = '';
     try { detail = (JSON.parse(text).error || '').replace(/\s+/g, ' '); } catch(e) { detail = String(text || '').replace(/\s+/g, ' '); }
-    throw new Error((label || 'Sync') + ' HTTP ' + response.status + (detail ? ': ' + detail.slice(0, 160) : ''));
+    var error = new Error((label || 'Sync') + ' HTTP ' + response.status + (detail ? ': ' + detail.slice(0, 160) : ''));
+    error.status = response.status;
+    throw error;
   });
+}
+// Some media sites allow the bookmarklet script but lock connect-src with CSP,
+// which blocks fetch() only on that one domain. A hidden Render iframe performs
+// the same request from Render's own origin. MessageChannel keeps the returned
+// profile off the host page's window.message listeners.
+function __uvdSyncBridgeRequest(method, profileId, payload) {
+  if (!window.MessageChannel || !RENDER_PROXY_BASE) return Promise.reject(new Error('Trang chặn kết nối đồng bộ (không có bridge)'));
+  return new Promise(function(resolve, reject) {
+    var frame = document.createElement('iframe');
+    var done = false;
+    var timer = null;
+    function finish(error, value) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { frame.remove(); } catch(e) {}
+      if (error) reject(error); else resolve(value);
+    }
+    frame.setAttribute('aria-hidden', 'true');
+    frame.tabIndex = -1;
+    frame.style.cssText = 'position:fixed!important;width:1px!important;height:1px!important;left:-9999px!important;top:-9999px!important;opacity:0!important;pointer-events:none!important;border:0!important;';
+    frame.onload = function() {
+      try {
+        var channel = new MessageChannel();
+        channel.port1.onmessage = function(event) {
+          var result = event && event.data || {};
+          if (!result.ok) {
+            var error = new Error(result.error || ('Sync bridge HTTP ' + (result.status || 0)));
+            error.status = result.status;
+            finish(error);
+            return;
+          }
+          try { finish(null, result.body ? JSON.parse(result.body) : {}); }
+          catch(e) { finish(new Error('Bridge trả dữ liệu đồng bộ không hợp lệ')); }
+        };
+        var targetOrigin = new URL(RENDER_PROXY_BASE).origin;
+        frame.contentWindow.postMessage({ type: 'umpdl-sync-bridge', method: method, profileId: profileId, payload: payload || null }, targetOrigin, [channel.port2]);
+      } catch(e) { finish(e); }
+    };
+    frame.onerror = function() { finish(new Error('Trang chặn iframe bridge đồng bộ')); };
+    timer = setTimeout(function() { finish(new Error('Bridge đồng bộ mất quá lâu')); }, 12000);
+    frame.src = RENDER_PROXY_BASE.replace(/\/$/, '') + '/sync-bridge';
+    try { (document.documentElement || document.body).appendChild(frame); }
+    catch(e) { finish(e); }
+  });
+}
+function __uvdSyncRequest(syncUrl, method, profileId, payload) {
+  var options = method === 'PUT'
+    ? { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), cache: 'no-store' }
+    : { cache: 'no-store' };
+  return fetch(syncUrl, options)
+    .then(function(response) { return __uvdSyncResponse(response, method === 'PUT' ? 'Lưu đồng bộ' : 'Tải đồng bộ'); })
+    .catch(function(error) {
+      // HTTP errors mean Render/Supabase responded and need to be shown as-is.
+      // Network/CSP errors have no status, so try the same-origin Render bridge.
+      if (error && error.status) throw error;
+      return __uvdSyncBridgeRequest(method, profileId, payload);
+    });
 }
 function __uvdSyncUploadMerged() {
   if (!data || !data.settings || !data.settings.syncProfileId) return Promise.resolve(false);
   var syncUrl = RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId);
   __uvdSyncLastError = '';
   function upload() {
-    return fetch(syncUrl, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
-    }).then(function(response) { return __uvdSyncResponse(response, 'Lưu đồng bộ'); }).then(function() { return true; });
+    return __uvdSyncRequest(syncUrl, 'PUT', data.settings.syncProfileId, __uvdSyncPayload()).then(function() { return true; });
   }
   // Always read and merge the whole profile before writing. The old version
   // merged only history, so a second device could overwrite profiles, filters
   // and favorites with an empty local state.
-  return fetch(syncUrl, { cache: 'no-store' })
-    .then(function(response) { return __uvdSyncResponse(response, 'Tải đồng bộ'); })
+  return __uvdSyncRequest(syncUrl, 'GET', data.settings.syncProfileId)
     .then(function(remote) {
       if (remote && remote.payload) {
         __uvdMergeSyncPayload(remote.payload, true);
@@ -305,8 +362,7 @@ function __uvdSyncLoad(silent) {
   __uvdSyncLoading = true;
   __uvdSyncLastError = '';
   var syncUrl = RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId);
-  return fetch(syncUrl, { cache: 'no-store' })
-    .then(function(response) { return __uvdSyncResponse(response, 'Tải đồng bộ'); })
+  return __uvdSyncRequest(syncUrl, 'GET', data.settings.syncProfileId)
     .then(function(remote) {
       if (!remote || !remote.payload) return false;
       __uvdMergeSyncPayload(remote.payload, false);

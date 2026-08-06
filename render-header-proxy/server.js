@@ -239,6 +239,32 @@ async function syncRequest(method, profileId, body) {
   return text ? JSON.parse(text) : null;
 }
 
+app.get('/sync-bridge', (_req, res) => {
+  // Used only when a host page CSP blocks browser fetch(connect-src). The
+  // bookmarklet embeds this page invisibly and transfers a MessagePort, so the
+  // sync payload never travels through the hostile page's window.message bus.
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(`<!doctype html><meta charset="utf-8"><script>
+    window.addEventListener('message', async function(event) {
+      var request = event && event.data || {};
+      var port = event && event.ports && event.ports[0];
+      if (!port || request.type !== 'umpdl-sync-bridge' || !/^(GET|PUT)$/.test(request.method || '')) return;
+      var profileId = String(request.profileId || '');
+      if (!/^[A-Za-z0-9_-]{8,80}$/.test(profileId)) { port.postMessage({ ok:false, status:400, error:'Profile ID không hợp lệ' }); return; }
+      try {
+        var options = request.method === 'PUT'
+          ? { method:'PUT', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(request.payload || {}) }
+          : { method:'GET' };
+        var response = await fetch(location.origin + '/sync/' + encodeURIComponent(profileId), options);
+        var body = await response.text();
+        port.postMessage({ ok:response.ok, status:response.status, body:body, error: response.ok ? '' : body.slice(0, 300) });
+      } catch (error) {
+        port.postMessage({ ok:false, status:0, error:String((error && error.message) || 'Bridge lỗi') });
+      }
+    });
+  </script>`);
+});
+
 app.get('/sync/:profileId', async (req, res) => {
   const { profileId } = req.params;
   if (!validProfileId(profileId)) return res.status(400).json({ error: 'Profile ID không hợp lệ' });

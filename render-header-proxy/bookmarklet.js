@@ -3011,6 +3011,8 @@ function __uvdTmdbPresentation(movie) {
     runtime: Number(movie && (movie.runtime || (movie.episode_run_time && movie.episode_run_time[0])) || 0),
     status: String(movie && movie.status || ''),
     language: String(movie && movie.original_language || '').toUpperCase(),
+    country: String(movie && movie.production_countries && movie.production_countries[0] && (movie.production_countries[0].iso_3166_1 || movie.production_countries[0].name) || ''),
+    tagline: String(movie && movie.tagline || '').trim(),
     votes: Number(movie && movie.vote_count || 0),
     genres: (movie && movie.genres || []).slice(0, 3).map(function(x) { return x.name; }).join(' · '),
     cast: castList.map(function(person) { return person.name; }).join(' · '),
@@ -3064,25 +3066,17 @@ function __uvdOpenMovieInfoPage(movie, sourceTitle, bar) {
   var backdropStyle = presentation.backdrop ? ' style="background-image:url(\'' + escapeHtml(presentation.backdrop) + '\')"' : '';
   sheet.innerHTML =
     '<button type="button" class="uvd-movie-info-close" title="Quay lại Player">←</button>' +
-    '<div class="uvd-movie-info-hero"' + backdropStyle + '>' +
-      '<div class="uvd-movie-info-hero-scrim"></div>' +
-      '<div class="uvd-movie-info-logo">' + (presentation.logo ? '<img src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<span>' + escapeHtml(presentation.title || 'THÔNG TIN PHIM') + '</span>') + '</div>' +
-    '</div>' +
+    '<div class="uvd-movie-info-hero"' + backdropStyle + '><div class="uvd-movie-info-hero-scrim"></div></div>' +
     '<div class="uvd-movie-info-body">' +
-      '<div class="uvd-movie-info-main">' +
-        '<div class="uvd-movie-info-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div>' +
-        '<div class="uvd-movie-info-title-block">' +
-          '<div class="uvd-movie-info-eyebrow">BẠN ĐANG XEM</div>' +
-          '<h2>' + escapeHtml(presentation.title || 'Thông tin phim') + '</h2>' +
-          (presentation.original && presentation.original !== presentation.title ? '<p>' + escapeHtml(presentation.original) + '</p>' : '') +
-          '<div class="uvd-movie-info-facts">' + facts.map(function(fact) { return '<span>' + escapeHtml(fact) + '</span>'; }).join('') + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="uvd-movie-info-content">' +
+      '<section class="uvd-movie-info-surface">' +
+        '<div class="uvd-movie-info-meta-line">' + escapeHtml([presentation.year, presentation.country].filter(Boolean).join(', ')) + '</div>' +
+        '<div class="uvd-movie-info-logo">' + (presentation.logo ? '<img src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<span>' + escapeHtml(presentation.title || 'THÔNG TIN PHIM') + '</span>') + '</div>' +
+        '<h2>' + escapeHtml(presentation.title || 'Thông tin phim') + '</h2>' +
+        (presentation.tagline ? '<p class="uvd-movie-info-tagline">' + escapeHtml(presentation.tagline) + '</p>' : (presentation.original && presentation.original !== presentation.title ? '<p class="uvd-movie-info-tagline">' + escapeHtml(presentation.original) + '</p>' : '')) +
+        '<div class="uvd-movie-info-facts">' + facts.map(function(fact) { return '<span>' + escapeHtml(fact) + '</span>'; }).join('') + '</div>' +
         (presentation.genres ? '<div class="uvd-movie-info-tags">' + presentation.genres.split(' · ').map(function(genre) { return '<span>' + escapeHtml(genre) + '</span>'; }).join('') + '</div>' : '') +
-        '<h3>Tóm tắt</h3><p class="uvd-movie-info-overview">' + escapeHtml(presentation.overview || 'TMDB chưa có tóm tắt công khai cho phim này.') + '</p>' +
-        directorHtml + actorsHtml +
-      '</div>' +
+        '<section class="uvd-movie-info-content"><h3>Tóm tắt</h3><p class="uvd-movie-info-overview">' + escapeHtml(presentation.overview || 'TMDB chưa có tóm tắt công khai cho phim này.') + '</p>' + directorHtml + actorsHtml + '</section>' +
+      '</section>' +
     '</div>';
   overlay.appendChild(sheet);
   __uvdAppendRoot(overlay);
@@ -6478,7 +6472,7 @@ style.textContent = `
   .uvd-movie-info-sheet{border-radius:25px 25px 0 0!important}.uvd-movie-info-hero{height:218px;min-height:218px}.uvd-movie-info-logo{right:14px;bottom:23px;left:72px}.uvd-movie-info-logo img{max-width:190px!important;max-height:43px!important}.uvd-movie-info-body{padding:0 14px 28px!important}.uvd-movie-info-main{grid-template-columns:96px minmax(0,1fr);gap:12px;margin-top:-42px}.uvd-movie-info-poster{width:96px!important;height:140px!important;border-radius:13px!important}.uvd-movie-info-title-block h2{font-size:21px!important}.uvd-movie-info-overview{font-size:11px!important;line-height:1.62!important}.uvd-movie-info-row{font-size:10px!important}
 }
 /* ===== LAMPA-LIKE MOVIE PAGE: BIG, SCROLLABLE, PEOPLE FIRST ===== */
-.uvd-player-card-v2 .uvd-player-sheet .uvd-player-video-area{padding:0!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-video-area{padding:0!important;margin:16px 0 18px!important}
 .uvd-movie-info-sheet{height:94dvh!important;max-height:94dvh!important;border-radius:30px 30px 0 0!important}
 .uvd-movie-info-logo img{background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;box-shadow:none!important;filter:drop-shadow(0 3px 10px rgba(0,0,0,.8))}
 .uvd-movie-info-logo span{text-shadow:0 3px 10px rgba(0,0,0,.8)}
@@ -6495,6 +6489,30 @@ style.textContent = `
 .uvd-movie-info-actors strong{display:block;overflow:hidden;margin-top:7px;color:#fff;font-size:11px;font-weight:800;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.uvd-movie-info-actors small{display:block;display:-webkit-box;overflow:hidden;margin-top:2px;color:#bfb0c6;font-size:9px;line-height:1.3;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 @media (max-width:560px){
   .uvd-movie-info-sheet{height:95dvh!important;max-height:95dvh!important;border-radius:26px 26px 0 0!important}.uvd-movie-info-hero{height:254px!important;min-height:254px!important}.uvd-movie-info-people-section{margin-top:22px}.uvd-movie-info-people-section h3{font-size:17px}.uvd-movie-info-director img,.uvd-movie-info-director>span{width:70px;height:70px;flex-basis:70px}.uvd-movie-info-director strong{font-size:16px}.uvd-movie-info-actors{gap:10px}.uvd-movie-info-actors article{flex-basis:96px}.uvd-movie-info-actors img,.uvd-movie-info-actors article>span{width:96px;height:122px;line-height:122px;border-radius:13px}
+}
+/* ===== LAMPA REFERENCE LAYOUT: FULL DETAIL PAGE ===== */
+.uvd-movie-info-overlay{align-items:stretch!important;background:#08070a!important}
+.uvd-movie-info-sheet{width:100%!important;height:100dvh!important;max-height:100dvh!important;border:0!important;border-radius:0!important;background:#0d0b11!important;transform:translateY(100%)!important}
+.uvd-movie-info-overlay.uvd-open .uvd-movie-info-sheet{transform:translateY(0)!important}
+.uvd-movie-info-close{top:18px!important;left:18px!important;width:46px!important;height:46px!important;border-radius:14px!important;background:rgba(4,4,6,.48)!important}
+.uvd-movie-info-hero{height:48dvh!important;min-height:48dvh!important;background-size:cover!important;background-position:center top!important}
+.uvd-movie-info-hero-scrim{background:linear-gradient(180deg,rgba(7,6,9,.04) 0%,rgba(8,7,10,.16) 34%,rgba(13,11,17,.84) 78%,#0d0b11 100%)!important}
+.uvd-movie-info-body{position:relative;z-index:2;display:block!important;flex:1 1 auto;min-height:0;overflow-y:auto!important;margin-top:-84px;padding:0!important;background:transparent!important}
+.uvd-movie-info-surface{min-height:calc(52dvh + 84px);padding:30px 28px 48px;border-radius:34px 34px 0 0;background:linear-gradient(180deg,rgba(19,16,24,.94),#0d0b11 28%)}
+.uvd-movie-info-meta-line{color:#ded6e1;font-size:15px;font-weight:650}
+.uvd-movie-info-logo{position:static!important;justify-content:flex-start!important;margin:36px 0 15px;min-height:0!important}
+.uvd-movie-info-logo img{max-width:310px!important;max-height:78px!important;object-position:left center!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;filter:drop-shadow(0 3px 10px rgba(0,0,0,.9))}
+.uvd-movie-info-logo span{color:#fff;font-size:26px;font-weight:950;letter-spacing:-.03em}
+.uvd-movie-info-surface>h2{margin:0;color:#fff;font-size:28px;font-weight:950;line-height:1.13}
+.uvd-movie-info-tagline{margin:8px 0 0;color:#e0d6e3;font-family:Georgia,serif;font-size:17px;line-height:1.35}
+.uvd-movie-info-facts{justify-content:flex-start!important;margin-top:22px!important}.uvd-movie-info-facts span{padding:6px 9px!important;background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.14)!important;color:#f4eef6!important;font-size:11px!important}
+.uvd-movie-info-tags{margin:20px 0 0!important}.uvd-movie-info-tags span{padding:6px 10px!important;background:rgba(223,151,197,.15)!important;border-color:rgba(223,151,197,.25)!important;color:#f0c7df!important;font-size:10px!important}
+.uvd-movie-info-content{margin-top:30px!important;padding:0!important}.uvd-movie-info-content>h3{font-size:20px!important;color:#fff!important}.uvd-movie-info-overview{margin-top:12px!important;color:#ded6e1!important;font-size:14px!important;line-height:1.72!important}
+.uvd-movie-info-people-section{margin-top:34px!important}.uvd-movie-info-people-section h3{font-size:22px!important;margin-bottom:16px!important;color:#fff!important}
+.uvd-movie-info-director{gap:16px!important}.uvd-movie-info-director img,.uvd-movie-info-director>span{width:112px!important;height:112px!important;flex-basis:112px!important;border-radius:17px!important}.uvd-movie-info-director strong{font-size:23px!important}.uvd-movie-info-director small{font-size:15px!important;margin-top:7px!important}
+.uvd-movie-info-actors{gap:16px!important;padding-bottom:10px!important}.uvd-movie-info-actors article{flex-basis:134px!important}.uvd-movie-info-actors img,.uvd-movie-info-actors article>span{width:134px!important;height:164px!important;border-radius:16px!important;line-height:164px!important}.uvd-movie-info-actors strong{font-size:13px!important;margin-top:9px!important}.uvd-movie-info-actors small{font-size:11px!important}
+@media (max-width:560px){
+  .uvd-movie-info-sheet{height:100dvh!important;max-height:100dvh!important}.uvd-movie-info-close{top:15px!important;left:15px!important;width:42px!important;height:42px!important}.uvd-movie-info-hero{height:44dvh!important;min-height:44dvh!important}.uvd-movie-info-body{margin-top:-68px!important}.uvd-movie-info-surface{min-height:calc(56dvh + 68px);padding:25px 24px 42px;border-radius:30px 30px 0 0}.uvd-movie-info-meta-line{font-size:14px}.uvd-movie-info-logo{margin:30px 0 13px}.uvd-movie-info-logo img{max-width:255px!important;max-height:65px!important}.uvd-movie-info-surface>h2{font-size:25px}.uvd-movie-info-tagline{font-size:16px}.uvd-movie-info-content{margin-top:26px!important}.uvd-movie-info-overview{font-size:13px!important;line-height:1.68!important}.uvd-movie-info-people-section{margin-top:30px!important}.uvd-movie-info-people-section h3{font-size:20px!important}.uvd-movie-info-director img,.uvd-movie-info-director>span{width:96px!important;height:96px!important;flex-basis:96px!important}.uvd-movie-info-director strong{font-size:20px!important}.uvd-movie-info-actors article{flex-basis:118px!important}.uvd-movie-info-actors img,.uvd-movie-info-actors article>span{width:118px!important;height:146px!important;line-height:146px!important}
 }
 `;
 

@@ -6861,45 +6861,45 @@ function __uvdShowFarewellPopup(onConfirm) {
 var __uvdTutorialSlides = [
   {
     mascot: (typeof __uvdHeroMascot !== 'undefined' ? __uvdHeroMascot : (typeof __uvdHeaderMascot !== 'undefined' ? __uvdHeaderMascot : '🐱')),
-    title: 'Mèo cào media là gì? ♡',
-    sub: 'Bạn đồng hành xem phim cute',
-    text: 'Mèo cào media là bookmarklet giúp cưng bắt link video thật (M3U8/MP4) trên mọi trang, lọc iframe rác, có player cute và đồng bộ lịch sử qua Supabase. Không cần cài app!',
-    tips: 'Mèo cào = cào link như mèo cào len ý 🐾'
+    title: 'Mèo cào media làm gì? ♡',
+    sub: 'Popup đào là đường chính',
+    text: 'Mèo cào media là bookmarklet bắt link video thật, lọc iframe và mở player cute. Khi chạy, Mèo đưa cưng vào Popup Đào trước; Main UI là bảng điều khiển để xem Stream, nút đã click, lịch sử và cài đặt khi cần.',
+    tips: 'Mèo chỉ hướng cưng đến video đã được kiểm chứng, không lôi cả đống link network thô ra nha 🐾'
   },
   {
     mascot: (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : '🐼'),
-    title: '1. Cài đặt siêu dễ 🎀',
-    sub: 'Chỉ 10 giây thôi nè',
-    text: 'Mở trang bất kỳ → bấm ⭐ Bookmark → Edit → Đặt tên "mèo cào media" → Xóa URL cũ → Dán code loader → Lưu. Từ lần sau gõ tên bookmark vào thanh địa chỉ là chạy ngay!',
-    tips: 'Code loader tự cập nhật bản mới nhất mỗi lần chạy nha!'
+    title: '1. Cài bookmarklet 🎀',
+    sub: 'Chỉ làm một lần thôi',
+    text: 'Mở một trang bất kỳ → tạo Bookmark → Chỉnh sửa → đặt tên "mèo cào media" → thay URL bằng code loader → Lưu. Mỗi lần bấm bookmark, loader sẽ lấy bản mới nhất từ Render.',
+    tips: 'Không cần cài app hay userscript. Nếu code mới vừa được cập nhật, chạy lại bookmark một lần là nhận bản mới nha!'
   },
   {
     mascot: (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : '🦝'),
-    title: '2. Mở trang có video 📺',
-    sub: 'Mèo sẽ tự đào link',
-    text: 'Vào trang phim, bấm bookmark "mèo cào media". Popup mèo béo cầm xẻng sẽ hiện "Đang đào link... 20 giây". Mèo tự quét fetch/XHR/resource để bắt link video thật, không cần bấm gì thêm.',
-    tips: 'Nếu trang chỉ có iframe, mèo sẽ gợi ý mở iframe rồi chạy lại UMP để lấy link thật.'
+    title: '2. Bắt đầu bằng Popup Đào ⛏️',
+    sub: 'Mèo tự lần dấu video',
+    text: 'Vào trang phim rồi bấm bookmark. Popup Đào sẽ quét player, fetch/XHR và resource khoảng 20 giây. Khi có video thật, Mèo báo số link đã kiểm chứng; nếu chỉ thấy iframe có triển vọng, Mèo chuyển sang flow Iframe.',
+    tips: 'Nếu trang chưa lộ nguồn, mở video thật trên trang rồi bấm Play. Mèo sẽ nghe được request mới tốt hơn nè.'
   },
   {
     mascot: (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹'),
-    title: '3. Chọn link & Xem ♡',
-    sub: 'Popup cute liệt kê link',
-    text: 'Sau 20s, bấm "Vào link ♡" → Mèo bay lên, hiện popup video (nếu có M3U8/MP4) hoặc popup iframe. Mỗi link là 1 ô có nơ 🎀, hiện # + loại + URL rút gọn 1 dòng. Bấm "Xem ♡" → Intro thỏ bắp rang 3s rồi mở player.',
-    tips: 'Link có nhãn ✨ chất lượng cao là link có nhiều chất lượng / master nhé!'
+    title: '3. Video, Iframe & Main UI',
+    sub: 'Popup chính, UI hỗ trợ',
+    text: 'Từ Popup Đào, bấm Xem ngay để phát link đầu tiên hoặc Vào link để mở Popup Video/Iframe. Nếu cưng chọn Vào UI, bấm ×, ← hay Để sau, Mèo hiện một popup nhắc nhỏ; bấm Để sau lần nữa thì flow được giữ thành thanh dưới Current Session.',
+    tips: 'Dòng dưới Current Session luôn chỉ dẫn đến link đã kiểm chứng. Khi có nhiều link, cứ bấm Mở Popup ở đó thay vì đoán trong list nha.'
   },
   {
     mascot: (typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : '🐰'),
-    title: '4. Player dễ thương 🎬',
-    sub: 'Chọn chất lượng, full màn hình',
-    text: 'Trong player: chọn chất lượng (auto/highest), toàn màn hình, phụ đề (tải .srt/.vtt hoặc tìm trên SubDL). Chạm đúp trái/phải để tua 10s. Header player giờ là hamster cute!',
-    tips: 'Video gốc bị pause để xem qua player script cho ổn định hơn nè.'
+    title: '4. Xem bằng Player 🎬',
+    sub: 'Tùy chỉnh ngay trong player',
+    text: 'Popup Video có Xem trước với thumbnail và các cảnh khác. Bấm Xem sẽ qua màn chuẩn bị rồi mở Player. Trong Player có chất lượng, toàn màn hình, phụ đề, tua hai lần chạm và nút ⚙ mở Cài đặt Player riêng.',
+    tips: 'Cài đặt Player gồm tốc độ mặc định, Auto/quality, resume, data saver, auto-next và thời gian ẩn controls nha.'
   },
   {
     mascot: (typeof __uvdFooterMascot !== 'undefined' ? __uvdFooterMascot : '🐻'),
-    title: '5. Cài đặt & Đồng bộ ☁️',
-    sub: 'Vote, lịch sử, filter',
-    text: 'Tab Streams / Nút đã click / Lịch sử giờ là panda / gấu mèo / hamster. Trong Cài đặt: chỉnh hiệu năng, AI lọc iframe rác, đồng bộ Supabase, chặn popup, vote ♥/💩 cho link, xem lịch sử. Bấm X sẽ hiện popup tạm biệt với 1 con random full body!',
-    tips: 'Nhớ: bookmark.js = render-header-proxy/bookmarklet.js + node --check + update README nhé!'
+    title: '5. Main UI, giao diện & Sync ☁️',
+    sub: 'Bảng điều khiển của Mèo',
+    text: 'Main UI giữ Stream đầy đủ thumbnail/meta/play, Nút đã click, Lịch sử và Cài đặt. Cài đặt chính chỉnh tốc độ hiệu ứng, độ bóng, độ bo góc, kiểu ẩn script, AI iframe và Sync. Để đồng bộ: tạo/copy Profile ID, dán ID ở thiết bị khác rồi chờ Mèo tải profile trước khi bấm Đồng bộ ngay.',
+    tips: 'Nếu một trang chặn Sync, Mèo thử bridge qua Render. Nút Đồng bộ sẽ báo lỗi cụ thể nếu Render/Supabase chưa sẵn sàng.'
   }
 ];
 
@@ -9333,18 +9333,25 @@ function renderSettings(container) {
       '<div class="uvd-callout"><span class="uvd-callout-icon">💡</span><span>Từ lần sau, cưng chỉ cần gõ tên bookmark (<strong style="color:var(--accent-text);">Mèo cào media</strong>) vào thanh địa chỉ rồi chọn nó là chạy ngay. Script tự cập nhật bản mới nhất mỗi lần nha!</span></div>' +
     '</div></div></details>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Sử dụng</span><span class="uvd-details-chevron">⌄</span></summary>' +
-    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('hamster', 'Hướng dẫn sử dụng', 'Hamster cầm bảng chỉ cưng xem phim nè 🐹') + '<div class="uvd-card uvd-timeline-card">' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Mở trang web có video nha</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Gõ tên bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code> vào thanh địa chỉ rồi chọn nó</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chọn stream rồi bấm <strong style="color:var(--accent-text);">Xem</strong> để mở player dễ thương</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong player: chọn <strong style="color:var(--accent-text);">Chất lượng</strong>, <strong style="color:var(--accent-text);">Toàn màn hình</strong> và <strong style="color:var(--accent-text);">Phụ đề</strong> trong menu. Player hỗ trợ HLS qua hls.js và tự thử proxy khi nguồn trực tiếp lỗi nha.</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Chạm đúp 2 lần vào nửa trái/phải video để tua lùi/tiến (số giây tùy chỉnh trong tab Trình phát)</span></div>' +
-      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Video ngắn dưới 90 giây được đánh dấu <strong>DEMO · NO PREVIEW</strong> để đỡ tốn request thumbnail nè.</span></div>' +
-      '<div class="uvd-callout"><span class="uvd-callout-icon">⏺</span><span>Nút <strong style="color:var(--accent-text);">⏺</strong> bật bắt link realtime. Bấm nút này trước, rồi bấm Play thật để UMP bắt fetch/XHR/playlist mà không dựng lại UI liên tục nha!</span></div>' +
+    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">2</span><span>Flow Popup Đào → Video/Iframe</span><span class="uvd-details-chevron">⌄</span></summary>' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('hamster', 'Flow popup hiện tại', 'Hamster chỉ đường từ Popup Đào đến video thật 🐹') + '<div class="uvd-card uvd-timeline-card">' +
+      '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text">Mở trang phim rồi chạy bookmark <code class="uvd-inline-code">' + BOOKMARKLET_NAME + '</code>. Popup Đào sẽ hiện đầu tiên.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">2</span><span class="uvd-step-text">Đợi Mèo quét player/request. Khi có video thật, bấm <strong style="color:var(--accent-text);">Xem ngay</strong> hoặc <strong style="color:var(--accent-text);">Vào link</strong> để mở Popup Video.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">3</span><span class="uvd-step-text">Nếu trang chỉ có player iframe, Mèo sẽ mở flow Iframe để cưng dò qua trang mẹ hoặc mở đúng player.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">4</span><span class="uvd-step-text">Nếu chưa thấy nguồn, mở video trên trang và bấm Play thật. Mèo sẽ nghe fetch/XHR/playlist mới tốt hơn.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">✨</span><span>Popup Video chỉ nhận link đã kiểm chứng. Link network thô hoặc video demo ngắn sẽ không được ưu tiên đâu nha.</span></div>' +
     '</div></div></details>' +
 
-    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
+    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">3</span><span>Main UI, Player & Đồng bộ</span><span class="uvd-details-chevron">⌄</span></summary>' +
+    '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('panda', 'Main UI là bảng điều khiển', 'Panda giữ hộ kết quả khi cưng rời popup 🐼') + '<div class="uvd-card uvd-timeline-card">' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Bấm <strong style="color:var(--accent-text);">Vào UI</strong>, ×, ← hoặc Để sau trong flow sẽ hiện nhắc nhỏ. Bấm Để sau ở nhắc nhỏ thì flow nằm thành thanh dưới <strong>Current Session</strong>.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Dòng Current Session luôn chỉ đến <strong style="color:var(--accent-text);">link đã kiểm chứng</strong>; bấm Mở Popup ở đó để quay lại Video/Iframe mà không quét lại từ đầu.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Trong Player, bấm ⚙ để mở <strong>Cài đặt Player riêng</strong>: tốc độ, chất lượng, resume, data saver và controls.</span></div>' +
+      '<div class="uvd-step"><span class="uvd-step-num">•</span><span class="uvd-step-text">Đồng bộ: tạo/copy Profile ID, dán vào thiết bị khác để Mèo tải profile trước, rồi bấm <strong>Đồng bộ ngay</strong>. Lịch sử metadata, site profile và filterlist sẽ được gộp.</span></div>' +
+      '<div class="uvd-callout"><span class="uvd-callout-icon">☁</span><span>Nếu một website chặn request Sync, Mèo sẽ thử bridge qua Render. Nút Đồng bộ sẽ báo lý do nếu chưa kết nối được.</span></div>' +
+    '</div></div></details>' +
+
+    '<details class="uvd-settings-details"><summary><span class="uvd-section-num">4</span><span>Tải video với yt-dlp và Termux</span><span class="uvd-details-chevron">⌄</span></summary>' +
     '<div class="uvd-settings-details-body">' + __uvdSettingsAnimalSign('raccoon', 'Tải video với Termux', 'Gấu mèo cầm bảng chuẩn bị lệnh tải cho cưng 🦝') + '<div class="uvd-card uvd-timeline-card">' +
       '<div class="uvd-step"><span class="uvd-step-num">1</span><span class="uvd-step-text"><strong>Cài yt-dlp trên Termux nha:</strong></span></div>' +
       '<code class="uvd-inline-code" style="display:block;margin:4px 0;">pkg update && pkg upgrade -y</code>' +

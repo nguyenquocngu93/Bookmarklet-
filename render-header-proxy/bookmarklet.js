@@ -4760,6 +4760,10 @@ style.textContent = `
 .uvd-media-preview-stage .uvd-media-preview-format{position:absolute;top:9px;left:9px;padding:4px 7px;border:1px solid rgba(255,255,255,.52);border-radius:999px;background:rgba(48,27,58,.5);color:#fff;font-size:9px;font-weight:900;letter-spacing:.07em}.uvd-media-preview-stage-play{position:absolute;left:50%;top:50%;width:52px;height:52px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(255,255,255,.9);color:#d85c7a;font-size:21px;line-height:1;transform:translate(-50%,-50%);box-shadow:0 8px 18px rgba(65,32,70,.22);cursor:pointer}.uvd-media-preview-scenes{margin-top:13px}.uvd-media-preview-strip{display:flex!important;align-items:center!important;gap:7px!important;overflow-x:auto!important;overflow-y:hidden!important;padding:0 0 5px!important;scrollbar-width:none}.uvd-media-preview-strip::-webkit-scrollbar{display:none}.uvd-media-preview-strip .uvd-thumb-strip-label{align-self:stretch;justify-content:center}.uvd-media-preview-strip .uvd-extra-thumb{flex:0 0 96px!important;height:60px!important;border-color:rgba(194,150,255,.28)!important;background:#f5edff!important}.uvd-media-preview-strip .uvd-extra-thumb img{width:100%;height:100%;object-fit:cover}@media (max-width:420px){.uvd-media-preview-strip .uvd-extra-thumb{flex-basis:82px!important;height:52px!important}}
 
 
+/* ===== MINIMAL POPUP CONTROLS ===== */
+.uvd-popup-back-btn{position:absolute;left:13px;top:13px;z-index:4;width:34px;height:34px;padding:0;border:1px solid rgba(194,150,255,.28);border-radius:50%;background:rgba(255,255,255,.82);color:#8a6ab0;font-size:19px;line-height:1;cursor:pointer;box-shadow:0 3px 10px rgba(150,90,220,.1)}.uvd-popup-back-btn:active{transform:scale(.94)}.uvd-digging-box .uvd-dig-art{margin-top:14px!important}
+
+
 `;
 
 
@@ -5310,9 +5314,8 @@ function __uvdStartDiggingPopup() {
   overlay.className = 'uvd-digging-overlay';
   overlay.innerHTML =
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
-      '<button type="button" class="uvd-popup-settings-btn uvd-dig-settings-btn" id="__uvd_dig_settings__" title="Cài đặt">⚙</button>' +
-      '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Ẩn popup">×</button>' +
-      '<div class="uvd-dig-topline"><span class="uvd-dig-brand">Mèo cào media</span><span class="uvd-dig-mode">✦ Đào link</span></div>' +
+      '<button type="button" class="uvd-popup-back-btn" id="__uvd_dig_back__" title="Quay lại">←</button>' +
+      '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Đóng">×</button>' +
       '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
       '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
       '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
@@ -5397,8 +5400,8 @@ function __uvdStartDiggingPopup() {
 
   var close = overlay.querySelector('#__uvd_dig_close__');
   if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
-  var digSettings = overlay.querySelector('#__uvd_dig_settings__');
-  if (digSettings) digSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  var digBack = overlay.querySelector('#__uvd_dig_back__');
+  if (digBack) digBack.onclick = function() { __uvdStopDiggingPopup(false); };
   var initialStatus = overlay.querySelector('#__uvd_dig_status__');
   if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
   __uvdStartDiggingRealtimeCapture();
@@ -5962,7 +5965,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   panel.innerHTML =
     '<div style="padding:16px 16px 2px;position:relative;">' +
       '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
-      '<button id="__uvd_media_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
+      '<button id="__uvd_media_back__" class="uvd-popup-back-btn" title="Quay lại">←</button>' +
       '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
@@ -6050,8 +6053,8 @@ function __uvdOpenMediaLinksPopup(streams) {
   // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_media_links_close__');
   if (closeX) closeX.onclick = closeMedia;
-  var mediaSettings = panel.querySelector('#__uvd_media_settings__');
-  if (mediaSettings) mediaSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  var mediaBack = panel.querySelector('#__uvd_media_back__');
+  if (mediaBack) mediaBack.onclick = function(e) { e.stopPropagation(); closeMedia(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Make sure the popup sits above everything (including the main UMP panel).
@@ -6132,7 +6135,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   panel.innerHTML =
     '<div style="padding:18px 18px 4px;position:relative;">' +
       '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
-      '<button id="__uvd_iframe_settings__" class="uvd-popup-settings-btn" title="Cài đặt">⚙</button>' +
+      '<button id="__uvd_iframe_back__" class="uvd-popup-back-btn" title="Quay lại">←</button>' +
       '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
     '</div>' +
     '<div style="padding:0 20px 18px;">' +
@@ -6237,8 +6240,8 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   // Nút X → đóng hẳn, mất luôn.
   var closeX = panel.querySelector('#__uvd_iframe_workflow_close_x__');
   if (closeX) closeX.onclick = closeIframe;
-  var iframeSettings = panel.querySelector('#__uvd_iframe_settings__');
-  if (iframeSettings) iframeSettings.onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
+  var iframeBack = panel.querySelector('#__uvd_iframe_back__');
+  if (iframeBack) iframeBack.onclick = function(e) { e.stopPropagation(); closeIframe(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   // Keep iframe popup above the main panel too.

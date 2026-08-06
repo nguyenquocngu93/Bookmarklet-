@@ -3012,15 +3012,33 @@ function __uvdTmdbPresentation(movie) {
     overview: String(movie && movie.overview || '').trim()
   };
 }
-function __uvdSetPlayerTmdbExpanded(bar, movie, expanded, confirmed) {
+function __uvdApplyPlayerTmdbState(bar, movie, confirmed) {
   if (!bar || !movie) return;
   var panel = bar.__uvdPlayerInfoPanel;
   if (!panel) return;
-  var detail = panel.querySelector('.uvd-player-tmdb-expanded');
   var presentation = __uvdTmdbPresentation(movie);
-  if (detail) detail.remove();
-  detail = document.createElement('div');
-  detail.className = 'uvd-player-tmdb-expanded';
+  var handle = bar.__uvdPlayerInfoHandle;
+  if (handle) {
+    handle.hidden = false;
+    handle.setAttribute('aria-expanded', 'false');
+    handle.setAttribute('title', 'Mở trang thông tin phim');
+  }
+  if (confirmed) {
+    var titleMain = panel.querySelector('.uvd-player-title-main');
+    if (titleMain) {
+      titleMain.classList.add('uvd-player-title-confirmed');
+      // The player stays simple: title source becomes a calm state label. The
+      // movie logo belongs to the dedicated full-information page instead.
+      titleMain.textContent = 'Bạn đang xem';
+      titleMain.dataset.tmdbTitle = presentation.title || '';
+    }
+  }
+}
+function __uvdOpenMovieInfoPage(movie, sourceTitle, bar) {
+  if (!movie) return;
+  var old = document.getElementById('__uvd_movie_info__');
+  if (old) old.remove();
+  var presentation = __uvdTmdbPresentation(movie);
   var facts = [
     presentation.year,
     presentation.runtime ? presentation.runtime + ' phút' : '',
@@ -3028,47 +3046,42 @@ function __uvdSetPlayerTmdbExpanded(bar, movie, expanded, confirmed) {
     presentation.language ? 'Ngôn ngữ ' + presentation.language : '',
     movie.vote_average ? 'TMDB ' + Number(movie.vote_average).toFixed(1) + ' / ' + presentation.votes + ' vote' : ''
   ].filter(Boolean);
-  detail.innerHTML =
-    '<div class="uvd-player-tmdb-expanded-head">' +
-      '<div class="uvd-player-tmdb-expanded-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div>' +
-      '<div><strong>' + escapeHtml(presentation.title || 'Thông tin phim') + '</strong>' +
-      (presentation.original && presentation.original !== presentation.title ? '<small>' + escapeHtml(presentation.original) + '</small>' : '') +
-      '<small>' + escapeHtml(facts.join(' · ')) + '</small></div>' +
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_movie_info__';
+  overlay.className = 'uvd-movie-info-overlay';
+  var sheet = document.createElement('section');
+  sheet.className = 'uvd-movie-info-sheet';
+  sheet.innerHTML =
+    '<button type="button" class="uvd-movie-info-close" title="Quay lại Player">←</button>' +
+    '<div class="uvd-movie-info-hero">' +
+      '<div class="uvd-movie-info-hero-glow"></div>' +
+      '<div class="uvd-movie-info-logo">' + (presentation.logo ? '<img src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<span>' + escapeHtml(presentation.title || 'THÔNG TIN PHIM') + '</span>') + '</div>' +
+      '<div class="uvd-movie-info-eyebrow">BẠN ĐANG XEM</div>' +
+      '<h2>' + escapeHtml(presentation.title || 'Thông tin phim') + '</h2>' +
+      (presentation.original && presentation.original !== presentation.title ? '<p>' + escapeHtml(presentation.original) + '</p>' : '') +
+      '<div class="uvd-movie-info-facts">' + facts.map(function(fact) { return '<span>' + escapeHtml(fact) + '</span>'; }).join('') + '</div>' +
     '</div>' +
-    (presentation.genres ? '<div class="uvd-player-tmdb-expanded-tags">' + presentation.genres.split(' · ').map(function(genre) { return '<span>' + escapeHtml(genre) + '</span>'; }).join('') + '</div>' : '') +
-    (presentation.overview ? '<p>' + escapeHtml(presentation.overview) + '</p>' : '<p>TMDB chưa có tóm tắt công khai cho phim này.</p>') +
-    (presentation.directors ? '<div class="uvd-player-tmdb-expanded-row"><b>Đạo diễn</b><span>' + escapeHtml(presentation.directors) + '</span></div>' : '') +
-    (presentation.cast ? '<div class="uvd-player-tmdb-expanded-row"><b>Diễn viên</b><span>' + escapeHtml(presentation.cast) + '</span></div>' : '');
-  panel.appendChild(detail);
-  panel.classList.toggle('uvd-player-info-expanded', !!expanded);
-  bar.classList.toggle('uvd-player-tmdb-expanded-open', !!expanded);
-  var handle = bar.__uvdPlayerInfoHandle;
-  if (handle) {
-    handle.hidden = false;
-    handle.classList.toggle('uvd-player-info-handle-open', !!expanded);
-    handle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    handle.setAttribute('title', expanded ? 'Thu gọn thông tin phim' : 'Mở thông tin phim');
-    var arrow = handle.querySelector('i');
-    if (arrow) arrow.textContent = expanded ? '⌄' : '⌃';
-  }
-  if (confirmed) {
-    var titleMain = panel.querySelector('.uvd-player-title-main');
-    if (titleMain) {
-      titleMain.classList.add('uvd-player-title-confirmed');
-      titleMain.innerHTML = '<span>Bạn đang xem</span>' + (presentation.logo ? '<img src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '');
-    }
-  }
+    '<div class="uvd-movie-info-body">' +
+      '<div class="uvd-movie-info-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div>' +
+      '<div class="uvd-movie-info-content">' +
+        (presentation.genres ? '<div class="uvd-movie-info-tags">' + presentation.genres.split(' · ').map(function(genre) { return '<span>' + escapeHtml(genre) + '</span>'; }).join('') + '</div>' : '') +
+        '<h3>Tóm tắt</h3><p class="uvd-movie-info-overview">' + escapeHtml(presentation.overview || 'TMDB chưa có tóm tắt công khai cho phim này.') + '</p>' +
+        (presentation.directors ? '<div class="uvd-movie-info-row"><b>Đạo diễn</b><span>' + escapeHtml(presentation.directors) + '</span></div>' : '') +
+        (presentation.cast ? '<div class="uvd-movie-info-row"><b>Diễn viên</b><span>' + escapeHtml(presentation.cast) + '</span></div>' : '') +
+      '</div>' +
+    '</div>';
+  overlay.appendChild(sheet);
+  __uvdAppendRoot(overlay);
+  function close() { overlay.classList.remove('uvd-open'); setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 260); }
+  sheet.querySelector('.uvd-movie-info-close').onclick = close;
+  overlay.addEventListener('click', function(event) { if (event.target === overlay) close(); });
+  requestAnimationFrame(function() { overlay.classList.add('uvd-open'); });
 }
 function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   if (!bar || !movie) return;
   var presentation = __uvdTmdbPresentation(movie);
-  bar.innerHTML = '<div class="uvd-player-tmdb-summary">' +
-    '<div class="uvd-player-tmdb-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div><div class="uvd-player-tmdb-copy">' +
-    (presentation.logo ? '<img class="uvd-player-tmdb-logo" src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<div class="uvd-player-tmdb-title">' + escapeHtml(presentation.title) + '</div>') +
-    '<div class="uvd-player-tmdb-meta">TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (presentation.year ? ' · ' + escapeHtml(presentation.year) : '') + (presentation.genres ? ' · ' + escapeHtml(presentation.genres) : '') + '</div>' +
-    (presentation.cast ? '<div class="uvd-player-tmdb-cast">' + escapeHtml(presentation.cast) + '</div>' : '') +
-    '<div class="uvd-feedback-actions uvd-tmdb-feedback-actions"><button type="button" class="uvd-feedback-vote uvd-feedback-vote-up" data-tmdb-vote="up"></button><button type="button" class="uvd-feedback-vote uvd-feedback-vote-down" data-tmdb-vote="down"></button></div>' +
-  '</div>';
+  bar.innerHTML = '<div class="uvd-player-tmdb-mini-copy"><strong>Đã nhận diện: ' + escapeHtml(presentation.title || 'phim trên TMDB') + '</strong><span>TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (presentation.year ? ' · ' + escapeHtml(presentation.year) : '') + (presentation.genres ? ' · ' + escapeHtml(presentation.genres) : '') + '</span></div>' +
+    '<div class="uvd-feedback-actions uvd-tmdb-feedback-actions"><button type="button" class="uvd-feedback-vote uvd-feedback-vote-up" data-tmdb-vote="up"></button><button type="button" class="uvd-feedback-vote uvd-feedback-vote-down" data-tmdb-vote="down"></button></div>';
   function refreshVotes() {
     var tally = __uvdTmdbVoteTally(sourceTitle, movie);
     var up = bar.querySelector('[data-tmdb-vote="up"]');
@@ -3082,9 +3095,8 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   if (up) up.onclick = function(e) {
     e.stopPropagation();
     __uvdCastTmdbVote(sourceTitle, movie, 'up');
-    var wasExpanded = !!(bar.__uvdPlayerInfoPanel && bar.__uvdPlayerInfoPanel.classList.contains('uvd-player-info-expanded'));
     refreshVotes();
-    __uvdSetPlayerTmdbExpanded(bar, movie, wasExpanded, true);
+    __uvdApplyPlayerTmdbState(bar, movie, true);
     toast('Cảm ơn cưng đã xác nhận thông tin phim ♡');
   };
   if (down) down.onclick = function(e) {
@@ -3093,9 +3105,6 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
     bar.hidden = true; bar.textContent = '';
     var panel = bar.__uvdPlayerInfoPanel;
     if (panel) {
-      panel.classList.remove('uvd-player-info-expanded');
-      var detail = panel.querySelector('.uvd-player-tmdb-expanded');
-      if (detail) detail.remove();
       var titleMain = panel.querySelector('.uvd-player-title-main');
       if (titleMain && titleMain.classList.contains('uvd-player-title-confirmed')) {
         titleMain.classList.remove('uvd-player-title-confirmed');
@@ -3107,14 +3116,9 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   };
   var tally = refreshVotes();
   var confirmed = !!(tally.up && tally.up > tally.down);
-  __uvdSetPlayerTmdbExpanded(bar, movie, false, confirmed);
+  __uvdApplyPlayerTmdbState(bar, movie, confirmed);
   var handle = bar.__uvdPlayerInfoHandle;
-  if (handle) handle.onclick = function(e) {
-    e.stopPropagation();
-    var panel = bar.__uvdPlayerInfoPanel;
-    var next = !(panel && panel.classList.contains('uvd-player-info-expanded'));
-    __uvdSetPlayerTmdbExpanded(bar, movie, next, confirmed || !!(panel && panel.querySelector('.uvd-player-title-confirmed')));
-  };
+  if (handle) handle.onclick = function(e) { e.stopPropagation(); __uvdOpenMovieInfoPage(movie, sourceTitle, bar); };
   bar.hidden = false;
 }
 function __uvdRenderTmdbUnavailable(bar, title) {
@@ -3122,6 +3126,8 @@ function __uvdRenderTmdbUnavailable(bar, title) {
   bar.classList.remove('uvd-player-tmdb-loading');
   bar.hidden = false;
   bar.innerHTML = '<span class="uvd-player-tmdb-loading">🔎 Mèo chưa khớp TMDB đủ chắc để hiện sai phim.</span><button type="button" class="uvd-btn uvd-btn-sm uvd-tmdb-retry">Thử nhận diện lại</button>';
+  var handle = bar.__uvdPlayerInfoHandle;
+  if (handle) handle.hidden = true;
   var retry = bar.querySelector('.uvd-tmdb-retry');
   if (retry) retry.onclick = function(e) { e.stopPropagation(); __uvdRecognizePlayerMovie(title, bar); };
 }
@@ -3672,7 +3678,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var sheet = document.createElement('div');
   sheet.className = 'uvd-settings-sheet uvd-player-sheet' + (playerState.launchFromThumbnail ? ' uvd-player-from-thumbnail' : '');
   playerState.launchFromThumbnail = false;
-  sheet.style.cssText = 'display:flex; flex-direction:column; height:92dvh; max-height:92dvh; overflow:hidden; box-sizing:border-box;';
+  sheet.style.cssText = 'display:flex;flex-direction:column;width:min(92vw,640px);height:auto;max-height:calc(100dvh - 24px);overflow:hidden;box-sizing:border-box;';
   overlay.appendChild(sheet);
 
   var sheetHeader = document.createElement('div');
@@ -3710,13 +3716,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
 
   var sheetBody = document.createElement('div');
   sheetBody.className = 'uvd-settings-body';
-  sheetBody.style.cssText = 'flex:1; min-height:0; padding:0 !important; overflow-y:auto; display:flex; flex-direction:column; background:transparent;';
+  sheetBody.style.cssText = 'flex:0 1 auto;min-height:0;padding:0 !important;overflow-y:auto;display:flex;flex-direction:column;background:transparent;';
   var videoArea = document.createElement('div');
   videoArea.className = 'uvd-player-video-area uvd-player-pending';
-  videoArea.style.cssText = 'flex:1; min-height:0; display:flex; align-items:center; justify-content:center;';
+  videoArea.style.cssText = 'flex:0 0 auto;min-height:0;display:flex;align-items:center;justify-content:center;';
   var videoWrapper = document.createElement('div');
   videoWrapper.id = '__uvd_video_wrapper__';
-  videoWrapper.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:var(--glass);';
+  videoWrapper.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;background:#08080a;overflow:hidden;';
   var video = null;
   var reusedOriginalVideo = false;
   if (String(type || '').toUpperCase() === 'BLOB') {
@@ -3802,8 +3808,6 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var fe = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     return !!(fe && (fe === videoWrapper || videoWrapper.contains(fe) || fe.contains(videoWrapper)));
   }
-  var PORTRAIT_INSET = 12;
-  var FLOAT_SHADOW = '0 16px 34px rgba(201,80,115,.24),0 7px 18px rgba(179,133,242,.22),0 0 0 1px rgba(255,255,255,.72) inset';
   videoWrapper.style.position = 'relative';
   videoWrapper.style.overflow = 'hidden';
   function __uvdApplyPlayerLayout() {
@@ -3812,83 +3816,62 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     var skinEl = playerEl.querySelector('video-skin');
     var fs = __uvdIsFullscreenNow();
     var hasDims = video.videoWidth && video.videoHeight;
-    var isPortrait = hasDims && video.videoHeight > video.videoWidth;
-    var surface = fs ? '#000' : '#fff8fc';
-
-    // Only the actual video may be dark in fullscreen.  Outside fullscreen
-    // every layer has the same pastel surface, so a rounded corner can never
-    // reveal the old black Video.js canvas underneath.
-    videoArea.style.background = fs ? '#000' : '';
-    videoWrapper.style.background = 'transparent';
-    videoWrapper.style.overflow = 'hidden';
-    var frameRadius = fs ? '0' : '24px';
-    video.style.setProperty('background', surface, 'important');
-    video.style.borderRadius = frameRadius;
-    playerEl.style.setProperty('background', surface, 'important');
-    playerEl.style.borderRadius = frameRadius;
-    playerEl.style.setProperty('--media-border-radius', frameRadius);
-    if (skinEl) {
-      skinEl.style.setProperty('background', surface, 'important');
-      skinEl.style.borderRadius = 'inherit';
-    }
-
+    var ratio = hasDims ? (video.videoWidth / video.videoHeight) : (16 / 9);
+    var isPortrait = hasDims && ratio < 1;
+    var viewportW = window.innerWidth || 390;
+    var viewportH = window.innerHeight || 720;
     if (fs) {
-      sheet.style.height = '92dvh';
-      sheet.style.maxHeight = '92dvh';
-      sheetBody.style.flex = '1 1 auto';
-      // Fullscreen: luôn đúng tỉ lệ thật, sát viền, không bo góc/bóng
-      videoWrapper.style.padding = '0';
-      playerEl.style.position = 'relative';
-      playerEl.style.margin = 'auto';
-      playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
+      videoArea.style.height = '100%';
+      videoWrapper.style.width = '100%';
+      videoWrapper.style.height = '100%';
+      videoWrapper.style.borderRadius = '0';
       playerEl.style.width = '100%';
-      playerEl.style.height = '';
+      playerEl.style.height = '100%';
       playerEl.style.borderRadius = '0';
       playerEl.style.boxShadow = 'none';
       video.style.objectFit = 'contain';
       return;
     }
-
-    if (isPortrait) {
-      // Video dọc: khung tự ôm theo tỉ lệ thật, không crop nội dung.
-      sheet.style.height = 'auto';
-      sheet.style.maxHeight = '92dvh';
-      sheetBody.style.flex = '0 1 auto';
-      videoArea.style.flex = '0 0 auto';
-      videoArea.style.maxHeight = 'none';
-      videoWrapper.style.padding = '12px 0';
-      var portraitW = Math.min((videoWrapper.clientWidth || window.innerWidth) * .78, 340);
-      var portraitRatio = hasDims && video.videoWidth ? (video.videoHeight / video.videoWidth) : (16 / 9);
-      var portraitH = Math.min(portraitW * portraitRatio, (window.innerHeight || 720) * .58);
-      if (portraitW > 0 && portraitH > 0) videoArea.style.height = Math.ceil(portraitH + 24) + 'px';
-      playerEl.style.position = 'relative';
-      playerEl.style.margin = 'auto';
-      playerEl.style.aspectRatio = 'auto';
-      playerEl.style.width = Math.round(portraitW) + 'px';
-      playerEl.style.height = Math.round(portraitH) + 'px';
-      playerEl.style.borderRadius = '24px';
-      playerEl.style.boxShadow = FLOAT_SHADOW;
-      video.style.objectFit = 'contain';
-      video.style.borderRadius = 'inherit';
-    } else {
-      // Video ngang: card player chiếm khoảng 80% màn hình; info/footer nằm ở đáy card.
-      sheet.style.height = '80dvh';
-      sheet.style.maxHeight = '80dvh';
-      sheetBody.style.flex = '1 1 auto';
-      videoArea.style.flex = '1 1 auto';
-      videoArea.style.maxHeight = 'none';
-      videoArea.style.height = '';
-      // Video ngang: giữ nguyên — khung theo đúng tỉ lệ, bo góc, đổ bóng nổi
-      videoWrapper.style.padding = '0';
-      playerEl.style.position = 'relative';
-      playerEl.style.margin = 'auto';
-      playerEl.style.aspectRatio = hasDims ? (video.videoWidth + '/' + video.videoHeight) : '16/9';
-      playerEl.style.width = '95%';
-      playerEl.style.height = '';
-      playerEl.style.borderRadius = '24px';
-      playerEl.style.boxShadow = FLOAT_SHADOW;
-      video.style.objectFit = 'contain';
-      video.style.borderRadius = 'inherit';
+    // The popup card hugs the actual media frame. Portrait sources receive a
+    // narrow tall frame; landscape sources a wide 16:9-style frame. There is
+    // no fixed 80/92dvh player sheet and no decorative shadow competing with
+    // the video controls.
+    var maxWidth = isPortrait ? Math.min(viewportW * .68, 360) : Math.min(viewportW * .90, 640);
+    var maxHeight = isPortrait ? viewportH * .58 : viewportH * .54;
+    var frameW = maxWidth;
+    var frameH = frameW / ratio;
+    if (frameH > maxHeight) { frameH = maxHeight; frameW = frameH * ratio; }
+    frameW = Math.max(160, Math.round(frameW));
+    frameH = Math.max(110, Math.round(frameH));
+    var frameRadius = '22px';
+    sheet.style.setProperty('--uvd-player-card-width', Math.min(viewportW * .92, Math.max(frameW + 2, 300)) + 'px');
+    sheet.style.height = 'auto';
+    sheet.style.maxHeight = 'calc(100dvh - 24px)';
+    sheetBody.style.flex = '0 1 auto';
+    videoArea.style.flex = '0 0 auto';
+    videoArea.style.height = frameH + 'px';
+    videoArea.style.background = 'transparent';
+    videoWrapper.style.width = frameW + 'px';
+    videoWrapper.style.height = frameH + 'px';
+    videoWrapper.style.margin = '0 auto';
+    videoWrapper.style.padding = '0';
+    videoWrapper.style.borderRadius = frameRadius;
+    videoWrapper.style.background = '#08080a';
+    playerEl.style.position = 'relative';
+    playerEl.style.margin = '0';
+    playerEl.style.aspectRatio = frameW + '/' + frameH;
+    playerEl.style.width = frameW + 'px';
+    playerEl.style.height = frameH + 'px';
+    playerEl.style.borderRadius = frameRadius;
+    playerEl.style.boxShadow = 'none';
+    playerEl.style.setProperty('background', '#08080a', 'important');
+    playerEl.style.setProperty('--media-border-radius', frameRadius);
+    video.style.objectFit = 'contain';
+    video.style.borderRadius = frameRadius;
+    video.style.setProperty('background', '#08080a', 'important');
+    if (skinEl) {
+      skinEl.style.setProperty('background', '#08080a', 'important');
+      skinEl.style.borderRadius = frameRadius;
     }
   }
   video.addEventListener('loadedmetadata', __uvdApplyPlayerLayout);
@@ -6302,6 +6285,149 @@ style.textContent = `
   .uvd-player-tmdb-expanded>p{font-size:10px}
   .uvd-player-tmdb-expanded-row{grid-template-columns:54px minmax(0,1fr);font-size:9.5px}
   .uvd-player-title-confirmed img{max-width:118px;max-height:23px;padding:3px 5px}
+}
+/* ===== PLAYER POPUP CARD: MEDIA FIRST, NO DECORATIVE SHADOW ===== */
+.uvd-player-card-v2{
+  align-items:center!important;
+  justify-content:center!important;
+  padding:12px!important;
+  background:rgba(7,5,10,.82)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important
+}
+.uvd-player-card-v2 .uvd-player-sheet{
+  width:var(--uvd-player-card-width,min(92vw,640px))!important;
+  height:auto!important;
+  max-height:calc(100dvh - 24px)!important;
+  margin:auto!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  border-radius:28px!important;
+  background:#fffafd!important;
+  box-shadow:none!important;
+  overflow:hidden!important
+}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-settings-header.uvd-player-header{
+  min-height:66px!important;
+  padding:10px 13px!important;
+  background:#fff5fa!important;
+  border-bottom:1px solid rgba(255,159,180,.22)!important;
+  box-shadow:none!important
+}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-back-btn,
+.uvd-player-card-v2 .uvd-player-sheet .uvd-icon-btn{box-shadow:none!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-video-area{
+  flex:0 0 auto!important;
+  padding:0!important;
+  background:#fffafd!important;
+  overflow:visible!important
+}
+.uvd-player-card-v2 .uvd-player-sheet #__uvd_video_wrapper__{
+  border:0!important;
+  border-radius:22px!important;
+  background:#08080a!important;
+  box-shadow:none!important
+}
+.uvd-player-card-v2 .uvd-player-sheet #__uvd_player_el__,
+.uvd-player-card-v2 .uvd-player-sheet #__uvd_player_el__ video,
+.uvd-player-card-v2 .uvd-player-sheet #__uvd_player_el__ video-skin{border-radius:22px!important;box-shadow:none!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-panel{
+  padding:24px 13px 13px!important;
+  background:#fffafd!important;
+  border-top:1px solid rgba(194,150,255,.18)!important;
+  border-radius:0!important;
+  box-shadow:none!important
+}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-title{margin-bottom:5px!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-meta{margin-top:5px!important;background:#fff!important;box-shadow:none!important}
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-tmdb-bar{
+  margin-top:8px!important;
+  padding:8px 9px!important;
+  border-radius:14px!important;
+  background:#f8f1ff!important;
+  border-color:rgba(194,150,255,.2)!important;
+  box-shadow:none!important
+}
+.uvd-player-card-v2 .uvd-player-tmdb-mini-copy{min-width:0;flex:1}
+.uvd-player-card-v2 .uvd-player-tmdb-mini-copy strong{display:block;overflow:hidden;color:#76508d;font-size:10.5px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}
+.uvd-player-card-v2 .uvd-player-tmdb-mini-copy span{display:block;overflow:hidden;margin-top:2px;color:#9b7aa5;font-size:9px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.uvd-player-card-v2 .uvd-tmdb-feedback-actions{margin:7px 0 0!important}
+.uvd-player-card-v2 .uvd-player-info-handle{top:0!important}
+.uvd-player-card-v2 .uvd-player-info-handle span{background:rgba(138,106,176,.36)!important}
+
+/* ===== MOVIE INFORMATION PAGE: BLACK BACKDROP + RISING SHEET ===== */
+.uvd-movie-info-overlay{
+  position:fixed;
+  inset:0;
+  z-index:2147483647;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:0;
+  background:rgba(0,0,0,.86);
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  overflow:hidden
+}
+.uvd-movie-info-sheet{
+  position:relative;
+  box-sizing:border-box;
+  width:min(100%,680px);
+  max-height:92dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:30px 30px 0 0;
+  background:linear-gradient(180deg,#17121d 0%,#100d15 100%);
+  color:#f9f2fb;
+  transform:translateY(105%);
+  transition:transform .42s cubic-bezier(.22,1,.36,1)
+}
+.uvd-movie-info-overlay.uvd-open .uvd-movie-info-sheet{transform:translateY(0)}
+.uvd-movie-info-close{
+  position:absolute;
+  z-index:5;
+  top:13px;
+  left:14px;
+  width:38px;
+  height:38px;
+  padding:0;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:13px;
+  background:rgba(0,0,0,.32);
+  color:#fff;
+  font-size:22px;
+  cursor:pointer
+}
+.uvd-movie-info-hero{
+  position:relative;
+  isolation:isolate;
+  flex:0 0 auto;
+  padding:32px 60px 22px;
+  overflow:hidden;
+  text-align:center;
+  background:radial-gradient(ellipse at 50% -20%,rgba(151,100,194,.55),rgba(50,30,69,.48) 45%,transparent 72%),linear-gradient(145deg,#21172b,#15101d)
+}
+.uvd-movie-info-hero-glow{position:absolute;z-index:-1;inset:auto -20% -85px;height:170px;background:radial-gradient(ellipse,rgba(218,114,160,.38),transparent 70%);filter:blur(12px)}
+.uvd-movie-info-logo{min-height:38px;display:flex;align-items:center;justify-content:center}
+.uvd-movie-info-logo img{display:block;max-width:230px;max-height:52px;box-sizing:content-box;object-fit:contain;background:#060508;padding:6px 10px;border:1px solid rgba(255,255,255,.22);border-radius:10px}
+.uvd-movie-info-logo span{color:#fff;font-size:16px;font-weight:950;letter-spacing:.04em}
+.uvd-movie-info-eyebrow{margin-top:13px;color:#d8b4f0;font-size:9px;font-weight:950;letter-spacing:.16em}
+.uvd-movie-info-hero h2{margin:5px 0 0;color:#fff;font-size:25px;font-weight:950;letter-spacing:-.035em;line-height:1.15}
+.uvd-movie-info-hero p{margin:4px 0 0;color:#c7b3d0;font-size:12px;font-weight:700}
+.uvd-movie-info-facts{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:13px}
+.uvd-movie-info-facts span{padding:4px 7px;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(255,255,255,.09);color:#eadff0;font-size:9px;font-weight:800}
+.uvd-movie-info-body{display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;min-height:0;overflow-y:auto;padding:16px 18px 28px}
+.uvd-movie-info-body::-webkit-scrollbar{width:5px}.uvd-movie-info-body::-webkit-scrollbar-thumb{border-radius:99px;background:rgba(215,170,236,.35)}
+.uvd-movie-info-poster{width:112px;height:158px;overflow:hidden;border-radius:16px;background:#28202f;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:none}
+.uvd-movie-info-poster img{width:100%;height:100%;object-fit:cover}
+.uvd-movie-info-content{min-width:0}
+.uvd-movie-info-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px}.uvd-movie-info-tags span{padding:4px 7px;border-radius:999px;background:rgba(223,151,197,.16);border:1px solid rgba(223,151,197,.22);color:#efc6df;font-size:9px;font-weight:850}
+.uvd-movie-info-content h3{margin:0;color:#fff;font-size:12px;font-weight:950}.uvd-movie-info-overview{margin:6px 0 0;color:#d3c8d8;font-size:11px;font-weight:650;line-height:1.58}
+.uvd-movie-info-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;margin-top:11px;color:#d2c4d8;font-size:10.5px;font-weight:650;line-height:1.5}.uvd-movie-info-row b{color:#e9b9d6;font-weight:900}
+@media (max-width:560px){
+  .uvd-player-card-v2{padding:10px!important}.uvd-player-card-v2 .uvd-player-sheet{width:calc(100vw - 20px)!important;border-radius:24px!important}.uvd-player-card-v2 .uvd-player-sheet .uvd-settings-header.uvd-player-header{min-height:61px!important;padding:8px 10px!important}
+  .uvd-movie-info-sheet{max-height:94dvh;border-radius:26px 26px 0 0}.uvd-movie-info-hero{padding:29px 50px 19px}.uvd-movie-info-hero h2{font-size:21px}.uvd-movie-info-logo img{max-width:185px;max-height:43px}.uvd-movie-info-body{grid-template-columns:86px minmax(0,1fr);gap:11px;padding:14px 14px 25px}.uvd-movie-info-poster{width:86px;height:123px;border-radius:13px}.uvd-movie-info-overview{font-size:10.5px}.uvd-movie-info-row{grid-template-columns:54px minmax(0,1fr);font-size:10px}
 }
 `;
 

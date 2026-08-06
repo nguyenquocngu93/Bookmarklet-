@@ -2996,6 +2996,11 @@ function __uvdTmdbPresentation(movie) {
   var logo = logos.filter(function(x) { return x && x.file_path; }).sort(function(a, b) {
     return (a.iso_639_1 === 'vi' ? -1 : 0) || (a.iso_639_1 === 'en' ? -1 : 0);
   })[0];
+  var crew = movie && movie.credits && movie.credits.crew || [];
+  var director = crew.filter(function(x) { return x && (x.job === 'Director' || x.job === 'Creator'); })[0] || null;
+  var castList = (movie && movie.credits && movie.credits.cast || []).slice(0, 12).map(function(person) {
+    return { name: String(person && person.name || ''), character: String(person && person.character || ''), image: person && person.profile_path ? 'https://image.tmdb.org/t/p/w185' + person.profile_path : '' };
+  }).filter(function(person) { return person.name; });
   return {
     logo: logo && logo.file_path ? 'https://image.tmdb.org/t/p/w500' + logo.file_path : '',
     poster: movie && movie.poster_path ? 'https://image.tmdb.org/t/p/w342' + movie.poster_path : '',
@@ -3008,8 +3013,10 @@ function __uvdTmdbPresentation(movie) {
     language: String(movie && movie.original_language || '').toUpperCase(),
     votes: Number(movie && movie.vote_count || 0),
     genres: (movie && movie.genres || []).slice(0, 3).map(function(x) { return x.name; }).join(' · '),
-    cast: (movie && movie.credits && movie.credits.cast || []).slice(0, 8).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
-    directors: (movie && movie.credits && movie.credits.crew || []).filter(function(x) { return x && (x.job === 'Director' || x.job === 'Creator'); }).slice(0, 3).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
+    cast: castList.map(function(person) { return person.name; }).join(' · '),
+    directors: crew.filter(function(x) { return x && (x.job === 'Director' || x.job === 'Creator'); }).slice(0, 3).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
+    director: director ? { name: String(director.name || ''), role: director.job === 'Creator' ? 'Creator' : 'Director', image: director.profile_path ? 'https://image.tmdb.org/t/p/w185' + director.profile_path : '' } : null,
+    actors: castList,
     overview: String(movie && movie.overview || '').trim()
   };
 }
@@ -3047,6 +3054,8 @@ function __uvdOpenMovieInfoPage(movie, sourceTitle, bar) {
     presentation.language ? 'Ngôn ngữ ' + presentation.language : '',
     movie.vote_average ? 'TMDB ' + Number(movie.vote_average).toFixed(1) + ' / ' + presentation.votes + ' vote' : ''
   ].filter(Boolean);
+  var directorHtml = presentation.director ? '<section class="uvd-movie-info-people-section uvd-movie-info-director-section"><h3>Đạo diễn</h3><div class="uvd-movie-info-director">' + (presentation.director.image ? '<img src="' + escapeHtml(presentation.director.image) + '" alt="">' : '<span>🎬</span>') + '<div><strong>' + escapeHtml(presentation.director.name) + '</strong><small>' + escapeHtml(presentation.director.role) + '</small></div></div></section>' : '';
+  var actorsHtml = presentation.actors && presentation.actors.length ? '<section class="uvd-movie-info-people-section"><h3>Diễn viên</h3><div class="uvd-movie-info-actors">' + presentation.actors.map(function(person) { return '<article>' + (person.image ? '<img src="' + escapeHtml(person.image) + '" alt="">' : '<span>◉</span>') + '<strong>' + escapeHtml(person.name) + '</strong>' + (person.character ? '<small>' + escapeHtml(person.character) + '</small>' : '') + '</article>'; }).join('') + '</div></section>' : '';
   var overlay = document.createElement('div');
   overlay.id = '__uvd_movie_info__';
   overlay.className = 'uvd-movie-info-overlay';
@@ -3072,8 +3081,7 @@ function __uvdOpenMovieInfoPage(movie, sourceTitle, bar) {
       '<div class="uvd-movie-info-content">' +
         (presentation.genres ? '<div class="uvd-movie-info-tags">' + presentation.genres.split(' · ').map(function(genre) { return '<span>' + escapeHtml(genre) + '</span>'; }).join('') + '</div>' : '') +
         '<h3>Tóm tắt</h3><p class="uvd-movie-info-overview">' + escapeHtml(presentation.overview || 'TMDB chưa có tóm tắt công khai cho phim này.') + '</p>' +
-        (presentation.directors ? '<div class="uvd-movie-info-row"><b>Đạo diễn</b><span>' + escapeHtml(presentation.directors) + '</span></div>' : '') +
-        (presentation.cast ? '<div class="uvd-movie-info-row"><b>Diễn viên</b><span>' + escapeHtml(presentation.cast) + '</span></div>' : '') +
+        directorHtml + actorsHtml +
       '</div>' +
     '</div>';
   overlay.appendChild(sheet);
@@ -3856,6 +3864,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
     sheetBody.style.flex = '0 1 auto';
     videoArea.style.flex = '0 0 auto';
     videoArea.style.height = frameH + 'px';
+    videoArea.style.margin = '16px 0 18px';
     videoArea.style.background = 'transparent';
     videoWrapper.style.width = frameW + 'px';
     videoWrapper.style.height = frameH + 'px';
@@ -6467,6 +6476,25 @@ style.textContent = `
   .uvd-player-card-v2 .uvd-player-sheet .uvd-player-video-area{padding:12px 0 10px!important}
   .uvd-player-card-v2 .uvd-player-sheet .uvd-player-info-panel{padding:28px 14px 15px!important}
   .uvd-movie-info-sheet{border-radius:25px 25px 0 0!important}.uvd-movie-info-hero{height:218px;min-height:218px}.uvd-movie-info-logo{right:14px;bottom:23px;left:72px}.uvd-movie-info-logo img{max-width:190px!important;max-height:43px!important}.uvd-movie-info-body{padding:0 14px 28px!important}.uvd-movie-info-main{grid-template-columns:96px minmax(0,1fr);gap:12px;margin-top:-42px}.uvd-movie-info-poster{width:96px!important;height:140px!important;border-radius:13px!important}.uvd-movie-info-title-block h2{font-size:21px!important}.uvd-movie-info-overview{font-size:11px!important;line-height:1.62!important}.uvd-movie-info-row{font-size:10px!important}
+}
+/* ===== LAMPA-LIKE MOVIE PAGE: BIG, SCROLLABLE, PEOPLE FIRST ===== */
+.uvd-player-card-v2 .uvd-player-sheet .uvd-player-video-area{padding:0!important}
+.uvd-movie-info-sheet{height:94dvh!important;max-height:94dvh!important;border-radius:30px 30px 0 0!important}
+.uvd-movie-info-logo img{background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;box-shadow:none!important;filter:drop-shadow(0 3px 10px rgba(0,0,0,.8))}
+.uvd-movie-info-logo span{text-shadow:0 3px 10px rgba(0,0,0,.8)}
+.uvd-movie-info-hero{height:286px!important;min-height:286px!important}
+.uvd-movie-info-body{padding-bottom:52px!important}
+.uvd-movie-info-content{padding-bottom:8px!important}
+.uvd-movie-info-people-section{margin-top:26px}
+.uvd-movie-info-people-section h3{margin:0 0 12px;color:#fff;font-size:18px;font-weight:800}
+.uvd-movie-info-director{display:flex;align-items:center;gap:13px;min-width:0}
+.uvd-movie-info-director img,.uvd-movie-info-director>span{width:76px;height:76px;flex:0 0 76px;overflow:hidden;border-radius:14px;background:#24202a;display:flex;align-items:center;justify-content:center;object-fit:cover;font-size:24px}
+.uvd-movie-info-director>div{min-width:0}.uvd-movie-info-director strong{display:block;color:#fff;font-size:17px;font-weight:800;line-height:1.25}.uvd-movie-info-director small{display:block;margin-top:4px;color:#c8b9ce;font-size:12px}
+.uvd-movie-info-actors{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding:0 0 5px;scroll-snap-type:x proximity;scrollbar-width:none}.uvd-movie-info-actors::-webkit-scrollbar{display:none}
+.uvd-movie-info-actors article{flex:0 0 110px;min-width:0;scroll-snap-align:start}.uvd-movie-info-actors img,.uvd-movie-info-actors article>span{display:block;width:110px;height:134px;overflow:hidden;border-radius:14px;background:#25202b;object-fit:cover;color:#bfa9c9;font-size:24px;line-height:134px;text-align:center}
+.uvd-movie-info-actors strong{display:block;overflow:hidden;margin-top:7px;color:#fff;font-size:11px;font-weight:800;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.uvd-movie-info-actors small{display:block;display:-webkit-box;overflow:hidden;margin-top:2px;color:#bfb0c6;font-size:9px;line-height:1.3;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+@media (max-width:560px){
+  .uvd-movie-info-sheet{height:95dvh!important;max-height:95dvh!important;border-radius:26px 26px 0 0!important}.uvd-movie-info-hero{height:254px!important;min-height:254px!important}.uvd-movie-info-people-section{margin-top:22px}.uvd-movie-info-people-section h3{font-size:17px}.uvd-movie-info-director img,.uvd-movie-info-director>span{width:70px;height:70px;flex-basis:70px}.uvd-movie-info-director strong{font-size:16px}.uvd-movie-info-actors{gap:10px}.uvd-movie-info-actors article{flex-basis:96px}.uvd-movie-info-actors img,.uvd-movie-info-actors article>span{width:96px;height:122px;line-height:122px;border-radius:13px}
 }
 `;
 

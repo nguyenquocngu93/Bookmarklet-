@@ -742,12 +742,33 @@ app.get('/tmdb/:kind/:id', async (req, res) => {
   const id = req.params.id;
   if (!['movie', 'tv'].includes(kind) || !/^\d+$/.test(id)) return res.status(400).json({ error: 'TMDB path không hợp lệ' });
   if (!TMDB_BEARER_TOKEN) return res.status(503).json({ error: 'TMDB chưa được cấu hình trên Render' });
+  const headers = { Authorization: `Bearer ${TMDB_BEARER_TOKEN}`, accept: 'application/json' };
+  const detailUrl = (language) => `https://api.themoviedb.org/3/${kind}/${id}?append_to_response=credits,images&include_image_language=vi,en,null&language=${encodeURIComponent(language)}`;
   try {
-    const tmdbUrl = `https://api.themoviedb.org/3/${kind}/${id}?append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN`;
-    const response = await fetch(tmdbUrl, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}`, accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
-    const body = await response.text();
-    if (!response.ok) return res.status(response.status).send(body);
-    res.type('application/json').send(body);
+    const primary = await fetch(detailUrl('vi-VN'), { headers, signal: AbortSignal.timeout(15000) });
+    const primaryText = await primary.text();
+    if (!primary.ok) return res.status(primary.status).send(primaryText);
+    let movie = JSON.parse(primaryText);
+    // Vietnamese metadata is preferred, but many newly released films have no
+    // localized overview yet. Fill only missing full-info fields from English
+    // so expanding the Player info never becomes an empty card.
+    if (!String(movie.overview || '').trim()) {
+      try {
+        const fallback = await fetch(detailUrl('en-US'), { headers, signal: AbortSignal.timeout(15000) });
+        if (fallback.ok) {
+          const english = await fallback.json();
+          movie = Object.assign({}, english, movie, {
+            overview: movie.overview || english.overview || '',
+            tagline: movie.tagline || english.tagline || '',
+            runtime: movie.runtime || english.runtime || 0,
+            status: movie.status || english.status || '',
+            credits: movie.credits || english.credits,
+            images: movie.images || english.images
+          });
+        }
+      } catch (_) {}
+    }
+    res.json(movie);
   } catch (error) { res.status(502).json({ error: 'Không lấy được TMDB: ' + error.message }); }
 });
 

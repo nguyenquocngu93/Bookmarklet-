@@ -3002,8 +3002,13 @@ function __uvdTmdbPresentation(movie) {
     title: movie && (movie.title || movie.name || movie.original_title || movie.original_name) || '',
     original: movie && (movie.original_title || movie.original_name) || '',
     year: String(movie && (movie.release_date || movie.first_air_date) || '').slice(0, 4),
+    runtime: Number(movie && (movie.runtime || (movie.episode_run_time && movie.episode_run_time[0])) || 0),
+    status: String(movie && movie.status || ''),
+    language: String(movie && movie.original_language || '').toUpperCase(),
+    votes: Number(movie && movie.vote_count || 0),
     genres: (movie && movie.genres || []).slice(0, 3).map(function(x) { return x.name; }).join(' · '),
-    cast: (movie && movie.credits && movie.credits.cast || []).slice(0, 6).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
+    cast: (movie && movie.credits && movie.credits.cast || []).slice(0, 8).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
+    directors: (movie && movie.credits && movie.credits.crew || []).filter(function(x) { return x && (x.job === 'Director' || x.job === 'Creator'); }).slice(0, 3).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
     overview: String(movie && movie.overview || '').trim()
   };
 }
@@ -3016,20 +3021,36 @@ function __uvdSetPlayerTmdbExpanded(bar, movie, expanded, confirmed) {
   if (detail) detail.remove();
   detail = document.createElement('div');
   detail.className = 'uvd-player-tmdb-expanded';
+  var facts = [
+    presentation.year,
+    presentation.runtime ? presentation.runtime + ' phút' : '',
+    presentation.status,
+    presentation.language ? 'Ngôn ngữ ' + presentation.language : '',
+    movie.vote_average ? 'TMDB ' + Number(movie.vote_average).toFixed(1) + ' / ' + presentation.votes + ' vote' : ''
+  ].filter(Boolean);
   detail.innerHTML =
     '<div class="uvd-player-tmdb-expanded-head">' +
       '<div class="uvd-player-tmdb-expanded-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div>' +
       '<div><strong>' + escapeHtml(presentation.title || 'Thông tin phim') + '</strong>' +
       (presentation.original && presentation.original !== presentation.title ? '<small>' + escapeHtml(presentation.original) + '</small>' : '') +
-      '<small>' + escapeHtml([presentation.year, presentation.genres].filter(Boolean).join(' · ')) + '</small></div>' +
+      '<small>' + escapeHtml(facts.join(' · ')) + '</small></div>' +
     '</div>' +
-    (presentation.overview ? '<p>' + escapeHtml(presentation.overview) + '</p>' : '<p>TMDB chưa có tóm tắt cho phim này.</p>') +
-    (presentation.cast ? '<div class="uvd-player-tmdb-expanded-cast"><b>Diễn viên</b><span>' + escapeHtml(presentation.cast) + '</span></div>' : '');
+    (presentation.genres ? '<div class="uvd-player-tmdb-expanded-tags">' + presentation.genres.split(' · ').map(function(genre) { return '<span>' + escapeHtml(genre) + '</span>'; }).join('') + '</div>' : '') +
+    (presentation.overview ? '<p>' + escapeHtml(presentation.overview) + '</p>' : '<p>TMDB chưa có tóm tắt công khai cho phim này.</p>') +
+    (presentation.directors ? '<div class="uvd-player-tmdb-expanded-row"><b>Đạo diễn</b><span>' + escapeHtml(presentation.directors) + '</span></div>' : '') +
+    (presentation.cast ? '<div class="uvd-player-tmdb-expanded-row"><b>Diễn viên</b><span>' + escapeHtml(presentation.cast) + '</span></div>' : '');
   panel.appendChild(detail);
   panel.classList.toggle('uvd-player-info-expanded', !!expanded);
   bar.classList.toggle('uvd-player-tmdb-expanded-open', !!expanded);
-  var toggle = bar.querySelector('.uvd-tmdb-expand-toggle');
-  if (toggle) toggle.textContent = expanded ? 'Thu gọn ↑' : 'Thông tin đầy đủ ↓';
+  var handle = bar.__uvdPlayerInfoHandle;
+  if (handle) {
+    handle.hidden = false;
+    handle.classList.toggle('uvd-player-info-handle-open', !!expanded);
+    handle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    handle.setAttribute('title', expanded ? 'Thu gọn thông tin phim' : 'Mở thông tin phim');
+    var arrow = handle.querySelector('i');
+    if (arrow) arrow.textContent = expanded ? '⌄' : '⌃';
+  }
   if (confirmed) {
     var titleMain = panel.querySelector('.uvd-player-title-main');
     if (titleMain) {
@@ -3046,9 +3067,8 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
     (presentation.logo ? '<img class="uvd-player-tmdb-logo" src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<div class="uvd-player-tmdb-title">' + escapeHtml(presentation.title) + '</div>') +
     '<div class="uvd-player-tmdb-meta">TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (presentation.year ? ' · ' + escapeHtml(presentation.year) : '') + (presentation.genres ? ' · ' + escapeHtml(presentation.genres) : '') + '</div>' +
     (presentation.cast ? '<div class="uvd-player-tmdb-cast">' + escapeHtml(presentation.cast) + '</div>' : '') +
-    __uvdFeedbackNoticeHtml('uvd-tmdb-feedback') +
     '<div class="uvd-feedback-actions uvd-tmdb-feedback-actions"><button type="button" class="uvd-feedback-vote uvd-feedback-vote-up" data-tmdb-vote="up"></button><button type="button" class="uvd-feedback-vote uvd-feedback-vote-down" data-tmdb-vote="down"></button></div>' +
-  '</div><button type="button" class="uvd-tmdb-expand-toggle">Thông tin đầy đủ ↓</button>';
+  '</div>';
   function refreshVotes() {
     var tally = __uvdTmdbVoteTally(sourceTitle, movie);
     var up = bar.querySelector('[data-tmdb-vote="up"]');
@@ -3062,8 +3082,9 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   if (up) up.onclick = function(e) {
     e.stopPropagation();
     __uvdCastTmdbVote(sourceTitle, movie, 'up');
+    var wasExpanded = !!(bar.__uvdPlayerInfoPanel && bar.__uvdPlayerInfoPanel.classList.contains('uvd-player-info-expanded'));
     refreshVotes();
-    __uvdSetPlayerTmdbExpanded(bar, movie, true, true);
+    __uvdSetPlayerTmdbExpanded(bar, movie, wasExpanded, true);
     toast('Cảm ơn cưng đã xác nhận thông tin phim ♡');
   };
   if (down) down.onclick = function(e) {
@@ -3081,11 +3102,19 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
         titleMain.textContent = titleMain.dataset.originalTitle || sourceTitle;
       }
     }
+    var handle = bar.__uvdPlayerInfoHandle;
+    if (handle) handle.hidden = true;
   };
-  var toggle = bar.querySelector('.uvd-tmdb-expand-toggle');
-  if (toggle) toggle.onclick = function(e) { e.stopPropagation(); var panel = bar.__uvdPlayerInfoPanel; __uvdSetPlayerTmdbExpanded(bar, movie, !(panel && panel.classList.contains('uvd-player-info-expanded')), false); };
   var tally = refreshVotes();
-  __uvdSetPlayerTmdbExpanded(bar, movie, !!(tally.up && tally.up > tally.down), !!(tally.up && tally.up > tally.down));
+  var confirmed = !!(tally.up && tally.up > tally.down);
+  __uvdSetPlayerTmdbExpanded(bar, movie, false, confirmed);
+  var handle = bar.__uvdPlayerInfoHandle;
+  if (handle) handle.onclick = function(e) {
+    e.stopPropagation();
+    var panel = bar.__uvdPlayerInfoPanel;
+    var next = !(panel && panel.classList.contains('uvd-player-info-expanded'));
+    __uvdSetPlayerTmdbExpanded(bar, movie, next, confirmed || !!(panel && panel.querySelector('.uvd-player-title-confirmed')));
+  };
   bar.hidden = false;
 }
 function __uvdRenderTmdbUnavailable(bar, title) {
@@ -3717,6 +3746,13 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
 
   var infoPanel = document.createElement('div');
   infoPanel.className = 'uvd-player-info-panel uvd-player-cute-panel';
+  var infoHandle = document.createElement('button');
+  infoHandle.type = 'button';
+  infoHandle.className = 'uvd-player-info-handle';
+  infoHandle.hidden = true;
+  infoHandle.setAttribute('aria-expanded', 'false');
+  infoHandle.innerHTML = '<span></span><i>⌃</i>';
+  infoPanel.appendChild(infoHandle);
   var playerTitle = titleOverride || pageInfo.title;
   var titleRow = document.createElement('div');
   titleRow.className = 'uvd-player-info-title';
@@ -3734,6 +3770,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   tmdbBar.className = 'uvd-player-tmdb-bar';
   tmdbBar.hidden = true;
   tmdbBar.__uvdPlayerInfoPanel = infoPanel;
+  tmdbBar.__uvdPlayerInfoHandle = infoHandle;
   infoPanel.appendChild(tmdbBar);
   sheetBody.appendChild(infoPanel);
   sheet.appendChild(sheetBody);
@@ -6209,6 +6246,62 @@ style.textContent = `
   .uvd-player-tmdb-expanded-poster{width:54px;height:73px;flex-basis:54px}
   .uvd-player-tmdb-expanded>p{font-size:10px}
   .uvd-player-title-confirmed img{max-width:116px;max-height:23px}
+}
+/* ===== PLAYER INFO HANDLE + FULL TMDB SHEET ===== */
+.uvd-player-info-panel{position:relative!important;padding-top:28px!important}
+.uvd-player-info-handle{
+  position:absolute;
+  z-index:3;
+  top:2px;
+  left:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  width:72px;
+  height:24px;
+  padding:0;
+  border:0;
+  border-radius:0 0 14px 14px;
+  background:transparent;
+  color:#8a6ab0;
+  cursor:pointer;
+  transform:translateX(-50%)
+}
+.uvd-player-info-handle[hidden]{display:none!important}
+.uvd-player-info-handle span{display:block;width:35px;height:3px;border-radius:99px;background:rgba(138,106,176,.42);box-shadow:0 1px 0 rgba(255,255,255,.8)}
+.uvd-player-info-handle i{font-style:normal;font-size:15px;font-weight:950;line-height:1;transition:transform var(--uvd-transition-duration,.24s) ease}
+.uvd-player-info-handle.uvd-player-info-handle-open i{transform:rotate(180deg)}
+.uvd-player-tmdb-bar{margin-top:8px!important;padding:9px!important;align-items:flex-start!important}
+.uvd-player-tmdb-summary{display:flex;align-items:flex-start;gap:9px;min-width:0;flex:1}
+.uvd-tmdb-expand-toggle{display:none!important}
+.uvd-player-tmdb-copy{padding-top:1px}
+.uvd-player-tmdb-copy .uvd-feedback-actions{margin-top:7px!important}
+.uvd-player-tmdb-expanded{max-height:0;overflow:hidden;opacity:0;transform:translateY(22px);transition:max-height .42s cubic-bezier(.22,1,.36,1),opacity .28s ease,transform .42s cubic-bezier(.22,1,.36,1);pointer-events:none}
+.uvd-player-info-panel.uvd-player-info-expanded .uvd-player-tmdb-expanded{max-height:440px;overflow-y:auto;opacity:1;transform:translateY(0);pointer-events:auto;margin-top:11px;padding:11px 2px 2px;border-top:1px solid rgba(194,150,255,.2)}
+.uvd-player-tmdb-expanded::-webkit-scrollbar{width:4px}
+.uvd-player-tmdb-expanded::-webkit-scrollbar-thumb{border-radius:99px;background:rgba(179,133,242,.35)}
+.uvd-player-tmdb-expanded-head{display:flex;align-items:center;gap:11px;min-width:0}
+.uvd-player-tmdb-expanded-poster{width:68px;height:93px;flex:0 0 68px;overflow:hidden;border-radius:14px;background:#f2e7ff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 5px 12px rgba(91,56,104,.12)}
+.uvd-player-tmdb-expanded-poster img{width:100%;height:100%;object-fit:cover}
+.uvd-player-tmdb-expanded-head>div:last-child{min-width:0;flex:1}
+.uvd-player-tmdb-expanded-head strong{display:block;overflow:hidden;color:#76508d;font-size:15px;font-weight:950;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}
+.uvd-player-tmdb-expanded-head small{display:block;overflow:hidden;margin-top:4px;color:#9b7aa5;font-size:10px;font-weight:700;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+.uvd-player-tmdb-expanded-tags{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 0}
+.uvd-player-tmdb-expanded-tags span{padding:4px 7px;border:1px solid rgba(194,150,255,.23);border-radius:999px;background:rgba(255,255,255,.7);color:#866a95;font-size:9px;font-weight:850}
+.uvd-player-tmdb-expanded>p{margin:10px 1px 0;color:#735f7d;font-size:11px;font-weight:650;line-height:1.55}
+.uvd-player-tmdb-expanded-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:7px;margin-top:8px;color:#8e7198;font-size:10.5px;line-height:1.45}
+.uvd-player-tmdb-expanded-row b{color:#8a6ab0}
+.uvd-player-title-confirmed{display:flex!important;align-items:center;gap:8px;color:#8a6ab0!important}
+.uvd-player-title-confirmed>span{font-size:10px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.uvd-player-title-confirmed img{display:block;max-width:150px;max-height:29px;box-sizing:content-box;object-fit:contain;object-position:center;background:linear-gradient(135deg,#72507f,#3e3158);padding:4px 7px;border:1px solid rgba(255,255,255,.35);border-radius:8px;box-shadow:0 3px 8px rgba(91,56,104,.18)}
+@media (max-width:420px){
+  .uvd-player-info-panel{padding:27px 12px 12px!important}
+  .uvd-player-info-panel.uvd-player-info-expanded .uvd-player-tmdb-expanded{max-height:360px}
+  .uvd-player-tmdb-expanded-poster{width:57px;height:78px;flex-basis:57px}
+  .uvd-player-tmdb-expanded>p{font-size:10px}
+  .uvd-player-tmdb-expanded-row{grid-template-columns:54px minmax(0,1fr);font-size:9.5px}
+  .uvd-player-title-confirmed img{max-width:118px;max-height:23px;padding:3px 5px}
 }
 `;
 

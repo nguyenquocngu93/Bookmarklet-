@@ -6514,6 +6514,16 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-movie-info-sheet{height:100dvh!important;max-height:100dvh!important}.uvd-movie-info-close{top:15px!important;left:15px!important;width:42px!important;height:42px!important}.uvd-movie-info-hero{height:44dvh!important;min-height:44dvh!important}.uvd-movie-info-body{margin-top:-68px!important}.uvd-movie-info-surface{min-height:calc(56dvh + 68px);padding:25px 24px 42px;border-radius:30px 30px 0 0}.uvd-movie-info-meta-line{font-size:14px}.uvd-movie-info-logo{margin:30px 0 13px}.uvd-movie-info-logo img{max-width:255px!important;max-height:65px!important}.uvd-movie-info-surface>h2{font-size:25px}.uvd-movie-info-tagline{font-size:16px}.uvd-movie-info-content{margin-top:26px!important}.uvd-movie-info-overview{font-size:13px!important;line-height:1.68!important}.uvd-movie-info-people-section{margin-top:30px!important}.uvd-movie-info-people-section h3{font-size:20px!important}.uvd-movie-info-director img,.uvd-movie-info-director>span{width:96px!important;height:96px!important;flex-basis:96px!important}.uvd-movie-info-director strong{font-size:20px!important}.uvd-movie-info-actors article{flex-basis:118px!important}.uvd-movie-info-actors img,.uvd-movie-info-actors article>span{width:118px!important;height:146px!important;line-height:146px!important}
 }
+/* ===== MOVIE HERO OVERLAP: LOGO/YEAR TOUCH THE BACKDROP ===== */
+.uvd-movie-info-hero{margin:10px 10px 0;border-radius:28px 28px 0 0;overflow:hidden!important}
+.uvd-movie-info-body{margin-top:-104px!important}
+.uvd-movie-info-surface{position:relative;overflow:visible;padding-top:32px!important}
+.uvd-movie-info-meta-line{position:relative;z-index:3;margin-top:-76px;text-shadow:0 2px 8px rgba(0,0,0,.85)}
+.uvd-movie-info-logo{position:relative!important;z-index:3;margin-top:28px!important}
+.uvd-movie-info-logo img{filter:drop-shadow(0 4px 12px rgba(0,0,0,.95))!important}
+@media (max-width:560px){
+  .uvd-movie-info-hero{margin:8px 8px 0;border-radius:24px 24px 0 0}.uvd-movie-info-body{margin-top:-90px!important}.uvd-movie-info-surface{padding-top:28px!important}.uvd-movie-info-meta-line{margin-top:-66px}.uvd-movie-info-logo{margin-top:24px!important}
+}
 `;
 
 

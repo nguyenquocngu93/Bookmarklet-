@@ -2823,14 +2823,72 @@ function __uvdTmdbJson(path, localUrl) {
     return fetch(localUrl, { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
   });
 }
-function __uvdTmdbSearchCandidates(queries, key, index) {
-  if (index >= queries.length) return Promise.resolve({ query: '', results: [] });
-  var query = queries[index];
-  var local = key ? 'https://api.themoviedb.org/3/search/multi?api_key=' + encodeURIComponent(key) + '&query=' + encodeURIComponent(query) + '&language=vi-VN&include_adult=false' : '';
-  return __uvdTmdbJson('search?query=' + encodeURIComponent(query), local).then(function(result) {
-    var results = result && result.results || [];
-    return results.length ? { query: query, results: results } : __uvdTmdbSearchCandidates(queries, key, index + 1);
+function __uvdTmdbSourceTitles(title) {
+  var raw = [title, pageInfo && pageInfo.title, document.title];
+  try {
+    var og = document.querySelector('meta[property="og:title"],meta[name="twitter:title"]');
+    var h1 = document.querySelector('h1');
+    if (og && og.content) raw.push(og.content);
+    if (h1 && h1.textContent) raw.push(h1.textContent);
+  } catch(e) {}
+  var seen = {};
+  return raw.map(function(value) { return __uvdTmdbCleanTitle(value); }).filter(function(value) {
+    var key = value.toLowerCase();
+    if (value.length < 3 || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  }).slice(0, 4);
+}
+function __uvdTmdbTranslateTitles(titles) {
+  titles = (titles || []).slice(0, 4);
+  if (!titles.length) return Promise.resolve([]);
+  return fetch(RENDER_PROXY_BASE.replace(/\/$/, '') + '/tmdb/translate-title', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ titles: titles }), cache: 'no-store'
+  }).then(function(response) { return response.ok ? response.json() : null; }).then(function(payload) {
+    if (!payload || !Array.isArray(payload.translations)) return [];
+    var seen = {};
+    return payload.translations.map(function(item) { return __uvdTmdbCleanTitle(item && item.english); }).filter(function(value) {
+      var key = value.toLowerCase();
+      if (value.length < 3 || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    }).slice(0, 4);
+  }).catch(function() { return []; });
+}
+function __uvdTmdbSearchAll(specs, key) {
+  specs = (specs || []).slice(0, 10);
+  if (!specs.length) return Promise.resolve([]);
+  return Promise.all(specs.map(function(spec) {
+    var language = spec.language === 'en-US' ? 'en-US' : 'vi-VN';
+    var local = key ? 'https://api.themoviedb.org/3/search/multi?api_key=' + encodeURIComponent(key) + '&query=' + encodeURIComponent(spec.query) + '&language=' + encodeURIComponent(language) + '&include_adult=false' : '';
+    return __uvdTmdbJson('search?query=' + encodeURIComponent(spec.query) + '&language=' + encodeURIComponent(language), local).then(function(result) {
+      return { query: spec.query, language: language, results: result && Array.isArray(result.results) ? result.results : [] };
+    });
+  }));
+}
+function __uvdTmdbSearchSpecs(titles, englishTitles) {
+  var specs = [], seen = {};
+  function add(query, language) {
+    query = __uvdTmdbCleanTitle(query);
+    var key = language + '|' + query.toLowerCase();
+    if (query.length < 3 || seen[key]) return;
+    seen[key] = true;
+    specs.push({ query: query, language: language });
+  }
+  (titles || []).forEach(function(title, index) {
+    var words = String(title || '').split(/\s+/).filter(Boolean);
+    add(title, 'vi-VN');
+    // Only derive shorter variants from the primary page title. This leaves
+    // request budget for English/original-title matching instead of issuing
+    // three searches for every duplicate browser title.
+    if (index === 0) {
+      add(words.slice(0, 6).join(' '), 'vi-VN');
+      add(words.slice(-4).join(' '), 'vi-VN');
+    }
   });
+  (englishTitles || []).forEach(function(title) { add(title, 'en-US'); });
+  return specs.slice(0, 8);
 }
 function __uvdTmdbKindOf(movie) {
   return movie && movie.media_type === 'tv' ? 'tv' : (movie && movie.media_type === 'movie' ? 'movie' : (movie && movie.first_air_date ? 'tv' : 'movie'));
@@ -2858,30 +2916,49 @@ function __uvdCastTmdbVote(sourceTitle, movie, kind) {
   return rec;
 }
 function __uvdFindTmdbMovie(title) {
-  var clean = __uvdTmdbCleanTitle(title);
-  if (clean.length < 3) return Promise.resolve(null);
+  var sourceTitles = __uvdTmdbSourceTitles(title);
+  if (!sourceTitles.length) return Promise.resolve(null);
+  var primary = sourceTitles[0];
   var key = String(data.settings.tmdbApiKey || '').trim();
-  var yearMatch = clean.match(/\b(19\d{2}|20\d{2})\b/);
+  var yearMatch = primary.match(/\b(19\d{2}|20\d{2})\b/);
   var year = yearMatch && yearMatch[1];
-  var noYear = clean.replace(/\b(19\d{2}|20\d{2})\b/g, ' ').replace(/\s+/g, ' ').trim();
-  var words = noYear.split(/\s+/).filter(Boolean);
-  var queries = [clean, noYear, words.slice(-4).join(' '), words.slice(-3).join(' '), words.slice(-2).join(' ')].filter(function(q, i, list) { return q.length >= 3 && list.indexOf(q) === i; });
-  return __uvdTmdbSearchCandidates(queries, key, 0).then(function(found) {
-    var best = null, bestScore = 0;
-    found.results.forEach(function(item) {
-      if (!item || (item.media_type && item.media_type !== 'movie' && item.media_type !== 'tv')) return;
-      var candidateTitle = item.title || item.name || '';
-      var score = Math.max(__uvdTmdbSimilarity(clean, candidateTitle), __uvdTmdbSimilarity(clean, item.original_title || item.original_name), __uvdTmdbSimilarity(found.query, candidateTitle), __uvdTmdbSimilarity(found.query, item.original_title || item.original_name));
-      var itemYear = String(item.release_date || item.first_air_date || '').slice(0, 4);
-      if (year && itemYear === year) score += 0.24;
-      if (item.popularity) score += Math.min(0.05, Number(item.popularity) / 2000);
-      score += __uvdTmdbFeedbackScore(title, item);
-      if (score > bestScore) { best = item; bestScore = score; }
+  return __uvdTmdbTranslateTitles(sourceTitles).then(function(englishTitles) {
+    var allTitles = sourceTitles.concat(englishTitles);
+    var specs = __uvdTmdbSearchSpecs(sourceTitles, englishTitles);
+    return __uvdTmdbSearchAll(specs, key).then(function(groups) {
+      var byId = {}, best = null, bestScore = 0;
+      groups.forEach(function(group) {
+        (group.results || []).forEach(function(item) {
+          if (!item || (item.media_type && item.media_type !== 'movie' && item.media_type !== 'tv')) return;
+          var kind = __uvdTmdbKindOf(item);
+          var dedupeKey = kind + ':' + item.id;
+          var candidateTitle = item.title || item.name || '';
+          var originalTitle = item.original_title || item.original_name || '';
+          var score = Math.max(__uvdTmdbSimilarity(group.query, candidateTitle), __uvdTmdbSimilarity(group.query, originalTitle));
+          allTitles.forEach(function(query) {
+            score = Math.max(score, __uvdTmdbSimilarity(query, candidateTitle), __uvdTmdbSimilarity(query, originalTitle));
+          });
+          var itemYear = String(item.release_date || item.first_air_date || '').slice(0, 4);
+          if (year && itemYear === year) score += 0.24;
+          if (item.popularity) score += Math.min(0.05, Number(item.popularity) / 2000);
+          score += __uvdTmdbFeedbackScore(title, item);
+          if (!byId[dedupeKey] || score > byId[dedupeKey].score) byId[dedupeKey] = { item: item, score: score };
+        });
+      });
+      Object.keys(byId).forEach(function(id) {
+        var candidate = byId[id];
+        if (candidate.score > bestScore) { best = candidate.item; bestScore = candidate.score; }
+      });
+      // Multilingual queries are more resilient, but keep the threshold high
+      // enough to avoid confidently showing the wrong movie.
+      if (!best || bestScore < 0.54) return null;
+      var kind = __uvdTmdbKindOf(best);
+      var detailLocal = key ? 'https://api.themoviedb.org/3/' + kind + '/' + best.id + '?api_key=' + encodeURIComponent(key) + '&append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN' : '';
+      return __uvdTmdbJson(kind + '/' + best.id, detailLocal).then(function(detail) {
+        if (detail) detail.__uvdMatchedTitle = primary;
+        return detail || null;
+      });
     });
-    if (!best || bestScore < 0.58) return null;
-    var kind = __uvdTmdbKindOf(best);
-    var detailLocal = key ? 'https://api.themoviedb.org/3/' + kind + '/' + best.id + '?api_key=' + encodeURIComponent(key) + '&append_to_response=credits,images&include_image_language=vi,en,null&language=vi-VN' : '';
-    return __uvdTmdbJson(kind + '/' + best.id, detailLocal).then(function(detail) { return detail || null; });
   });
 }
 function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
@@ -2915,16 +2992,24 @@ function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   refreshVotes();
   bar.hidden = false;
 }
+function __uvdRenderTmdbUnavailable(bar, title) {
+  if (!bar) return;
+  bar.classList.remove('uvd-player-tmdb-loading');
+  bar.hidden = false;
+  bar.innerHTML = '<span class="uvd-player-tmdb-loading">🔎 Mèo chưa khớp TMDB đủ chắc để hiện sai phim.</span><button type="button" class="uvd-btn uvd-btn-sm uvd-tmdb-retry">Thử nhận diện lại</button>';
+  var retry = bar.querySelector('.uvd-tmdb-retry');
+  if (retry) retry.onclick = function(e) { e.stopPropagation(); __uvdRecognizePlayerMovie(title, bar); };
+}
 function __uvdRecognizePlayerMovie(title, bar) {
   if (!bar) return;
   bar.hidden = false;
   bar.classList.add('uvd-player-tmdb-loading');
-  bar.textContent = '🔎 Mèo đang nhận diện tên phim...';
+  bar.textContent = '🔎 Mèo đang đối chiếu tiêu đề trang với TMDB...';
   __uvdFindTmdbMovie(title).then(function(movie) {
-    if (!movie) { bar.hidden = true; return; }
+    if (!movie) { __uvdRenderTmdbUnavailable(bar, title); return; }
     bar.classList.remove('uvd-player-tmdb-loading');
     __uvdRenderPlayerTmdb(bar, movie, title);
-  }).catch(function() { bar.hidden = true; });
+  }).catch(function() { __uvdRenderTmdbUnavailable(bar, title); });
 }
 
 // ========== PHỤ ĐỀ ==========
@@ -5993,6 +6078,10 @@ style.textContent = `
   #__uvd_media_preview__>.uvd-media-preview-panel{width:calc(100vw - 20px)!important}
   #__uvd_media_preview__ .uvd-media-preview-stage{aspect-ratio:16 / 9!important}
 }
+/* TMDB may decline an uncertain title; keep a compact retry action instead of
+   making the information area disappear with no explanation. */
+.uvd-player-tmdb-bar .uvd-tmdb-retry{margin-left:auto;flex:0 0 auto;padding:6px 8px!important;font-size:9px!important;white-space:nowrap}
+
 `;
 
 

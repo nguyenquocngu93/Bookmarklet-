@@ -696,15 +696,45 @@ app.get('/sync.sql', (_req, res) => {
 // variable, so browser users never receive it.
 app.get('/tmdb/search', async (req, res) => {
   const query = String(req.query.query || '').trim().slice(0, 160);
+  // The browser searches the page title in Vietnamese and, when available, an
+  // English title resolution. Restrict the language rather than proxying an
+  // arbitrary TMDB locale.
+  const language = ['vi-VN', 'en-US'].includes(String(req.query.language || 'vi-VN')) ? String(req.query.language || 'vi-VN') : 'vi-VN';
   if (!query) return res.status(400).json({ error: 'Thiếu query TMDB' });
   if (!TMDB_BEARER_TOKEN) return res.status(503).json({ error: 'TMDB chưa được cấu hình trên Render' });
   try {
-    const tmdbUrl = 'https://api.themoviedb.org/3/search/multi?query=' + encodeURIComponent(query) + '&language=vi-VN&include_adult=false';
+    const tmdbUrl = 'https://api.themoviedb.org/3/search/multi?query=' + encodeURIComponent(query) + '&language=' + encodeURIComponent(language) + '&include_adult=false';
     const response = await fetch(tmdbUrl, { headers: { Authorization: `Bearer ${TMDB_BEARER_TOKEN}`, accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     const body = await response.text();
     if (!response.ok) return res.status(response.status).send(body);
     res.type('application/json').send(body);
   } catch (error) { res.status(502).json({ error: 'Không tìm được TMDB: ' + error.message }); }
+});
+
+app.post('/tmdb/translate-title', async (req, res) => {
+  // Only public-looking title strings leave the browser. No page URL, stream
+  // URL, media metadata, cookies or API key are part of this optional helper.
+  const titles = (Array.isArray(req.body && req.body.titles) ? req.body.titles : [])
+    .map((value) => String(value || '').replace(/https?:\/\/\S+/gi, '').replace(/[\r\n]+/g, ' ').trim().slice(0, 160))
+    .filter((value, index, list) => value.length >= 3 && list.indexOf(value) === index)
+    .slice(0, 4);
+  if (!titles.length) return res.status(400).json({ configured: Boolean(GEMINI_API_KEY || OPENAI_API_KEY), translations: [] });
+  if (!GEMINI_API_KEY && !OPENAI_API_KEY) return res.json({ configured: false, translations: [] });
+  const system = [
+    'Bạn chỉ hỗ trợ tìm phim trên TMDB.',
+    'Với mỗi tiêu đề trang phim đầu vào, hãy trả title phim/series tiếng Anh hoặc original title gần nhất.',
+    'Bỏ tập, server, độ phân giải, Vietsub, quảng cáo. Không bịa nếu không chắc: dùng chuỗi đã được làm sạch.',
+    'Chỉ trả JSON array: [{"english":"..."}].'
+  ].join(' ');
+  const prompt = titles.map((title, index) => `${index + 1}. ${title}`).join('\n');
+  try {
+    const rows = GEMINI_API_KEY ? await callGemini(prompt, system) : await callOpenAI(prompt, system);
+    const translations = (Array.isArray(rows) ? rows : []).map((row) => ({ english: String(row && row.english || '').trim().slice(0, 160) }))
+      .filter((row) => row.english.length >= 3);
+    res.json({ configured: true, provider: GEMINI_API_KEY ? 'gemini' : 'openai', translations });
+  } catch (error) {
+    res.status(502).json({ configured: true, translations: [], error: 'Không dịch được title: ' + error.message });
+  }
 });
 
 app.get('/tmdb/:kind/:id', async (req, res) => {

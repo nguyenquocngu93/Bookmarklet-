@@ -6532,6 +6532,15 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-movie-info-body .uvd-movie-info-hero{margin:8px 8px 0;border-radius:24px 24px 0 0}.uvd-movie-info-body .uvd-movie-info-surface{margin-top:-90px}
 }
+/* ===== FULL-WIDTH BACKDROP ALIGNMENT ===== */
+.uvd-movie-info-body .uvd-movie-info-hero{margin:0!important;width:100%;border-radius:26px 26px 0 0}
+.uvd-movie-info-surface{padding-left:28px!important;padding-right:28px!important}
+.uvd-movie-info-meta-line{margin-top:-96px!important}
+.uvd-movie-info-logo{justify-content:flex-start!important;margin-left:-40px!important;transform:none!important}
+.uvd-movie-info-logo img{object-position:left center!important}
+@media (max-width:560px){
+  .uvd-movie-info-body .uvd-movie-info-hero{margin:0!important;border-radius:23px 23px 0 0}.uvd-movie-info-surface{padding-left:24px!important;padding-right:24px!important}.uvd-movie-info-meta-line{margin-top:-84px!important}.uvd-movie-info-logo{margin-left:-32px!important}
+}
 `;
 
 

@@ -4764,6 +4764,10 @@ style.textContent = `
 .uvd-popup-back-btn{position:absolute;left:13px;top:13px;z-index:4;width:34px;height:34px;padding:0;border:1px solid rgba(194,150,255,.28);border-radius:50%;background:rgba(255,255,255,.82);color:#8a6ab0;font-size:19px;line-height:1;cursor:pointer;box-shadow:0 3px 10px rgba(150,90,220,.1)}.uvd-popup-back-btn:active{transform:scale(.94)}.uvd-digging-box .uvd-dig-art{margin-top:14px!important}
 
 
+/* ===== CONTENT-AWARE POPUP EXPANSION ===== */
+.uvd-auto-fit-popup{transition:height .38s cubic-bezier(.22,1,.36,1),max-height .38s cubic-bezier(.22,1,.36,1);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
+
 `;
 
 
@@ -4897,6 +4901,28 @@ function __uvdIsolateLayer(el) {
   el.style.transform = 'translateZ(0)';
   el.style.isolation = 'isolate';
   el.style.contain = 'layout paint style';
+}
+// Popup cards expand only as their contents need, up to a safe viewport cap.
+// This keeps short notices compact while long video/iframe/fact content gains room.
+function __uvdAutoFitPopup(card, minRatio, maxRatio) {
+  if (!card || !card.isConnected) return;
+  minRatio = minRatio == null ? .52 : minRatio;
+  maxRatio = maxRatio == null ? .90 : maxRatio;
+  card.classList.add('uvd-auto-fit-popup');
+  function fit() {
+    if (!card.isConnected) return;
+    var viewport = window.innerHeight || 720;
+    var min = Math.round(viewport * minRatio);
+    var max = Math.round(viewport * maxRatio);
+    card.style.height = 'auto';
+    card.style.maxHeight = max + 'px';
+    var desired = card.scrollHeight;
+    var target = Math.min(max, Math.max(min, desired));
+    card.style.height = target + 'px';
+    card.style.overflowY = desired > max ? 'auto' : 'hidden';
+  }
+  requestAnimationFrame(fit);
+  setTimeout(fit, 100);
 }
 
 // ========== IFRAME WORKFLOW ==========
@@ -5222,6 +5248,8 @@ function __uvdSetDiggingReady(kind, subtitle) {
   }
   var factWrap = overlay.querySelector('#__uvd_dig_fact_wrap__');
   if (factWrap) factWrap.style.display = 'none';
+  var digCard = overlay.querySelector('.uvd-digging-box');
+  if (digCard) __uvdAutoFitPopup(digCard, .72, .90);
   var status = overlay.querySelector('#__uvd_dig_status__');
   var count = overlay.querySelector('#__uvd_dig_count__');
   if (status) status.textContent = kind === 'iframe' ? '🖼️ Đã thấy player iframe' : '✨ Đã đào được video';
@@ -5334,6 +5362,7 @@ function __uvdStartDiggingPopup() {
       '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
+  __uvdAutoFitPopup(overlay.querySelector('.uvd-digging-box'), .72, .90);
   var enter = overlay.querySelector('#__uvd_dig_enter__');
   if (enter) enter.onclick = __uvdOpenDiggingDestination;
   var watchFirst = overlay.querySelector('#__uvd_dig_watch_first__');
@@ -5621,6 +5650,7 @@ function __uvdShowFarewellPopup(onConfirm) {
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
   try { (document.body||document.documentElement).appendChild(overlay); } catch(e){}
+  __uvdAutoFitPopup(box, .62, .90);
   overlay.style.zIndex='2147483647';
   var done=false;
   function closeFarewell(confirm){
@@ -5805,6 +5835,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
+  __uvdAutoFitPopup(panel, .44, .82);
   var stage = panel.querySelector('.uvd-media-preview-stage');
   var strip = panel.querySelector('.uvd-media-preview-strip');
   var media = document.createElement('video');
@@ -6057,6 +6088,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   if (mediaBack) mediaBack.onclick = function(e) { e.stopPropagation(); closeMedia(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
+  __uvdAutoFitPopup(panel, .60, .90);
   // Make sure the popup sits above everything (including the main UMP panel).
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   overlay.style.zIndex = '2147483647';
@@ -6244,6 +6276,7 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
   if (iframeBack) iframeBack.onclick = function(e) { e.stopPropagation(); closeIframe(); };
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
+  __uvdAutoFitPopup(panel, .60, .90);
   // Keep iframe popup above the main panel too.
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   overlay.style.zIndex = '2147483647';

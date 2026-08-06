@@ -4638,9 +4638,6 @@ style.textContent = `
 .uvd-settings-overlay .uvd-settings-details>summary{color:#d85c7a!important;font-size:14px!important}
 .uvd-settings-overlay .uvd-settings-details-body>.uvd-card{background:rgba(255,244,249,.6)!important}
 .uvd-settings-overlay .uvd-settings-title{background:linear-gradient(110deg,#f76c8c,#b385f2);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:none!important}
-/* Nút nổi gọi lại popup (kéo được, như nút ẩn script) */
-.uvd-popup-reopen{position:fixed;right:16px;bottom:16px;z-index:2147483646;display:flex;align-items:center;justify-content:center;width:54px;height:54px;padding:0;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,#ffd6e4,#f4c8ff);color:#fff;font-size:24px;line-height:1;cursor:grab;box-shadow:0 8px 24px rgba(247,108,140,.45);animation:uvdScaleIn .25s ease both;touch-action:none}
-.uvd-popup-reopen:active{transform:scale(.94);cursor:grabbing}
 /* Settings cards hồng tím + footer nhắn nhủ cute */
 .uvd-settings-overlay .uvd-card{background:linear-gradient(160deg,rgba(255,255,255,.94),rgba(250,240,255,.9))!important;border:1px solid rgba(194,150,255,.3)!important;border-radius:18px!important}
 .uvd-settings-overlay .uvd-step-text{color:#6b4d85!important}
@@ -5363,6 +5360,118 @@ style.textContent = `
   #__uvd_play_intro__ .uvd-play-intro-mascot{animation:none!important}
 }
 
+/* ===== DEFERRED POPUP REMINDER: LIVES UNDER CURRENT SESSION ===== */
+/* The first workflow remains popup-first. This rail only appears after the
+   user has deliberately left Video/Iframe for Main UI. */
+.uvd-popup-reminder-slot:empty{display:none}
+.uvd-main-clean .uvd-popup-reminder-slot{margin:0!important;flex:0 0 auto}
+.uvd-main-clean .uvd-popup-reminder{
+  box-sizing:border-box;
+  width:100%;
+  border:1px solid rgba(194,150,255,.28);
+  background:linear-gradient(135deg,#fff9fd 0%,#f8efff 58%,#fff0f6 100%);
+  box-shadow:0 5px 14px rgba(150,90,220,.1),inset 0 1px 0 rgba(255,255,255,.92)
+}
+.uvd-main-clean .uvd-popup-reminder-expanded{
+  display:grid;
+  grid-template-columns:54px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:10px 11px;
+  border-radius:19px;
+  animation:uvdReminderAppear .32s cubic-bezier(.22,1,.36,1) both
+}
+.uvd-popup-reminder-mascot{
+  width:50px;
+  height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:visible;
+  border-radius:17px;
+  background:radial-gradient(circle at 42% 32%,#fff,#ffe2ef 63%,#eee0ff);
+  box-shadow:0 5px 11px rgba(247,108,140,.14);
+  filter:drop-shadow(0 3px 4px rgba(150,90,220,.08))
+}
+.uvd-popup-reminder-mascot svg{width:43px;height:43px;display:block;animation:uvdMascotHop 1.9s ease-in-out infinite}
+.uvd-popup-reminder-copy{min-width:0;text-align:left}
+.uvd-popup-reminder-kicker{display:block;color:#a777bf;font-size:8.5px;font-weight:950;letter-spacing:.12em;line-height:1.25}
+.uvd-popup-reminder-copy strong{display:block;margin-top:2px;overflow:hidden;color:#805aa0;font-size:13px;font-weight:900;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}
+.uvd-popup-reminder-copy small{display:block;margin-top:3px;color:#836b8c;font-size:10px;font-weight:650;line-height:1.35}
+.uvd-popup-reminder-actions{display:flex;align-items:center;gap:6px}
+.uvd-popup-reminder-open{
+  min-height:36px;
+  padding:8px 10px;
+  border:0;
+  border-radius:11px;
+  background:linear-gradient(135deg,#b488eb,#9369d0);
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap;
+  cursor:pointer;
+  box-shadow:0 5px 11px rgba(150,90,220,.2)
+}
+.uvd-popup-reminder-toggle{
+  width:29px;
+  height:29px;
+  padding:0;
+  border:1px solid rgba(194,150,255,.28);
+  border-radius:10px;
+  background:rgba(255,255,255,.74);
+  color:#8a6ab0;
+  font-size:15px;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer
+}
+.uvd-popup-reminder-open:active,.uvd-popup-reminder-toggle:active,.uvd-popup-reminder-compact-open:active{transform:scale(.96)}
+.uvd-main-clean .uvd-popup-reminder-collapsed{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) 29px;
+  align-items:center;
+  gap:7px;
+  min-height:43px;
+  padding:6px 8px;
+  border-radius:15px;
+  animation:uvdReminderFold .28s cubic-bezier(.22,1,.36,1) both
+}
+.uvd-popup-reminder-collapsed .uvd-popup-reminder-mascot{width:28px;height:28px;border-radius:10px;box-shadow:none}
+.uvd-popup-reminder-collapsed .uvd-popup-reminder-mascot svg{width:25px;height:25px;animation:none}
+.uvd-popup-reminder-compact-open{
+  min-width:0;
+  overflow:hidden;
+  padding:4px 2px;
+  border:0;
+  background:transparent;
+  color:#806293;
+  font-size:10px;
+  font-weight:750;
+  line-height:1.2;
+  text-align:left;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  cursor:pointer
+}
+.uvd-popup-reminder-compact-open span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uvd-popup-reminder-compact-open b{color:#9a6ce0;font-weight:900}
+@keyframes uvdReminderAppear{from{opacity:0;transform:translateY(-7px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes uvdReminderFold{from{opacity:.2;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media (max-width:560px){
+  .uvd-main-clean .uvd-popup-reminder-expanded{grid-template-columns:43px minmax(0,1fr) auto;gap:8px;padding:8px 9px;border-radius:16px}
+  .uvd-popup-reminder-mascot{width:41px;height:41px;border-radius:14px}
+  .uvd-popup-reminder-mascot svg{width:36px;height:36px}
+  .uvd-popup-reminder-copy strong{font-size:11px}
+  .uvd-popup-reminder-copy small{font-size:8.8px}
+  .uvd-popup-reminder-kicker{font-size:7.5px}
+  .uvd-popup-reminder-actions{gap:4px}
+  .uvd-popup-reminder-open{min-height:33px;padding:7px 7px;font-size:8.5px}
+  .uvd-popup-reminder-toggle{width:27px;height:27px;border-radius:9px;font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){
+  .uvd-popup-reminder-expanded,.uvd-popup-reminder-collapsed,.uvd-popup-reminder-mascot svg{animation:none!important}
+}
+
 `;
 
 
@@ -5425,51 +5534,144 @@ function __uvdSetHidden(hidden) {
     } catch(e) {}
   } else __uvdRemoveRestoreBtn();
 }
-// ========== POPUP OVERLAY: HIDE UI + REOPEN BUTTON ==========
-// When a popup (media links or iframe) is shown, hide the main UMP panel so the
-// popup is never covered. Show a floating cute button to recall the popup and a
-// restore button to bring the panel back.
-var __uvdPopupReopenBtn = null;
-var __uvdPopupReopenKind = 'media';
+// ========== POPUP OVERLAY: HIDE UI + DEFERRED SESSION REMINDER ==========
+// Specialist popups temporarily cover Main UI. If a user leaves one, Main UI
+// returns with a contextual reminder under Current Session instead of a float.
+// A deferred workflow belongs back inside Main UI, not as another floating
+// control over the website. It starts as a little discovery card and quietly
+// folds into the current-session rail after a few seconds.
+var __uvdPopupReminder = { kind: '', collapsed: false };
+var __uvdPopupReminderTimer = null;
+var __uvdMediaPopupUserDeferred = false;
+var __uvdIframeWorkflowUserDeferred = false;
 function __uvdRemovePopupReopenBtn() {
+  // Remove an old button left by a previous in-page version, if one exists.
   var old = document.getElementById('__uvd_popup_reopen__');
   if (old) old.remove();
-  __uvdPopupReopenBtn = null;
+}
+function __uvdClearPopupReminder(kind) {
+  if (kind && __uvdPopupReminder.kind && __uvdPopupReminder.kind !== kind) return;
+  clearTimeout(__uvdPopupReminderTimer);
+  __uvdPopupReminderTimer = null;
+  __uvdPopupReminder.kind = '';
+  __uvdPopupReminder.collapsed = false;
+  __uvdRenderPopupReminder();
+}
+function __uvdPopupReminderInfo() {
+  var kind = __uvdPopupReminder.kind;
+  if (kind === 'media') {
+    var direct = __uvdQualifiedDirectEntries();
+    if (!direct.length) return null;
+    return {
+      kind: 'media', count: direct.length,
+      mascot: typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : '🐰',
+      kicker: 'POPUP VIDEO ĐANG CHỜ',
+      title: 'Mèo đang giữ ' + direct.length + ' link video thật',
+      compact: direct.length + ' video đã kiểm chứng đang chờ',
+      copy: 'Cưng đã để flow này lại. Khi sẵn sàng, mở Popup Video để xem, so sánh và vote nha.',
+      button: 'Mở Popup Video'
+    };
+  }
+  if (kind === 'iframe') {
+    // A parent probe can turn an iframe route into verified direct media while
+    // the user is reading Main UI. Promote the reminder instead of showing an
+    // obsolete iframe action.
+    if (__uvdQualifiedDirectEntries().length) {
+      __uvdPopupReminder.kind = 'media';
+      __uvdPopupReminder.collapsed = false;
+      // The user deferred the workflow, not only its old iframe route. A
+      // late parent-probe result must therefore remain a UI reminder instead
+      // of surprising them with an automatic Video popup.
+      __uvdIframeWorkflowUserDeferred = false;
+      __uvdMediaPopupUserDeferred = true;
+      return __uvdPopupReminderInfo();
+    }
+    var frames = __uvdCollectWorkflowFrames().filter(function(candidate) {
+      return candidate.verdict === 'PLAYER' || candidate.verdict === 'UNKNOWN';
+    });
+    if (!frames.length) return null;
+    return {
+      kind: 'iframe', count: frames.length,
+      mascot: typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : '🖼️',
+      kicker: 'POPUP IFRAME ĐANG CHỜ',
+      title: 'Mèo vẫn giữ ' + frames.length + ' player iframe',
+      compact: frames.length + ' player iframe đang chờ',
+      copy: 'Mèo chưa tự bật lại đâu. Mở popup khi cưng muốn dò qua trang mẹ hoặc chọn iframe nha.',
+      button: 'Mở Popup Iframe'
+    };
+  }
+  return null;
+}
+function __uvdOpenDeferredPopup() {
+  var kind = __uvdPopupReminder.kind;
+  if (!kind) return;
+  __uvdClearPopupReminder();
+  if (kind === 'iframe') {
+    __uvdIframeWorkflowUserDeferred = false;
+    __uvdMaybeOfferIframeWorkflow(true);
+  } else {
+    __uvdMediaPopupUserDeferred = false;
+    __uvdMaybeOfferMediaPopup(true);
+  }
+}
+function __uvdRenderPopupReminder() {
+  var slot = document.getElementById('__uvd_popup_reminder_slot__');
+  if (!slot) return;
+  slot.innerHTML = '';
+  var info = __uvdPopupReminderInfo();
+  if (!info) {
+    if (__uvdPopupReminder.kind) {
+      __uvdPopupReminder.kind = '';
+      __uvdPopupReminder.collapsed = false;
+    }
+    return;
+  }
+  var reminder = document.createElement('section');
+  reminder.className = 'uvd-popup-reminder ' + (__uvdPopupReminder.collapsed ? 'uvd-popup-reminder-collapsed' : 'uvd-popup-reminder-expanded');
+  reminder.setAttribute('aria-label', info.kicker.toLowerCase());
+  if (__uvdPopupReminder.collapsed) {
+    reminder.innerHTML =
+      '<span class="uvd-popup-reminder-mascot">' + info.mascot + '</span>' +
+      '<button type="button" class="uvd-popup-reminder-compact-open"><span>' + escapeHtml(info.compact) + '</span><b> Mở lại ♡</b></button>' +
+      '<button type="button" class="uvd-popup-reminder-toggle" title="Mở rộng nhắc nhở">⌃</button>';
+  } else {
+    reminder.innerHTML =
+      '<div class="uvd-popup-reminder-mascot">' + info.mascot + '</div>' +
+      '<div class="uvd-popup-reminder-copy"><span class="uvd-popup-reminder-kicker">' + escapeHtml(info.kicker) + '</span><strong>' + escapeHtml(info.title) + '</strong><small>' + escapeHtml(info.copy) + '</small></div>' +
+      '<div class="uvd-popup-reminder-actions"><button type="button" class="uvd-popup-reminder-open">' + escapeHtml(info.button) + '</button><button type="button" class="uvd-popup-reminder-toggle" title="Thu gọn nhắc nhở">⌄</button></div>';
+  }
+  slot.appendChild(reminder);
+  var open = reminder.querySelector('.uvd-popup-reminder-open, .uvd-popup-reminder-compact-open');
+  if (open) open.onclick = function() { __uvdOpenDeferredPopup(); };
+  var toggle = reminder.querySelector('.uvd-popup-reminder-toggle');
+  if (toggle) toggle.onclick = function(event) {
+    event.stopPropagation();
+    clearTimeout(__uvdPopupReminderTimer);
+    __uvdPopupReminderTimer = null;
+    __uvdPopupReminder.collapsed = !__uvdPopupReminder.collapsed;
+    __uvdRenderPopupReminder();
+  };
+}
+function __uvdSetPopupReminder(kind) {
+  if (kind !== 'media' && kind !== 'iframe') return;
+  clearTimeout(__uvdPopupReminderTimer);
+  __uvdPopupReminder.kind = kind;
+  __uvdPopupReminder.collapsed = false;
+  if (kind === 'media') __uvdMediaPopupUserDeferred = true;
+  else __uvdIframeWorkflowUserDeferred = true;
+  __uvdRenderPopupReminder();
+  // The reminder gets the user's attention once, then becomes the slim
+  // current-session bar requested for browsing the legacy UI.
+  __uvdPopupReminderTimer = setTimeout(function() {
+    if (__uvdPopupReminder.kind !== kind) return;
+    __uvdPopupReminder.collapsed = true;
+    __uvdRenderPopupReminder();
+  }, 4800);
 }
 function __uvdShowPopupReopenBtn(kind) {
-  __uvdPopupReopenKind = kind;
-  __uvdRemovePopupReopenBtn();
-  var b = document.createElement('button');
-  b.id = '__uvd_popup_reopen__';
-  b.className = 'uvd-popup-reopen uvd-scope';
-  b.textContent = kind === 'iframe' ? '🎬' : '🐰';
-  b.title = kind === 'iframe' ? 'Mở lại popup iframe' : 'Mở lại popup video';
-  b.style.touchAction = 'none';
-  b.onclick = function() {
-    if (b.__uvdDragged) { b.__uvdDragged = false; return; }
-    __uvdRemovePopupReopenBtn();
-    if (kind === 'iframe') __uvdMaybeOfferIframeWorkflow(true);
-    else __uvdMaybeOfferMediaPopup(true);
-  };
-  // Kéo đi được như nút ẩn script.
-  var dragging = false, sx = 0, sy = 0, sl = 0, st = 0;
-  b.addEventListener('pointerdown', function(e) {
-    dragging = true; b.__uvdDragged = false; sx = e.clientX; sy = e.clientY;
-    var r = b.getBoundingClientRect(); sl = r.left; st = r.top;
-    try { b.setPointerCapture(e.pointerId); } catch(ex) {}
-    e.preventDefault();
-  });
-  b.addEventListener('pointermove', function(e) {
-    if (!dragging) return;
-    var dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.abs(dx) + Math.abs(dy) > 5) b.__uvdDragged = true;
-    b.style.left = Math.max(4, Math.min(window.innerWidth - b.offsetWidth - 4, sl + dx)) + 'px';
-    b.style.top = Math.max(4, Math.min(window.innerHeight - b.offsetHeight - 4, st + dy)) + 'px';
-    b.style.right = 'auto'; b.style.bottom = 'auto';
-  });
-  b.addEventListener('pointerup', function() { dragging = false; });
-  __uvdAppendRoot(b);
-  __uvdPopupReopenBtn = b;
+  // Kept as a compatibility name for existing cancellation paths. No floating
+  // page button is created anymore.
+  __uvdSetPopupReminder(kind);
 }
 // Hide the whole UMP panel (cute popup takes priority and must not be covered).
 var __uvdPopupActive = false;
@@ -5483,6 +5685,7 @@ function __uvdRestoreUiAfterPopup() {
   var p = document.getElementById('__uvd__');
   if (p && p.__uvdPopupHidden) { p.__uvdPopupHidden = false; p.style.display = ''; }
   __uvdRemovePopupReopenBtn();
+  __uvdRenderPopupReminder();
 }
 function __uvdPopupDismiss() {
   __uvdRestoreUiAfterPopup();
@@ -6585,6 +6788,8 @@ function __uvdCompactPopupUrl(raw) {
   }
 }
 function __uvdOpenMediaLinksPopup(streams) {
+  __uvdMediaPopupUserDeferred = false;
+  __uvdClearPopupReminder();
   __uvdSyncPopupMetadataFromStreamTab();
   streams = __uvdSortStreamsForPopup(streams || []).filter(function(stream) {
     return __uvdIsQualifiedMediaItem(stream && (stream.item || urls.get(stream.url)));
@@ -6684,8 +6889,9 @@ function __uvdOpenMediaLinksPopup(streams) {
       var p = document.getElementById('__uvd__');
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
+    __uvdSetPopupReminder('media');
   }
-  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
+  // "Để sau" returns to Main UI with its in-session reminder.
   var cancel = panel.querySelector('#__uvd_media_links_cancel__');
   if (cancel) cancel.onclick = function() {
     __uvdMediaPopupDismissedAt = Date.now();
@@ -6728,8 +6934,8 @@ function __uvdMaybeOfferMediaPopup(force) {
   if (!force && __uvdDiggingFlow.completed) return;
   if (!direct.length) return;
   if (playerState.overlay) return;
-  if (!force && __uvdMediaPopupShown) return;
-  if (force) __uvdMediaPopupDismissedAt = 0;
+  if (!force && (__uvdMediaPopupShown || __uvdMediaPopupUserDeferred)) return;
+  if (force) { __uvdMediaPopupDismissedAt = 0; __uvdMediaPopupUserDeferred = false; }
   if (Date.now() - (__uvdMediaPopupDismissedAt || 0) < 60000) return;
   // force only reopens a previously valid popup; it never bypasses the
   // duration + metadata + thumbnail proof required above.
@@ -6757,6 +6963,8 @@ function __uvdProbeIframeThroughParent(iframeUrl, onReady) {
 }
 
 function __uvdOpenIframeWorkflowPrompt(candidates) {
+  __uvdIframeWorkflowUserDeferred = false;
+  __uvdClearPopupReminder();
   // The iframe helper replaces the initial digging state when no direct link
   // has appeared; do not leave two overlays competing for the screen.
   __uvdStopDiggingPopup(true);
@@ -6873,8 +7081,9 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
       var p = document.getElementById('__uvd__');
       if (p) { p.style.display = ''; p.__uvdPopupHidden = false; }
     } catch(e){}
+    __uvdSetPopupReminder('iframe');
   }
-  // "Để sau" → ẩn popup thành nút nổi kéo được (như khi ẩn script).
+  // "Để sau" returns to Main UI with its in-session reminder.
   var cancel = panel.querySelector('#__uvd_iframe_workflow_cancel__');
   if (cancel) cancel.onclick = function() {
     __uvdIframeWorkflowDismissedAt = Date.now();
@@ -6931,6 +7140,7 @@ function installIframeWorkflowVideoWatcher() {
     // dismissed it within the last 60s.
     if (document.getElementById('__uvd_iframe_workflow_prompt__')) return false;
     if (!__uvdHasOnlyIframeOrDemo()) return false;
+    if (__uvdIframeWorkflowUserDeferred) return false;
     if (Date.now() - (__uvdIframeWorkflowDismissedAt || 0) < 60000) return false;
     return true;
   }
@@ -7084,8 +7294,8 @@ function __uvdMaybeOfferIframeWorkflow(force) {
   __uvdDismissIframeWorkflowIfVideoFound();
   if (!force && Date.now() < __uvdIframeWorkflowEarliest) return;
   if (playerState.overlay) return;
-  if (force) __uvdIframeWorkflowDismissedAt = 0;
-  if (__uvdIframeWorkflowAsked && !force) return;
+  if (force) { __uvdIframeWorkflowDismissedAt = 0; __uvdIframeWorkflowUserDeferred = false; }
+  if ((__uvdIframeWorkflowAsked || __uvdIframeWorkflowUserDeferred) && !force) return;
   if (!__uvdHasOnlyIframeOrDemo()) return;
   if (!data.settings.aiIframeFilter) return;
   var allFrames = __uvdCollectWorkflowFrames();
@@ -7189,6 +7399,9 @@ function __uvdStreamRank(item) {
   return 30;
 }
 
+// Main UI is a control room, not a disposable popup backdrop. Preserve the
+// selected tab and its scroll position when a live capture refresh rebuilds it.
+var __uvdMainUiViewState = { tab: 'streams', scrollTop: 0 };
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
     return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]), aiVerdict: e[1].aiVerdict || '', aiScore: e[1].aiScore == null ? null : e[1].aiScore, aiReasons: e[1].aiReasons || [] };
@@ -7202,7 +7415,13 @@ function buildUI() {
   }
 
   var panel = document.getElementById('__uvd__');
-  if (panel) panel.remove();
+  if (panel) {
+    var oldTab = panel.querySelector('.uvd-tab.uvd-tab-active');
+    var oldList = panel.querySelector('#__uvd_stream_list__');
+    if (oldTab && oldTab.dataset.tab) __uvdMainUiViewState.tab = oldTab.dataset.tab;
+    if (oldList) __uvdMainUiViewState.scrollTop = oldList.scrollTop || 0;
+    panel.remove();
+  }
 
   panel = document.createElement('div');
   panel.id = '__uvd__';
@@ -7254,6 +7473,12 @@ function buildUI() {
       '<button id="__uvd_playsel__" class="uvd-meta-chip">◉ ' + escapeHtml(savedPlaySel || 'Play selector chưa đặt') + '</button>' +
     '</div>';
   content.appendChild(info);
+
+  var popupReminderSlot = document.createElement('div');
+  popupReminderSlot.id = '__uvd_popup_reminder_slot__';
+  popupReminderSlot.className = 'uvd-popup-reminder-slot';
+  popupReminderSlot.style.cssText = 'flex-shrink:0;';
+  content.appendChild(popupReminderSlot);
 
   var tabbar = document.createElement('div');
   tabbar.className = 'uvd-tabbar';
@@ -7331,14 +7556,18 @@ function buildUI() {
   else { __uvdRemoveRestoreBtn(); }
   // Nếu có popup đang mở, giữ panel ẩn để không đè lên popup (kể cả sau khi rebuild).
   if (__uvdPopupActive) panel.style.display = 'none';
+  __uvdRenderPopupReminder();
 
   panel.querySelectorAll('.uvd-btn, .uvd-btn-icon, .uvd-tab').forEach(function(btn) {
     btn.addEventListener('click', addRipple);
   });
 
-  var currentTab = 'streams';
+  var currentTab = __uvdMainUiViewState.tab || 'streams';
   function renderTab(tabId) {
+    var tabChanged = currentTab !== tabId;
     currentTab = tabId;
+    __uvdMainUiViewState.tab = tabId;
+    if (tabChanged) __uvdMainUiViewState.scrollTop = 0;
     var activeBtn = null;
     document.querySelectorAll('[data-tab]').forEach(function(t) {
       if (t.dataset.tab === tabId) {
@@ -7380,8 +7609,13 @@ function buildUI() {
   document.querySelectorAll('[data-tab]').forEach(function(t) {
     t.onclick = function() { renderTab(this.dataset.tab); };
   });
+  streamList.addEventListener('scroll', function() { __uvdMainUiViewState.scrollTop = streamList.scrollTop || 0; }, { passive: true });
 
-  renderTab('streams');
+  renderTab(currentTab);
+  requestAnimationFrame(function() {
+    if (!panel.isConnected || currentTab !== __uvdMainUiViewState.tab) return;
+    streamList.scrollTop = __uvdMainUiViewState.scrollTop || 0;
+  });
 
   if (window.__uvdPanelResizeHandler) window.removeEventListener('resize', window.__uvdPanelResizeHandler);
   window.__uvdPanelResizeHandler = function() {

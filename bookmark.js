@@ -198,6 +198,44 @@ function __uvdMergeHistory(localList, remoteList) {
 function __uvdPersistLocalOnly() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
 }
+// History thumbnails are useful on the device that captured them, but 100 base64
+// frames can exceed the proxy request limit and make an otherwise valid sync
+// fail with 413. Sync compact metadata; local thumbnails are preserved by the
+// merge function whenever they already exist.
+function __uvdHistoryForSync(list) {
+  return __uvdMergeHistory(list, []).map(function(entry) {
+    var copy = Object.assign({}, entry);
+    if (typeof copy.thumbnail === 'string' && (copy.thumbnail.indexOf('data:') === 0 || copy.thumbnail.length > 12000)) delete copy.thumbnail;
+    return copy;
+  });
+}
+function __uvdMergeStringLists(localList, remoteList) {
+  var seen = {};
+  return (Array.isArray(remoteList) ? remoteList : []).concat(Array.isArray(localList) ? localList : [])
+    .map(function(item) { return String(item || '').trim(); })
+    .filter(function(item) { if (!item || seen[item]) return false; seen[item] = true; return true; });
+}
+function __uvdMergeSyncPayload(payload, preferLocal) {
+  if (!payload || typeof payload !== 'object') return;
+  var localSettings = data.settings || {};
+  var remoteSettings = payload.settings || {};
+  // A newly entered profile first loads remote settings. Normal uploads then
+  // keep this device's explicit edits when two devices are both active.
+  data.settings = preferLocal
+    ? Object.assign({}, remoteSettings, localSettings, { syncProfileId: localSettings.syncProfileId })
+    : Object.assign({}, localSettings, remoteSettings, { syncProfileId: localSettings.syncProfileId });
+  data.siteProfiles = preferLocal
+    ? Object.assign({}, payload.siteProfiles || {}, data.siteProfiles || {})
+    : Object.assign({}, data.siteProfiles || {}, payload.siteProfiles || {});
+  data.filterlist = __uvdMergeStringLists(data.filterlist, payload.filterlist);
+  data.history = __uvdMergeHistory(data.history, payload.history);
+  data.favorites = __uvdMergeStringLists(data.favorites, payload.favorites);
+  data.userVotes = preferLocal ? Object.assign({}, payload.userVotes || {}, data.userVotes || {}) : Object.assign({}, data.userVotes || {}, payload.userVotes || {});
+  data.tmdbVotes = preferLocal ? Object.assign({}, payload.tmdbVotes || {}, data.tmdbVotes || {}) : Object.assign({}, data.tmdbVotes || {}, payload.tmdbVotes || {});
+  data.learnedHosts = preferLocal ? Object.assign({}, payload.learnedHosts || {}, data.learnedHosts || {}) : Object.assign({}, data.learnedHosts || {}, payload.learnedHosts || {});
+  data.learnedVideos = preferLocal ? Object.assign({}, payload.learnedVideos || {}, data.learnedVideos || {}) : Object.assign({}, data.learnedVideos || {}, payload.learnedVideos || {});
+  __uvdLearnedHosts = data.learnedHosts || {};
+}
 function __uvdSyncPayload() {
   var settings = Object.assign({}, data.settings);
   delete settings.headerProxyKey;
@@ -207,7 +245,7 @@ function __uvdSyncPayload() {
     settings: settings,
     siteProfiles: data.siteProfiles,
     filterlist: data.filterlist,
-    history: __uvdMergeHistory(data.history, []),
+    history: __uvdHistoryForSync(data.history),
     favorites: data.favorites,
     userVotes: data.userVotes,
     tmdbVotes: data.tmdbVotes,
@@ -215,29 +253,45 @@ function __uvdSyncPayload() {
     learnedVideos: data.learnedVideos
   };
 }
+var __uvdSyncLastError = '';
+var __uvdSyncLoading = false;
+function __uvdSyncResponse(response, label) {
+  if (response.ok) return response.json().catch(function() { return {}; });
+  return response.text().catch(function() { return ''; }).then(function(text) {
+    var detail = '';
+    try { detail = (JSON.parse(text).error || '').replace(/\s+/g, ' '); } catch(e) { detail = String(text || '').replace(/\s+/g, ' '); }
+    throw new Error((label || 'Sync') + ' HTTP ' + response.status + (detail ? ': ' + detail.slice(0, 160) : ''));
+  });
+}
 function __uvdSyncUploadMerged() {
   if (!data || !data.settings || !data.settings.syncProfileId) return Promise.resolve(false);
   var syncUrl = RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId);
+  __uvdSyncLastError = '';
   function upload() {
     return fetch(syncUrl, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(__uvdSyncPayload()), cache: 'no-store'
-    }).then(function(r) { return r.ok; });
+    }).then(function(response) { return __uvdSyncResponse(response, 'Lưu đồng bộ'); }).then(function() { return true; });
   }
-  // Read first, merge histories, then write the combined payload. This makes
-  // concurrent device usage additive rather than last-write-wins for history.
+  // Always read and merge the whole profile before writing. The old version
+  // merged only history, so a second device could overwrite profiles, filters
+  // and favorites with an empty local state.
   return fetch(syncUrl, { cache: 'no-store' })
-    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(response) { return __uvdSyncResponse(response, 'Tải đồng bộ'); })
     .then(function(remote) {
-      if (remote && remote.payload && Array.isArray(remote.payload.history)) {
-        data.history = __uvdMergeHistory(data.history, remote.payload.history);
+      if (remote && remote.payload) {
+        __uvdMergeSyncPayload(remote.payload, true);
+        compileAdFilters();
         __uvdPersistLocalOnly();
       }
       return upload();
     })
-    .catch(function() { return upload().catch(function() { return false; }); });
+    .catch(function(error) {
+      __uvdSyncLastError = (error && error.message) ? error.message : 'Không thể kết nối máy chủ đồng bộ';
+      return false;
+    });
 }
 function __uvdSyncSchedule() {
-  if (!data || !data.settings || !data.settings.syncProfileId) return;
+  if (!data || !data.settings || !data.settings.syncProfileId || __uvdSyncLoading) return;
   clearTimeout(__uvdSyncTimer);
   __uvdSyncTimer = setTimeout(function() { __uvdSyncUploadMerged().catch(function() {}); }, 1500);
 }
@@ -246,28 +300,28 @@ function __uvdSyncNow() {
   clearTimeout(__uvdSyncTimer);
   return __uvdSyncUploadMerged();
 }
-function __uvdSyncLoad() {
-  if (!data.settings.syncProfileId) return;
-  fetch(RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId), { cache: 'no-store' })
-    .then(function(r) { return r.ok ? r.json() : null; })
+function __uvdSyncLoad(silent) {
+  if (!data.settings.syncProfileId) return Promise.resolve(false);
+  __uvdSyncLoading = true;
+  __uvdSyncLastError = '';
+  var syncUrl = RENDER_PROXY_BASE + '/sync/' + encodeURIComponent(data.settings.syncProfileId);
+  return fetch(syncUrl, { cache: 'no-store' })
+    .then(function(response) { return __uvdSyncResponse(response, 'Tải đồng bộ'); })
     .then(function(remote) {
-      if (!remote || !remote.payload) return;
-      var payload = remote.payload;
-      if (payload.settings) data.settings = Object.assign({}, data.settings, payload.settings, { syncProfileId: data.settings.syncProfileId });
-      if (payload.siteProfiles) data.siteProfiles = Object.assign({}, data.siteProfiles, payload.siteProfiles);
-      if (Array.isArray(payload.filterlist)) data.filterlist = payload.filterlist.slice();
-      if (Array.isArray(payload.history)) data.history = __uvdMergeHistory(data.history, payload.history);
-      if (Array.isArray(payload.favorites)) data.favorites = payload.favorites;
-      if (payload.userVotes) data.userVotes = Object.assign({}, data.userVotes, payload.userVotes);
-      if (payload.tmdbVotes) data.tmdbVotes = Object.assign({}, data.tmdbVotes, payload.tmdbVotes);
-      if (payload.learnedHosts) data.learnedHosts = Object.assign({}, data.learnedHosts || {}, payload.learnedHosts);
-      if (payload.learnedVideos) data.learnedVideos = Object.assign({}, data.learnedVideos || {}, payload.learnedVideos);
-      __uvdLearnedHosts = data.learnedHosts || {};
+      if (!remote || !remote.payload) return false;
+      __uvdMergeSyncPayload(remote.payload, false);
       compileAdFilters();
       storage.set(data);
       if (document.getElementById('__uvd__')) debouncedBuildUI();
-      toast('☁ Đã tải cấu hình đồng bộ');
-    }).catch(function() {});
+      if (!silent) toast('☁ Đã tải cấu hình đồng bộ');
+      return true;
+    })
+    .catch(function(error) {
+      __uvdSyncLastError = (error && error.message) ? error.message : 'Không thể kết nối máy chủ đồng bộ';
+      if (!silent) toast('☁ Đồng bộ chưa kết nối được');
+      return false;
+    })
+    .then(function(result) { __uvdSyncLoading = false; return result; }, function() { __uvdSyncLoading = false; return false; });
 }
 function __uvdCreateSyncProfileId() {
   var bytes = new Uint8Array(16);
@@ -9349,15 +9403,31 @@ function renderSettings(container) {
   };
 
   var syncInput = document.getElementById('__uvd_sync_profile__');
-  if (syncInput) syncInput.onchange = function() { data.settings.syncProfileId = this.value.trim(); storage.set(data); };
+  if (syncInput) syncInput.onchange = function() {
+    var profileId = this.value.trim();
+    data.settings.syncProfileId = profileId;
+    if (!profileId) { storage.set(data); toast('Đã bỏ profile đồng bộ'); return; }
+    // Load first when a profile is pasted on a new device. This prevents the
+    // scheduled local upload from replacing a populated remote profile.
+    __uvdSyncLoading = true;
+    storage.set(data);
+    toast('☁ Đang tải profile đồng bộ...');
+    __uvdSyncLoad(false).then(function(ok) {
+      if (!ok) toast('☁ Chưa tải được profile: ' + (__uvdSyncLastError || 'kiểm tra Render/Supabase nha'));
+    });
+  };
   var syncCreate = document.getElementById('__uvd_sync_create__');
-  if (syncCreate) syncCreate.onclick = function() { var id = __uvdCreateSyncProfileId(); if (syncInput) syncInput.value = id; toast('Đã tạo profile: ' + id); };
+  if (syncCreate) syncCreate.onclick = function() {
+    var id = __uvdCreateSyncProfileId();
+    if (syncInput) syncInput.value = id;
+    toast('Đã tạo profile: ' + id + ' · bấm Đồng bộ ngay để lưu');
+  };
   var syncNow = document.getElementById('__uvd_sync_now__');
   if (syncNow) syncNow.onclick = function() {
     toast('☁ Đang gộp lịch sử và đồng bộ...');
     __uvdSyncNow().then(function(ok) {
-      toast(ok ? '☁ Đã đồng bộ lịch sử' : 'Không thể đồng bộ lúc này, sẽ thử lại khi có thay đổi tiếp theo');
-    }).catch(function() { toast('Không thể đồng bộ lúc này'); });
+      toast(ok ? '☁ Đã đồng bộ cấu hình và lịch sử' : '☁ Đồng bộ lỗi: ' + (__uvdSyncLastError || 'kiểm tra Render/Supabase nha'));
+    });
   };
 
   document.getElementById('__uvd_toggle_blockautoplay__').onclick = function() {

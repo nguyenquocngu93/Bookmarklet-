@@ -22,7 +22,9 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 const TMDB_BEARER_TOKEN = process.env.TMDB_BEARER_TOKEN || '';
 
 app.disable('x-powered-by');
-app.use(express.json({ limit: '512kb' }));
+// A synced profile can include up to 100 history metadata records. Browser-side
+// compaction strips data-URL thumbnails, while this ceiling leaves safe headroom.
+app.use(express.json({ limit: '2mb' }));
 app.use((req, res, next) => {
   const started = Date.now();
   res.on('finish', () => {
@@ -212,7 +214,10 @@ async function syncRequest(method, profileId, body) {
     throw error;
   }
   const endpoint = method === 'PUT'
-    ? `${SUPABASE_URL}/rest/v1/umpdl_profiles`
+    // State the conflict key explicitly. Some PostgREST/Supabase versions do
+    // not infer it for a merge-duplicates upsert, which turns later syncs into
+    // a 409 instead of updating the existing profile.
+    ? `${SUPABASE_URL}/rest/v1/umpdl_profiles?on_conflict=profile_id`
     : `${SUPABASE_URL}/rest/v1/umpdl_profiles?profile_id=eq.${encodeURIComponent(profileId)}`;
   const headers = {
     apikey: SUPABASE_SERVICE_KEY,

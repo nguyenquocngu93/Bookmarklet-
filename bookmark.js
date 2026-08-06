@@ -5481,6 +5481,87 @@ style.textContent = `
 @media (prefers-reduced-motion:reduce){
   .uvd-popup-reminder-rail,.uvd-deferred-reminder-card,.uvd-deferred-reminder-mascot svg{animation:none!important}
 }
+/* ===== FAREWELL SCENE: COMPACT, CENTERED, AND DELIBERATE ===== */
+/* The old flex-grow hero consumed all vertical space and stranded the mascot
+   near the middle of a blank card. This scene has a bounded stage and a soft
+   message panel, so every element belongs to the goodbye moment. */
+#__uvd_farewell_popup__>.uvd-farewell-box{
+  justify-content:center!important;
+  gap:13px!important;
+  padding:19px 27px 21px!important
+}
+#__uvd_farewell_popup__ .uvd-farewell-scene{
+  position:relative;
+  isolation:isolate;
+  flex:0 0 236px;
+  min-height:218px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border-radius:25px;
+  background:radial-gradient(ellipse at 50% 45%,rgba(255,255,255,.84),rgba(255,219,237,.54) 48%,rgba(230,214,255,.16) 72%,transparent 73%)
+}
+#__uvd_farewell_popup__ .uvd-farewell-scene::before,
+#__uvd_farewell_popup__ .uvd-farewell-scene::after{
+  content:'';
+  position:absolute;
+  z-index:-1;
+  border-radius:50%;
+  pointer-events:none
+}
+#__uvd_farewell_popup__ .uvd-farewell-scene::before{width:12px;height:12px;top:25%;left:18%;background:#ffbed2;box-shadow:0 0 0 7px rgba(255,190,210,.16)}
+#__uvd_farewell_popup__ .uvd-farewell-scene::after{width:9px;height:9px;right:19%;top:33%;background:#cdb2ff;box-shadow:0 0 0 6px rgba(205,178,255,.16)}
+#__uvd_farewell_popup__ .uvd-farewell-art{
+  flex:0 0 auto!important;
+  min-height:0!important;
+  width:min(70vw,270px)!important;
+  height:202px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:center!important;
+  line-height:0!important
+}
+#__uvd_farewell_popup__ .uvd-farewell-art .uvd-farewell-mascots{min-height:0!important;align-items:flex-end!important}
+#__uvd_farewell_popup__ .uvd-farewell-art .uvd-fm-big-full{width:172px!important;height:172px!important;filter:drop-shadow(0 11px 14px rgba(128,81,98,.18))}
+#__uvd_farewell_popup__ .uvd-farewell-art .uvd-fm-big-full svg{width:100%!important;height:100%!important}
+#__uvd_farewell_popup__ .uvd-farewell-animal-name{position:relative;z-index:2;margin-top:-8px!important;font-size:10px!important}
+#__uvd_farewell_popup__ .uvd-farewell-message{
+  flex:0 0 auto;
+  box-sizing:border-box;
+  width:100%;
+  padding:14px 16px 13px;
+  border:1px solid rgba(255,159,180,.2);
+  border-radius:20px;
+  background:rgba(255,255,255,.59);
+  box-shadow:0 5px 13px rgba(247,108,140,.07),inset 0 1px 0 rgba(255,255,255,.88)
+}
+#__uvd_farewell_popup__ .uvd-farewell-kicker{margin:0!important;color:#aa7ac5!important;font-size:9px!important;font-weight:950!important;letter-spacing:.14em!important}
+#__uvd_farewell_popup__ .uvd-farewell-title{margin-top:6px!important;color:#c95073!important;font-size:27px!important;line-height:1.08!important}
+#__uvd_farewell_popup__ .uvd-farewell-thanks{margin-top:7px!important;color:#8e69b4!important;font-size:13px!important}
+#__uvd_farewell_popup__ .uvd-farewell-copy{margin:8px auto 0!important;color:#765d83!important;font-size:11.5px!important;line-height:1.48!important}
+#__uvd_farewell_popup__ .uvd-farewell-actions{flex:0 0 auto;margin:0!important}
+#__uvd_farewell_popup__ .uvd-farewell-actions button{min-height:53px!important}
+@media (max-width:560px){
+  #__uvd_farewell_popup__>.uvd-farewell-box{gap:10px!important;padding:15px 17px 17px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-scene{flex-basis:212px;min-height:195px;border-radius:22px}
+  #__uvd_farewell_popup__ .uvd-farewell-art{height:183px!important;width:min(70vw,244px)!important}
+  #__uvd_farewell_popup__ .uvd-farewell-art .uvd-fm-big-full{width:158px!important;height:158px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-message{padding:12px 12px 11px;border-radius:18px}
+  #__uvd_farewell_popup__ .uvd-farewell-title{font-size:24px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-copy{font-size:10.5px!important}
+}
+@media (max-height:650px) and (max-width:560px){
+  #__uvd_farewell_popup__ .uvd-farewell-scene{flex-basis:168px;min-height:155px}
+  #__uvd_farewell_popup__ .uvd-farewell-art{height:148px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-art .uvd-fm-big-full{width:128px!important;height:128px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-message{padding:9px 11px}
+  #__uvd_farewell_popup__ .uvd-farewell-title{font-size:21px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-thanks{font-size:11.5px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-copy{margin-top:5px!important;font-size:9.5px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-actions button{min-height:47px!important}
+}
 `;
 
 
@@ -6224,6 +6305,15 @@ function __uvdStartDiggingPopup() {
       var panel = document.getElementById('__uvd__');
       if (!panel && typeof buildUI === 'function') { buildUI(); panel = document.getElementById('__uvd__'); }
       if (panel) { __uvdPopupActive = false; panel.__uvdPopupHidden = false; panel.style.display = ''; panel.style.visibility = ''; }
+      // Choosing Main UI is a gentle detour from the popup-first route, not a
+      // lost result. If digging has something usable, show the same reminder
+      // prompt that appears after a Video/Iframe cancellation.
+      var direct = __uvdQualifiedDirectEntries();
+      if (direct.length) __uvdSetPopupReminder('media');
+      else {
+        var frames = __uvdDiggingIframeCandidates();
+        if (frames.length) __uvdSetPopupReminder('iframe');
+      }
     });
   };
   var help = overlay.querySelector('#__uvd_dig_help__');
@@ -6483,11 +6573,15 @@ function __uvdShowFarewellPopup(onConfirm) {
   // To nhu popup dao link
   box.style.cssText = 'width:100%;max-width:540px;min-height:620px;padding:28px 24px 24px;border-radius:36px;text-align:center;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 32px 80px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.44) inset;animation:uvdScaleIn .44s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
-    '<div class="uvd-farewell-art">' + __uvdGetFarewellMascotsHtml() + '</div>' +
-    '<div class="uvd-farewell-kicker">MÈO CÀO MEDIA</div>' +
-    '<div class="uvd-farewell-title">Tạm biệt cưng iu ♡</div>' +
-    '<div class="uvd-farewell-thanks">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
-    '<div class="uvd-farewell-copy">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+    '<section class="uvd-farewell-scene">' +
+      '<div class="uvd-farewell-art">' + __uvdGetFarewellMascotsHtml() + '</div>' +
+    '</section>' +
+    '<section class="uvd-farewell-message">' +
+      '<div class="uvd-farewell-kicker">MÈO CÀO MEDIA · HẸN GẶP LẠI</div>' +
+      '<div class="uvd-farewell-title">Tạm biệt cưng iu ♡</div>' +
+      '<div class="uvd-farewell-thanks">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
+      '<div class="uvd-farewell-copy">Mấy đứa tụi mình sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+    '</section>' +
     '<div class="uvd-farewell-actions">' +
       '<button id="__uvd_farewell_stay__">Ở lại ♡</button>' +
       '<button id="__uvd_farewell_bye__">Tạm biệt 🐾</button>' +

@@ -3249,19 +3249,13 @@ function findSourceVideoElement(url) {
 }
 
 function openPlayerSettingsOverlay() {
-  if (document.getElementById('__uvd_player_settings_overlay__')) return;
-  var overlay = document.createElement('div');
-  overlay.id = '__uvd_player_settings_overlay__';
-  overlay.className = 'uvd-settings-overlay uvd-player-settings-overlay';
-  overlay.innerHTML = '<div class="uvd-settings-sheet uvd-player-settings-sheet"><div class="uvd-settings-header"><button class="uvd-back-btn" type="button">←</button><span class="uvd-player-settings-mascot">' + (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹') + '</span><div class="uvd-settings-title-wrap"><span class="uvd-settings-title">⚙ Cài đặt Player</span><span class="uvd-settings-subtitle">Chỉ áp dụng cho trình phát</span></div></div><div class="uvd-settings-body"></div></div>';
-  __uvdAppendRoot(overlay);
-  var sheet = overlay.querySelector('.uvd-player-settings-sheet');
-  var body = overlay.querySelector('.uvd-settings-body');
-  renderPlayerSettings(body);
-  function close() { overlay.classList.remove('uvd-open'); setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 220); }
-  overlay.querySelector('.uvd-back-btn').onclick = close;
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
-  requestAnimationFrame(function() { overlay.classList.add('uvd-open'); });
+  // Player controls belong to the one canonical Settings panel. Keep this
+  // function as the player gear's entry point, but route it to that section.
+  openSettingsOverlay();
+  setTimeout(function() {
+    var section = document.getElementById('__uvd_player_settings_section__');
+    if (section && section.scrollIntoView) section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, 80);
 }
 
 // ========== SHOW VIDEO PLAYER ==========
@@ -3346,8 +3340,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerSettingsBtn = document.createElement('button');
   playerSettingsBtn.className = 'uvd-icon-btn uvd-player-settings-btn';
   playerSettingsBtn.textContent = '⚙';
-  playerSettingsBtn.title = 'Cài đặt';
-  playerSettingsBtn.setAttribute('aria-label', 'Mở cài đặt');
+  playerSettingsBtn.title = 'Cài đặt chung';
+  playerSettingsBtn.setAttribute('aria-label', 'Mở cài đặt chung');
   playerSettingsBtn.onclick = function(e) { e.stopPropagation(); openPlayerSettingsOverlay(); };
 
   var playerHeaderTitle = document.createElement('div');
@@ -5562,6 +5556,15 @@ style.textContent = `
   #__uvd_farewell_popup__ .uvd-farewell-copy{margin-top:5px!important;font-size:9.5px!important}
   #__uvd_farewell_popup__ .uvd-farewell-actions button{min-height:47px!important}
 }
+/* Current Session always keeps a quiet guide, even before a result is proven. */
+.uvd-popup-reminder-passive{min-width:0;overflow:hidden;color:#806293;font-size:10px;font-weight:750;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+
+/* Player preferences are now part of the main Settings sheet, so their native
+   controls inherit the same pastel surface instead of a dark mini-settings UI. */
+.uvd-settings-player-section{display:flex;flex-direction:column;gap:9px}
+.uvd-settings-player-section .uvd-card{margin:0!important}
+.uvd-settings-player-section select,.uvd-settings-player-section input[type="number"]{background:rgba(255,255,255,.82)!important;border-color:rgba(194,150,255,.28)!important;color:#785382!important}
+
 `;
 
 
@@ -5745,30 +5748,73 @@ function __uvdShowPopupReminderPrompt() {
   card.querySelector('.uvd-deferred-reminder-close').onclick = later;
   overlay.addEventListener('click', function(event) { if (event.target === overlay) later(); });
 }
+function __uvdSessionPopupGuideInfo() {
+  // Never lead the user toward raw network leads. The persistent session line
+  // only counts media with the same proof required by Popup Video.
+  var direct = __uvdQualifiedDirectEntries();
+  if (direct.length) {
+    return {
+      kind: 'media',
+      mascot: typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : '🐰',
+      compact: direct.length + ' link đã kiểm chứng sẵn sàng'
+    };
+  }
+  var frames = __uvdCollectWorkflowFrames().filter(function(candidate) {
+    return candidate.verdict === 'PLAYER' || candidate.verdict === 'UNKNOWN';
+  });
+  if (frames.length) {
+    return {
+      kind: 'iframe',
+      mascot: typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : '🖼️',
+      compact: frames.length + ' player iframe đang chờ'
+    };
+  }
+  return {
+    kind: 'scan',
+    mascot: typeof __uvdTabMascotCat !== 'undefined' ? __uvdTabMascotCat : '🐾',
+    compact: 'Mèo đang lọc link · mở video rồi bấm Play để Mèo kiểm chứng nha'
+  };
+}
+function __uvdOpenSessionPopup(kind) {
+  if (kind !== 'media' && kind !== 'iframe') return;
+  __uvdClearPopupReminder();
+  if (kind === 'iframe') {
+    __uvdIframeWorkflowUserDeferred = false;
+    __uvdMaybeOfferIframeWorkflow(true);
+  } else {
+    __uvdMediaPopupUserDeferred = false;
+    __uvdMaybeOfferMediaPopup(true);
+  }
+}
 function __uvdRenderPopupReminder() {
   var slot = document.getElementById('__uvd_popup_reminder_slot__');
   if (!slot) return;
   slot.innerHTML = '';
-  var info = __uvdPopupReminderInfo();
-  if (!info) {
-    if (__uvdPopupReminder.kind) {
-      __uvdPopupReminder.kind = '';
-      __uvdPopupReminder.collapsed = false;
-    }
-    return;
+  var pending = __uvdPopupReminder.kind ? __uvdPopupReminderInfo() : null;
+  if (__uvdPopupReminder.kind && !pending) {
+    __uvdPopupReminder.kind = '';
+    __uvdPopupReminder.collapsed = false;
+    var stalePrompt = document.getElementById('__uvd_popup_reminder_prompt__');
+    if (stalePrompt) stalePrompt.remove();
   }
-  // While the dedicated reminder popup is visible there is intentionally no
-  // duplicate card inside Main UI. The session rail appears only after "Để sau".
-  if (!__uvdPopupReminder.collapsed) return;
+  // This rail is intentionally permanent under Current Session. The temporary
+  // reminder popup is additive; it never replaces the verified-result guide.
+  var info = pending || __uvdSessionPopupGuideInfo();
+  var actionable = info.kind === 'media' || info.kind === 'iframe';
+  var deferred = !!pending && actionable;
   var reminder = document.createElement('section');
   reminder.className = 'uvd-popup-reminder uvd-popup-reminder-rail';
-  reminder.setAttribute('aria-label', info.kicker.toLowerCase());
-  reminder.innerHTML =
-    '<span class="uvd-popup-reminder-mascot">' + info.mascot + '</span>' +
-    '<button type="button" class="uvd-popup-reminder-compact-open"><span>' + escapeHtml(info.compact) + '</span><b> Mở lại ♡</b></button>';
+  reminder.setAttribute('aria-label', actionable ? 'Mở popup ' + info.kind : 'Trạng thái đào link');
+  reminder.innerHTML = '<span class="uvd-popup-reminder-mascot">' + info.mascot + '</span>' +
+    (actionable
+      ? '<button type="button" class="uvd-popup-reminder-compact-open"><span>' + escapeHtml(info.compact) + '</span><b>' + (deferred ? ' Mở lại ♡' : ' Mở Popup ♡') + '</b></button>'
+      : '<span class="uvd-popup-reminder-passive">' + escapeHtml(info.compact) + '</span>');
   slot.appendChild(reminder);
   var open = reminder.querySelector('.uvd-popup-reminder-compact-open');
-  if (open) open.onclick = function() { __uvdOpenDeferredPopup(); };
+  if (open) open.onclick = function() {
+    if (deferred) __uvdOpenDeferredPopup();
+    else __uvdOpenSessionPopup(info.kind);
+  };
 }
 function __uvdSetPopupReminder(kind) {
   if (kind !== 'media' && kind !== 'iframe') return;
@@ -9016,6 +9062,9 @@ function renderSettings(container) {
       '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Tắt hoàn toàn nếu đã bật chế độ hiệu suất ở trên.</div>' +
     '</div>' +
 
+    '<div class="uvd-settings-group-title">🎬 Trình phát</div>' +
+    '<div id="__uvd_player_settings_section__" class="uvd-settings-player-section"></div>' +
+
     '<div class="uvd-settings-group-title">🔎 Đào link nâng cao</div>' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🌐 Header proxy</div>' +
@@ -9118,6 +9167,11 @@ function renderSettings(container) {
       '</div>' +
     '</div>' +
     '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · Mèo cào media v' + VERSION + ' · Made for Chrome Android</div>';
+
+  // The old standalone Player Settings sheet now renders inside this one
+  // settings body, preserving every existing player preference and handler.
+  var playerSettingsSection = document.getElementById('__uvd_player_settings_section__');
+  if (playerSettingsSection) renderPlayerSettings(playerSettingsSection);
 
   container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
 

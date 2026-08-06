@@ -5360,84 +5360,35 @@ style.textContent = `
   #__uvd_play_intro__ .uvd-play-intro-mascot{animation:none!important}
 }
 
-/* ===== DEFERRED POPUP REMINDER: LIVES UNDER CURRENT SESSION ===== */
-/* The first workflow remains popup-first. This rail only appears after the
-   user has deliberately left Video/Iframe for Main UI. */
+/* ===== DEFERRED POPUP REMINDER: PROMPT FIRST, SESSION RAIL AFTER ===== */
+/* This is only reached after Video/Iframe has been consciously left. The small
+   reminder popup asks once; "Để sau" folds its pending flow into Current Session. */
 .uvd-popup-reminder-slot:empty{display:none}
 .uvd-main-clean .uvd-popup-reminder-slot{margin:0!important;flex:0 0 auto}
-.uvd-main-clean .uvd-popup-reminder{
-  box-sizing:border-box;
-  width:100%;
-  border:1px solid rgba(194,150,255,.28);
-  background:linear-gradient(135deg,#fff9fd 0%,#f8efff 58%,#fff0f6 100%);
-  box-shadow:0 5px 14px rgba(150,90,220,.1),inset 0 1px 0 rgba(255,255,255,.92)
-}
-.uvd-main-clean .uvd-popup-reminder-expanded{
+.uvd-main-clean .uvd-popup-reminder-rail{
   display:grid;
-  grid-template-columns:54px minmax(0,1fr) auto;
+  grid-template-columns:30px minmax(0,1fr);
   align-items:center;
-  gap:10px;
-  padding:10px 11px;
-  border-radius:19px;
-  animation:uvdReminderAppear .32s cubic-bezier(.22,1,.36,1) both
+  gap:7px;
+  min-height:43px;
+  padding:6px 9px;
+  border:1px solid rgba(194,150,255,.28);
+  border-radius:15px;
+  background:linear-gradient(135deg,#fff9fd 0%,#f8efff 58%,#fff0f6 100%);
+  box-shadow:0 5px 14px rgba(150,90,220,.1),inset 0 1px 0 rgba(255,255,255,.92);
+  animation:uvdReminderFold .28s cubic-bezier(.22,1,.36,1) both
 }
-.uvd-popup-reminder-mascot{
-  width:50px;
-  height:50px;
+.uvd-popup-reminder-rail .uvd-popup-reminder-mascot{
+  width:28px;
+  height:28px;
   display:flex;
   align-items:center;
   justify-content:center;
   overflow:visible;
-  border-radius:17px;
-  background:radial-gradient(circle at 42% 32%,#fff,#ffe2ef 63%,#eee0ff);
-  box-shadow:0 5px 11px rgba(247,108,140,.14);
-  filter:drop-shadow(0 3px 4px rgba(150,90,220,.08))
-}
-.uvd-popup-reminder-mascot svg{width:43px;height:43px;display:block;animation:uvdMascotHop 1.9s ease-in-out infinite}
-.uvd-popup-reminder-copy{min-width:0;text-align:left}
-.uvd-popup-reminder-kicker{display:block;color:#a777bf;font-size:8.5px;font-weight:950;letter-spacing:.12em;line-height:1.25}
-.uvd-popup-reminder-copy strong{display:block;margin-top:2px;overflow:hidden;color:#805aa0;font-size:13px;font-weight:900;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}
-.uvd-popup-reminder-copy small{display:block;margin-top:3px;color:#836b8c;font-size:10px;font-weight:650;line-height:1.35}
-.uvd-popup-reminder-actions{display:flex;align-items:center;gap:6px}
-.uvd-popup-reminder-open{
-  min-height:36px;
-  padding:8px 10px;
-  border:0;
-  border-radius:11px;
-  background:linear-gradient(135deg,#b488eb,#9369d0);
-  color:#fff;
-  font-size:10px;
-  font-weight:900;
-  white-space:nowrap;
-  cursor:pointer;
-  box-shadow:0 5px 11px rgba(150,90,220,.2)
-}
-.uvd-popup-reminder-toggle{
-  width:29px;
-  height:29px;
-  padding:0;
-  border:1px solid rgba(194,150,255,.28);
   border-radius:10px;
-  background:rgba(255,255,255,.74);
-  color:#8a6ab0;
-  font-size:15px;
-  font-weight:900;
-  line-height:1;
-  cursor:pointer
+  background:radial-gradient(circle at 42% 32%,#fff,#ffe2ef 63%,#eee0ff)
 }
-.uvd-popup-reminder-open:active,.uvd-popup-reminder-toggle:active,.uvd-popup-reminder-compact-open:active{transform:scale(.96)}
-.uvd-main-clean .uvd-popup-reminder-collapsed{
-  display:grid;
-  grid-template-columns:30px minmax(0,1fr) 29px;
-  align-items:center;
-  gap:7px;
-  min-height:43px;
-  padding:6px 8px;
-  border-radius:15px;
-  animation:uvdReminderFold .28s cubic-bezier(.22,1,.36,1) both
-}
-.uvd-popup-reminder-collapsed .uvd-popup-reminder-mascot{width:28px;height:28px;border-radius:10px;box-shadow:none}
-.uvd-popup-reminder-collapsed .uvd-popup-reminder-mascot svg{width:25px;height:25px;animation:none}
+.uvd-popup-reminder-rail .uvd-popup-reminder-mascot svg{width:25px;height:25px;display:block}
 .uvd-popup-reminder-compact-open{
   min-width:0;
   overflow:hidden;
@@ -5455,23 +5406,81 @@ style.textContent = `
 }
 .uvd-popup-reminder-compact-open span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .uvd-popup-reminder-compact-open b{color:#9a6ce0;font-weight:900}
-@keyframes uvdReminderAppear{from{opacity:0;transform:translateY(-7px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.uvd-popup-reminder-compact-open:active{transform:scale(.98)}
+
+#__uvd_popup_reminder_prompt__{
+  position:fixed;
+  inset:0;
+  z-index:2147483647;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(36,21,49,.54);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+  animation:uvdFadeIn .22s ease both
+}
+#__uvd_popup_reminder_prompt__>.uvd-deferred-reminder-card{
+  position:relative;
+  box-sizing:border-box;
+  width:min(92vw,440px);
+  padding:23px 23px 20px;
+  border:1px solid rgba(255,255,255,.88);
+  border-radius:29px;
+  background:linear-gradient(160deg,#fffdfd 0%,#fff0f7 54%,#f1eaff 100%);
+  box-shadow:0 25px 65px rgba(49,25,64,.4),0 0 0 5px rgba(255,255,255,.2) inset;
+  text-align:center;
+  animation:uvdReminderAppear .34s cubic-bezier(.22,1,.36,1) both
+}
+.uvd-deferred-reminder-close{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:34px;
+  height:34px;
+  padding:0;
+  border:1px solid rgba(255,159,180,.3);
+  border-radius:50%;
+  background:rgba(255,255,255,.82);
+  color:#c95073;
+  font-size:17px;
+  cursor:pointer
+}
+.uvd-deferred-reminder-mascot{
+  width:112px;
+  height:100px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 8px;
+  border-radius:33px;
+  background:radial-gradient(circle at 44% 30%,#fff 0%,#ffe1ed 58%,#eee2ff 100%);
+  filter:drop-shadow(0 10px 14px rgba(247,108,140,.17))
+}
+.uvd-deferred-reminder-mascot svg{width:98px;height:88px;display:block;animation:uvdMascotHop 1.8s ease-in-out infinite}
+.uvd-deferred-reminder-kicker{color:#aa7ac5;font-size:9px;font-weight:950;letter-spacing:.14em}
+.uvd-deferred-reminder-title{margin-top:5px;color:#8d66bb;font-size:23px;font-weight:950;letter-spacing:-.035em;line-height:1.15}
+.uvd-deferred-reminder-copy{max-width:350px;margin:8px auto 0;color:#775f81;font-size:12px;font-weight:650;line-height:1.5}
+.uvd-deferred-reminder-actions{display:grid;grid-template-columns:1.2fr .8fr;gap:8px;margin-top:18px}
+.uvd-deferred-reminder-actions button{min-height:47px;border-radius:14px;font-size:11px;font-weight:900;cursor:pointer}
+.uvd-deferred-reminder-open{border:0;background:linear-gradient(135deg,#b488eb,#9369d0);color:#fff;box-shadow:0 7px 14px rgba(150,90,220,.22)}
+.uvd-deferred-reminder-later{border:1px solid rgba(194,150,255,.3);background:#fff;color:#8967a1}
+.uvd-deferred-reminder-open:active,.uvd-deferred-reminder-later:active,.uvd-deferred-reminder-close:active{transform:scale(.96)}
+@keyframes uvdReminderAppear{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes uvdReminderFold{from{opacity:.2;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 @media (max-width:560px){
-  .uvd-main-clean .uvd-popup-reminder-expanded{grid-template-columns:43px minmax(0,1fr) auto;gap:8px;padding:8px 9px;border-radius:16px}
-  .uvd-popup-reminder-mascot{width:41px;height:41px;border-radius:14px}
-  .uvd-popup-reminder-mascot svg{width:36px;height:36px}
-  .uvd-popup-reminder-copy strong{font-size:11px}
-  .uvd-popup-reminder-copy small{font-size:8.8px}
-  .uvd-popup-reminder-kicker{font-size:7.5px}
-  .uvd-popup-reminder-actions{gap:4px}
-  .uvd-popup-reminder-open{min-height:33px;padding:7px 7px;font-size:8.5px}
-  .uvd-popup-reminder-toggle{width:27px;height:27px;border-radius:9px;font-size:13px}
+  #__uvd_popup_reminder_prompt__{padding:14px}
+  #__uvd_popup_reminder_prompt__>.uvd-deferred-reminder-card{width:min(94vw,420px);padding:20px 18px 17px;border-radius:25px}
+  .uvd-deferred-reminder-mascot{width:96px;height:86px;border-radius:27px}
+  .uvd-deferred-reminder-mascot svg{width:84px;height:76px}
+  .uvd-deferred-reminder-title{font-size:20px}
+  .uvd-deferred-reminder-copy{font-size:11px}
+  .uvd-deferred-reminder-actions{margin-top:15px}
 }
 @media (prefers-reduced-motion:reduce){
-  .uvd-popup-reminder-expanded,.uvd-popup-reminder-collapsed,.uvd-popup-reminder-mascot svg{animation:none!important}
+  .uvd-popup-reminder-rail,.uvd-deferred-reminder-card,.uvd-deferred-reminder-mascot svg{animation:none!important}
 }
-
 `;
 
 
@@ -5537,11 +5546,9 @@ function __uvdSetHidden(hidden) {
 // ========== POPUP OVERLAY: HIDE UI + DEFERRED SESSION REMINDER ==========
 // Specialist popups temporarily cover Main UI. If a user leaves one, Main UI
 // returns with a contextual reminder under Current Session instead of a float.
-// A deferred workflow belongs back inside Main UI, not as another floating
-// control over the website. It starts as a little discovery card and quietly
-// folds into the current-session rail after a few seconds.
+// A deferred workflow gets one dedicated reminder popup first. Only an
+// explicit "Để sau" folds it into the current-session rail below.
 var __uvdPopupReminder = { kind: '', collapsed: false };
-var __uvdPopupReminderTimer = null;
 var __uvdMediaPopupUserDeferred = false;
 var __uvdIframeWorkflowUserDeferred = false;
 function __uvdRemovePopupReopenBtn() {
@@ -5551,8 +5558,8 @@ function __uvdRemovePopupReopenBtn() {
 }
 function __uvdClearPopupReminder(kind) {
   if (kind && __uvdPopupReminder.kind && __uvdPopupReminder.kind !== kind) return;
-  clearTimeout(__uvdPopupReminderTimer);
-  __uvdPopupReminderTimer = null;
+  var prompt = document.getElementById('__uvd_popup_reminder_prompt__');
+  if (prompt) prompt.remove();
   __uvdPopupReminder.kind = '';
   __uvdPopupReminder.collapsed = false;
   __uvdRenderPopupReminder();
@@ -5577,8 +5584,9 @@ function __uvdPopupReminderInfo() {
     // the user is reading Main UI. Promote the reminder instead of showing an
     // obsolete iframe action.
     if (__uvdQualifiedDirectEntries().length) {
+      var keepRailCollapsed = __uvdPopupReminder.collapsed;
       __uvdPopupReminder.kind = 'media';
-      __uvdPopupReminder.collapsed = false;
+      __uvdPopupReminder.collapsed = keepRailCollapsed;
       // The user deferred the workflow, not only its old iframe route. A
       // late parent-probe result must therefore remain a UI reminder instead
       // of surprising them with an automatic Video popup.
@@ -5614,6 +5622,48 @@ function __uvdOpenDeferredPopup() {
     __uvdMaybeOfferMediaPopup(true);
   }
 }
+function __uvdCollapseReminderToRail() {
+  var prompt = document.getElementById('__uvd_popup_reminder_prompt__');
+  if (prompt) prompt.remove();
+  if (!__uvdPopupReminder.kind) return;
+  __uvdPopupReminder.collapsed = true;
+  __uvdRenderPopupReminder();
+}
+function __uvdShowPopupReminderPrompt() {
+  var old = document.getElementById('__uvd_popup_reminder_prompt__');
+  if (old) old.remove();
+  var info = __uvdPopupReminderInfo();
+  if (!info || !__uvdPopupReminder.kind) return;
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_popup_reminder_prompt__';
+  overlay.className = 'uvd-deferred-reminder-overlay';
+  var card = document.createElement('section');
+  card.className = 'uvd-deferred-reminder-card';
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-modal', 'true');
+  card.setAttribute('aria-label', 'Nhắc mở lại ' + info.kind);
+  card.innerHTML =
+    '<button type="button" class="uvd-deferred-reminder-close" title="Để sau">×</button>' +
+    '<div class="uvd-deferred-reminder-mascot">' + info.mascot + '</div>' +
+    '<div class="uvd-deferred-reminder-kicker">MÈO NHẮC NHẸ NÈ</div>' +
+    '<div class="uvd-deferred-reminder-title">' + escapeHtml(info.title) + '</div>' +
+    '<div class="uvd-deferred-reminder-copy">' + escapeHtml(info.copy) + '</div>' +
+    '<div class="uvd-deferred-reminder-actions">' +
+      '<button type="button" class="uvd-deferred-reminder-open">' + escapeHtml(info.button) + '</button>' +
+      '<button type="button" class="uvd-deferred-reminder-later">Để sau</button>' +
+    '</div>';
+  overlay.appendChild(card);
+  __uvdAppendRoot(overlay);
+  function openFlow() {
+    try { overlay.remove(); } catch(e) {}
+    __uvdOpenDeferredPopup();
+  }
+  function later() { __uvdCollapseReminderToRail(); }
+  card.querySelector('.uvd-deferred-reminder-open').onclick = openFlow;
+  card.querySelector('.uvd-deferred-reminder-later').onclick = later;
+  card.querySelector('.uvd-deferred-reminder-close').onclick = later;
+  overlay.addEventListener('click', function(event) { if (event.target === overlay) later(); });
+}
 function __uvdRenderPopupReminder() {
   var slot = document.getElementById('__uvd_popup_reminder_slot__');
   if (!slot) return;
@@ -5626,51 +5676,31 @@ function __uvdRenderPopupReminder() {
     }
     return;
   }
+  // While the dedicated reminder popup is visible there is intentionally no
+  // duplicate card inside Main UI. The session rail appears only after "Để sau".
+  if (!__uvdPopupReminder.collapsed) return;
   var reminder = document.createElement('section');
-  reminder.className = 'uvd-popup-reminder ' + (__uvdPopupReminder.collapsed ? 'uvd-popup-reminder-collapsed' : 'uvd-popup-reminder-expanded');
+  reminder.className = 'uvd-popup-reminder uvd-popup-reminder-rail';
   reminder.setAttribute('aria-label', info.kicker.toLowerCase());
-  if (__uvdPopupReminder.collapsed) {
-    reminder.innerHTML =
-      '<span class="uvd-popup-reminder-mascot">' + info.mascot + '</span>' +
-      '<button type="button" class="uvd-popup-reminder-compact-open"><span>' + escapeHtml(info.compact) + '</span><b> Mở lại ♡</b></button>' +
-      '<button type="button" class="uvd-popup-reminder-toggle" title="Mở rộng nhắc nhở">⌃</button>';
-  } else {
-    reminder.innerHTML =
-      '<div class="uvd-popup-reminder-mascot">' + info.mascot + '</div>' +
-      '<div class="uvd-popup-reminder-copy"><span class="uvd-popup-reminder-kicker">' + escapeHtml(info.kicker) + '</span><strong>' + escapeHtml(info.title) + '</strong><small>' + escapeHtml(info.copy) + '</small></div>' +
-      '<div class="uvd-popup-reminder-actions"><button type="button" class="uvd-popup-reminder-open">' + escapeHtml(info.button) + '</button><button type="button" class="uvd-popup-reminder-toggle" title="Thu gọn nhắc nhở">⌄</button></div>';
-  }
+  reminder.innerHTML =
+    '<span class="uvd-popup-reminder-mascot">' + info.mascot + '</span>' +
+    '<button type="button" class="uvd-popup-reminder-compact-open"><span>' + escapeHtml(info.compact) + '</span><b> Mở lại ♡</b></button>';
   slot.appendChild(reminder);
-  var open = reminder.querySelector('.uvd-popup-reminder-open, .uvd-popup-reminder-compact-open');
+  var open = reminder.querySelector('.uvd-popup-reminder-compact-open');
   if (open) open.onclick = function() { __uvdOpenDeferredPopup(); };
-  var toggle = reminder.querySelector('.uvd-popup-reminder-toggle');
-  if (toggle) toggle.onclick = function(event) {
-    event.stopPropagation();
-    clearTimeout(__uvdPopupReminderTimer);
-    __uvdPopupReminderTimer = null;
-    __uvdPopupReminder.collapsed = !__uvdPopupReminder.collapsed;
-    __uvdRenderPopupReminder();
-  };
 }
 function __uvdSetPopupReminder(kind) {
   if (kind !== 'media' && kind !== 'iframe') return;
-  clearTimeout(__uvdPopupReminderTimer);
   __uvdPopupReminder.kind = kind;
   __uvdPopupReminder.collapsed = false;
   if (kind === 'media') __uvdMediaPopupUserDeferred = true;
   else __uvdIframeWorkflowUserDeferred = true;
   __uvdRenderPopupReminder();
-  // The reminder gets the user's attention once, then becomes the slim
-  // current-session bar requested for browsing the legacy UI.
-  __uvdPopupReminderTimer = setTimeout(function() {
-    if (__uvdPopupReminder.kind !== kind) return;
-    __uvdPopupReminder.collapsed = true;
-    __uvdRenderPopupReminder();
-  }, 4800);
+  __uvdShowPopupReminderPrompt();
 }
 function __uvdShowPopupReopenBtn(kind) {
-  // Kept as a compatibility name for existing cancellation paths. No floating
-  // page button is created anymore.
+  // Compatibility name for existing cancellation paths. The flow is now:
+  // a real reminder popup first, then a Current Session rail on "Để sau".
   __uvdSetPopupReminder(kind);
 }
 // Hide the whole UMP panel (cute popup takes priority and must not be covered).

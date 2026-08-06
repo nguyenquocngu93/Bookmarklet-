@@ -2991,35 +2991,101 @@ function __uvdFindTmdbMovie(title) {
     });
   });
 }
+function __uvdTmdbPresentation(movie) {
+  var logos = movie && movie.images && movie.images.logos || [];
+  var logo = logos.filter(function(x) { return x && x.file_path; }).sort(function(a, b) {
+    return (a.iso_639_1 === 'vi' ? -1 : 0) || (a.iso_639_1 === 'en' ? -1 : 0);
+  })[0];
+  return {
+    logo: logo && logo.file_path ? 'https://image.tmdb.org/t/p/w500' + logo.file_path : '',
+    poster: movie && movie.poster_path ? 'https://image.tmdb.org/t/p/w342' + movie.poster_path : '',
+    title: movie && (movie.title || movie.name || movie.original_title || movie.original_name) || '',
+    original: movie && (movie.original_title || movie.original_name) || '',
+    year: String(movie && (movie.release_date || movie.first_air_date) || '').slice(0, 4),
+    genres: (movie && movie.genres || []).slice(0, 3).map(function(x) { return x.name; }).join(' · '),
+    cast: (movie && movie.credits && movie.credits.cast || []).slice(0, 6).map(function(x) { return x.name; }).filter(Boolean).join(' · '),
+    overview: String(movie && movie.overview || '').trim()
+  };
+}
+function __uvdSetPlayerTmdbExpanded(bar, movie, expanded, confirmed) {
+  if (!bar || !movie) return;
+  var panel = bar.__uvdPlayerInfoPanel;
+  if (!panel) return;
+  var detail = panel.querySelector('.uvd-player-tmdb-expanded');
+  var presentation = __uvdTmdbPresentation(movie);
+  if (detail) detail.remove();
+  detail = document.createElement('div');
+  detail.className = 'uvd-player-tmdb-expanded';
+  detail.innerHTML =
+    '<div class="uvd-player-tmdb-expanded-head">' +
+      '<div class="uvd-player-tmdb-expanded-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div>' +
+      '<div><strong>' + escapeHtml(presentation.title || 'Thông tin phim') + '</strong>' +
+      (presentation.original && presentation.original !== presentation.title ? '<small>' + escapeHtml(presentation.original) + '</small>' : '') +
+      '<small>' + escapeHtml([presentation.year, presentation.genres].filter(Boolean).join(' · ')) + '</small></div>' +
+    '</div>' +
+    (presentation.overview ? '<p>' + escapeHtml(presentation.overview) + '</p>' : '<p>TMDB chưa có tóm tắt cho phim này.</p>') +
+    (presentation.cast ? '<div class="uvd-player-tmdb-expanded-cast"><b>Diễn viên</b><span>' + escapeHtml(presentation.cast) + '</span></div>' : '');
+  panel.appendChild(detail);
+  panel.classList.toggle('uvd-player-info-expanded', !!expanded);
+  bar.classList.toggle('uvd-player-tmdb-expanded-open', !!expanded);
+  var toggle = bar.querySelector('.uvd-tmdb-expand-toggle');
+  if (toggle) toggle.textContent = expanded ? 'Thu gọn ↑' : 'Thông tin đầy đủ ↓';
+  if (confirmed) {
+    var titleMain = panel.querySelector('.uvd-player-title-main');
+    if (titleMain) {
+      titleMain.classList.add('uvd-player-title-confirmed');
+      titleMain.innerHTML = '<span>Bạn đang xem</span>' + (presentation.logo ? '<img src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '');
+    }
+  }
+}
 function __uvdRenderPlayerTmdb(bar, movie, sourceTitle) {
   if (!bar || !movie) return;
-  var logos = movie.images && movie.images.logos || [];
-  var logo = logos.filter(function(x) { return x && x.file_path; }).sort(function(a, b) { return (a.iso_639_1 === 'vi' ? -1 : 0) || (a.iso_639_1 === 'en' ? -1 : 0); })[0];
-  var poster = movie.poster_path ? 'https://image.tmdb.org/t/p/w185' + movie.poster_path : '';
-  var title = movie.title || movie.name || movie.original_title || movie.original_name || '';
-  var year = (movie.release_date || movie.first_air_date || '').slice(0, 4);
-  var cast = movie.credits && movie.credits.cast || [];
-  var castText = cast.slice(0, 4).map(function(x) { return x.name; }).filter(Boolean).join(' · ');
-  var genres = (movie.genres || []).slice(0, 3).map(function(x) { return x.name; }).join(' · ');
-  bar.innerHTML = '<div class="uvd-player-tmdb-poster">' + (poster ? '<img src="' + escapeHtml(poster) + '" alt="">' : '🎞') + '</div><div class="uvd-player-tmdb-copy">' +
-    (logo ? '<img class="uvd-player-tmdb-logo" src="https://image.tmdb.org/t/p/w500' + escapeHtml(logo.file_path) + '" alt="' + escapeHtml(title) + '">' : '<div class="uvd-player-tmdb-title">' + escapeHtml(title) + '</div>') +
-    '<div class="uvd-player-tmdb-meta">TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (year ? ' · ' + escapeHtml(year) : '') + (genres ? ' · ' + escapeHtml(genres) : '') + '</div>' +
-    (castText ? '<div class="uvd-player-tmdb-cast">' + escapeHtml(castText) + '</div>' : '') +
+  var presentation = __uvdTmdbPresentation(movie);
+  bar.innerHTML = '<div class="uvd-player-tmdb-summary">' +
+    '<div class="uvd-player-tmdb-poster">' + (presentation.poster ? '<img src="' + escapeHtml(presentation.poster) + '" alt="">' : '🎞') + '</div><div class="uvd-player-tmdb-copy">' +
+    (presentation.logo ? '<img class="uvd-player-tmdb-logo" src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<div class="uvd-player-tmdb-title">' + escapeHtml(presentation.title) + '</div>') +
+    '<div class="uvd-player-tmdb-meta">TMDB ' + (movie.vote_average ? Number(movie.vote_average).toFixed(1) : '—') + (presentation.year ? ' · ' + escapeHtml(presentation.year) : '') + (presentation.genres ? ' · ' + escapeHtml(presentation.genres) : '') + '</div>' +
+    (presentation.cast ? '<div class="uvd-player-tmdb-cast">' + escapeHtml(presentation.cast) + '</div>' : '') +
     __uvdFeedbackNoticeHtml('uvd-tmdb-feedback') +
     '<div class="uvd-feedback-actions uvd-tmdb-feedback-actions"><button type="button" class="uvd-feedback-vote uvd-feedback-vote-up" data-tmdb-vote="up"></button><button type="button" class="uvd-feedback-vote uvd-feedback-vote-down" data-tmdb-vote="down"></button></div>' +
-  '</div>';
+  '</div><button type="button" class="uvd-tmdb-expand-toggle">Thông tin đầy đủ ↓</button>';
   function refreshVotes() {
     var tally = __uvdTmdbVoteTally(sourceTitle, movie);
     var up = bar.querySelector('[data-tmdb-vote="up"]');
     var down = bar.querySelector('[data-tmdb-vote="down"]');
     if (up) up.textContent = '♥ Đúng phim (' + (tally.up || 0) + ')';
     if (down) down.textContent = '💩 Sai phim (' + (tally.down || 0) + ')';
+    return tally;
   }
   var up = bar.querySelector('[data-tmdb-vote="up"]');
   var down = bar.querySelector('[data-tmdb-vote="down"]');
-  if (up) up.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'up'); refreshVotes(); toast('Cảm ơn cưng đã xác nhận thông tin phim ♡'); };
-  if (down) down.onclick = function(e) { e.stopPropagation(); __uvdCastTmdbVote(sourceTitle, movie, 'down'); bar.hidden = true; bar.textContent = ''; };
-  refreshVotes();
+  if (up) up.onclick = function(e) {
+    e.stopPropagation();
+    __uvdCastTmdbVote(sourceTitle, movie, 'up');
+    refreshVotes();
+    __uvdSetPlayerTmdbExpanded(bar, movie, true, true);
+    toast('Cảm ơn cưng đã xác nhận thông tin phim ♡');
+  };
+  if (down) down.onclick = function(e) {
+    e.stopPropagation();
+    __uvdCastTmdbVote(sourceTitle, movie, 'down');
+    bar.hidden = true; bar.textContent = '';
+    var panel = bar.__uvdPlayerInfoPanel;
+    if (panel) {
+      panel.classList.remove('uvd-player-info-expanded');
+      var detail = panel.querySelector('.uvd-player-tmdb-expanded');
+      if (detail) detail.remove();
+      var titleMain = panel.querySelector('.uvd-player-title-main');
+      if (titleMain && titleMain.classList.contains('uvd-player-title-confirmed')) {
+        titleMain.classList.remove('uvd-player-title-confirmed');
+        titleMain.textContent = titleMain.dataset.originalTitle || sourceTitle;
+      }
+    }
+  };
+  var toggle = bar.querySelector('.uvd-tmdb-expand-toggle');
+  if (toggle) toggle.onclick = function(e) { e.stopPropagation(); var panel = bar.__uvdPlayerInfoPanel; __uvdSetPlayerTmdbExpanded(bar, movie, !(panel && panel.classList.contains('uvd-player-info-expanded')), false); };
+  var tally = refreshVotes();
+  __uvdSetPlayerTmdbExpanded(bar, movie, !!(tally.up && tally.up > tally.down), !!(tally.up && tally.up > tally.down));
   bar.hidden = false;
 }
 function __uvdRenderTmdbUnavailable(bar, title) {
@@ -3655,6 +3721,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var titleRow = document.createElement('div');
   titleRow.className = 'uvd-player-info-title';
   titleRow.innerHTML = '<span class="uvd-player-mascot-holding">' + __uvdPlayerMascotHoldingVideo + '</span><div class="uvd-player-title-text"><span class="uvd-player-title-main">' + escapeHtml(playerTitle) + '</span><span class="uvd-player-title-sub">hamster đang cầm video cho cưng nè ♡</span></div>';
+  var playerTitleMain = titleRow.querySelector('.uvd-player-title-main');
+  if (playerTitleMain) playerTitleMain.dataset.originalTitle = playerTitle;
   var infoRow = document.createElement('div');
   infoRow.id = '__uvd_player_info__';
   infoRow.className = 'uvd-player-info-meta';
@@ -3665,6 +3733,7 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   tmdbBar.id = '__uvd_player_tmdb_bar__';
   tmdbBar.className = 'uvd-player-tmdb-bar';
   tmdbBar.hidden = true;
+  tmdbBar.__uvdPlayerInfoPanel = infoPanel;
   infoPanel.appendChild(tmdbBar);
   sheetBody.appendChild(infoPanel);
   sheet.appendChild(sheetBody);
@@ -6112,6 +6181,35 @@ style.textContent = `
    making the information area disappear with no explanation. */
 .uvd-player-tmdb-bar .uvd-tmdb-retry{margin-left:auto;flex:0 0 auto;padding:6px 8px!important;font-size:9px!important;white-space:nowrap}
 
+/* ===== PLAYER TMDB: EXPANDABLE INFORMATION SHEET ===== */
+.uvd-player-info-panel{
+  transition:max-height var(--uvd-transition-duration,.24s) cubic-bezier(.22,1,.36,1),
+             padding var(--uvd-transition-duration,.24s) cubic-bezier(.22,1,.36,1)!important
+}
+.uvd-player-tmdb-bar{align-items:flex-start!important}
+.uvd-player-tmdb-summary{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.uvd-tmdb-expand-toggle{flex:0 0 auto;padding:6px 8px;border:1px solid rgba(194,150,255,.26);border-radius:10px;background:rgba(255,255,255,.8);color:#8a6ab0;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
+.uvd-player-tmdb-expanded{max-height:0;overflow:hidden;opacity:0;transform:translateY(18px);transition:max-height .42s cubic-bezier(.22,1,.36,1),opacity .28s ease,transform .42s cubic-bezier(.22,1,.36,1);pointer-events:none}
+.uvd-player-info-panel.uvd-player-info-expanded .uvd-player-tmdb-expanded{max-height:360px;overflow-y:auto;opacity:1;transform:translateY(0);pointer-events:auto;margin-top:10px;padding-top:10px;border-top:1px solid rgba(194,150,255,.18)}
+.uvd-player-tmdb-expanded-head{display:flex;align-items:center;gap:10px;min-width:0}
+.uvd-player-tmdb-expanded-poster{width:62px;height:84px;flex:0 0 62px;overflow:hidden;border-radius:13px;background:#f2e7ff;display:flex;align-items:center;justify-content:center;font-size:22px}
+.uvd-player-tmdb-expanded-poster img{width:100%;height:100%;object-fit:cover}
+.uvd-player-tmdb-expanded-head>div:last-child{min-width:0;flex:1}
+.uvd-player-tmdb-expanded-head strong{display:block;overflow:hidden;color:#76508d;font-size:14px;font-weight:950;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}
+.uvd-player-tmdb-expanded-head small{display:block;overflow:hidden;margin-top:3px;color:#9b7aa5;font-size:10px;font-weight:700;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+.uvd-player-tmdb-expanded>p{margin:9px 1px 0;color:#735f7d;font-size:11px;font-weight:650;line-height:1.5}
+.uvd-player-tmdb-expanded-cast{display:flex;gap:7px;margin-top:8px;color:#8e7198;font-size:10px;line-height:1.4}
+.uvd-player-tmdb-expanded-cast b{flex:0 0 auto;color:#8a6ab0}
+.uvd-player-title-confirmed{display:flex!important;align-items:center;gap:8px;color:#8a6ab0!important}
+.uvd-player-title-confirmed>span{font-size:10px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.uvd-player-title-confirmed img{display:block;max-width:146px;max-height:27px;object-fit:contain;object-position:left center}
+@media (max-width:420px){
+  .uvd-tmdb-expand-toggle{padding:5px 6px;font-size:8px}
+  .uvd-player-info-panel.uvd-player-info-expanded .uvd-player-tmdb-expanded{max-height:310px}
+  .uvd-player-tmdb-expanded-poster{width:54px;height:73px;flex-basis:54px}
+  .uvd-player-tmdb-expanded>p{font-size:10px}
+  .uvd-player-title-confirmed img{max-width:116px;max-height:23px}
+}
 `;
 
 

@@ -112,9 +112,9 @@ data.settings = Object.assign({
   resumePlayback: true,
   autoNext: false,
   reduceMotion: false,
-  blurIntensity: 4,           // mức thấp mặc định, tăng được ở Cài đặt
-  transitionSpeed: 0.18,
-  transitionEasing: 'ease',
+  effectSpeed: 1,
+  shadowIntensity: 34,
+  cornerRadius: 22,
   doubleTapSeconds: 10,
   autoHideControls: false,
   showRemainingTime: true,
@@ -122,10 +122,8 @@ data.settings = Object.assign({
   maxStoredUrls: 200,
   blockAutoplay: true,
   autoClickPlay: true,
-  glowEffects: true,
   hideMode: 'floating',
   theme: 'light',             // tạm khóa Light; Dark Glass sẽ hoàn thiện sau
-  effectsIntensity: 8,        // mức thấp mặc định, tăng được ở Cài đặt
   headerProxyKey: '',
   subdlApiKey: '',
   tmdbApiKey: '',
@@ -156,11 +154,19 @@ if (data.settings.__uvdAutoClickDefaultsVersion !== __uvdAutoClickDefaultsVersio
 var __uvdSmoothDefaultsVersion = 1;
 if (data.settings.__uvdSmoothDefaultsVersion !== __uvdSmoothDefaultsVersion) {
   data.settings.reduceMotion = true;
-  data.settings.blurIntensity = 0;
-  data.settings.transitionSpeed = 0.08;
-  data.settings.glowEffects = false;
-  data.settings.effectsIntensity = 0;
   data.settings.__uvdSmoothDefaultsVersion = __uvdSmoothDefaultsVersion;
+  storage.set(data);
+}
+
+var __uvdSurfaceTuningVersion = 1;
+if (data.settings.__uvdSurfaceTuningVersion !== __uvdSurfaceTuningVersion) {
+  data.settings.effectSpeed = 1;
+  data.settings.shadowIntensity = 34;
+  data.settings.cornerRadius = 22;
+  // Blur/glow are retired. Let the new speed control be visible by default;
+  // the separate performance toggle remains available for anyone who needs it.
+  data.settings.reduceMotion = false;
+  data.settings.__uvdSurfaceTuningVersion = __uvdSurfaceTuningVersion;
   storage.set(data);
 }
 
@@ -303,6 +309,8 @@ var pageInfo = {
 function __uvdAppendRoot(el) {
   el.classList.add('uvd-scope');
   applyThemePref(el);
+  applyEffectsPref(el);
+  applyMotionPref(el);
   (document.documentElement || document.body).appendChild(el);
 }
 
@@ -315,21 +323,41 @@ function escapeHtml(text) {
 }
 
 // ========== HIỆU ỨNG ==========
+function __uvdClampNumber(value, min, max, fallback) {
+  value = Number(value);
+  if (!isFinite(value)) value = fallback;
+  return Math.max(min, Math.min(max, value));
+}
 function applyEffectsPref(el) {
   if (!el) return;
-  var on = !!data.settings.glowEffects && !data.settings.reduceMotion;
-  el.classList.toggle('uvd-fx-on', on);
-  var intensity = Math.max(0, Math.min(100, data.settings.effectsIntensity == null ? 8 : data.settings.effectsIntensity));
-  el.style.setProperty('--glow-px', on ? Math.round(4 + intensity * 0.18) + 'px' : '0px');
-  el.style.setProperty('--glow-op', on ? (0.15 + intensity * 0.0035).toFixed(3) : '0');
+  var speed = __uvdClampNumber(data.settings.effectSpeed, .5, 1.8, 1);
+  var shadow = __uvdClampNumber(data.settings.shadowIntensity, 0, 100, 34);
+  var radius = Math.round(__uvdClampNumber(data.settings.cornerRadius, 12, 36, 22));
+  var transition = data.settings.reduceMotion ? 0 : (.24 / speed);
+  var mascot = data.settings.reduceMotion ? 0 : (1.8 / speed);
+  el.classList.remove('uvd-fx-on');
+  el.classList.add('uvd-tunable-ui');
+  el.style.setProperty('--uvd-transition', transition.toFixed(3) + 's cubic-bezier(.22,1,.36,1)');
+  el.style.setProperty('--uvd-transition-duration', transition.toFixed(3) + 's');
+  el.style.setProperty('--uvd-motion-duration', mascot.toFixed(2) + 's');
+  el.style.setProperty('--uvd-shadow-alpha', (.025 + shadow * .0018).toFixed(3));
+  el.style.setProperty('--uvd-shadow-y', Math.round(2 + shadow * .10) + 'px');
+  el.style.setProperty('--uvd-shadow-blur', Math.round(6 + shadow * .24) + 'px');
+  el.style.setProperty('--radius-sm', Math.max(8, radius - 8) + 'px');
+  el.style.setProperty('--radius-md', radius + 'px');
+  el.style.setProperty('--radius-lg', Math.min(48, radius + 10) + 'px');
 }
 function applyMotionPref(el) {
   if (!el) return;
   el.classList.toggle('uvd-reduce-motion', !!data.settings.reduceMotion);
-  var blur = data.settings.reduceMotion ? 0 : data.settings.blurIntensity;
-  var speed = data.settings.reduceMotion ? 0 : data.settings.transitionSpeed;
-  el.style.setProperty('--uvd-blur', blur + 'px');
-  el.style.setProperty('--uvd-transition', speed + 's ' + data.settings.transitionEasing);
+  // Surface blur is intentionally retired. The interface is solid pastel now.
+  el.style.setProperty('--uvd-blur', '0px');
+}
+function __uvdRefreshSurfaceTuning() {
+  document.querySelectorAll('.uvd-scope').forEach(function(el) {
+    applyEffectsPref(el);
+    applyMotionPref(el);
+  });
 }
 function applyThemePref(el) {
   if (!el) return;
@@ -5566,6 +5594,75 @@ style.textContent = `
 .uvd-popup-reminder-passive{min-width:0;overflow:hidden;color:#806293;font-size:10px;font-weight:750;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
 
 
+/* ===== FLAT PASTEL SURFACE SYSTEM: SPEED, SHADOW, RADIUS ===== */
+/* Blur and glow are retired. All bookmarklet roots use solid pastel surfaces;
+   the three Settings sliders feed the variables below. */
+.uvd-tunable-ui,
+.uvd-tunable-ui .uvd-glass-panel,
+.uvd-tunable-ui .uvd-glass-card,
+.uvd-tunable-ui .uvd-card,
+.uvd-tunable-ui .uvd-bubble,
+.uvd-tunable-ui .uvd-settings-sheet,
+.uvd-tunable-ui .uvd-media-preview-panel,
+.uvd-tunable-ui .uvd-digging-box,
+.uvd-tunable-ui .uvd-resume-card,
+.uvd-tunable-ui .uvd-player-sheet,
+.uvd-tunable-ui .uvd-restore-btn{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important
+}
+.uvd-tunable-ui.uvd-overlay,
+.uvd-tunable-ui.uvd-digging-overlay,
+.uvd-tunable-ui.uvd-media-preview-overlay,
+.uvd-tunable-ui.uvd-settings-overlay,
+.uvd-tunable-ui.uvd-player-overlay,
+.uvd-tunable-ui.uvd-resume-overlay{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important
+}
+.uvd-tunable-ui.uvd-app-shell,
+.uvd-tunable-ui.uvd-glass-panel,
+.uvd-tunable-ui .uvd-settings-sheet,
+.uvd-tunable-ui .uvd-media-preview-panel,
+.uvd-tunable-ui .uvd-digging-box,
+.uvd-tunable-ui .uvd-resume-card{
+  border-radius:var(--radius-lg)!important;
+  box-shadow:0 var(--uvd-shadow-y) var(--uvd-shadow-blur) rgba(91,56,104,var(--uvd-shadow-alpha))!important
+}
+.uvd-tunable-ui .uvd-card,
+.uvd-tunable-ui .uvd-bubble,
+.uvd-tunable-ui .uvd-context-bar,
+.uvd-tunable-ui .uvd-tabbar,
+.uvd-tunable-ui .uvd-settings-details,
+.uvd-tunable-ui .uvd-popup-reminder-rail{
+  border-radius:var(--radius-md)!important;
+  box-shadow:0 var(--uvd-shadow-y) var(--uvd-shadow-blur) rgba(91,56,104,var(--uvd-shadow-alpha))!important
+}
+.uvd-tunable-ui .uvd-btn,
+.uvd-tunable-ui .uvd-btn-icon,
+.uvd-tunable-ui .uvd-meta-chip,
+.uvd-tunable-ui .uvd-filter-btn,
+.uvd-tunable-ui .uvd-toggle-switch,
+.uvd-tunable-ui select,
+.uvd-tunable-ui input,
+.uvd-tunable-ui textarea{
+  border-radius:var(--radius-sm)!important
+}
+.uvd-tunable-ui .uvd-btn,
+.uvd-tunable-ui .uvd-btn-icon,
+.uvd-tunable-ui .uvd-card,
+.uvd-tunable-ui .uvd-tab,
+.uvd-tunable-ui .uvd-meta-chip,
+.uvd-tunable-ui .uvd-toggle-switch{
+  transition-duration:var(--uvd-transition-duration)!important
+}
+.uvd-tunable-ui .uvd-brand-mark,
+.uvd-tunable-ui .uvd-bubble-tmascot,
+.uvd-tunable-ui .uvd-tab-active .uvd-tab-mascot,
+.uvd-tunable-ui .uvd-popup-reminder-mascot svg,
+.uvd-tunable-ui .uvd-deferred-reminder-mascot svg{
+  animation-duration:var(--uvd-motion-duration)!important
+}
 `;
 
 
@@ -9030,13 +9127,15 @@ function renderSettings(container) {
 
     '<div class="uvd-settings-group-title">🌷 Cơ bản cho cưng</div>' +
     '<div class="uvd-card">' +
-      '<div style="font-weight:600;margin-bottom:8px;">⚡ Hiệu năng</div>' +
-      buildToggleRow('__uvd_toggle_reducemotion__', 'Bật chế độ hiệu suất (giảm hiệu ứng)', data.settings.reduceMotion) +
-      '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Cường độ làm mờ (blur): <span id="__uvd_blur_val__">' + data.settings.blurIntensity + 'px</span></div>' +
-      '<input type="range" id="__uvd_blur_range__" min="0" max="20" step="1" value="' + data.settings.blurIntensity + '" style="width:100%;">' +
-      '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Tốc độ chuyển tiếp: <span id="__uvd_transition_val__">' + data.settings.transitionSpeed + 's</span></div>' +
-      '<input type="range" id="__uvd_transition_range__" min="0" max="0.8" step="0.05" value="' + data.settings.transitionSpeed + '" style="width:100%;">' +
-      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Giảm blur và tốc độ transition để máy chạy mượt hơn.</div>' +
+      '<div style="font-weight:800;margin-bottom:5px;">🎛 Nhịp & bề mặt</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:9px;">Giao diện pastel phẳng: không blur, không glow. Cưng chỉnh nhịp chuyển động, bóng và độ mềm của góc ở đây nha.</div>' +
+      buildToggleRow('__uvd_toggle_reducemotion__', 'Chế độ hiệu suất (giảm chuyển động)', data.settings.reduceMotion) +
+      '<div style="font-size:12px;color:var(--text2);margin:11px 0 4px;">Tốc độ hiệu ứng: <span id="__uvd_effect_speed_val__">' + Math.round(Number(data.settings.effectSpeed || 1) * 100) + '%</span></div>' +
+      '<input type="range" id="__uvd_effect_speed_range__" min="0.5" max="1.8" step="0.1" value="' + data.settings.effectSpeed + '" style="width:100%;">' +
+      '<div style="font-size:12px;color:var(--text2);margin:11px 0 4px;">Độ đổ bóng: <span id="__uvd_shadow_val__">' + data.settings.shadowIntensity + '%</span></div>' +
+      '<input type="range" id="__uvd_shadow_range__" min="0" max="100" step="1" value="' + data.settings.shadowIntensity + '" style="width:100%;">' +
+      '<div style="font-size:12px;color:var(--text2);margin:11px 0 4px;">Độ bo góc: <span id="__uvd_corner_val__">' + data.settings.cornerRadius + 'px</span></div>' +
+      '<input type="range" id="__uvd_corner_range__" min="12" max="36" step="1" value="' + data.settings.cornerRadius + '" style="width:100%;">' +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -9049,17 +9148,8 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
-    '<div class="uvd-card">' +
-      '<div style="font-weight:600;margin-bottom:8px;">🎨 Giao diện</div>' +
-      '<div class="uvd-callout" style="margin-top:0;"><span class="uvd-callout-icon">🎨</span><span>Giao diện hiện dùng <strong style="color:var(--accent-text);">Light Teal</strong> để ưu tiên độ tương phản và dễ đọc. Dark Glass sẽ được hoàn thiện riêng sau.</span></div>' +
-    '</div>' +
-
-    '<div class="uvd-card">' +
-      '<div style="font-weight:600;margin-bottom:8px;">✨ Hiệu ứng giao diện</div>' +
-      buildToggleRow('__uvd_toggle_glow__', 'Hiệu ứng phát sáng (glow) cho nút & panel', data.settings.glowEffects) +
-      '<div style="font-size:12px;color:var(--text2);margin:10px 0 4px;">Cường độ hiệu ứng: <span id="__uvd_fx_val__">' + data.settings.effectsIntensity + '%</span></div>' +
-      '<input type="range" id="__uvd_fx_range__" min="0" max="100" step="5" value="' + data.settings.effectsIntensity + '" style="width:100%;">' +
-      '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Tắt hoàn toàn nếu đã bật chế độ hiệu suất ở trên.</div>' +
+      '<div style="font-weight:600;margin-bottom:8px;">🎨 Giao diện mới</div>' +
+      '<div class="uvd-callout" style="margin-top:0;"><span class="uvd-callout-icon">🎀</span><span>Giao diện dùng nền pastel đặc, viền rõ và bóng mềm. Ba thanh chỉnh phía trên áp dụng cho Main UI lẫn popup nha.</span></div>' +
     '</div>' +
 
     '<div class="uvd-settings-group-title">🔎 Đào link nâng cao</div>' +
@@ -9177,8 +9267,33 @@ function renderSettings(container) {
     var isOn = this.classList.toggle('uvd-toggle-on');
     data.settings.reduceMotion = isOn;
     storage.set(data);
-    applyMotionPref(document.getElementById('__uvd__'));
-    toast(isOn ? 'Đã bật chế độ hiệu suất' : 'Đã tắt chế độ hiệu suất');
+    __uvdRefreshSurfaceTuning();
+    toast(isOn ? 'Đã giảm chuyển động để máy nhẹ hơn' : 'Đã bật lại nhịp hiệu ứng');
+  };
+
+  var effectSpeedRange = document.getElementById('__uvd_effect_speed_range__');
+  if (effectSpeedRange) effectSpeedRange.oninput = function() {
+    var val = __uvdClampNumber(this.value, .5, 1.8, 1);
+    data.settings.effectSpeed = val;
+    document.getElementById('__uvd_effect_speed_val__').textContent = Math.round(val * 100) + '%';
+    storage.set(data);
+    __uvdRefreshSurfaceTuning();
+  };
+  var shadowRange = document.getElementById('__uvd_shadow_range__');
+  if (shadowRange) shadowRange.oninput = function() {
+    var val = Math.round(__uvdClampNumber(this.value, 0, 100, 34));
+    data.settings.shadowIntensity = val;
+    document.getElementById('__uvd_shadow_val__').textContent = val + '%';
+    storage.set(data);
+    __uvdRefreshSurfaceTuning();
+  };
+  var cornerRange = document.getElementById('__uvd_corner_range__');
+  if (cornerRange) cornerRange.oninput = function() {
+    var val = Math.round(__uvdClampNumber(this.value, 12, 36, 22));
+    data.settings.cornerRadius = val;
+    document.getElementById('__uvd_corner_val__').textContent = val + 'px';
+    storage.set(data);
+    __uvdRefreshSurfaceTuning();
   };
 
   var hideModeInput = document.getElementById('__uvd_hide_mode__');
@@ -9186,46 +9301,6 @@ function renderSettings(container) {
     data.settings.hideMode = this.value === 'header' ? 'header' : 'floating';
     storage.set(data);
     toast(data.settings.hideMode === 'floating' ? 'Ẩn dạng icon floating' : 'Ẩn dạng header');
-  };
-
-  document.getElementById('__uvd_blur_range__').oninput = function() {
-    var val = parseInt(this.value);
-    data.settings.blurIntensity = val;
-    document.getElementById('__uvd_blur_val__').textContent = val + 'px';
-    storage.set(data);
-    applyMotionPref(document.getElementById('__uvd__'));
-    if (playerState.overlay) applyMotionPref(playerState.overlay);
-    var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
-    if (settingsOverlay) applyMotionPref(settingsOverlay);
-  };
-
-  document.getElementById('__uvd_transition_range__').oninput = function() {
-    var val = parseFloat(this.value);
-    data.settings.transitionSpeed = val;
-    document.getElementById('__uvd_transition_val__').textContent = val + 's';
-    storage.set(data);
-    applyMotionPref(document.getElementById('__uvd__'));
-    if (playerState.overlay) applyMotionPref(playerState.overlay);
-    var settingsOverlay = document.getElementById('__uvd_settings_overlay__');
-    if (settingsOverlay) applyMotionPref(settingsOverlay);
-  };
-
-  document.getElementById('__uvd_toggle_glow__').onclick = function() {
-    var isOn = this.classList.toggle('uvd-toggle-on');
-    data.settings.glowEffects = isOn;
-    storage.set(data);
-    applyEffectsPref(document.getElementById('__uvd__'));
-    if (playerState.overlay) applyEffectsPref(playerState.overlay);
-    toast(isOn ? 'Đã bật hiệu ứng phát sáng' : 'Đã tắt hiệu ứng phát sáng');
-  };
-
-  document.getElementById('__uvd_fx_range__').oninput = function() {
-    var val = parseInt(this.value);
-    data.settings.effectsIntensity = val;
-    document.getElementById('__uvd_fx_val__').textContent = val + '%';
-    storage.set(data);
-    applyEffectsPref(document.getElementById('__uvd__'));
-    if (playerState.overlay) applyEffectsPref(playerState.overlay);
   };
 
   var proxyKeyInput = document.getElementById('__uvd_proxy_key__');

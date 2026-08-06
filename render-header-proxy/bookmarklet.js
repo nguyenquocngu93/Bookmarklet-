@@ -3066,8 +3066,8 @@ function __uvdOpenMovieInfoPage(movie, sourceTitle, bar) {
   var backdropStyle = presentation.backdrop ? ' style="background-image:url(\'' + escapeHtml(presentation.backdrop) + '\')"' : '';
   sheet.innerHTML =
     '<button type="button" class="uvd-movie-info-close" title="Quay lại Player">←</button>' +
-    '<div class="uvd-movie-info-hero"' + backdropStyle + '><div class="uvd-movie-info-hero-scrim"></div></div>' +
     '<div class="uvd-movie-info-body">' +
+      '<div class="uvd-movie-info-hero"' + backdropStyle + '><div class="uvd-movie-info-hero-scrim"></div></div>' +
       '<section class="uvd-movie-info-surface">' +
         '<div class="uvd-movie-info-meta-line">' + escapeHtml([presentation.year, presentation.country].filter(Boolean).join(', ')) + '</div>' +
         '<div class="uvd-movie-info-logo">' + (presentation.logo ? '<img src="' + escapeHtml(presentation.logo) + '" alt="' + escapeHtml(presentation.title) + '">' : '<span>' + escapeHtml(presentation.title || 'THÔNG TIN PHIM') + '</span>') + '</div>' +
@@ -6523,6 +6523,14 @@ style.textContent = `
 .uvd-movie-info-logo img{filter:drop-shadow(0 4px 12px rgba(0,0,0,.95))!important}
 @media (max-width:560px){
   .uvd-movie-info-hero{margin:8px 8px 0;border-radius:24px 24px 0 0}.uvd-movie-info-body{margin-top:-90px!important}.uvd-movie-info-surface{padding-top:28px!important}.uvd-movie-info-meta-line{margin-top:-66px}.uvd-movie-info-logo{margin-top:24px!important}
+}
+/* ===== MOVIE PAGE: ONE SCROLL LAYER FOR BACKDROP + SURFACE ===== */
+.uvd-movie-info-sheet{overflow:hidden!important}
+.uvd-movie-info-body{display:block!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;margin:0!important;padding:0!important;overscroll-behavior:contain}
+.uvd-movie-info-body .uvd-movie-info-hero{margin:10px 10px 0;border-radius:28px 28px 0 0;overflow:hidden!important}
+.uvd-movie-info-body .uvd-movie-info-surface{margin-top:-104px;position:relative;z-index:2;overflow:visible}
+@media (max-width:560px){
+  .uvd-movie-info-body .uvd-movie-info-hero{margin:8px 8px 0;border-radius:24px 24px 0 0}.uvd-movie-info-body .uvd-movie-info-surface{margin-top:-90px}
 }
 `;
 

@@ -4767,6 +4767,294 @@ style.textContent = `
 /* ===== CONTENT-AWARE POPUP EXPANSION ===== */
 .uvd-auto-fit-popup{transition:height .38s cubic-bezier(.22,1,.36,1),max-height .38s cubic-bezier(.22,1,.36,1);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 
+/* ===== CANONICAL DIGGING POPUP: FIRST-SCREEN EXPERIENCE ===== */
+/* This is deliberately scoped to the first popup so it cannot disturb Main UI,
+   media list, iframe flow, farewell, or the compact preview card. */
+#__uvd_digging_popup__{
+  align-items:center!important;
+  justify-content:center!important;
+  padding:12px!important;
+  overflow:hidden!important;
+  background:radial-gradient(circle at 50% 8%,rgba(255,232,244,.88),rgba(128,82,145,.52) 52%,rgba(40,24,53,.73))!important
+}
+#__uvd_digging_popup__>.uvd-digging-box{
+  box-sizing:border-box!important;
+  width:min(94vw,680px)!important;
+  height:90vh!important;
+  height:min(90dvh,800px)!important;
+  min-height:0!important;
+  max-height:calc(100dvh - 24px)!important;
+  margin:auto!important;
+  padding:0!important;
+  display:block!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  border:1px solid rgba(255,255,255,.9)!important;
+  border-radius:34px!important;
+  background:linear-gradient(160deg,#fffdfd 0%,#fff0f6 48%,#f1eaff 100%)!important;
+  box-shadow:0 28px 76px rgba(49,25,64,.46),0 0 0 6px rgba(255,255,255,.22) inset!important;
+  text-align:center!important
+}
+#__uvd_digging_popup__>.uvd-digging-box::-webkit-scrollbar{width:6px}
+#__uvd_digging_popup__>.uvd-digging-box::-webkit-scrollbar-thumb{border-radius:99px;background:rgba(179,133,242,.4)}
+#__uvd_digging_popup__ .uvd-dig-layout{
+  box-sizing:border-box;
+  min-height:100%;
+  padding:18px 28px 20px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch
+}
+#__uvd_digging_popup__ .uvd-popup-back-btn,
+#__uvd_digging_popup__ .uvd-dig-close{
+  position:absolute!important;
+  top:14px!important;
+  z-index:6!important;
+  width:36px!important;
+  height:36px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.88)!important;
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+  box-shadow:0 5px 14px rgba(127,76,139,.14)!important
+}
+#__uvd_digging_popup__ .uvd-popup-back-btn{left:14px!important;color:#8a6ab0!important;border:1px solid rgba(194,150,255,.32)!important}
+#__uvd_digging_popup__ .uvd-dig-close{right:14px!important;color:#c95073!important;border:1px solid rgba(255,159,180,.32)!important}
+#__uvd_digging_popup__ .uvd-dig-hero{
+  position:relative;
+  isolation:isolate;
+  flex:1 1 248px;
+  min-height:216px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:28px 24px 23px
+}
+#__uvd_digging_popup__ .uvd-dig-hero::before{
+  content:'';
+  position:absolute;
+  z-index:-2;
+  width:min(75vw,340px);
+  aspect-ratio:1;
+  border-radius:50%;
+  background:radial-gradient(circle at 48% 42%,rgba(255,255,255,.96) 0 19%,rgba(255,218,236,.67) 45%,rgba(222,202,255,.13) 70%,transparent 72%);
+  filter:blur(1px)
+}
+#__uvd_digging_popup__ .uvd-dig-glow{
+  position:absolute;
+  z-index:-1;
+  border-radius:50%;
+  pointer-events:none;
+  animation:uvdDigGlowDrift 4s ease-in-out infinite
+}
+#__uvd_digging_popup__ .uvd-dig-glow-one{width:14px;height:14px;top:28%;left:13%;background:#ffc1d5;box-shadow:0 0 0 7px rgba(255,193,213,.16)}
+#__uvd_digging_popup__ .uvd-dig-glow-two{width:10px;height:10px;top:18%;right:14%;background:#cdb1ff;box-shadow:0 0 0 6px rgba(205,177,255,.16);animation-delay:-1.4s}
+#__uvd_digging_popup__ .uvd-dig-art{
+  position:relative!important;
+  z-index:1;
+  box-sizing:border-box;
+  width:min(70vw,286px)!important;
+  height:auto!important;
+  aspect-ratio:260/250;
+  margin:0!important;
+  transform:none!important;
+  filter:drop-shadow(0 14px 18px rgba(220,104,151,.24))!important
+}
+#__uvd_digging_popup__ .uvd-dig-art svg{width:100%!important;height:100%!important}
+#__uvd_digging_popup__ .uvd-dig-live-line{
+  position:absolute;
+  z-index:2;
+  bottom:4px;
+  left:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  max-width:calc(100% - 22px);
+  padding:6px 11px;
+  border:1px solid rgba(255,255,255,.8);
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  color:#936c9c;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.25;
+  box-shadow:0 5px 14px rgba(150,90,220,.1);
+  transform:translateX(-50%)
+}
+#__uvd_digging_popup__ .uvd-dig-live-line i{
+  width:7px;
+  height:7px;
+  flex:0 0 7px;
+  border-radius:50%;
+  background:#ff86a7;
+  box-shadow:0 0 0 4px rgba(255,134,167,.16);
+  animation:uvdDigLivePulse 1.3s ease-in-out infinite
+}
+#__uvd_digging_popup__ .uvd-dig-copy{flex:0 0 auto;padding:0 7px;text-align:center}
+#__uvd_digging_popup__ .uvd-dig-kicker{
+  margin:0!important;
+  color:#aa7ac5!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  letter-spacing:.15em!important
+}
+#__uvd_digging_popup__ .uvd-dig-title{
+  margin:7px 0 0!important;
+  color:#c95073!important;
+  font-size:29px!important;
+  font-weight:950!important;
+  letter-spacing:-.045em!important;
+  line-height:1.1!important
+}
+#__uvd_digging_popup__ .uvd-dig-sub{
+  min-height:0!important;
+  max-width:470px!important;
+  margin:9px auto 0!important;
+  color:#775c80!important;
+  font-size:14px!important;
+  font-weight:650!important;
+  line-height:1.48!important
+}
+#__uvd_digging_popup__ .uvd-dig-status-row{
+  display:flex!important;
+  justify-content:center!important;
+  gap:7px!important;
+  margin:13px 0 0!important
+}
+#__uvd_digging_popup__ .uvd-dig-status-row span{
+  padding:7px 11px!important;
+  border:1px solid rgba(194,150,255,.27)!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.76)!important;
+  color:#8a6ab0!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  box-shadow:0 3px 9px rgba(150,90,220,.07)
+}
+#__uvd_digging_popup__ .uvd-dig-actions-area{flex:0 0 auto;min-height:0;padding:0 7px}
+#__uvd_digging_popup__ .uvd-dig-action-row{
+  position:static!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  gap:10px!important;
+  margin:0!important;
+  max-height:0;
+  overflow:hidden!important;
+  opacity:0;
+  transition:max-height .3s ease,margin .3s ease,opacity .25s ease
+}
+#__uvd_digging_popup__.uvd-dig-found .uvd-dig-action-row{
+  max-height:68px!important;
+  margin-top:18px!important;
+  overflow:visible!important;
+  opacity:1!important
+}
+#__uvd_digging_popup__ .uvd-dig-action-row.uvd-dig-one-action{grid-template-columns:1fr}
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn,
+#__uvd_digging_popup__ .uvd-dig-enter-btn{
+  min-height:56px;
+  max-height:60px!important;
+  padding:13px 12px!important;
+  border-radius:16px!important;
+  font-size:14px!important;
+  font-weight:900!important;
+  letter-spacing:.01em;
+  box-shadow:0 9px 18px rgba(150,90,220,.19)!important
+}
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn{background:linear-gradient(135deg,#b98df2,#9668d9)!important}
+#__uvd_digging_popup__ .uvd-dig-enter-btn{background:linear-gradient(135deg,#ff9ab4,#ef6689)!important}
+#__uvd_digging_popup__ .uvd-dig-route-hint{
+  max-height:44px!important;
+  margin:8px auto 0!important;
+  color:#916ca4!important;
+  font-size:11px!important;
+  font-weight:700!important;
+  line-height:1.35!important
+}
+#__uvd_digging_popup__ .uvd-dig-footer{
+  flex:0 0 auto;
+  margin-top:auto;
+  padding:15px 7px 0;
+  border-top:1px solid rgba(194,150,255,.16)
+}
+#__uvd_digging_popup__ .uvd-dig-utility-row{margin:0!important}
+#__uvd_digging_popup__ .uvd-dig-ui-btn{
+  width:100%;
+  padding:10px 12px!important;
+  border:1px solid rgba(194,150,255,.3)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.68)!important;
+  color:#8666a2!important;
+  font-size:11px!important;
+  font-weight:850!important
+}
+#__uvd_digging_popup__ .uvd-dig-help{margin:10px 0 0!important;color:#9974a5!important;font-size:10.5px!important}
+#__uvd_digging_popup__ .uvd-dig-help button{
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#cf6687!important;
+  font:inherit!important;
+  font-weight:900!important;
+  text-decoration:underline;
+  cursor:pointer
+}
+#__uvd_digging_popup__ #__uvd_dig_fact_wrap__{margin-top:12px!important;text-align:center}
+#__uvd_digging_popup__ #__uvd_dig_fact_btn__{
+  max-width:100%;
+  padding:8px 12px!important;
+  border:1px dashed rgba(255,159,180,.46)!important;
+  border-radius:999px!important;
+  background:linear-gradient(135deg,#fff6fb,#f8efff)!important;
+  color:#c95073!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  cursor:pointer
+}
+#__uvd_digging_popup__ #__uvd_dig_fact_box__{
+  position:relative;
+  margin-top:9px!important;
+  padding:11px 30px 11px 12px!important;
+  border:1px solid rgba(255,159,180,.25)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.7)!important;
+  color:#765a84!important;
+  font-size:11.5px!important;
+  line-height:1.45!important;
+  text-align:left!important
+}
+#__uvd_digging_popup__ #__uvd_dig_fact_box__>div:first-child{position:absolute;right:10px;top:8px}
+#__uvd_digging_popup__ .uvd-dig-tip{margin:10px auto 0!important;color:#9c7fa8!important;font-size:10px!important;line-height:1.4!important}
+#__uvd_digging_popup__.uvd-dig-found .uvd-dig-title{color:#9368c8!important}
+#__uvd_digging_popup__.uvd-dig-found .uvd-dig-live-line i{background:#a47cea;box-shadow:0 0 0 4px rgba(164,124,234,.15);animation:none}
+#__uvd_digging_popup__.uvd-dig-found .uvd-dig-tip{display:none!important}
+#__uvd_digging_popup__.uvd-dig-found .uvd-dig-art{width:min(62vw,244px)!important}
+@keyframes uvdDigGlowDrift{0%,100%{transform:translateY(0) scale(.92);opacity:.5}50%{transform:translateY(-10px) scale(1.1);opacity:1}}
+@keyframes uvdDigLivePulse{0%,100%{transform:scale(.82);opacity:.6}50%{transform:scale(1.12);opacity:1}}
+@media (max-width:560px){
+  #__uvd_digging_popup__{padding:10px!important}
+  #__uvd_digging_popup__>.uvd-digging-box{width:calc(100vw - 20px)!important;height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important;border-radius:29px!important}
+  #__uvd_digging_popup__ .uvd-dig-layout{padding:16px 18px 17px}
+  #__uvd_digging_popup__ .uvd-dig-hero{flex-basis:220px;min-height:195px;padding:30px 16px 22px}
+  #__uvd_digging_popup__ .uvd-dig-title{font-size:26px!important}
+  #__uvd_digging_popup__ .uvd-dig-sub{font-size:13px!important}
+  #__uvd_digging_popup__ .uvd-dig-footer{padding-top:12px}
+}
+@media (max-height:650px) and (max-width:560px){
+  #__uvd_digging_popup__ .uvd-dig-hero{flex-basis:184px;min-height:174px;padding-top:24px}
+  #__uvd_digging_popup__ .uvd-dig-art{width:min(57vw,224px)!important}
+  #__uvd_digging_popup__ .uvd-dig-title{font-size:23px!important}
+  #__uvd_digging_popup__ .uvd-dig-status-row{margin-top:9px!important}
+  #__uvd_digging_popup__ .uvd-dig-footer{padding-top:9px}
+}
+@media (prefers-reduced-motion:reduce){
+  #__uvd_digging_popup__ .uvd-dig-glow,
+  #__uvd_digging_popup__ .uvd-dig-live-line i{animation:none!important}
+}
 
 `;
 
@@ -5237,10 +5525,13 @@ function __uvdSetDiggingReady(kind, subtitle) {
   var actionRow = overlay.querySelector('.uvd-dig-action-row');
   var enterButton = overlay.querySelector('#__uvd_dig_enter__');
   var watchFirstButton = overlay.querySelector('#__uvd_dig_watch_first__');
-  if (actionRow) { actionRow.style.maxHeight = '72px'; actionRow.style.marginTop = '16px'; actionRow.style.opacity = '1'; actionRow.style.overflow = 'visible'; }
+  var canWatchFirst = kind === 'media';
+  if (actionRow) {
+    actionRow.style.maxHeight = '72px'; actionRow.style.marginTop = '16px'; actionRow.style.opacity = '1'; actionRow.style.overflow = 'visible';
+    actionRow.classList.toggle('uvd-dig-one-action', !canWatchFirst);
+  }
   if (enterButton) { enterButton.style.display = 'block'; enterButton.style.maxHeight = '60px'; enterButton.style.padding = '14px 16px'; enterButton.style.opacity = '1'; enterButton.style.background = 'linear-gradient(135deg,#ff91ae,#ef6689)'; }
   if (watchFirstButton) {
-    var canWatchFirst = kind === 'media';
     watchFirstButton.style.display = canWatchFirst ? 'block' : 'none';
     watchFirstButton.style.maxHeight = canWatchFirst ? '60px' : '0';
     watchFirstButton.style.padding = canWatchFirst ? '14px 16px' : '0';
@@ -5258,6 +5549,10 @@ function __uvdSetDiggingReady(kind, subtitle) {
   if (routeHint) routeHint.textContent = kind === 'iframe'
     ? 'Bấm vào để chọn player iframe mèo đã tìm thấy nha ♡'
     : 'Xem ngay để phát link đầu tiên · Vào link để so sánh & vote nha ♡';
+  var liveNote = overlay.querySelector('#__uvd_dig_live_note__');
+  if (liveNote) liveNote.textContent = kind === 'iframe'
+    ? 'Mèo đã lần ra một player có thể phát được!'
+    : 'Mèo mang video về rồi nè — chọn cách xem thôi!';
 }
 function __uvdStopDiggingRealtimeCapture() {
   var flow = __uvdDiggingFlow;
@@ -5344,22 +5639,35 @@ function __uvdStartDiggingPopup() {
     '<div class="uvd-digging-box" role="status" aria-live="polite">' +
       '<button type="button" class="uvd-popup-back-btn" id="__uvd_dig_back__" title="Quay lại">←</button>' +
       '<button type="button" class="uvd-dig-close" id="__uvd_dig_close__" title="Đóng">×</button>' +
-      '<div class="uvd-dig-art" style="width:280px;height:260px;transform:scale(1.08);margin-bottom:6px;">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
-      '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
-      '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
-      '<div class="uvd-dig-status-row" id="__uvd_dig_status_row__"><span id="__uvd_dig_status__">🔎 Đang quét nguồn</span><span id="__uvd_dig_count__">0 link</span></div>' +
-      '<div class="uvd-dig-action-row">' +
-        '<button type="button" class="uvd-dig-watch-first-btn" id="__uvd_dig_watch_first__">▶ Xem ngay</button>' +
-        '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
+      '<div class="uvd-dig-layout">' +
+        '<section class="uvd-dig-hero" aria-label="Mèo đang đào link">' +
+          '<div class="uvd-dig-glow uvd-dig-glow-one"></div><div class="uvd-dig-glow uvd-dig-glow-two"></div>' +
+          '<div class="uvd-dig-art">' + __uvdDiggingCatArt + '<i class="uvd-dig-dirt">✦</i><i class="uvd-dig-dirt">•</i><i class="uvd-dig-dirt">✦</i></div>' +
+          '<div class="uvd-dig-live-line"><i></i><span id="__uvd_dig_live_note__">Mèo đang lần theo dấu vết video…</span></div>' +
+        '</section>' +
+        '<section class="uvd-dig-copy">' +
+          '<div class="uvd-dig-kicker">HÀNH TRÌNH TÌM VIDEO</div>' +
+          '<div class="uvd-dig-title" id="__uvd_dig_title__">Đang đào link...</div>' +
+          '<div class="uvd-dig-sub" id="__uvd_dig_sub__">Mèo sẽ đào kỹ khoảng 20 giây cho cưng nè ♡</div>' +
+          '<div class="uvd-dig-status-row" id="__uvd_dig_status_row__"><span id="__uvd_dig_status__">🔎 Đang quét nguồn</span><span id="__uvd_dig_count__">0 link</span></div>' +
+        '</section>' +
+        '<section class="uvd-dig-actions-area">' +
+          '<div class="uvd-dig-action-row">' +
+            '<button type="button" class="uvd-dig-watch-first-btn" id="__uvd_dig_watch_first__">▶ Xem ngay</button>' +
+            '<button type="button" class="uvd-dig-enter-btn" id="__uvd_dig_enter__">Vào link ♡</button>' +
+          '</div>' +
+          '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
+        '</section>' +
+        '<section class="uvd-dig-footer">' +
+          '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">☰ Vào UI đầy đủ</button></div>' +
+          '<div class="uvd-dig-help">Chưa biết Mèo đang làm gì? <button type="button" id="__uvd_dig_help__">Xem hướng dẫn ♡</button></div>' +
+          '<div id="__uvd_dig_fact_wrap__" style="display:none;">' +
+            '<button type="button" id="__uvd_dig_fact_btn__">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
+            '<div id="__uvd_dig_fact_box__" style="display:none;"><div>✨</div><div id="__uvd_dig_fact_text__">Đang lấy fact vui...</div></div>' +
+          '</div>' +
+          '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
+        '</section>' +
       '</div>' +
-      '<div class="uvd-dig-route-hint" id="__uvd_dig_route_hint__">Bấm vào để mở link mèo vừa đào được nha ♡</div>' +
-      '<div class="uvd-dig-utility-row"><button type="button" class="uvd-dig-ui-btn" id="__uvd_dig_ui__">Vào UI</button></div>' +
-      '<div class="uvd-dig-help">Chưa biết đây là gì? <button type="button" id="__uvd_dig_help__" style="background:none;border:none;color:#d85c7a;font-weight:800;text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;">Bấm vào đây ♡</button></div>' +
-      '<div id="__uvd_dig_fact_wrap__" style="margin-top:12px;display:none;text-align:center;">' +
-        '<button type="button" id="__uvd_dig_fact_btn__" style="padding:8px 14px;border-radius:999px;border:1px dashed rgba(255,159,180,.4);background:linear-gradient(135deg,#fff6fb,#ffe9f3);color:#d85c7a;font-weight:700;font-size:11px;cursor:pointer;box-shadow:0 3px 10px rgba(247,108,140,.12);">Đào lâu quá chán? 🎲 Bấm xem fact vui nè</button>' +
-        '<div id="__uvd_dig_fact_box__" style="display:none;margin-top:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#fffdfd,#fff0f5);border:1px solid rgba(255,159,180,.28);box-shadow:0 6px 16px rgba(247,108,140,.12);font-size:12px;color:#7a5f9e;line-height:1.5;text-align:left;position:relative;overflow:hidden"><div style="position:absolute;right:8px;top:6px;font-size:12px">✨</div><div id="__uvd_dig_fact_text__" style="padding-right:16px">Đang lấy fact vui...</div></div>' +
-      '</div>' +
-      '<div class="uvd-dig-tip">💡 Tip: Mở video rồi bấm Play thật trên trang để Mèo bắt link nhanh hơn nha!</div>' +
     '</div>';
   __uvdAppendRoot(overlay);
   __uvdAutoFitPopup(overlay.querySelector('.uvd-digging-box'), .72, .90);
@@ -5420,17 +5728,12 @@ function __uvdStartDiggingPopup() {
       tryNext();
     };
   }
-  // Clear timer when popup closes
-  var origClose = overlay.querySelector('#__uvd_dig_close__');
-  if (origClose) {
-    var origCloseFn = origClose.onclick;
-    origClose.onclick = function(){ clearTimeout(factTimer); if(origCloseFn) origCloseFn(); };
-  }
-
+  // Both controls leave this popup cleanly; the timer must not reveal a fact
+  // after the card has gone away.
   var close = overlay.querySelector('#__uvd_dig_close__');
-  if (close) close.onclick = function() { __uvdStopDiggingPopup(false); };
+  if (close) close.onclick = function() { clearTimeout(factTimer); __uvdStopDiggingPopup(false); };
   var digBack = overlay.querySelector('#__uvd_dig_back__');
-  if (digBack) digBack.onclick = function() { __uvdStopDiggingPopup(false); };
+  if (digBack) digBack.onclick = function() { clearTimeout(factTimer); __uvdStopDiggingPopup(false); };
   var initialStatus = overlay.querySelector('#__uvd_dig_status__');
   if (initialStatus) initialStatus.textContent = '⚡ Đang quét realtime';
   __uvdStartDiggingRealtimeCapture();
@@ -5825,7 +6128,7 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   var panel = document.createElement('div');
   panel.className = 'uvd-media-preview-panel';
   var compact = __uvdCompactPopupUrl(url);
-  panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button><button type="button" class="uvd-popup-settings-btn uvd-preview-settings-btn" title="Cài đặt">⚙</button>' +
+  panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button>' +
     '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
     '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · kiểm tra trước khi vote</div>' +
     '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
@@ -5956,7 +6259,6 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   }
   panel.querySelector('.uvd-media-preview-close').onclick = close;
   panel.querySelector('.uvd-media-preview-back').onclick = close;
-  panel.querySelector('.uvd-preview-settings-btn').onclick = function(e) { e.stopPropagation(); openSettingsOverlay(); };
   panel.querySelector('.uvd-media-preview-play').onclick = playThisLink;
   overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
 }

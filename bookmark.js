@@ -3249,13 +3249,19 @@ function findSourceVideoElement(url) {
 }
 
 function openPlayerSettingsOverlay() {
-  // Player controls belong to the one canonical Settings panel. Keep this
-  // function as the player gear's entry point, but route it to that section.
-  openSettingsOverlay();
-  setTimeout(function() {
-    var section = document.getElementById('__uvd_player_settings_section__');
-    if (section && section.scrollIntoView) section.scrollIntoView({ block: 'start', behavior: 'smooth' });
-  }, 80);
+  if (document.getElementById('__uvd_player_settings_overlay__')) return;
+  var overlay = document.createElement('div');
+  overlay.id = '__uvd_player_settings_overlay__';
+  overlay.className = 'uvd-settings-overlay uvd-player-settings-overlay';
+  overlay.innerHTML = '<div class="uvd-settings-sheet uvd-player-settings-sheet"><div class="uvd-settings-header"><button class="uvd-back-btn" type="button">←</button><span class="uvd-player-settings-mascot">' + (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '🐹') + '</span><div class="uvd-settings-title-wrap"><span class="uvd-settings-title">⚙ Cài đặt Player</span><span class="uvd-settings-subtitle">Chỉ áp dụng cho trình phát</span></div></div><div class="uvd-settings-body"></div></div>';
+  __uvdAppendRoot(overlay);
+  var sheet = overlay.querySelector('.uvd-player-settings-sheet');
+  var body = overlay.querySelector('.uvd-settings-body');
+  renderPlayerSettings(body);
+  function close() { overlay.classList.remove('uvd-open'); setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 220); }
+  overlay.querySelector('.uvd-back-btn').onclick = close;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+  requestAnimationFrame(function() { overlay.classList.add('uvd-open'); });
 }
 
 // ========== SHOW VIDEO PLAYER ==========
@@ -3340,8 +3346,8 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   var playerSettingsBtn = document.createElement('button');
   playerSettingsBtn.className = 'uvd-icon-btn uvd-player-settings-btn';
   playerSettingsBtn.textContent = '⚙';
-  playerSettingsBtn.title = 'Cài đặt chung';
-  playerSettingsBtn.setAttribute('aria-label', 'Mở cài đặt chung');
+  playerSettingsBtn.title = 'Cài đặt Player';
+  playerSettingsBtn.setAttribute('aria-label', 'Mở cài đặt Player');
   playerSettingsBtn.onclick = function(e) { e.stopPropagation(); openPlayerSettingsOverlay(); };
 
   var playerHeaderTitle = document.createElement('div');
@@ -5559,11 +5565,6 @@ style.textContent = `
 /* Current Session always keeps a quiet guide, even before a result is proven. */
 .uvd-popup-reminder-passive{min-width:0;overflow:hidden;color:#806293;font-size:10px;font-weight:750;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
 
-/* Player preferences are now part of the main Settings sheet, so their native
-   controls inherit the same pastel surface instead of a dark mini-settings UI. */
-.uvd-settings-player-section{display:flex;flex-direction:column;gap:9px}
-.uvd-settings-player-section .uvd-card{margin:0!important}
-.uvd-settings-player-section select,.uvd-settings-player-section input[type="number"]{background:rgba(255,255,255,.82)!important;border-color:rgba(194,150,255,.28)!important;color:#785382!important}
 
 `;
 
@@ -8857,11 +8858,6 @@ function renderPlayerSettings(container) {
       buildToggleRow('__uvd_toggle_datasaver__', 'Chế độ tiết kiệm data (ép chất lượng thấp)', s.dataSaver) +
       buildToggleRow('__uvd_toggle_autohide__', 'Tự động ẩn thanh điều khiển', s.autoHideControls) +
       buildToggleRow('__uvd_toggle_showremaining__', 'Hiển thị thời gian còn lại', s.showRemainingTime) +
-      '<div style="font-size:12px;color:var(--text2);margin:12px 0 6px;">Kiểu ẩn Mèo cào media</div>' +
-      '<select id="__uvd_hide_mode__" style="width:100%;padding:10px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid var(--border);border-radius:10px;">' +
-        '<option value="floating"' + (s.hideMode === 'floating' ? ' selected' : '') + '>Icon floating di chuyển được (mặc định)</option>' +
-        '<option value="header"' + (s.hideMode === 'header' ? ' selected' : '') + '>Thu nhỏ còn header</option>' +
-      '</select>' +
     '</div>' +
 
     '<div class="uvd-card">' +
@@ -8900,11 +8896,6 @@ function renderPlayerSettings(container) {
   document.getElementById('__uvd_set_quality__').onchange = function() {
     s.defaultQuality = this.value;
     storage.set(data);
-  };
-  document.getElementById('__uvd_hide_mode__').onchange = function() {
-    s.hideMode = this.value === 'header' ? 'header' : 'floating';
-    storage.set(data);
-    toast(s.hideMode === 'floating' ? 'Ẩn dạng icon floating' : 'Ẩn dạng header');
   };
   document.getElementById('__uvd_doubletap_seconds__').onchange = function() {
     var val = parseInt(this.value) || 10;
@@ -9049,6 +9040,15 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-card">' +
+      '<div style="font-weight:600;margin-bottom:8px;">🫥 Khi thu gọn script</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Chọn cách Mèo cào media thu gọn khi cưng bấm nút ▾ trên Main UI.</div>' +
+      '<select id="__uvd_hide_mode__" style="width:100%;padding:10px;background:var(--btn-bg);border:1px solid var(--border);border-radius:10px;color:#d85c7a;">' +
+        '<option value="floating"' + (data.settings.hideMode === 'floating' ? ' selected' : '') + '>Icon floating di chuyển được (mặc định)</option>' +
+        '<option value="header"' + (data.settings.hideMode === 'header' ? ' selected' : '') + '>Thu nhỏ còn header</option>' +
+      '</select>' +
+    '</div>' +
+
+    '<div class="uvd-card">' +
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🎨 Giao diện</div>' +
       '<div class="uvd-callout" style="margin-top:0;"><span class="uvd-callout-icon">🎨</span><span>Giao diện hiện dùng <strong style="color:var(--accent-text);">Light Teal</strong> để ưu tiên độ tương phản và dễ đọc. Dark Glass sẽ được hoàn thiện riêng sau.</span></div>' +
@@ -9061,9 +9061,6 @@ function renderSettings(container) {
       '<input type="range" id="__uvd_fx_range__" min="0" max="100" step="5" value="' + data.settings.effectsIntensity + '" style="width:100%;">' +
       '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Tắt hoàn toàn nếu đã bật chế độ hiệu suất ở trên.</div>' +
     '</div>' +
-
-    '<div class="uvd-settings-group-title">🎬 Trình phát</div>' +
-    '<div id="__uvd_player_settings_section__" class="uvd-settings-player-section"></div>' +
 
     '<div class="uvd-settings-group-title">🔎 Đào link nâng cao</div>' +
     '<div class="uvd-card">' +
@@ -9168,11 +9165,6 @@ function renderSettings(container) {
     '</div>' +
     '<div class="uvd-profile-footer">© ' + new Date().getFullYear() + ' nguyenquocngu91 · Mèo cào media v' + VERSION + ' · Made for Chrome Android</div>';
 
-  // The old standalone Player Settings sheet now renders inside this one
-  // settings body, preserving every existing player preference and handler.
-  var playerSettingsSection = document.getElementById('__uvd_player_settings_section__');
-  if (playerSettingsSection) renderPlayerSettings(playerSettingsSection);
-
   container.querySelectorAll('.uvd-btn').forEach(function(b) { b.addEventListener('click', addRipple); });
 
   container.querySelectorAll('.uvd-code-copy').forEach(function(b) {
@@ -9187,6 +9179,13 @@ function renderSettings(container) {
     storage.set(data);
     applyMotionPref(document.getElementById('__uvd__'));
     toast(isOn ? 'Đã bật chế độ hiệu suất' : 'Đã tắt chế độ hiệu suất');
+  };
+
+  var hideModeInput = document.getElementById('__uvd_hide_mode__');
+  if (hideModeInput) hideModeInput.onchange = function() {
+    data.settings.hideMode = this.value === 'header' ? 'header' : 'floating';
+    storage.set(data);
+    toast(data.settings.hideMode === 'floating' ? 'Ẩn dạng icon floating' : 'Ẩn dạng header');
   };
 
   document.getElementById('__uvd_blur_range__').oninput = function() {

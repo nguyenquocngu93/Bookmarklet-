@@ -2798,7 +2798,7 @@ function __uvdTmdbCleanTitle(raw) {
   return String(raw || '')
     .replace(/https?:\/\/\S+/gi, ' ').replace(/\[[^\]]*\]|\([^)]*(?:1080|720|vietsub|thuyết minh|lồng tiếng)[^)]*\)/gi, ' ')
     .replace(/\b(?:tap|tập|episode|ep|phần|season|s\d+e\d+)\s*\d*\b/gi, ' ')
-    .replace(/\b(?:1080p|720p|480p|m3u8|mp4|vietsub|thuyet minh|long tieng|full hd|watch online)\b/gi, ' ')
+    .replace(/\b(?:xem|phim|full|trailer|teaser|1080p|720p|480p|m3u8|mp4|vietsub|thuyet minh|long tieng|full hd|watch online)\b/gi, ' ')
     .replace(/[_|·–—-]+/g, ' ').replace(/\s+/g, ' ').trim()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
@@ -2823,7 +2823,7 @@ function __uvdTmdbJson(path, localUrl) {
     return fetch(localUrl, { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
   });
 }
-function __uvdTmdbSourceTitles(title) {
+function __uvdTmdbRawTitleSources(title) {
   var raw = [title, pageInfo && pageInfo.title, document.title];
   try {
     var og = document.querySelector('meta[property="og:title"],meta[name="twitter:title"]');
@@ -2832,12 +2832,39 @@ function __uvdTmdbSourceTitles(title) {
     if (h1 && h1.textContent) raw.push(h1.textContent);
   } catch(e) {}
   var seen = {};
-  return raw.map(function(value) { return __uvdTmdbCleanTitle(value); }).filter(function(value) {
+  return raw.map(function(value) { return String(value || '').replace(/\s+/g, ' ').trim(); }).filter(function(value) {
+    var key = value.toLowerCase();
+    if (value.length < 3 || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  }).slice(0, 5);
+}
+function __uvdTmdbSourceTitles(title) {
+  var seen = {};
+  return __uvdTmdbRawTitleSources(title).map(function(value) { return __uvdTmdbCleanTitle(value); }).filter(function(value) {
     var key = value.toLowerCase();
     if (value.length < 3 || seen[key]) return false;
     seen[key] = true;
     return true;
   }).slice(0, 4);
+}
+function __uvdTmdbEnglishFragments(rawTitles) {
+  var generic = { xem:1, phim:1, tap:1, episode:1, full:1, vietsub:1, thuyet:1, minh:1, ma:1, cay:1, lua:1, dia:1, nguc:1 };
+  var seen = {}, found = [];
+  (rawTitles || []).forEach(function(raw) {
+    // Vietnamese pages often append the official English title after the local
+    // one (e.g. "Ma Cây Lửa Địa Ngục Evil Dead Burn"). Extract that ASCII
+    // title directly so TMDB English works even without an AI translator.
+    var matches = String(raw || '').match(/(?:[A-Z][A-Za-z0-9'’:-]*\s+){1,7}[A-Z][A-Za-z0-9'’:-]*/g) || [];
+    matches.forEach(function(match) {
+      var clean = __uvdTmdbCleanTitle(match);
+      var words = clean.toLowerCase().split(/\s+/).filter(Boolean);
+      if (words.length < 2 || generic[words[0]] || words.every(function(word) { return generic[word]; })) return;
+      var key = clean.toLowerCase();
+      if (!seen[key]) { seen[key] = true; found.push(clean); }
+    });
+  });
+  return found.slice(0, 4);
 }
 function __uvdTmdbTranslateTitles(titles) {
   titles = (titles || []).slice(0, 4);
@@ -2916,13 +2943,16 @@ function __uvdCastTmdbVote(sourceTitle, movie, kind) {
   return rec;
 }
 function __uvdFindTmdbMovie(title) {
+  var rawTitles = __uvdTmdbRawTitleSources(title);
   var sourceTitles = __uvdTmdbSourceTitles(title);
   if (!sourceTitles.length) return Promise.resolve(null);
   var primary = sourceTitles[0];
   var key = String(data.settings.tmdbApiKey || '').trim();
   var yearMatch = primary.match(/\b(19\d{2}|20\d{2})\b/);
   var year = yearMatch && yearMatch[1];
-  return __uvdTmdbTranslateTitles(sourceTitles).then(function(englishTitles) {
+  return __uvdTmdbTranslateTitles(sourceTitles).then(function(translatedTitles) {
+    var detectedEnglish = __uvdTmdbEnglishFragments(rawTitles);
+    var englishTitles = __uvdMergeStringLists(detectedEnglish, translatedTitles);
     var allTitles = sourceTitles.concat(englishTitles);
     var specs = __uvdTmdbSearchSpecs(sourceTitles, englishTitles);
     return __uvdTmdbSearchAll(specs, key).then(function(groups) {

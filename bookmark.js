@@ -5920,6 +5920,79 @@ style.textContent = `
   #__uvd_tutorial__ .uvd-tutorial-tip{margin-top:6px;padding:7px 9px;font-size:9px}
   #__uvd_tutorial__ .uvd-tutorial-nav{margin-top:7px}
 }
+/* ===== CURRENT SESSION COPY, FAREWELL MEMORY, WIDE PREVIEW STAGE ===== */
+.uvd-main-clean .uvd-popup-reminder-rail{min-height:59px!important;padding:7px 9px!important}
+.uvd-popup-reminder-compact-open{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto!important;
+  column-gap:8px;
+  row-gap:2px;
+  align-items:center!important;
+  white-space:normal!important
+}
+.uvd-popup-reminder-compact-open .uvd-session-guide-copy{
+  overflow:hidden!important;
+  color:#735789;
+  font-size:10.5px;
+  font-weight:900;
+  line-height:1.18;
+  text-overflow:ellipsis;
+  white-space:nowrap!important
+}
+.uvd-popup-reminder-compact-open small{
+  grid-column:1;
+  display:block;
+  overflow:hidden;
+  color:#9a7ca1;
+  font-size:8.8px;
+  font-weight:700;
+  line-height:1.22;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+.uvd-popup-reminder-compact-open b{grid-column:2;grid-row:1 / span 2;white-space:nowrap}
+.uvd-popup-reminder-passive{display:flex;flex-direction:column;justify-content:center;gap:2px;white-space:normal!important}
+.uvd-popup-reminder-passive strong{color:#735789;font-size:10.5px;line-height:1.18}
+.uvd-popup-reminder-passive small{color:#9a7ca1;font-size:8.8px;line-height:1.22}
+
+#__uvd_farewell_popup__ .uvd-farewell-memory{
+  margin:11px 0 0;
+  padding:9px 10px 10px;
+  border:1px dashed rgba(194,150,255,.34);
+  border-radius:14px;
+  background:rgba(255,255,255,.52);
+  color:#8b6a9b;
+  font-size:9.5px;
+  font-weight:850;
+  line-height:1.35
+}
+#__uvd_farewell_popup__ .uvd-farewell-memory>span{display:block;margin-bottom:6px;color:#a16b95;font-size:9px;letter-spacing:.04em}
+#__uvd_farewell_popup__ .uvd-farewell-memory>div{display:flex;justify-content:center;gap:5px;flex-wrap:wrap}
+#__uvd_farewell_popup__ .uvd-farewell-memory i{padding:4px 6px;border:1px solid rgba(255,159,180,.2);border-radius:999px;background:rgba(255,255,255,.72);color:#7b618c;font-style:normal;white-space:nowrap}
+@media (max-height:650px) and (max-width:560px){
+  #__uvd_farewell_popup__ .uvd-farewell-memory{margin-top:7px;padding:7px 8px;font-size:8.5px}
+  #__uvd_farewell_popup__ .uvd-farewell-memory>span{margin-bottom:4px;font-size:8px}
+  #__uvd_farewell_popup__ .uvd-farewell-memory i{padding:3px 5px}
+}
+
+/* Preview inherits uvd-card-preview on purpose, but that old mobile rule had
+   a fixed 122px height. Restore a real 16:9 stage so the main frame is as wide
+   and useful as a Stream thumbnail. */
+#__uvd_media_preview__>.uvd-media-preview-panel{width:min(94vw,560px)!important}
+#__uvd_media_preview__ .uvd-media-preview-stage{
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:16 / 9!important;
+  margin-top:12px!important;
+  border-radius:18px!important
+}
+#__uvd_media_preview__ .uvd-media-preview-stage img{width:100%!important;height:100%!important;object-fit:cover!important}
+@media (max-width:560px){
+  #__uvd_media_preview__>.uvd-media-preview-panel{width:calc(100vw - 20px)!important}
+  #__uvd_media_preview__ .uvd-media-preview-stage{aspect-ratio:16 / 9!important}
+}
 `;
 
 
@@ -6111,7 +6184,9 @@ function __uvdSessionPopupGuideInfo() {
     return {
       kind: 'media',
       mascot: typeof __uvdTabMascotRabbit !== 'undefined' ? __uvdTabMascotRabbit : '🐰',
-      compact: direct.length + ' link đã kiểm chứng sẵn sàng'
+      compact: direct.length + ' link đã kiểm chứng sẵn sàng',
+      message: 'Link nhiều quá không biết xem ở đâu?',
+      detail: 'Chúng tui lựa và kiểm chứng cho bạn · ' + direct.length + ' link thật'
     };
   }
   var frames = __uvdCollectWorkflowFrames().filter(function(candidate) {
@@ -6121,13 +6196,17 @@ function __uvdSessionPopupGuideInfo() {
     return {
       kind: 'iframe',
       mascot: typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : '🖼️',
-      compact: frames.length + ' player iframe đang chờ'
+      compact: frames.length + ' player iframe đang chờ',
+      message: 'Mèo đã lựa được player có triển vọng',
+      detail: frames.length + ' iframe đang chờ cưng kiểm tra'
     };
   }
   return {
     kind: 'scan',
     mascot: typeof __uvdTabMascotCat !== 'undefined' ? __uvdTabMascotCat : '🐾',
-    compact: 'Mèo đang lọc link · mở video rồi bấm Play để Mèo kiểm chứng nha'
+    compact: 'Mèo đang lọc link',
+    message: 'Chưa biết xem ở đâu hả?',
+    detail: 'Mở video rồi bấm Play để Mèo lựa và kiểm chứng cho bạn nha'
   };
 }
 function __uvdOpenSessionPopup(kind) {
@@ -6160,10 +6239,12 @@ function __uvdRenderPopupReminder() {
   var reminder = document.createElement('section');
   reminder.className = 'uvd-popup-reminder uvd-popup-reminder-rail';
   reminder.setAttribute('aria-label', actionable ? 'Mở popup ' + info.kind : 'Trạng thái đào link');
+  var guideMessage = info.message || info.compact;
+  var guideDetail = info.detail || '';
   reminder.innerHTML = '<span class="uvd-popup-reminder-mascot">' + info.mascot + '</span>' +
     (actionable
-      ? '<button type="button" class="uvd-popup-reminder-compact-open"><span>' + escapeHtml(info.compact) + '</span><b>' + (deferred ? ' Mở lại ♡' : ' Mở Popup ♡') + '</b></button>'
-      : '<span class="uvd-popup-reminder-passive">' + escapeHtml(info.compact) + '</span>');
+      ? '<button type="button" class="uvd-popup-reminder-compact-open"><span class="uvd-session-guide-copy">' + escapeHtml(guideMessage) + '</span><small>' + escapeHtml(guideDetail) + '</small><b>' + (deferred ? 'Mở lại ♡' : 'Mở Popup ♡') + '</b></button>'
+      : '<span class="uvd-popup-reminder-passive"><strong>' + escapeHtml(guideMessage) + '</strong><small>' + escapeHtml(guideDetail) + '</small></span>');
   slot.appendChild(reminder);
   var open = reminder.querySelector('.uvd-popup-reminder-compact-open');
   if (open) open.onclick = function() {
@@ -6973,6 +7054,9 @@ function __uvdShowFarewellPopup(onConfirm) {
   box.className = 'uvd-digging-box uvd-farewell-box';
   // To nhu popup dao link
   box.style.cssText = 'width:100%;max-width:540px;min-height:620px;padding:28px 24px 24px;border-radius:36px;text-align:center;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 32px 80px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.44) inset;animation:uvdScaleIn .44s cubic-bezier(.22,1,.36,1) both;';
+  var farewellVerified = __uvdQualifiedDirectEntries().length;
+  var farewellHistory = (data.history || []).length;
+  var farewellSync = data.settings && data.settings.syncProfileId ? '☁ Profile Sync sẵn sàng' : '💾 Ký ức lưu trên máy';
   box.innerHTML =
     '<section class="uvd-farewell-scene">' +
       '<div class="uvd-farewell-art">' + __uvdGetFarewellMascotsHtml() + '</div>' +
@@ -6982,6 +7066,7 @@ function __uvdShowFarewellPopup(onConfirm) {
       '<div class="uvd-farewell-title">Tạm biệt cưng iu ♡</div>' +
       '<div class="uvd-farewell-thanks">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
       '<div class="uvd-farewell-copy">Mấy đứa tụi mình sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+      '<div class="uvd-farewell-memory"><span>Trước khi đi, Mèo cất giúp cưng:</span><div><i>✨ ' + farewellVerified + ' link đã kiểm chứng</i><i>🕘 ' + farewellHistory + ' mục lịch sử</i><i>' + escapeHtml(farewellSync) + '</i></div></div>' +
     '</section>' +
     '<div class="uvd-farewell-actions">' +
       '<button id="__uvd_farewell_stay__">Ở lại ♡</button>' +

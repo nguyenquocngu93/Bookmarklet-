@@ -5056,6 +5056,313 @@ style.textContent = `
   #__uvd_digging_popup__ .uvd-dig-live-line i{animation:none!important}
 }
 
+/* ===== POPUP DESIGN SYSTEM: VIDEO, IFRAME, FAREWELL & COMPACT TOOLS ===== */
+/* Large workflow surfaces share one reliable frame.  Their content regions,
+   rather than magic margins, are the only portions that scroll. */
+#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_farewell_popup__{
+  align-items:center!important;
+  justify-content:center!important;
+  padding:12px!important;
+  overflow:hidden!important;
+  background:radial-gradient(circle at 50% 9%,rgba(255,229,242,.78),rgba(103,66,128,.56) 52%,rgba(38,23,51,.76))!important
+}
+#__uvd_media_links_prompt__>.uvd-glass-panel,
+#__uvd_iframe_workflow_prompt__>.uvd-glass-panel{
+  box-sizing:border-box!important;
+  width:min(94vw,680px)!important;
+  height:90vh!important;
+  height:min(90dvh,800px)!important;
+  min-height:0!important;
+  max-height:calc(100dvh - 24px)!important;
+  margin:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border-radius:34px!important;
+  background:linear-gradient(160deg,#fffdfd 0%,#fff0f7 48%,#f1eaff 100%)!important;
+  box-shadow:0 28px 76px rgba(49,25,64,.46),0 0 0 6px rgba(255,255,255,.22) inset!important
+}
+#__uvd_media_links_prompt__ .uvd-workflow-hero,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-hero{
+  position:relative;
+  isolation:isolate;
+  flex:0 0 232px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:25px 26px 18px;
+  background:radial-gradient(ellipse at 50% 26%,rgba(255,255,255,.92),rgba(255,219,238,.5) 46%,rgba(231,215,255,.18) 72%,transparent 73%)
+}
+#__uvd_media_links_prompt__ .uvd-workflow-hero::before,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-hero::before{
+  content:'';
+  position:absolute;
+  z-index:-1;
+  width:280px;
+  height:280px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.67),rgba(255,194,221,.18) 58%,transparent 70%);
+  transform:translateY(-16px)
+}
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-hero{background:radial-gradient(ellipse at 50% 26%,rgba(255,255,255,.92),rgba(255,224,235,.53) 46%,rgba(250,208,222,.18) 72%,transparent 73%)}
+#__uvd_media_links_prompt__ .uvd-media-popup-mascot,
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-popup-mascot{
+  width:158px!important;
+  height:144px!important;
+  margin:0 0 3px!important;
+  line-height:0;
+  transform:none!important;
+  filter:drop-shadow(0 12px 16px rgba(247,108,140,.22));
+  animation:uvdMascotHop 1.8s ease-in-out infinite!important
+}
+#__uvd_media_links_prompt__ .uvd-media-popup-mascot svg,
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-popup-mascot svg{animation:uvdMascotWiggle 1.45s ease-in-out infinite!important}
+#__uvd_media_links_prompt__ .uvd-workflow-kicker,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-kicker{
+  color:#a776c3;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.14em;
+  line-height:1.2
+}
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-kicker{color:#cd7893}
+#__uvd_media_links_prompt__ .uvd-popup-back-btn,
+#__uvd_iframe_workflow_prompt__ .uvd-popup-back-btn,
+#__uvd_media_links_prompt__ .uvd-workflow-close,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-close{
+  position:absolute!important;
+  top:14px!important;
+  z-index:5;
+  width:36px!important;
+  height:36px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 5px 14px rgba(127,76,139,.14)!important;
+  cursor:pointer
+}
+#__uvd_media_links_prompt__ .uvd-popup-back-btn,
+#__uvd_iframe_workflow_prompt__ .uvd-popup-back-btn{left:14px!important;border:1px solid rgba(194,150,255,.32)!important;color:#8a6ab0!important}
+#__uvd_media_links_prompt__ .uvd-workflow-close,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-close{right:14px!important;border:1px solid rgba(255,159,180,.32)!important;color:#c95073!important;font-size:17px!important;line-height:1}
+#__uvd_media_links_prompt__ .uvd-workflow-body,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-body{
+  box-sizing:border-box;
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  padding:4px 28px 22px;
+  text-align:center
+}
+#__uvd_media_links_prompt__ .uvd-workflow-title,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-title{
+  color:#8e67bd;
+  font-size:23px;
+  font-weight:950;
+  letter-spacing:-.035em;
+  line-height:1.13
+}
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-title{color:#c95073}
+#__uvd_media_links_prompt__ .uvd-workflow-copy,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-copy{
+  max-width:500px;
+  margin:7px auto 11px;
+  color:#765d83;
+  font-size:13px;
+  font-weight:650;
+  line-height:1.5
+}
+#__uvd_media_links_prompt__ .uvd-workflow-copy b{color:#9568c0}
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-copy{color:#926276}
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-copy b{color:#cf6687}
+#__uvd_media_links_prompt__ .uvd-popup-feedback,
+#__uvd_iframe_workflow_prompt__ .uvd-popup-feedback{margin:0 0 10px!important;text-align:left}
+#__uvd_media_links_prompt__ .uvd-workflow-list,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-list{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:none!important;
+  margin:0 0 13px!important;
+  padding:2px 3px 1px;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  text-align:left
+}
+#__uvd_media_links_prompt__ .uvd-workflow-list::-webkit-scrollbar,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-list::-webkit-scrollbar{width:6px}
+#__uvd_media_links_prompt__ .uvd-workflow-list::-webkit-scrollbar-thumb,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-list::-webkit-scrollbar-thumb{border-radius:99px;background:rgba(179,133,242,.38)}
+#__uvd_media_links_prompt__ .uvd-plplain,
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-cute-row{
+  box-sizing:border-box;
+  min-height:104px;
+  margin:0 0 10px!important;
+  padding:13px!important;
+  border:1px solid rgba(194,150,255,.27)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(248,240,255,.88))!important;
+  box-shadow:0 6px 16px rgba(150,90,220,.1),inset 0 1px 0 rgba(255,255,255,.9)!important
+}
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-cute-row{border-color:rgba(255,159,180,.3)!important;background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(255,239,245,.9))!important}
+#__uvd_media_links_prompt__ .uvd-plplain{grid-template-columns:minmax(0,1fr) 118px!important;gap:12px!important}
+#__uvd_media_links_prompt__ .uvd-plplain-url{padding:8px 9px!important;font-size:11px!important;background:rgba(243,236,255,.6)!important}
+#__uvd_media_links_prompt__ .uvd-plplain-note{font-size:10.5px!important}
+#__uvd_media_links_prompt__ .uvd-plplain-actions{width:118px!important;min-width:118px!important;gap:7px!important}
+#__uvd_media_links_prompt__ .uvd-plrow-watch,
+#__uvd_media_links_prompt__ .uvd-plrow-preview,
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-probe-btn,
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-probe-actions .uvd-btn{
+  min-height:42px;
+  border-radius:12px!important;
+  font-size:10.5px!important;
+  font-weight:900!important
+}
+#__uvd_media_links_prompt__ .uvd-plrow-watch{border:0!important;background:linear-gradient(135deg,#ae84e7,#8960c9)!important;color:#fff!important;box-shadow:0 6px 13px rgba(150,90,220,.22)!important}
+#__uvd_media_links_prompt__ .uvd-plrow-preview{background:#fff!important;color:#8a6ab0!important}
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-probe-actions{min-width:130px!important;gap:7px!important}
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-probe-btn{border-color:rgba(255,159,180,.32)!important;background:#fff!important;color:#c95073!important}
+#__uvd_iframe_workflow_prompt__ .uvd-iframe-probe-actions .uvd-btn{background:linear-gradient(135deg,#ff9ab4,#ef6689)!important;color:#fff!important;box-shadow:0 6px 13px rgba(247,108,140,.2)!important}
+#__uvd_media_links_prompt__ .uvd-workflow-later,
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-later{
+  flex:0 0 auto;
+  width:100%;
+  min-height:48px;
+  border:0!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,#c5a0f4,#a477df)!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  box-shadow:0 8px 17px rgba(150,90,220,.2)!important
+}
+#__uvd_iframe_workflow_prompt__ .uvd-workflow-later{background:linear-gradient(135deg,#ff9ab4,#ef6689)!important;box-shadow:0 8px 17px rgba(247,108,140,.2)!important}
+
+/* Farewell is also a full workflow card, but warmer and calmer than the
+   discovery surfaces: the animal gets breathing room and the decision stays at
+   the bottom, never marooned halfway up the panel. */
+#__uvd_farewell_popup__>.uvd-farewell-box{
+  box-sizing:border-box!important;
+  width:min(94vw,680px)!important;
+  height:90vh!important;
+  height:min(90dvh,800px)!important;
+  min-height:0!important;
+  max-height:calc(100dvh - 24px)!important;
+  margin:auto!important;
+  padding:20px 28px 22px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow-y:auto!important;
+  border:1px solid rgba(255,255,255,.9)!important;
+  border-radius:34px!important;
+  background:linear-gradient(160deg,#fffdfd 0%,#fff0f6 49%,#f2eaff 100%)!important;
+  box-shadow:0 28px 76px rgba(49,25,64,.46),0 0 0 6px rgba(255,255,255,.22) inset!important
+}
+#__uvd_farewell_popup__ .uvd-farewell-art{
+  flex:1 1 250px;
+  min-height:220px;
+  width:min(78vw,340px)!important;
+  height:auto!important;
+  margin:0 auto 4px!important;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  line-height:0
+}
+#__uvd_farewell_popup__ .uvd-farewell-kicker{margin:0!important;color:#aa7ac5!important;font-size:10px!important;font-weight:950!important;letter-spacing:.15em!important}
+#__uvd_farewell_popup__ .uvd-farewell-title{margin-top:7px;color:#c95073;font-size:29px;font-weight:950;letter-spacing:-.045em;line-height:1.1}
+#__uvd_farewell_popup__ .uvd-farewell-thanks{margin-top:8px;color:#8e69b4;font-size:14px;font-weight:850}
+#__uvd_farewell_popup__ .uvd-farewell-copy{max-width:480px;margin:10px auto 0;color:#765d83;font-size:12.5px;font-weight:650;line-height:1.55}
+#__uvd_farewell_popup__ .uvd-farewell-actions{display:grid;grid-template-columns:1fr 1.15fr;gap:10px;margin-top:18px}
+#__uvd_farewell_popup__ .uvd-farewell-actions button{min-height:55px;border:0!important;border-radius:16px!important;font-size:13px!important;font-weight:900!important;cursor:pointer}
+#__uvd_farewell_popup__ #__uvd_farewell_stay__{background:rgba(255,255,255,.82)!important;border:1px solid rgba(255,159,180,.3)!important;color:#c95073!important}
+#__uvd_farewell_popup__ #__uvd_farewell_bye__{background:linear-gradient(135deg,#ff9ab4,#ef6689)!important;color:#fff!important;box-shadow:0 9px 18px rgba(247,108,140,.25)!important}
+
+/* Compact tools remain compact: preparing a player, inspecting a preview, and
+   resume choice should never inherit the tall workflow frame. */
+#__uvd_play_intro__,#__uvd_media_preview__,#__uvd_resume_prompt__{align-items:center!important;justify-content:center!important;overflow:hidden!important}
+#__uvd_play_intro__>.uvd-play-intro-card{
+  box-sizing:border-box!important;
+  width:min(92vw,440px)!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:82dvh!important;
+  margin:auto!important;
+  padding:23px 24px 22px!important;
+  border-radius:29px!important;
+  overflow-y:auto!important;
+  background:linear-gradient(160deg,#fffdfd,#fff0f7 56%,#f1eaff)!important;
+  box-shadow:0 24px 60px rgba(49,25,64,.36),0 0 0 5px rgba(255,255,255,.24) inset!important
+}
+#__uvd_play_intro__ .uvd-play-intro-mascot{width:116px!important;height:108px!important;margin:0 auto 7px!important;line-height:0;transform:none!important;filter:drop-shadow(0 10px 15px rgba(247,108,140,.2))}
+#__uvd_play_intro__ .uvd-play-intro-title{color:#946bc0;font-size:23px;font-weight:950;letter-spacing:-.035em}
+#__uvd_play_intro__ .uvd-play-intro-copy{margin-top:7px;color:#765d83;font-size:13px;font-weight:650}
+#__uvd_play_intro__ .uvd-play-intro-hint{margin:3px 0 15px;color:#9271a1;font-size:12px;line-height:1.45}
+#__uvd_play_intro__ .uvd-play-intro-hint b{color:#9568c0}
+#__uvd_play_intro__ .uvd-play-intro-open{width:100%;min-height:49px;border:0!important;border-radius:15px!important;background:linear-gradient(135deg,#b98df2,#9668d9)!important;color:#fff!important;font-size:13px!important;font-weight:900!important;box-shadow:0 8px 17px rgba(150,90,220,.22)!important}
+#__uvd_media_preview__{padding:12px!important;background:rgba(38,22,48,.78)!important}
+#__uvd_media_preview__>.uvd-media-preview-panel{
+  box-sizing:border-box!important;
+  width:min(92vw,480px)!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:82dvh!important;
+  margin:auto!important;
+  padding:20px!important;
+  overflow-y:auto!important;
+  border-radius:29px!important;
+  background:linear-gradient(160deg,#fffdfd,#fff0f7 55%,#f1eaff)!important
+}
+#__uvd_media_preview__ .uvd-media-preview-kicker{padding-right:42px;color:#a776c3!important}
+#__uvd_media_preview__ .uvd-media-preview-title{font-size:18px!important;line-height:1.25}
+#__uvd_media_preview__ .uvd-media-preview-stage{min-height:0!important;border-radius:17px!important}
+#__uvd_media_preview__ .uvd-media-preview-actions{margin-top:13px!important}
+#__uvd_resume_prompt__>.uvd-resume-card{width:min(92vw,390px)!important;min-height:0!important;padding:23px 22px 20px!important;border-radius:29px!important}
+#__uvd_resume_prompt__ .uvd-resume-mascot{width:78px!important;height:78px!important}
+
+@media (max-width:560px){
+  #__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_farewell_popup__{padding:10px!important}
+  #__uvd_media_links_prompt__>.uvd-glass-panel,
+  #__uvd_iframe_workflow_prompt__>.uvd-glass-panel,
+  #__uvd_farewell_popup__>.uvd-farewell-box{width:calc(100vw - 20px)!important;height:calc(100dvh - 20px)!important;max-height:calc(100dvh - 20px)!important}
+  #__uvd_media_links_prompt__ .uvd-workflow-hero,
+  #__uvd_iframe_workflow_prompt__ .uvd-workflow-hero{flex-basis:198px;padding:22px 18px 14px}
+  #__uvd_media_links_prompt__ .uvd-media-popup-mascot,
+  #__uvd_iframe_workflow_prompt__ .uvd-iframe-popup-mascot{width:138px!important;height:124px!important}
+  #__uvd_media_links_prompt__ .uvd-workflow-body,
+  #__uvd_iframe_workflow_prompt__ .uvd-workflow-body{padding:4px 17px 16px}
+  #__uvd_media_links_prompt__ .uvd-workflow-title,
+  #__uvd_iframe_workflow_prompt__ .uvd-workflow-title{font-size:20px}
+  #__uvd_media_links_prompt__ .uvd-workflow-copy,
+  #__uvd_iframe_workflow_prompt__ .uvd-workflow-copy{font-size:12px;margin-bottom:9px}
+  #__uvd_media_links_prompt__ .uvd-plplain{grid-template-columns:minmax(0,1fr) 104px!important;gap:8px!important;padding:10px!important}
+  #__uvd_media_links_prompt__ .uvd-plplain-actions{width:104px!important;min-width:104px!important}
+  #__uvd_iframe_workflow_prompt__ .uvd-iframe-cute-row{padding:10px!important;gap:8px!important}
+  #__uvd_iframe_workflow_prompt__ .uvd-iframe-probe-actions{min-width:107px!important}
+  #__uvd_farewell_popup__>.uvd-farewell-box{padding:17px 19px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-art{flex-basis:210px;min-height:192px}
+  #__uvd_farewell_popup__ .uvd-farewell-title{font-size:26px}
+  #__uvd_farewell_popup__ .uvd-farewell-copy{font-size:12px}
+}
+@media (max-height:650px) and (max-width:560px){
+  #__uvd_media_links_prompt__ .uvd-workflow-hero,
+  #__uvd_iframe_workflow_prompt__ .uvd-workflow-hero{flex-basis:164px;padding-top:20px}
+  #__uvd_media_links_prompt__ .uvd-media-popup-mascot,
+  #__uvd_iframe_workflow_prompt__ .uvd-iframe-popup-mascot{width:112px!important;height:100px!important}
+  #__uvd_farewell_popup__ .uvd-farewell-art{flex-basis:170px;min-height:155px}
+  #__uvd_farewell_popup__ .uvd-farewell-title{font-size:23px}
+  #__uvd_farewell_popup__ .uvd-farewell-thanks{margin-top:4px;font-size:12.5px}
+  #__uvd_farewell_popup__ .uvd-farewell-copy{margin-top:6px;font-size:11px}
+  #__uvd_farewell_popup__ .uvd-farewell-actions{margin-top:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  #__uvd_media_links_prompt__ .uvd-media-popup-mascot,
+  #__uvd_iframe_workflow_prompt__ .uvd-iframe-popup-mascot,
+  #__uvd_play_intro__ .uvd-play-intro-mascot{animation:none!important}
+}
+
 `;
 
 
@@ -5881,19 +6188,21 @@ function __uvdShowPlayIntro(url, type) {
   __uvdHideUiForPopup();
   var overlay = document.createElement('div');
   overlay.id = '__uvd_play_intro__';
+  overlay.className = 'uvd-play-intro-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
     'background:rgba(28,14,40,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:uvdFadeIn .3s ease both;';
   var box = document.createElement('div');
+  box.className = 'uvd-play-intro-card';
   box.style.cssText = 'text-align:center;padding:26px 28px;border-radius:36px;max-width:520px;width:100%;' +
     'background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 100%);border:1px solid rgba(194,150,255,.45);' +
     'box-shadow:0 28px 72px rgba(150,90,220,.44),0 0 0 6px rgba(255,255,255,.4) inset;' +
     'animation:uvdScaleIn .38s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
-    '<div class="uvd-play-intro-mascot" style="line-height:0;transform:scale(1.45);margin-bottom:8px;">' + __uvdPlayIntroArt + '</div>' +
-    '<div style="font-size:22px;font-weight:800;color:#9a6ce0;margin-top:6px;">Giờ mở video nè ♡</div>' +
-    '<div style="font-size:12.5px;color:#8a6ab0;margin-top:4px;">Đang chuẩn bị link cho mấy cưng...</div>' +
-    '<div style="font-size:12.5px;color:#8a6ab0;margin-top:2px;margin-bottom:14px;">Đợi vài giây hoặc bấm <b style="color:#9a6ce0;">Mở ngay</b> nha</div>' +
-    '<button id="__uvd_play_intro_open__" class="uvd-btn uvd-btn-sm" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:800;font-size:14px;padding:11px;letter-spacing:.2px;">Mở ngay ♡</button>';
+    '<div class="uvd-play-intro-mascot">' + __uvdPlayIntroArt + '</div>' +
+    '<div class="uvd-play-intro-title">Giờ mở video nè ♡</div>' +
+    '<div class="uvd-play-intro-copy">Đang chuẩn bị link cho mấy cưng...</div>' +
+    '<div class="uvd-play-intro-hint">Đợi vài giây hoặc bấm <b>Mở ngay</b> nha</div>' +
+    '<button id="__uvd_play_intro_open__" class="uvd-btn uvd-btn-sm uvd-play-intro-open">Mở ngay ♡</button>';
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
@@ -5941,14 +6250,14 @@ function __uvdShowFarewellPopup(onConfirm) {
   // To nhu popup dao link
   box.style.cssText = 'width:100%;max-width:540px;min-height:620px;padding:28px 24px 24px;border-radius:36px;text-align:center;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 32px 80px rgba(150,90,220,.42),0 0 0 6px rgba(255,255,255,.44) inset;animation:uvdScaleIn .44s cubic-bezier(.22,1,.36,1) both;';
   box.innerHTML =
-    '<div class="uvd-farewell-art" style="width:280px;height:200px;margin:0 auto 14px;line-height:0;">' + __uvdGetFarewellMascotsHtml() + '</div>' +
-    '<div class="uvd-farewell-kicker" style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b68bea;margin-bottom:6px;">mèo cào media</div>' +
-    '<div style="font-size:26px;font-weight:900;color:#d85c7a;margin-bottom:6px;">Tạm biệt cưng iu ♡</div>' +
-    '<div style="font-size:14px;font-weight:700;color:#9a6ce0;margin-bottom:8px;">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
-    '<div style="font-size:12.5px;color:#8a6ab0;line-height:1.65;margin-bottom:18px;">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
-    '<div style="display:flex;gap:10px;">' +
-      '<button id="__uvd_farewell_stay__" style="flex:1;padding:13px;border-radius:16px;border:none;background:linear-gradient(135deg,#ffe3ec,#ffd6e4);color:#d85c7a;font-weight:800;font-size:13.5px;cursor:pointer;">Ở lại ♡</button>' +
-      '<button id="__uvd_farewell_bye__" style="flex:1;padding:13px;border-radius:16px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 8px 20px rgba(247,108,140,.35);">Tạm biệt 🐾</button>' +
+    '<div class="uvd-farewell-art">' + __uvdGetFarewellMascotsHtml() + '</div>' +
+    '<div class="uvd-farewell-kicker">MÈO CÀO MEDIA</div>' +
+    '<div class="uvd-farewell-title">Tạm biệt cưng iu ♡</div>' +
+    '<div class="uvd-farewell-thanks">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
+    '<div class="uvd-farewell-copy">Mấy đứa tụi mình (cáo, rái cá, cánh cụt, capybara, cún và sóc) sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại cưng lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
+    '<div class="uvd-farewell-actions">' +
+      '<button id="__uvd_farewell_stay__">Ở lại ♡</button>' +
+      '<button id="__uvd_farewell_bye__">Tạm biệt 🐾</button>' +
     '</div>';
   overlay.appendChild(box);
   __uvdAppendRoot(overlay);
@@ -6296,17 +6605,18 @@ function __uvdOpenMediaLinksPopup(streams) {
     'box-shadow:0 28px 72px rgba(150,90,220,.36),0 0 0 6px rgba(255,255,255,.35) inset;' +
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   panel.innerHTML =
-    '<div style="padding:16px 16px 2px;position:relative;">' +
-      '<button id="__uvd_media_links_close__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(194,150,255,.25);color:#9a6ce0;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+    '<div class="uvd-workflow-hero uvd-media-workflow-hero">' +
+      '<button id="__uvd_media_links_close__" class="uvd-workflow-close" title="Đóng">✕</button>' +
       '<button id="__uvd_media_back__" class="uvd-popup-back-btn" title="Quay lại">←</button>' +
-      '<div class="uvd-media-popup-mascot" style="line-height:0;">' + __uvdMediaCuteArt + '</div>' +
+      '<div class="uvd-media-popup-mascot">' + __uvdMediaCuteArt + '</div>' +
+      '<div class="uvd-workflow-kicker">KHO VIDEO MÈO VỪA TÌM ĐƯỢC</div>' +
     '</div>' +
-    '<div style="padding:0 20px 18px;">' +
-      '<div style="font-size:18px;font-weight:800;color:#9a6ce0;margin-bottom:4px;">Tìm thấy ' + streams.length + ' link video rồi nè 🐰</div>' +
-      '<div style="font-size:12px;color:#8a6ab0;margin-bottom:8px;">Đã lọc bỏ link rác. Bấm <b style="color:#9a6ce0;">Xem</b> để mở video thật.</div>' +
+    '<div class="uvd-workflow-body">' +
+      '<div class="uvd-workflow-title">Tìm thấy ' + streams.length + ' link video rồi nè 🐰</div>' +
+      '<div class="uvd-workflow-copy">Đã lọc bỏ link rác. Bấm <b>Xem</b> để mở video thật.</div>' +
       __uvdFeedbackNoticeHtml('uvd-popup-feedback') +
-      '<div id="__uvd_media_links_list__" style="max-height:44vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_media_links_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#d9b8ff,#b385f2);border:none;color:#fff;font-weight:700;">Để sau</button>' +
+      '<div id="__uvd_media_links_list__" class="uvd-workflow-list"></div>' +
+      '<button class="uvd-btn uvd-btn-sm uvd-workflow-later" id="__uvd_media_links_cancel__">Để sau</button>' +
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
   __uvdRenderVotes = false;
@@ -6467,21 +6777,22 @@ function __uvdOpenIframeWorkflowPrompt(candidates) {
     'animation:uvdScaleIn .34s cubic-bezier(.22,1,.36,1) both;';
   var hasIntermediateServer = candidates.some(function(candidate) { return /supremejav\.com\/supjav\.php/i.test(candidate.url); });
   panel.innerHTML =
-    '<div style="padding:18px 18px 4px;position:relative;">' +
-      '<button id="__uvd_iframe_workflow_close_x__" title="Đóng" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,159,180,.25);color:#d85c7a;font-size:15px;line-height:1;cursor:pointer;">✕</button>' +
+    '<div class="uvd-workflow-hero uvd-iframe-workflow-hero">' +
+      '<button id="__uvd_iframe_workflow_close_x__" class="uvd-workflow-close" title="Đóng">✕</button>' +
       '<button id="__uvd_iframe_back__" class="uvd-popup-back-btn" title="Quay lại">←</button>' +
-      '<div class="uvd-iframe-popup-mascot" style="line-height:0;">' + __uvdIframeCuteArt + '</div>' +
+      '<div class="uvd-iframe-popup-mascot">' + __uvdIframeCuteArt + '</div>' +
+      '<div class="uvd-workflow-kicker">MÈO ĐANG LẦN THEO PLAYER</div>' +
     '</div>' +
-    '<div style="padding:0 20px 18px;">' +
-      '<div style="font-size:18px;font-weight:800;color:#d85c7a;margin-bottom:6px;">' + (hasIntermediateServer ? 'Server trung gian cần mở 🥺' : 'Không có link video — chỉ có iframe 🥺') + '</div>' +
-      '<div style="font-size:12.5px;color:#a05668;line-height:1.6;margin-bottom:14px;">' +
+    '<div class="uvd-workflow-body">' +
+      '<div class="uvd-workflow-title">' + (hasIntermediateServer ? 'Server trung gian cần mở 🥺' : 'Không có link video — chỉ có iframe 🥺') + '</div>' +
+      '<div class="uvd-workflow-copy">' +
         (hasIntermediateServer
           ? 'Link này chưa phải video trực tiếp. Hãy mở server trung gian ở tab mới, sau đó bấm Mèo cào media lại trên tab đó để lấy link thật.'
-          : 'Trang này chưa để lộ link video trực tiếp, chỉ có iframe embed. 👉 Bạn hãy <b style="color:#d85c7a;">bấm vào iframe</b> bên dưới, đợi nó phát, rồi <b style="color:#d85c7a;">chạy Mèo cào media lại một lần nữa</b> để lấy link video thật.') +
+          : 'Trang này chưa để lộ link video trực tiếp, chỉ có iframe embed. 👉 Bạn hãy <b>bấm vào iframe</b> bên dưới, đợi nó phát, rồi <b>chạy Mèo cào media lại một lần nữa</b> để lấy link video thật.') +
       '</div>' +
       __uvdFeedbackNoticeHtml('uvd-popup-feedback') +
-      '<div id="__uvd_iframe_workflow_list__" style="max-height:42vh;overflow-y:auto;text-align:left;margin-bottom:12px;"></div>' +
-      '<button class="uvd-btn uvd-btn-sm" id="__uvd_iframe_workflow_cancel__" style="width:100%;border-radius:14px;background:linear-gradient(135deg,#ff9fb4,#f76c8c);border:none;color:#fff;font-weight:700;">Để sau</button>' +
+      '<div id="__uvd_iframe_workflow_list__" class="uvd-workflow-list"></div>' +
+      '<button class="uvd-btn uvd-btn-sm uvd-workflow-later" id="__uvd_iframe_workflow_cancel__">Để sau</button>' +
     '</div>';
   var list = panel.querySelector('#__uvd_iframe_workflow_list__');
   candidates.slice(0, 6).forEach(function(candidate, index) {

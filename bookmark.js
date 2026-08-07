@@ -6692,6 +6692,10 @@ style.textContent = `
 #__uvd_media_preview__ .uvd-stream-preview-list .uvd-card{margin:0!important}
 #__uvd_media_preview__ .uvd-stream-preview-list .uvd-stream-end{display:none!important}
 #__uvd_media_preview__ .uvd-media-preview-back{width:100%;margin-top:12px;padding:11px 9px;border:1px solid rgba(194,150,255,.28);border-radius:var(--radius-sm);background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}
+/* ===== HEADER MASCOT STANDS STILL + EVENLY-SPACED SCENE LABELS ===== */
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:10px!important;bottom:0!important;width:94px!important;height:108px!important;animation:none!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg{animation:none!important}
+@media (max-width:560px){.uvd-main-clean #__uvd_header__{padding-left:90px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:6px!important;bottom:0!important;width:78px!important;height:94px!important}}
 `;
 
 
@@ -9139,10 +9143,23 @@ function __uvdSceneTimes(duration, count) {
   count = count || 8;
   duration = Number(duration || 0);
   if (!isFinite(duration) || duration <= 1) return [];
-  // Eight evenly distributed interior points: avoid the opening/closing frame.
+  // Eight genuinely distributed interior points. Do not use a nearby fallback
+  // frame: every thumbnail must represent its own point in the whole movie.
   var times = [];
-  for (var i = 1; i <= count; i++) times.push(Math.max(.1, Math.min(duration - .2, duration * i / (count + 1))));
-  return times.filter(function(time, index, list) { return list.indexOf(time) === index; });
+  for (var i = 1; i <= count; i++) {
+    var time = duration * i / (count + 1);
+    times.push(Math.max(.25, Math.min(duration - .5, time)));
+  }
+  return times.filter(function(time, index, list) { return isFinite(time) && time > 0 && list.indexOf(time) === index; });
+}
+function __uvdSceneTimeLabel(seconds) {
+  seconds = Math.max(0, Math.floor(Number(seconds) || 0));
+  if (seconds < 60) return seconds + 's';
+  var hours = Math.floor(seconds / 3600);
+  var minutes = Math.floor((seconds % 3600) / 60);
+  var secs = seconds % 60;
+  if (hours) return hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  return minutes + ':' + String(secs).padStart(2, '0');
 }
 function __uvdSceneKey(time) { return String(Math.round(Number(time || 0) * 10)); }
 function __uvdCacheStreamMainFrame(url, dataUrl) {
@@ -9192,46 +9209,61 @@ function loadExtraVideoThumbnails(preview) {
   strip.innerHTML = '<span class="uvd-thumb-strip-label">CẢNH KHÁC</span>';
   card.insertBefore(strip, card.querySelector('.uvd-card-head'));
   var canvas = document.createElement('canvas');
-  canvas.width = 320;
-  canvas.height = 180;
+  canvas.width = 320; canvas.height = 180;
   var index = 0;
+  function captureAt(time, done) {
+    var finished = false;
+    var timer = null;
+    function finish(image) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      media.removeEventListener('seeked', onSeeked);
+      done(image || '');
+    }
+    function drawFrame() {
+      try {
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+        finish(canvas.toDataURL('image/jpeg', .72));
+      } catch(e) { finish(''); }
+    }
+    function onSeeked() {
+      // Decoded pixels often arrive one paint after seeked. Wait briefly, but
+      // never substitute the previous frame if this seek cannot decode.
+      setTimeout(drawFrame, 140);
+    }
+    media.addEventListener('seeked', onSeeked, { once: true });
+    try {
+      var alreadyThere = Math.abs(Number(media.currentTime || 0) - time) < .08;
+      media.currentTime = time;
+      if (alreadyThere) setTimeout(onSeeked, 40);
+    } catch(e) { finish(''); return; }
+    timer = setTimeout(function() { finish(''); }, 4800);
+  }
   function next() {
     if (index >= times.length) {
       preview.dataset.extraThumbs = 'ready';
       return;
     }
     var time = times[index++];
-    var done = false;
-    function capture() {
-      if (done) return;
-      done = true;
-      try {
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+    captureAt(time, function(sceneImage) {
+      if (sceneImage) {
         var item = document.createElement('button');
         item.className = 'uvd-extra-thumb';
         item.type = 'button';
-        item.title = 'Xem từ giây ' + Math.round(time);
-        item.innerHTML = '<img alt=""><span>' + Math.round(time) + 's</span>';
-        var sceneImage = canvas.toDataURL('image/jpeg', .72);
+        item.title = 'Xem từ ' + __uvdSceneTimeLabel(time);
+        item.innerHTML = '<img alt=""><span>' + __uvdSceneTimeLabel(time) + '</span>';
         item.querySelector('img').src = sceneImage;
         if (card.dataset.url) __uvdCacheStreamScene(card.dataset.url, time, sceneImage);
         item.onclick = function() {
           try { media.currentTime = time; } catch(e) {}
-          if (card.dataset.url) {
-            __uvdShowPlayIntro(card.dataset.url, card.dataset.type || 'MP4');
-          }
+          if (card.dataset.url) __uvdShowPlayIntro(card.dataset.url, card.dataset.type || 'MP4');
         };
         strip.appendChild(item);
-      } catch(e) {
-        // Canvas bị CORS thì vẫn giữ thumbnail chính, không làm hỏng card.
       }
-      media.removeEventListener('seeked', capture);
       next();
-    }
-    media.addEventListener('seeked', capture, { once: true });
-    try { media.currentTime = time; } catch(e) { capture(); }
-    setTimeout(capture, 1800);
+    });
   }
   next();
 }

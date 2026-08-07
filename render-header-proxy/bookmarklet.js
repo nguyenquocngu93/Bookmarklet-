@@ -6696,6 +6696,18 @@ style.textContent = `
 .uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:10px!important;bottom:0!important;width:94px!important;height:108px!important;animation:none!important}
 .uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg{animation:none!important}
 @media (max-width:560px){.uvd-main-clean #__uvd_header__{padding-left:90px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:6px!important;bottom:0!important;width:78px!important;height:94px!important}}
+/* ===== PREVIEW: STREAM CORE ONLY, VIDEO-POPUP PURPLE PALETTE ===== */
+#__uvd_media_preview__>.uvd-stream-preview-panel{background:linear-gradient(160deg,#f8f4ff 0%,#f1e9ff 52%,#fff0f8 100%)!important;overflow-y:auto!important}
+#__uvd_media_preview__ .uvd-media-preview-kicker{color:#9a72c7!important}
+#__uvd_media_preview__ .uvd-media-preview-title{color:#8e67bd!important}
+#__uvd_media_preview__ .uvd-media-preview-url{background:rgba(255,255,255,.7)!important;color:#8667a2!important}
+#__uvd_media_preview__ .uvd-stream-preview-core{margin-top:12px;min-height:0}
+#__uvd_media_preview__ .uvd-stream-preview-core-card{margin:0!important;padding:12px!important;border-color:rgba(194,150,255,.28)!important;background:linear-gradient(145deg,#fff,#f7f1ff)!important;box-shadow:none!important}
+#__uvd_media_preview__ .uvd-stream-preview-core-card .uvd-card-preview{margin:0 0 10px!important}
+#__uvd_media_preview__ .uvd-stream-preview-core-card .uvd-card-guide{background:rgba(229,216,255,.48)!important;border-color:rgba(194,150,255,.22)!important;color:#826494!important}
+#__uvd_media_preview__ .uvd-stream-preview-core-card .uvd-card-stream-meta{background:rgba(241,233,255,.75)!important;border-color:rgba(194,150,255,.22)!important;color:#8667a2!important}
+#__uvd_media_preview__ .uvd-media-preview-actions{margin-top:12px!important}
+#__uvd_media_preview__ .uvd-media-preview-actions .uvd-media-preview-play{background:linear-gradient(135deg,#b98df2,#9668d9)!important;box-shadow:0 7px 15px rgba(150,90,220,.2)!important}
 `;
 
 
@@ -7971,6 +7983,8 @@ function __uvdShowTutorialSlides() {
 // Preview deliberately delegates to Stream rendering. There is no separate
 // thumbnail/capture implementation here: this modal is simply one Stream card
 // in a focused popup so it can never drift visually or functionally from Tab Stream.
+// Preview uses the Stream card core, not a second full Stream list or a
+// custom thumbnail engine. Keep only the visual core through quality/meta.
 function __uvdOpenMediaPreviewPopup(url, type) {
   var old = document.getElementById('__uvd_media_preview__');
   if (old) old.remove();
@@ -7982,25 +7996,41 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   var compact = __uvdCompactPopupUrl(url);
   panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button>' +
     '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
-    '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · bản xem từ Stream</div>' +
+    '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · core Stream</div>' +
     '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
-    '<div class="uvd-stream-preview-list"></div>' +
-    '<button type="button" class="uvd-media-preview-back">← Quay lại list</button>';
+    '<div class="uvd-stream-preview-core"></div>' +
+    '<div class="uvd-media-preview-actions"><button type="button" class="uvd-media-preview-play">▶ Xem link này</button><button type="button" class="uvd-media-preview-back">← Quay lại list</button></div>';
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   __uvdAutoFitPopup(panel, .44, .82);
-  var streamList = panel.querySelector('.uvd-stream-preview-list');
+  var streamCore = panel.querySelector('.uvd-stream-preview-core');
   var item = urls.get(url) || {};
-  // Same renderer used by Tab Stream: same markup, thumbnail hydrator,
-  // cached scenes, lazy batch behavior and delegated card actions.
   var previousRenderVotes = __uvdRenderVotes;
-  __uvdRenderVotes = true;
-  renderStreams(streamList, [Object.assign({}, item, { url: url, type: type || item.type || 'MP4', resolution: item.resolution || __uvdGetUrlResolution(url) })]);
+  __uvdRenderVotes = false;
+  var source = document.createElement('div');
+  source.innerHTML = buildStreamCardHTML(Object.assign({}, item, { url: url, type: type || item.type || 'MP4', resolution: item.resolution || __uvdGetUrlResolution(url) }), 0);
   __uvdRenderVotes = previousRenderVotes;
-  function close() {
-    try { overlay.remove(); } catch(e) {}
+  var streamCard = source.firstElementChild;
+  streamCard.classList.add('uvd-stream-preview-core-card');
+  Array.prototype.slice.call(streamCard.querySelectorAll('.uvd-cute-votes,.uvd-card-url-label,.uvd-url-box')).forEach(function(el) { el.remove(); });
+  streamCore.appendChild(streamCard);
+  hydrateVideoThumbnails(streamCore);
+  function close() { try { overlay.remove(); } catch(e) {} }
+  function playThisLink() {
+    close();
+    addToHistory(url, type || 'MP4');
+    setTimeout(function() { try { __uvdShowPlayIntro(url, type || 'MP4'); } catch(e) {} }, 40);
   }
+  streamCore.addEventListener('click', function(e) {
+    var action = e.target && e.target.closest && e.target.closest('[data-action]');
+    if (!action) return;
+    e.preventDefault(); e.stopPropagation();
+    if (action.dataset.action === 'play') playThisLink();
+    else if (action.dataset.action === 'quality') showQualityPicker(url);
+    else if (action.dataset.action === 'copy') { copy(url); toast('Đã sao chép link'); }
+  });
+  panel.querySelector('.uvd-media-preview-play').onclick = playThisLink;
   panel.querySelector('.uvd-media-preview-close').onclick = close;
   panel.querySelector('.uvd-media-preview-back').onclick = close;
   overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });

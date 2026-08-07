@@ -6628,6 +6628,37 @@ style.textContent = `
 @media (max-width:560px){
   #__uvd_farewell_popup__ .uvd-farewell-scene-note{font-size:8.5px;padding:5px 8px}#__uvd_farewell_popup__ .uvd-farewell-next{margin-top:7px;padding:7px 5px;font-size:8.5px;gap:4px}
 }
+/* ===== POPUP VIDEO REUSES THE STREAM THUMBNAIL, FAREWELL TEXT BREATHING ===== */
+#__uvd_media_links_prompt__ .uvd-popup-stream-card{margin:0 0 13px!important;padding:12px!important}
+#__uvd_media_links_prompt__ .uvd-popup-stream-card .uvd-card-preview{margin:0 0 11px!important}
+#__uvd_media_links_prompt__ .uvd-popup-stream-details{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:10px;align-items:start}
+#__uvd_media_links_prompt__ .uvd-popup-stream-details .uvd-plplain-body{padding-right:0!important}
+#__uvd_media_links_prompt__ .uvd-popup-stream-details .uvd-plplain-body::before{display:none!important}
+#__uvd_media_links_prompt__ .uvd-popup-stream-details .uvd-plplain-url{width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+@media (max-width:390px){#__uvd_media_links_prompt__ .uvd-popup-stream-details{grid-template-columns:minmax(0,1fr) 98px;gap:8px}}
+
+/* Keep the animal label safely above the farewell scene note. */
+#__uvd_farewell_popup__ .uvd-farewell-art{box-sizing:border-box;padding-bottom:29px!important;align-items:center!important}
+#__uvd_farewell_popup__ .uvd-farewell-art .uvd-farewell-mascots{transform:translateY(-5px)}
+#__uvd_farewell_popup__ .uvd-farewell-animal-name{margin-top:2px!important;font-size:11px!important}
+#__uvd_farewell_popup__ .uvd-farewell-scene-note{bottom:5px!important;font-size:10.5px!important}
+#__uvd_farewell_popup__ .uvd-farewell-thanks{font-size:15px!important}
+#__uvd_farewell_popup__ .uvd-farewell-copy{font-size:13px!important;line-height:1.58!important}
+#__uvd_farewell_popup__ .uvd-farewell-memory{font-size:10.5px!important}
+#__uvd_farewell_popup__ .uvd-farewell-next{font-size:10.5px!important}
+#__uvd_farewell_popup__ .uvd-farewell-actions button{font-size:14px!important}
+@media (max-width:560px){
+  #__uvd_farewell_popup__ .uvd-farewell-art{padding-bottom:25px!important}#__uvd_farewell_popup__ .uvd-farewell-animal-name{font-size:10px!important}#__uvd_farewell_popup__ .uvd-farewell-scene-note{font-size:9px!important}#__uvd_farewell_popup__ .uvd-farewell-thanks{font-size:14px!important}#__uvd_farewell_popup__ .uvd-farewell-copy{font-size:12px!important}#__uvd_farewell_popup__ .uvd-farewell-memory,#__uvd_farewell_popup__ .uvd-farewell-next{font-size:9.5px!important}
+}
+
+/* Radius slider controls every regular action button; round icon controls stay circular by intent. */
+.uvd-tunable-ui .uvd-plrow-watch,
+.uvd-tunable-ui .uvd-plrow-preview,
+.uvd-tunable-ui .uvd-iframe-probe-btn,
+.uvd-tunable-ui .uvd-feedback-vote,
+.uvd-tunable-ui .uvd-history-actions .uvd-btn,
+.uvd-tunable-ui .uvd-tutorial-nav-actions button,
+.uvd-tunable-ui .uvd-movie-info-close{border-radius:var(--radius-sm)!important}
 `;
 
 
@@ -8092,21 +8123,21 @@ function __uvdOpenMediaLinksPopup(streams) {
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
   __uvdRenderVotes = false;
-  // Quay lại link đơn giản: mỗi link 1 dòng text + nút Xem (không thumbnail, không mũi chĩa).
+  // Reuse the identical Stream preview DOM + lazy thumbnail pipeline. The
+  // popup only supplies its own compact action row beneath that preview.
   streams.slice(0, 8).forEach(function(stream, index) {
     var popupItem = stream.item || urls.get(stream.url) || {};
     var isMultiQuality = __uvdPopupQualityTier(stream) === 3;
     var isQualityOnly = __uvdPopupQualityTier(stream) === 0;
     var hasMeta = !!(popupItem.qualityCount || popupItem.isMaster || popupItem.resolution);
     var row = document.createElement('div');
-    row.className = 'uvd-plplain';
-    var mascots = [ (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : ''), (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : ''), (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '') ];
-    var mascotHtml = mascots[index % mascots.length] || mascots[0];
-    var cuteIcon = document.createElement('div');
-    cuteIcon.className = 'uvd-plplain-cute-icon';
-    cuteIcon.innerHTML = mascotHtml;
-    var paw1 = document.createElement('i'); paw1.className = 'uvd-plplain-paw uvd-plplain-paw-one';
-    var paw2 = document.createElement('i'); paw2.className = 'uvd-plplain-paw uvd-plplain-paw-two';
+    row.className = 'uvd-card uvd-cute uvd-popup-stream-card';
+    var streamMarkup = document.createElement('div');
+    streamMarkup.innerHTML = buildStreamCardHTML(Object.assign({}, popupItem, { url: stream.url, type: stream.type || popupItem.type || 'MP4' }), index);
+    var streamPreview = streamMarkup.querySelector('.uvd-card-preview');
+    if (streamPreview) row.appendChild(streamPreview);
+    var details = document.createElement('div');
+    details.className = 'uvd-popup-stream-details';
     var body = document.createElement('div');
     body.className = 'uvd-plplain-body';
     var typeText = String(stream.type || 'MEDIA').toUpperCase();
@@ -8116,36 +8147,40 @@ function __uvdOpenMediaLinksPopup(streams) {
     else if (hasMeta) badge += ' <span class="uvd-plplain-q">✨ có metadata</span>';
     var popGuide = isQualityOnly
       ? '📎 Chỉ có một quality/preview — Mèo xếp sau các link đa chất lượng nha.'
-      : (String(stream.type || '').toUpperCase() === 'M3U8'
-        ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.'
-        : '📼 Link video thật — bấm Xem để phát ngay nha.');
-    var compactUrl = __uvdCompactPopupUrl(stream.url);
+      : (typeText === 'M3U8' ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.' : '📼 Link video thật — bấm Xem để phát ngay nha.');
     body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
-      '<div class="uvd-plplain-url" title="' + escapeHtml(stream.url) + '">↗ ' + escapeHtml(compactUrl) + '</div>' +
+      '<div class="uvd-plplain-url" title="' + escapeHtml(stream.url) + '">↗ ' + escapeHtml(__uvdCompactPopupUrl(stream.url)) + '</div>' +
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
     body.appendChild(__uvdCreateDetectionVoteControls(stream.url, 'video'));
     var actions = document.createElement('div');
     actions.className = 'uvd-plplain-actions';
+    function playPopupStream() {
+      var url = stream.url, mediaType = stream.type || 'MP4';
+      addToHistory(url, mediaType);
+      __uvdShowPlayIntro(url, mediaType);
+    }
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
     play.textContent = 'Xem ♡';
-    play.onclick = function() {
-      var url = stream.url, type = stream.type || 'MP4';
-      addToHistory(url, type);
-      overlay.remove(); __uvdPopupDismiss();
-      setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
-    };
+    play.onclick = playPopupStream;
     var preview = document.createElement('button');
-    preview.type = 'button';
-    preview.className = 'uvd-plrow-preview';
-    preview.textContent = '⌁ Xem trước';
+    preview.type = 'button'; preview.className = 'uvd-plrow-preview'; preview.textContent = '⌁ Xem trước';
     preview.onclick = function(e) { e.stopPropagation(); __uvdOpenMediaPreviewPopup(stream.url, stream.type); };
-    actions.appendChild(play);
-    actions.appendChild(preview);
-    row.appendChild(body);
-    row.appendChild(actions);
+    actions.appendChild(play); actions.appendChild(preview);
+    details.appendChild(body); details.appendChild(actions); row.appendChild(details);
+    if (streamPreview) streamPreview.addEventListener('click', function(event) {
+      var action = event.target && event.target.closest && event.target.closest('[data-action]');
+      if (!action) return;
+      event.preventDefault(); event.stopPropagation();
+      if (action.dataset.action === 'play') playPopupStream();
+      else if (action.dataset.action === 'quality') showQualityPicker(stream.url);
+      else if (action.dataset.action === 'copy') { copy(stream.url); toast('Đã sao chép link'); }
+    });
     list.appendChild(row);
   });
+  // Exact same thumbnail hydrator as Stream: cached frame first, lazy video
+  // capture only when this popup list scrolls it into view.
+  hydrateVideoThumbnails(list);
   function closeMedia() {
     __uvdMediaPopupDismissedAt = Date.now();
     try { overlay.remove(); } catch(e){}
@@ -9492,7 +9527,7 @@ function hydrateVideoThumbnails(root) {
     }
     preview.__uvdStartThumb = startThumbSource;
     if (window.IntersectionObserver) {
-      var thumbRoot = preview.closest('#__uvd_stream_list__');
+      var thumbRoot = preview.closest('#__uvd_stream_list__, .uvd-workflow-list');
       var thumbObserver = new IntersectionObserver(function(entries) {
         if (entries[0] && entries[0].isIntersecting) {
           thumbObserver.disconnect();

@@ -630,11 +630,19 @@ var __uvdVerificationMaxConcurrent = 2;
 var __uvdVerificationTimeoutMs = 8500;
 var __uvdTrustedVerificationTimeoutMs = 6500;
 var __uvdVerificationRetryMs = 12000;
+function __uvdHasLongMediaMetadata(item) {
+  return !!item && isFinite(item.durationSeconds) && Number(item.durationSeconds) >= 600 &&
+    Number(item.videoWidth || 0) > 0 && Number(item.videoHeight || 0) > 0;
+}
 function __uvdIsQualifiedMediaItem(item) {
   if (!item || item.demo === true) return false;
-  return item.verified === true && !!item.thumbnail &&
+  var fullyVerified = item.verified === true && !!item.thumbnail &&
     isFinite(item.durationSeconds) && item.durationSeconds > __uvdDemoPreviewMaxSeconds &&
     Number(item.videoWidth || 0) > 0 && Number(item.videoHeight || 0) > 0;
+  // Slow/CORS-limited hosts can expose reliable duration + dimensions but deny
+  // canvas thumbnail capture. A 10+ minute real video with decoded metadata is
+  // strong enough for the digging flow; it should not wait behind a thumbnail.
+  return fullyVerified || __uvdHasLongMediaMetadata(item);
 }
 function __uvdQualifiedDirectEntries() {
   return __uvdHasRealDirectStreams().filter(function(entry) {
@@ -658,18 +666,22 @@ function __uvdPromoteVerifiedMedia(url, media) {
   // A VOD duration plus actual decoded pixels is the required data proof.
   if (!isFinite(duration) || duration <= __uvdDemoPreviewMaxSeconds || !media.videoWidth || !media.videoHeight) return false;
   var thumbnail = __uvdCaptureVerifiedThumbnail(media);
-  // A video that cannot yield a thumbnail remains a hidden candidate instead
-  // of being promoted merely because its URL looks like an MP4/HLS stream.
-  if (!thumbnail) return false;
   item.durationSeconds = duration;
   item.videoWidth = media.videoWidth;
   item.videoHeight = media.videoHeight;
   item.resolution = media.videoWidth + '×' + media.videoHeight;
-  item.thumbnail = thumbnail;
-  item.verified = true;
-  item.previewReady = true;
   item.demo = false;
-  item.verification = 'ready';
+  if (!thumbnail) {
+    if (!__uvdHasLongMediaMetadata(item)) return false;
+    item.metadataVerified = true;
+    item.previewReady = false;
+    item.verification = 'metadata';
+  } else {
+    item.thumbnail = thumbnail;
+    item.verified = true;
+    item.previewReady = true;
+    item.verification = 'ready';
+  }
   var done = item.__uvdVerificationDone;
   delete item.__uvdVerificationDone;
   if (typeof done === 'function') done(true);
@@ -1020,12 +1032,24 @@ function __uvdPopupQualityTier(stream) {
   if (item.resolution || (Number(item.qualityCount) || 0) > 0) return 2;
   return 1;
 }
+function __uvdPopupResolutionRank(item, url) {
+  item = item || {};
+  var width = Number(item.videoWidth || 0), height = Number(item.videoHeight || 0);
+  var resolution = String(item.resolution || __uvdGetUrlResolution(url) || '');
+  var dims = resolution.match(/(\d{3,4})\s*[×x]\s*(\d{3,4})/i);
+  if (dims) { width = width || Number(dims[1]); height = height || Number(dims[2]); }
+  var p = resolution.match(/(2160|1440|1080|720|480|360|240)p/i);
+  if (p) height = Math.max(height, Number(p[1]));
+  return height * 10000 + width;
+}
 function __uvdSortStreamsForPopup(direct) {
   __uvdSyncPopupMetadataFromStreamTab();
   return direct.slice().map(function(stream) {
     var item = urls.get(stream.url) || stream.item || {};
     return Object.assign({}, stream, { item: item });
   }).sort(function(a, b) {
+    var ra = __uvdPopupResolutionRank(a.item, a.url), rb = __uvdPopupResolutionRank(b.item, b.url);
+    if (ra !== rb) return rb - ra;
     var ta = __uvdPopupQualityTier(a), tb = __uvdPopupQualityTier(b);
     if (ta !== tb) return tb - ta;
     var sa = __uvdVideoScore(a.url, a.type), sb = __uvdVideoScore(b.url, b.type);
@@ -6546,7 +6570,7 @@ style.textContent = `
 /* ===== POPUP CONTINUITY: NEVER FLASH THE HOST PAGE BETWEEN FLOWS ===== */
 .uvd-popup-transition-under{pointer-events:none!important}
 #__uvd_media_links_prompt__{background:rgba(5,3,8,.94)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-#__uvd_play_intro__{background:rgba(5,3,8,.92)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#__uvd_play_intro__{background:rgba(45,22,47,.58)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 `;
 
 

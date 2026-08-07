@@ -6686,6 +6686,12 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-main-clean #__uvd_header__{padding-left:82px!important;min-height:68px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:7px;bottom:-2px;width:70px!important;height:84px!important}.uvd-main-clean #__uvd_header__ .uvd-brand-text{padding:2px 0}
 }
+/* ===== PREVIEW POPUP IS A FOCUSED STREAM CARD ===== */
+#__uvd_media_preview__>.uvd-stream-preview-panel{width:min(94vw,560px)!important}
+#__uvd_media_preview__ .uvd-stream-preview-list{margin-top:12px;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#__uvd_media_preview__ .uvd-stream-preview-list .uvd-card{margin:0!important}
+#__uvd_media_preview__ .uvd-stream-preview-list .uvd-stream-end{display:none!important}
+#__uvd_media_preview__ .uvd-media-preview-back{width:100%;margin-top:12px;padding:11px 9px;border:1px solid rgba(194,150,255,.28);border-radius:var(--radius-sm);background:#fff;color:#8a6ab0;font-size:12px;font-weight:850;cursor:pointer}
 `;
 
 
@@ -7688,6 +7694,8 @@ var __uvdMediaPopupShown = false;
 var __uvdMediaPopupDismissedAt = 0;
 // Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
 function __uvdShowPlayIntro(url, type) {
+  var previewPopup = document.getElementById('__uvd_media_preview__');
+  if (previewPopup) { try { previewPopup.remove(); } catch(e) {} }
   var anyPopup = document.getElementById('__uvd_media_links_prompt__');
   var old = document.getElementById('__uvd_play_intro__');
   if (old) old.remove();
@@ -7956,6 +7964,9 @@ function __uvdShowTutorialSlides() {
 // Load a real video thumbnail
 
 // Load a real video thumbnail (muted, capture first frame) for quality links.
+// Preview deliberately delegates to Stream rendering. There is no separate
+// thumbnail/capture implementation here: this modal is simply one Stream card
+// in a focused popup so it can never drift visually or functionally from Tab Stream.
 function __uvdOpenMediaPreviewPopup(url, type) {
   var old = document.getElementById('__uvd_media_preview__');
   if (old) old.remove();
@@ -7963,156 +7974,31 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   overlay.id = '__uvd_media_preview__';
   overlay.className = 'uvd-media-preview-overlay';
   var panel = document.createElement('div');
-  panel.className = 'uvd-media-preview-panel';
+  panel.className = 'uvd-media-preview-panel uvd-stream-preview-panel';
   var compact = __uvdCompactPopupUrl(url);
   panel.innerHTML = '<button type="button" class="uvd-media-preview-close" title="Đóng">✕</button>' +
     '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
-    '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · kiểm tra trước khi vote</div>' +
+    '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · bản xem từ Stream</div>' +
     '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
-    '<div class="uvd-media-preview-stream-host"></div>' +
-    '<div class="uvd-media-preview-scenes"><div class="uvd-thumb-strip uvd-media-preview-strip"><span class="uvd-thumb-strip-label">Cảnh khác</span></div></div>' +
-    '<div class="uvd-media-preview-actions"><button type="button" class="uvd-media-preview-play">▶ Xem link này</button><button type="button" class="uvd-media-preview-back">← Quay lại list</button></div>';
+    '<div class="uvd-stream-preview-list"></div>' +
+    '<button type="button" class="uvd-media-preview-back">← Quay lại list</button>';
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   __uvdAutoFitPopup(panel, .44, .82);
-  // Clone the real Stream preview component verbatim. It keeps the same
-  // thumbnail markup, lazy loader, cache and thumbnail state as the Stream tab.
-  var streamHost = panel.querySelector('.uvd-media-preview-stream-host');
-  var streamShell = document.createElement('div');
-  streamShell.innerHTML = buildStreamCardHTML(Object.assign({}, urls.get(url) || {}, { url: url, type: type || 'MP4' }), 0);
-  var streamCard = streamShell.firstElementChild;
-  streamCard.classList.add('uvd-preview-stream-shell');
-  streamHost.appendChild(streamCard);
-  var stage = streamCard.querySelector('.uvd-card-preview');
-  stage.classList.add('uvd-preview-stream-stage');
-  var strip = panel.querySelector('.uvd-media-preview-strip');
-  hydrateVideoThumbnails(streamHost);
-  var media = document.createElement('video');
-  media.muted = true; media.defaultMuted = true; media.playsInline = true;
-  media.preload = 'metadata'; media.crossOrigin = 'anonymous';
-  media.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
-  panel.appendChild(media);
-  var cachedItem = urls.get(url) || {};
-  var hasCompleteCachedScenes = !!(cachedItem.previewThumbnail || cachedItem.thumbnail) && Array.isArray(cachedItem.sceneThumbnails) && cachedItem.sceneThumbnails.length >= 8;
-  var hls = null, closed = false, captured = {}, sceneAutoTimer = null;
+  var streamList = panel.querySelector('.uvd-stream-preview-list');
+  var item = urls.get(url) || {};
+  // Same renderer used by Tab Stream: same markup, thumbnail hydrator,
+  // cached scenes, lazy batch behavior and delegated card actions.
+  var previousRenderVotes = __uvdRenderVotes;
+  __uvdRenderVotes = true;
+  renderStreams(streamList, [Object.assign({}, item, { url: url, type: type || item.type || 'MP4', resolution: item.resolution || __uvdGetUrlResolution(url) })]);
+  __uvdRenderVotes = previousRenderVotes;
   function close() {
-    if (closed) return;
-    closed = true;
-    if (sceneAutoTimer) clearInterval(sceneAutoTimer);
-    try { if (hls) hls.destroy(); media.pause(); media.remove(); } catch(e) {}
     try { overlay.remove(); } catch(e) {}
-  }
-  function playThisLink() {
-    close();
-    addToHistory(url, type || 'MP4');
-    setTimeout(function() { try { __uvdShowPlayIntro(url, type || 'MP4'); } catch(e) {} }, 40);
-  }
-  var streamPlay = stage.querySelector('.uvd-thumb-play');
-  if (streamPlay) streamPlay.onclick = function(e) { e.preventDefault(); e.stopPropagation(); playThisLink(); };
-  function showStage(dataUrl) {
-    if (!dataUrl || closed) return;
-    var image = stage.querySelector('.uvd-thumb-image');
-    if (!image) return;
-    image.innerHTML = '<img alt="">';
-    image.querySelector('img').src = dataUrl;
-    var playButton = stage.querySelector('.uvd-thumb-play');
-    if (playButton) { playButton.onclick = function(e) { e.preventDefault(); e.stopPropagation(); playThisLink(); }; }
-  }
-  function refreshSceneLayout() {
-    strip.dataset.count = String(strip.querySelectorAll('.uvd-media-preview-scene').length);
-  }
-  function startSceneMotion() {
-    if (sceneAutoTimer) clearInterval(sceneAutoTimer);
-    var scenes = Array.prototype.slice.call(strip.querySelectorAll('.uvd-media-preview-scene img'));
-    if (scenes.length < 2) return;
-    var index = 0;
-    sceneAutoTimer = setInterval(function() {
-      if (closed || !scenes.length) return;
-      showStage(scenes[index++ % scenes.length].src);
-    }, 2600);
-  }
-  function fail(text) {
-    if (closed || !stage) return;
-    var image = stage.querySelector('.uvd-thumb-image');
-    if (image && !image.querySelector('img')) image.textContent = text || 'Không lấy được thumbnail của link này';
-  }
-  function imageAt(time, callback) {
-    var done = false;
-    function draw() {
-      if (done || closed) return;
-      done = true;
-      try {
-        var canvas = document.createElement('canvas');
-        canvas.width = 640; canvas.height = 360;
-        canvas.getContext('2d').drawImage(media, 0, 0, canvas.width, canvas.height);
-        callback(canvas.toDataURL('image/jpeg', .68));
-      } catch(e) { callback(''); }
-    }
-    media.addEventListener('seeked', draw, { once: true });
-    try { media.currentTime = time; } catch(e) { draw(); }
-    setTimeout(draw, 1600);
-  }
-  function addScene(time, dataUrl) {
-    var key = __uvdSceneKey(time);
-    if (!dataUrl || captured[key]) return;
-    captured[key] = true;
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'uvd-extra-thumb uvd-media-preview-scene';
-    button.innerHTML = '<img alt=""><span>' + Math.round(time) + 's</span>';
-    button.querySelector('img').src = dataUrl;
-    button.onclick = function() { showStage(dataUrl); };
-    strip.appendChild(button);
-    refreshSceneLayout();
-    startSceneMotion();
-  }
-  function captureScenes() {
-    var duration = Number(media.duration || 0);
-    var times = __uvdSceneTimes(duration, 8);
-    if (!times.length) times = [.3, 1, 2, 3, 4, 5, 6, 7];
-    var index = 0;
-    function next() {
-      if (closed || index >= times.length) return;
-      var time = times[index++];
-      if (captured[__uvdSceneKey(time)]) { next(); return; }
-      imageAt(time, function(dataUrl) {
-        if (!dataUrl) { if (!stage.querySelector('img')) fail('Link này không cho đọc frame preview'); return; }
-        if (!stage.querySelector('img')) showStage(dataUrl);
-        addScene(time, dataUrl);
-        __uvdCacheStreamScene(url, time, dataUrl);
-        next();
-      });
-    }
-    next();
-  }
-  if (cachedItem.previewThumbnail || cachedItem.thumbnail) {
-    showStage(cachedItem.previewThumbnail || cachedItem.thumbnail);
-  }
-  (Array.isArray(cachedItem.sceneThumbnails) ? cachedItem.sceneThumbnails : []).forEach(function(scene) {
-    if (scene && scene.image) addScene(scene.time, scene.image);
-  });
-  media.addEventListener('loadedmetadata', captureScenes, { once: true });
-  media.addEventListener('error', function() { fail('Không tải được preview của link này'); }, { once: true });
-  var isHls = String(type || '').toUpperCase() === 'M3U8' || /m3u8/i.test(url);
-  if (!hasCompleteCachedScenes) {
-    if (isHls) {
-      __uvdEnsureHls(function(HlsCtor) {
-        if (!HlsCtor || !HlsCtor.isSupported()) { fail('Thiết bị chưa tải được HLS preview'); return; }
-        try {
-          hls = new HlsCtor(__uvdMakeHlsConfig(HlsCtor, { maxBufferLength: 3, maxMaxBufferLength: 5 }));
-          hls.loadSource(url); hls.attachMedia(media);
-          hls.on(HlsCtor.Events.ERROR, function(_, data) { if (data && data.fatal) fail('Không tải được HLS preview'); });
-        } catch(e) { fail('Không tải được HLS preview'); }
-      }, function() { fail('Không tải được HLS preview'); });
-    } else {
-      media.src = url;
-    }
-    setTimeout(function() { if (!closed && !stage.querySelector('img')) fail('Preview mất quá lâu, thử link khác nha'); }, 12000);
   }
   panel.querySelector('.uvd-media-preview-close').onclick = close;
   panel.querySelector('.uvd-media-preview-back').onclick = close;
-  panel.querySelector('.uvd-media-preview-play').onclick = playThisLink;
   overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
 }
 function __uvdCompactPopupUrl(raw) {

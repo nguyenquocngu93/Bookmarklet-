@@ -6659,6 +6659,11 @@ style.textContent = `
 .uvd-tunable-ui .uvd-history-actions .uvd-btn,
 .uvd-tunable-ui .uvd-tutorial-nav-actions button,
 .uvd-tunable-ui .uvd-movie-info-close{border-radius:var(--radius-sm)!important}
+/* ===== PREVIEW POPUP: THE ACTUAL STREAM THUMBNAIL COMPONENT ===== */
+#__uvd_media_preview__ .uvd-media-preview-stream-host{margin-top:12px}
+#__uvd_media_preview__ .uvd-preview-stream-shell{margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#__uvd_media_preview__ .uvd-preview-stream-shell>:not(.uvd-card-preview){display:none!important}
+#__uvd_media_preview__ .uvd-preview-stream-shell .uvd-card-preview{margin:0!important}
 `;
 
 
@@ -7942,15 +7947,25 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     '<div class="uvd-media-preview-kicker">XEM TRƯỚC LINK</div>' +
     '<div class="uvd-media-preview-title">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + ' · kiểm tra trước khi vote</div>' +
     '<div class="uvd-media-preview-url" title="' + escapeHtml(url) + '">↗ ' + escapeHtml(compact) + '</div>' +
-    '<div class="uvd-card-preview uvd-media-preview-stage"><span>Đang lấy frame video…</span><span class="uvd-media-preview-format">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + '</span><button type="button" class="uvd-media-preview-stage-play" title="Xem link này">▶</button></div>' +
+    '<div class="uvd-media-preview-stream-host"></div>' +
     '<div class="uvd-media-preview-scenes"><div class="uvd-thumb-strip uvd-media-preview-strip"><span class="uvd-thumb-strip-label">Cảnh khác</span></div></div>' +
     '<div class="uvd-media-preview-actions"><button type="button" class="uvd-media-preview-play">▶ Xem link này</button><button type="button" class="uvd-media-preview-back">← Quay lại list</button></div>';
   overlay.appendChild(panel);
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   __uvdAutoFitPopup(panel, .44, .82);
-  var stage = panel.querySelector('.uvd-media-preview-stage');
+  // Clone the real Stream preview component verbatim. It keeps the same
+  // thumbnail markup, lazy loader, cache and thumbnail state as the Stream tab.
+  var streamHost = panel.querySelector('.uvd-media-preview-stream-host');
+  var streamShell = document.createElement('div');
+  streamShell.innerHTML = buildStreamCardHTML(Object.assign({}, urls.get(url) || {}, { url: url, type: type || 'MP4' }), 0);
+  var streamCard = streamShell.firstElementChild;
+  streamCard.classList.add('uvd-preview-stream-shell');
+  streamHost.appendChild(streamCard);
+  var stage = streamCard.querySelector('.uvd-card-preview');
+  stage.classList.add('uvd-preview-stream-stage');
   var strip = panel.querySelector('.uvd-media-preview-strip');
+  hydrateVideoThumbnails(streamHost);
   var media = document.createElement('video');
   media.muted = true; media.defaultMuted = true; media.playsInline = true;
   media.preload = 'metadata'; media.crossOrigin = 'anonymous';
@@ -7971,11 +7986,16 @@ function __uvdOpenMediaPreviewPopup(url, type) {
     addToHistory(url, type || 'MP4');
     setTimeout(function() { try { __uvdShowPlayIntro(url, type || 'MP4'); } catch(e) {} }, 40);
   }
+  var streamPlay = stage.querySelector('.uvd-thumb-play');
+  if (streamPlay) streamPlay.onclick = function(e) { e.preventDefault(); e.stopPropagation(); playThisLink(); };
   function showStage(dataUrl) {
     if (!dataUrl || closed) return;
-    stage.innerHTML = '<img alt=""><span class="uvd-media-preview-format">' + escapeHtml(String(type || 'VIDEO').toUpperCase()) + '</span><button type="button" class="uvd-media-preview-stage-play" title="Xem link này">▶</button>';
-    stage.querySelector('img').src = dataUrl;
-    stage.querySelector('.uvd-media-preview-stage-play').onclick = playThisLink;
+    var image = stage.querySelector('.uvd-thumb-image');
+    if (!image) return;
+    image.innerHTML = '<img alt="">';
+    image.querySelector('img').src = dataUrl;
+    var playButton = stage.querySelector('.uvd-thumb-play');
+    if (playButton) { playButton.onclick = function(e) { e.preventDefault(); e.stopPropagation(); playThisLink(); }; }
   }
   function refreshSceneLayout() {
     strip.dataset.count = String(strip.querySelectorAll('.uvd-media-preview-scene').length);
@@ -7992,7 +8012,8 @@ function __uvdOpenMediaPreviewPopup(url, type) {
   }
   function fail(text) {
     if (closed || !stage) return;
-    stage.innerHTML = '<span>' + escapeHtml(text || 'Không lấy được thumbnail của link này') + '</span>';
+    var image = stage.querySelector('.uvd-thumb-image');
+    if (image && !image.querySelector('img')) image.textContent = text || 'Không lấy được thumbnail của link này';
   }
   function imageAt(time, callback) {
     var done = false;
@@ -8123,21 +8144,21 @@ function __uvdOpenMediaLinksPopup(streams) {
     '</div>';
   var list = panel.querySelector('#__uvd_media_links_list__');
   __uvdRenderVotes = false;
-  // Reuse the identical Stream preview DOM + lazy thumbnail pipeline. The
-  // popup only supplies its own compact action row beneath that preview.
+  // Quay lại link đơn giản: mỗi link 1 dòng text + nút Xem (không thumbnail, không mũi chĩa).
   streams.slice(0, 8).forEach(function(stream, index) {
     var popupItem = stream.item || urls.get(stream.url) || {};
     var isMultiQuality = __uvdPopupQualityTier(stream) === 3;
     var isQualityOnly = __uvdPopupQualityTier(stream) === 0;
     var hasMeta = !!(popupItem.qualityCount || popupItem.isMaster || popupItem.resolution);
     var row = document.createElement('div');
-    row.className = 'uvd-card uvd-cute uvd-popup-stream-card';
-    var streamMarkup = document.createElement('div');
-    streamMarkup.innerHTML = buildStreamCardHTML(Object.assign({}, popupItem, { url: stream.url, type: stream.type || popupItem.type || 'MP4' }), index);
-    var streamPreview = streamMarkup.querySelector('.uvd-card-preview');
-    if (streamPreview) row.appendChild(streamPreview);
-    var details = document.createElement('div');
-    details.className = 'uvd-popup-stream-details';
+    row.className = 'uvd-plplain';
+    var mascots = [ (typeof __uvdTabMascotPanda !== 'undefined' ? __uvdTabMascotPanda : ''), (typeof __uvdTabMascotRaccoon !== 'undefined' ? __uvdTabMascotRaccoon : ''), (typeof __uvdTabMascotHamster !== 'undefined' ? __uvdTabMascotHamster : '') ];
+    var mascotHtml = mascots[index % mascots.length] || mascots[0];
+    var cuteIcon = document.createElement('div');
+    cuteIcon.className = 'uvd-plplain-cute-icon';
+    cuteIcon.innerHTML = mascotHtml;
+    var paw1 = document.createElement('i'); paw1.className = 'uvd-plplain-paw uvd-plplain-paw-one';
+    var paw2 = document.createElement('i'); paw2.className = 'uvd-plplain-paw uvd-plplain-paw-two';
     var body = document.createElement('div');
     body.className = 'uvd-plplain-body';
     var typeText = String(stream.type || 'MEDIA').toUpperCase();
@@ -8147,40 +8168,36 @@ function __uvdOpenMediaLinksPopup(streams) {
     else if (hasMeta) badge += ' <span class="uvd-plplain-q">✨ có metadata</span>';
     var popGuide = isQualityOnly
       ? '📎 Chỉ có một quality/preview — Mèo xếp sau các link đa chất lượng nha.'
-      : (typeText === 'M3U8' ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.' : '📼 Link video thật — bấm Xem để phát ngay nha.');
+      : (String(stream.type || '').toUpperCase() === 'M3U8'
+        ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.'
+        : '📼 Link video thật — bấm Xem để phát ngay nha.');
+    var compactUrl = __uvdCompactPopupUrl(stream.url);
     body.innerHTML = '<div class="uvd-plplain-top">' + badge + '</div>' +
-      '<div class="uvd-plplain-url" title="' + escapeHtml(stream.url) + '">↗ ' + escapeHtml(__uvdCompactPopupUrl(stream.url)) + '</div>' +
+      '<div class="uvd-plplain-url" title="' + escapeHtml(stream.url) + '">↗ ' + escapeHtml(compactUrl) + '</div>' +
       '<div class="uvd-plplain-note">' + popGuide + '</div>';
     body.appendChild(__uvdCreateDetectionVoteControls(stream.url, 'video'));
     var actions = document.createElement('div');
     actions.className = 'uvd-plplain-actions';
-    function playPopupStream() {
-      var url = stream.url, mediaType = stream.type || 'MP4';
-      addToHistory(url, mediaType);
-      __uvdShowPlayIntro(url, mediaType);
-    }
     var play = document.createElement('button');
     play.className = 'uvd-plrow-watch';
     play.textContent = 'Xem ♡';
-    play.onclick = playPopupStream;
+    play.onclick = function() {
+      var url = stream.url, type = stream.type || 'MP4';
+      addToHistory(url, type);
+      overlay.remove(); __uvdPopupDismiss();
+      setTimeout(function() { try { __uvdShowPlayIntro(url, type); } catch(e) {} }, 60);
+    };
     var preview = document.createElement('button');
-    preview.type = 'button'; preview.className = 'uvd-plrow-preview'; preview.textContent = '⌁ Xem trước';
+    preview.type = 'button';
+    preview.className = 'uvd-plrow-preview';
+    preview.textContent = '⌁ Xem trước';
     preview.onclick = function(e) { e.stopPropagation(); __uvdOpenMediaPreviewPopup(stream.url, stream.type); };
-    actions.appendChild(play); actions.appendChild(preview);
-    details.appendChild(body); details.appendChild(actions); row.appendChild(details);
-    if (streamPreview) streamPreview.addEventListener('click', function(event) {
-      var action = event.target && event.target.closest && event.target.closest('[data-action]');
-      if (!action) return;
-      event.preventDefault(); event.stopPropagation();
-      if (action.dataset.action === 'play') playPopupStream();
-      else if (action.dataset.action === 'quality') showQualityPicker(stream.url);
-      else if (action.dataset.action === 'copy') { copy(stream.url); toast('Đã sao chép link'); }
-    });
+    actions.appendChild(play);
+    actions.appendChild(preview);
+    row.appendChild(body);
+    row.appendChild(actions);
     list.appendChild(row);
   });
-  // Exact same thumbnail hydrator as Stream: cached frame first, lazy video
-  // capture only when this popup list scrolls it into view.
-  hydrateVideoThumbnails(list);
   function closeMedia() {
     __uvdMediaPopupDismissedAt = Date.now();
     try { overlay.remove(); } catch(e){}

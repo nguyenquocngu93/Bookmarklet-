@@ -8872,6 +8872,9 @@ function buildUI() {
 
   __uvdAppendRoot(panel);
   __uvdIsolateLayer(panel);
+  // Header mascot is intentionally allowed to break the outer panel frame.
+  // Paint containment would clip it even when CSS overflow is visible.
+  panel.style.contain = 'layout style';
   applyEffectsPref(panel);
   applyMotionPref(panel);
   if (__uvdScriptHidden) { panel.style.display = 'none'; __uvdShowRestoreBtn(); }

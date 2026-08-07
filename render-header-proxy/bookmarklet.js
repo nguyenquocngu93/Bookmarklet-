@@ -6734,6 +6734,13 @@ style.textContent = `
   .uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header{padding-left:90px!important;min-height:72px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{top:5px;right:-5px;font-size:14px}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{top:18px;left:-6px;font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg,.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before,.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{animation:none!important}}
+/* ===== COLLAPSED HEADER: KEEP CAT EARS + BRAND TEXT IN SEPARATE LANES ===== */
+.uvd-main-clean.uvd-app-shell{overflow:visible!important}
+.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{padding:0!important;overflow:visible!important}
+.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__ .uvd-brand-text{margin-left:108px!important;min-width:0!important}
+@media (max-width:560px){
+  .uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__ .uvd-brand-text{margin-left:90px!important}
+}
 `;
 
 

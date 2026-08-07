@@ -6599,6 +6599,35 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-main-clean .uvd-session-dock{border-radius:18px!important}.uvd-session-dock-head{padding:9px 10px 6px}.uvd-session-title{font-size:12px!important}.uvd-session-dock-tools{padding:0 10px 8px}.uvd-session-dock .uvd-popup-reminder-rail{min-height:56px!important;padding:7px 10px!important}
 }
+/* ===== GLOBAL POPUP RADIUS + RICHER FAREWELL ===== */
+/* The user-facing corner slider reaches all popup surfaces, not only Main UI. */
+.uvd-tunable-ui .uvd-digging-box,
+.uvd-tunable-ui .uvd-glass-panel,
+.uvd-tunable-ui .uvd-media-preview-panel,
+.uvd-tunable-ui .uvd-resume-card,
+.uvd-tunable-ui .uvd-play-intro-card,
+.uvd-tunable-ui .uvd-settings-sheet:not(.uvd-player-sheet),
+.uvd-tunable-ui .uvd-player-sheet{border-radius:var(--radius-lg)!important}
+.uvd-tunable-ui .uvd-workflow-later,
+.uvd-tunable-ui .uvd-play-intro-open,
+.uvd-tunable-ui .uvd-media-preview-actions button,
+.uvd-tunable-ui .uvd-dig-watch-first-btn,
+.uvd-tunable-ui .uvd-dig-enter-btn,
+.uvd-tunable-ui .uvd-farewell-actions button{border-radius:var(--radius-sm)!important}
+.uvd-tunable-ui #__uvd_video_wrapper__,
+.uvd-tunable-ui #__uvd_player_el__,
+.uvd-tunable-ui #__uvd_player_el__ video,
+.uvd-tunable-ui #__uvd_player_el__ video-skin{border-radius:var(--radius-md)!important}
+
+#__uvd_farewell_popup__ .uvd-farewell-scene{position:relative!important;overflow:hidden!important}
+#__uvd_farewell_popup__ .uvd-farewell-scene-spark{position:absolute;z-index:2;color:#c9a4ec;font-style:normal;font-size:16px;opacity:.7}
+#__uvd_farewell_popup__ .uvd-farewell-spark-one{left:18%;top:26%}#__uvd_farewell_popup__ .uvd-farewell-spark-two{right:19%;top:32%;color:#f4a1bd;font-size:19px}
+#__uvd_farewell_popup__ .uvd-farewell-scene-note{position:absolute;z-index:3;left:50%;bottom:3px;max-width:calc(100% - 24px);padding:6px 10px;border:1px solid rgba(255,255,255,.78);border-radius:999px;background:rgba(255,255,255,.72);color:#936c9c;font-size:9.5px;font-weight:850;line-height:1.25;transform:translateX(-50%);white-space:nowrap}
+#__uvd_farewell_popup__ .uvd-farewell-next{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:9px;padding:8px 10px;border-top:1px solid rgba(194,150,255,.15);color:#9b7aa5;font-size:9.5px;line-height:1.35}
+#__uvd_farewell_popup__ .uvd-farewell-next b{color:#7b5e89;font-weight:850}
+@media (max-width:560px){
+  #__uvd_farewell_popup__ .uvd-farewell-scene-note{font-size:8.5px;padding:5px 8px}#__uvd_farewell_popup__ .uvd-farewell-next{margin-top:7px;padding:7px 5px;font-size:8.5px;gap:4px}
+}
 `;
 
 
@@ -7682,7 +7711,9 @@ function __uvdShowFarewellPopup(onConfirm) {
   var farewellSync = data.settings && data.settings.syncProfileId ? '☁ Profile Sync sẵn sàng' : '💾 Ký ức lưu trên máy';
   box.innerHTML =
     '<section class="uvd-farewell-scene">' +
+      '<i class="uvd-farewell-scene-spark uvd-farewell-spark-one">✦</i><i class="uvd-farewell-scene-spark uvd-farewell-spark-two">♡</i>' +
       '<div class="uvd-farewell-art">' + __uvdGetFarewellMascotsHtml() + '</div>' +
+      '<div class="uvd-farewell-scene-note">Mèo vẫn ở đây, lần sau gọi tụi mình nha ♡</div>' +
     '</section>' +
     '<section class="uvd-farewell-message">' +
       '<div class="uvd-farewell-kicker">MÈO CÀO MEDIA · HẸN GẶP LẠI</div>' +
@@ -7690,6 +7721,7 @@ function __uvdShowFarewellPopup(onConfirm) {
       '<div class="uvd-farewell-thanks">Cảm ơn cưng đã dùng Mèo Cào Media nè!</div>' +
       '<div class="uvd-farewell-copy">Mấy đứa tụi mình sẽ nhớ cưng lắm đó 🥺<br>Hẹn gặp lại lần sau nha, chúc cưng xem phim vui vẻ! 🍿✨</div>' +
       '<div class="uvd-farewell-memory"><span>Trước khi đi, Mèo cất giúp cưng:</span><div><i>✨ ' + farewellVerified + ' link đã kiểm chứng</i><i>🕘 ' + farewellHistory + ' mục lịch sử</i><i>' + escapeHtml(farewellSync) + '</i></div></div>' +
+      '<div class="uvd-farewell-next"><span>🐾 Lần sau chỉ cần chạy bookmark</span><b>Mèo sẽ đào tiếp đúng phiên này cho cưng.</b></div>' +
     '</section>' +
     '<div class="uvd-farewell-actions">' +
       '<button id="__uvd_farewell_stay__">Ở lại ♡</button>' +

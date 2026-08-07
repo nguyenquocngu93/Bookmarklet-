@@ -6718,6 +6718,22 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-main-clean.uvd-app-shell{height:calc(100dvh - 30px)!important}.uvd-main-clean #__uvd_header__{padding-left:90px!important;min-height:72px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:4px!important;bottom:-4px!important;width:80px!important;height:112px!important}
 }
+/* ===== STANDING CAT MOTION + COLLAPSED MAIN UI REPAIR ===== */
+/* The compact mode must win over the normal viewport-height rule. */
+.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed{height:auto!important;min-height:0!important;max-height:none!important;bottom:auto!important}
+.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header{padding-left:108px!important;min-height:88px!important;margin:0!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{position:absolute!important;isolation:isolate;animation:none!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg{animation:uvdHeaderCatStand 2.6s ease-in-out infinite!important;transform-origin:center bottom}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before,
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{display:block!important;position:absolute;z-index:4;pointer-events:none;line-height:1;text-shadow:0 2px 8px rgba(247,108,140,.22)}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{content:'✦';top:8px;right:-6px;color:#c9a4ec;font-size:16px;animation:uvdHeaderSparkle 1.8s ease-in-out infinite}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{content:'♡';top:24px;left:-8px;color:#f58baa;font-size:15px;animation:uvdHeaderSparkle 2.1s ease-in-out infinite .5s}
+@keyframes uvdHeaderCatStand{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(-1deg)}}
+@keyframes uvdHeaderSparkle{0%,100%{opacity:.35;transform:translateY(2px) scale(.82)}50%{opacity:1;transform:translateY(-4px) scale(1.12)}}
+@media (max-width:560px){
+  .uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header{padding-left:90px!important;min-height:72px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{top:5px;right:-5px;font-size:14px}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{top:18px;left:-6px;font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg,.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before,.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{animation:none!important}}
 `;
 
 

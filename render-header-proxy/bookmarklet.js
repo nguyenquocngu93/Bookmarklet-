@@ -6749,6 +6749,16 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-main-clean #__uvd_header__{padding-left:102px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:2px!important;bottom:-4px!important;width:92px!important;height:130px!important}.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__ .uvd-brand-text{margin-left:102px!important}
 }
+/* ===== MAIN TOP BREATHING ROOM + SELECTIVE BLUR EXPERIMENT ===== */
+.uvd-main-clean.uvd-app-shell{top:30px!important;height:calc(100dvh - 54px)!important}
+@media (max-width:560px){.uvd-main-clean.uvd-app-shell{top:28px!important;height:calc(100dvh - 48px)!important}}
+/* Blur is intentionally limited to navigation chrome. Stream cards and content
+   remain solid for Android readability/performance. */
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .uvd-main-clean #__uvd_header__{backdrop-filter:blur(6px) saturate(120%)!important;-webkit-backdrop-filter:blur(6px) saturate(120%)!important}
+  .uvd-main-clean .uvd-session-dock{backdrop-filter:blur(4px) saturate(115%)!important;-webkit-backdrop-filter:blur(4px) saturate(115%)!important}
+  .uvd-popup-back-btn,.uvd-workflow-close,.uvd-media-preview-close,.uvd-dig-close{backdrop-filter:blur(6px) saturate(120%);-webkit-backdrop-filter:blur(6px) saturate(120%)}
+}
 `;
 
 
@@ -7936,46 +7946,6 @@ var __uvdTutorialSlides = [
     tips: 'Nếu một trang chặn Sync, Mèo thử bridge qua Render. Nút Đồng bộ sẽ báo lỗi cụ thể nếu Render/Supabase chưa sẵn sàng.'
   }
 ];
-
-function __uvdShowTutorialSlides() {
-  var old = document.getElementById('__uvd_tutorial__');
-  if (old) old.remove();
-  var overlay = document.createElement('div');
-  overlay.id = '__uvd_tutorial__';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(28,14,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);animation:uvdFadeIn .3s ease both;';
-  var box = document.createElement('div');
-  box.style.cssText = 'width:100%;max-width:540px;max-height:86vh;display:flex;flex-direction:column;border-radius:34px;overflow:hidden;background:linear-gradient(160deg,#fff6fb 0%,#fdf0ff 50%,#fff0f8 100%);border:1px solid rgba(255,159,180,.38);box-shadow:0 32px 80px rgba(150,90,220,.42);animation:uvdScaleIn .42s cubic-bezier(.22,1,.36,1) both;';
-  var idx = 0;
-  function render() {
-    var slide = __uvdTutorialSlides[idx];
-    box.innerHTML =
-      '<div style="padding:18px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(150deg,#ffe9f3,#f3e6ff);border-bottom:1px solid rgba(255,159,180,.22)">' +
-        '<div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:88px;height:88px;flex:0 0 88px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;filter:drop-shadow(0 8px 18px rgba(247,108,140,.28))">' + slide.mascot + '</span>' +
-        '<div style="min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b68bea">' + slide.sub + '</div><div style="font-size:18px;font-weight:900;color:#d85c7a;line-height:1.2">' + slide.title + '</div></div></div>' +
-        '<button id="__uvd_tut_close__" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,159,180,.18);color:#d85c7a;font-size:16px;cursor:pointer">✕</button>' +
-      '</div>' +
-      '<div style="padding:18px 20px;overflow-y:auto;flex:1">' +
-        '<div style="font-size:13.5px;color:#6b4d85;line-height:1.6;margin-bottom:12px">' + slide.text + '</div>' +
-        '<div style="padding:10px 12px;border-radius:14px;background:linear-gradient(155deg,#fffdfd,#ffe9f2);border:1px dashed rgba(255,159,180,.3);font-size:11.5px;color:#9a6ce0"><span style="font-weight:800">💡 Tip:</span> ' + slide.tips + '</div>' +
-      '</div>' +
-      '<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,159,180,.18);background:rgba(255,255,255,.6)">' +
-        '<div style="display:flex;gap:6px">' + __uvdTutorialSlides.map(function(_,i){return '<span style="width:8px;height:8px;border-radius:50%;background:' + (i===idx ? '#f76c8c' : 'rgba(255,159,180,.25)') + ';display:inline-block;transition:all .2s"></span>'}).join('') + '</div>' +
-        '<div style="display:flex;gap:8px"><button id="__uvd_tut_prev__" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(255,159,180,.25);background:#fff;color:#d85c7a;font-weight:700;font-size:12px;cursor:pointer' + (idx===0 ? ';opacity:.4;pointer-events:none' : '') + '">← Trước</button><button id="__uvd_tut_next__" style="padding:10px 16px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff9fb4,#f76c8c);color:#fff;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 4px 12px rgba(247,108,140,.25)">' + (idx===__uvdTutorialSlides.length-1 ? 'Xong ♡' : 'Tiếp →') + '</button></div>' +
-      '</div>';
-    box.querySelector('#__uvd_tut_close__').onclick = function(){ try{ overlay.remove(); }catch(e){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(e){} };
-    var prev = box.querySelector('#__uvd_tut_prev__');
-    if (prev) prev.onclick = function(){ if(idx>0){idx--; render();} };
-    var next = box.querySelector('#__uvd_tut_next__');
-    if (next) next.onclick = function(){ if(idx<__uvdTutorialSlides.length-1){idx++; render();} else { overlay.remove(); } };
-  }
-  overlay.appendChild(box);
-  __uvdAppendRoot(overlay);
-  try { (document.body||document.documentElement).appendChild(overlay); } catch(e){}
-  overlay.style.zIndex='2147483647';
-  overlay.addEventListener('click', function(e){ if(e.target===overlay){ try{ overlay.remove(); }catch(ex){} try{ __uvdRestoreUiAfterPopup(); var p=document.getElementById('__uvd__'); if(p){p.style.display=''; p.__uvdPopupHidden=false;} }catch(ex){} } });
-  render();
-}
-
 
 function __uvdShowTutorialSlides() {
   var old = document.getElementById('__uvd_tutorial__');

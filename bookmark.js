@@ -6741,6 +6741,14 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__ .uvd-brand-text{margin-left:90px!important}
 }
+/* ===== LET THE STANDING CAT BREAK THE OUTER MAIN-PANEL BORDER ===== */
+.uvd-main-clean.uvd-app-shell{overflow:visible!important}
+.uvd-main-clean #__uvd_header__{z-index:20!important;overflow:visible!important;padding-left:118px!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{z-index:30!important;left:7px!important;bottom:-4px!important;width:108px!important;height:150px!important}
+.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__ .uvd-brand-text{margin-left:118px!important}
+@media (max-width:560px){
+  .uvd-main-clean #__uvd_header__{padding-left:102px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:2px!important;bottom:-4px!important;width:92px!important;height:130px!important}.uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__ .uvd-brand-text{margin-left:102px!important}
+}
 `;
 
 

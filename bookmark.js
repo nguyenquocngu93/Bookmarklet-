@@ -6664,6 +6664,28 @@ style.textContent = `
 #__uvd_media_preview__ .uvd-preview-stream-shell{margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
 #__uvd_media_preview__ .uvd-preview-stream-shell>:not(.uvd-card-preview){display:none!important}
 #__uvd_media_preview__ .uvd-preview-stream-shell .uvd-card-preview{margin:0!important}
+/* ===== BREAK THE HEADER FRAME: MASCOT STANDS ON ITS EDGE ===== */
+.uvd-main-clean #__uvd_header__{position:relative!important;overflow:visible!important;padding-left:102px!important;min-height:82px!important}
+.uvd-main-clean #__uvd_header__ .uvd-brand{position:relative;min-width:0;padding:0!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{
+  position:absolute!important;
+  z-index:8;
+  left:12px;
+  bottom:-3px;
+  width:88px!important;
+  height:102px!important;
+  margin:0!important;
+  transform:none!important;
+  transform-origin:center bottom!important;
+  filter:drop-shadow(0 9px 14px rgba(247,108,140,.22))!important;
+  overflow:visible!important
+}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{display:none!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg{width:100%!important;height:100%!important;display:block!important}
+.uvd-main-clean #__uvd_header__ .uvd-brand-text{min-width:0;padding:4px 0}
+@media (max-width:560px){
+  .uvd-main-clean #__uvd_header__{padding-left:82px!important;min-height:68px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:7px;bottom:-2px;width:70px!important;height:84px!important}.uvd-main-clean #__uvd_header__ .uvd-brand-text{padding:2px 0}
+}
 `;
 
 
@@ -8760,7 +8782,7 @@ function buildUI() {
   header.style.cssText = 'flex-shrink:0;';
   header.innerHTML =
     '<div class="uvd-brand">' +
-      '<span class="uvd-brand-mark uvd-brand-mark-hero">' + __uvdHeroMascot + '</span>' +
+      '<span class="uvd-brand-mark uvd-brand-mark-hero uvd-header-standing-mascot">' + __uvdHeroMascot + '</span>' +
       '<div class="uvd-brand-text">' +
         '<div class="uvd-brand-name">Mèo cào media <span class="uvd-brand-heart">♡</span></div>' +
         '<div class="uvd-brand-version">v' + VERSION + ' ✦ cute player</div>' +

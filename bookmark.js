@@ -6574,6 +6574,31 @@ style.textContent = `
 /* The Player — not the video-link list — owns the cinematic black backdrop. */
 #__uvd_player_overlay__{background:rgba(0,0,0,.94)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 
+/* ===== SESSION DOCK: PAGE, SCANNER STATUS, VERIFIED GUIDE IN ONE SURFACE ===== */
+.uvd-main-clean .uvd-session-dock{
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden;
+  border:1px solid rgba(194,150,255,.24)!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,#fffafd 0%,#f8f1ff 60%,#fff1f7 100%)!important;
+  box-shadow:0 4px 12px rgba(150,90,220,.08)!important
+}
+.uvd-session-dock-head{padding:11px 13px 7px}
+.uvd-session-status{display:flex;align-items:center;gap:6px;min-width:0;color:#9a70aa;font-size:8.5px;font-weight:950;letter-spacing:.1em;line-height:1.2}
+.uvd-session-status-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#f29ab7;box-shadow:0 0 0 4px rgba(242,154,183,.15)}
+.uvd-session-host{overflow:hidden;margin-left:auto;color:#a88ba8;font-size:8px;font-weight:800;letter-spacing:0;text-overflow:ellipsis;white-space:nowrap}
+.uvd-session-title{width:100%;margin-top:5px!important;color:#705281!important;font-size:14px!important;font-weight:900!important;line-height:1.25!important}
+.uvd-session-dock-tools{display:flex;gap:5px;overflow-x:auto;padding:0 13px 10px;scrollbar-width:none}.uvd-session-dock-tools::-webkit-scrollbar{display:none}
+.uvd-session-dock-tools .uvd-meta-chip{flex:0 0 auto;background:rgba(255,255,255,.72)!important;border-color:rgba(194,150,255,.2)!important;color:#89699a!important;font-size:9px!important}
+.uvd-session-dock .uvd-popup-reminder-slot{display:block!important;margin:0!important}.uvd-session-dock .uvd-popup-reminder-slot:empty{display:none!important}
+.uvd-session-dock .uvd-popup-reminder-rail{margin:0!important;min-height:58px!important;padding:8px 12px!important;border:0!important;border-top:1px solid rgba(194,150,255,.16)!important;border-radius:0!important;background:rgba(255,255,255,.44)!important;box-shadow:none!important}
+.uvd-session-dock.uvd-session-state-media .uvd-session-status{color:#9070b8}.uvd-session-dock.uvd-session-state-media .uvd-session-status-dot{background:#a787df;box-shadow:0 0 0 4px rgba(167,135,223,.15)}
+.uvd-session-dock.uvd-session-state-iframe .uvd-session-status{color:#c36a87}.uvd-session-dock.uvd-session-state-iframe .uvd-session-status-dot{background:#f18ba8;box-shadow:0 0 0 4px rgba(241,139,168,.15)}
+@media (max-width:560px){
+  .uvd-main-clean .uvd-session-dock{border-radius:18px!important}.uvd-session-dock-head{padding:9px 10px 6px}.uvd-session-title{font-size:12px!important}.uvd-session-dock-tools{padding:0 10px 8px}.uvd-session-dock .uvd-popup-reminder-rail{min-height:56px!important;padding:7px 10px!important}
+}
 `;
 
 
@@ -6817,6 +6842,13 @@ function __uvdRenderPopupReminder() {
   var info = pending || __uvdSessionPopupGuideInfo();
   var actionable = info.kind === 'media' || info.kind === 'iframe';
   var deferred = !!pending && actionable;
+  var dock = slot.closest('#__uvd_session_dock__');
+  if (dock) {
+    dock.classList.remove('uvd-session-state-scan', 'uvd-session-state-media', 'uvd-session-state-iframe');
+    dock.classList.add('uvd-session-state-' + (info.kind || 'scan'));
+    var status = dock.querySelector('#__uvd_session_status__');
+    if (status) status.textContent = info.kind === 'media' ? 'ĐÃ KIỂM CHỨNG' : (info.kind === 'iframe' ? 'ĐÃ THẤY PLAYER' : 'ĐANG LẮNG NGHE');
+  }
   var reminder = document.createElement('section');
   reminder.className = 'uvd-popup-reminder uvd-popup-reminder-rail';
   reminder.setAttribute('aria-label', actionable ? 'Mở popup ' + info.kind : 'Trạng thái đào link');
@@ -8665,23 +8697,19 @@ function buildUI() {
   var info = document.createElement('div');
   info.style.cssText = 'flex-shrink:0;';
   var savedPlaySel = (data.siteProfiles[pageInfo.host] && data.siteProfiles[pageInfo.host].playSelector) || '';
-  info.className = 'uvd-context-bar uvd-context-cute';
+  info.className = 'uvd-context-bar uvd-context-cute uvd-session-dock';
+  info.id = '__uvd_session_dock__';
   info.innerHTML =
-    '<div class="uvd-context-main">' +
-      '<span class="uvd-context-kicker">current session ✨</span>' +
-      '<button id="__uvd_title__" class="uvd-context-title">' + escapeHtml(pageInfo.title) + '</button>' +
+    '<div class="uvd-session-dock-head">' +
+      '<div class="uvd-session-status"><span class="uvd-session-status-dot"></span><span id="__uvd_session_status__">ĐANG LẮNG NGHE</span><span class="uvd-session-host">' + escapeHtml(pageInfo.host || pageInfo.referer) + '</span></div>' +
+      '<button id="__uvd_title__" class="uvd-context-title uvd-session-title">' + escapeHtml(pageInfo.title) + '</button>' +
     '</div>' +
-    '<div class="uvd-context-meta">' +
-      '<button id="__uvd_referer__" class="uvd-meta-chip">↗ ' + escapeHtml(pageInfo.host || pageInfo.referer) + '</button>' +
+    '<div class="uvd-session-dock-tools">' +
+      '<button id="__uvd_referer__" class="uvd-meta-chip">↗ Trang nguồn</button>' +
       '<button id="__uvd_playsel__" class="uvd-meta-chip">◉ ' + escapeHtml(savedPlaySel || 'Play selector chưa đặt') + '</button>' +
-    '</div>';
+    '</div>' +
+    '<div id="__uvd_popup_reminder_slot__" class="uvd-popup-reminder-slot"></div>';
   content.appendChild(info);
-
-  var popupReminderSlot = document.createElement('div');
-  popupReminderSlot.id = '__uvd_popup_reminder_slot__';
-  popupReminderSlot.className = 'uvd-popup-reminder-slot';
-  popupReminderSlot.style.cssText = 'flex-shrink:0;';
-  content.appendChild(popupReminderSlot);
 
   var tabbar = document.createElement('div');
   tabbar.className = 'uvd-tabbar';

@@ -6708,6 +6708,9 @@ style.textContent = `
 #__uvd_media_preview__ .uvd-stream-preview-core-card .uvd-card-stream-meta{background:rgba(241,233,255,.75)!important;border-color:rgba(194,150,255,.22)!important;color:#8667a2!important}
 #__uvd_media_preview__ .uvd-media-preview-actions{margin-top:12px!important}
 #__uvd_media_preview__ .uvd-media-preview-actions .uvd-media-preview-play{background:linear-gradient(135deg,#b98df2,#9668d9)!important;box-shadow:0 7px 15px rgba(150,90,220,.2)!important}
+/* Standing mascot is positioned against the Header itself, never the text brand. */
+.uvd-main-clean #__uvd_header__ .uvd-brand{position:static!important}
+
 `;
 
 

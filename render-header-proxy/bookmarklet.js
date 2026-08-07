@@ -6569,8 +6569,11 @@ style.textContent = `
 }
 /* ===== POPUP CONTINUITY: NEVER FLASH THE HOST PAGE BETWEEN FLOWS ===== */
 .uvd-popup-transition-under{pointer-events:none!important}
-#__uvd_media_links_prompt__{background:rgba(5,3,8,.94)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#__uvd_media_links_prompt__{background:rgba(28,14,40,.74)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 #__uvd_play_intro__{background:rgba(45,22,47,.58)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+/* The Player — not the video-link list — owns the cinematic black backdrop. */
+#__uvd_player_overlay__{background:rgba(0,0,0,.94)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+
 `;
 
 
@@ -8002,7 +8005,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   var overlay = document.createElement('div');
   overlay.id = '__uvd_media_links_prompt__';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
-    'background:rgba(5,3,8,.94);backdrop-filter:none;-webkit-backdrop-filter:none;';
+    'background:rgba(28,14,40,.74);backdrop-filter:none;-webkit-backdrop-filter:none;';
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel uvd-media-choice-popup' + (__uvdConsumeDiggingPopupHandoff() ? ' uvd-popup-from-digging' : '');
   panel.style.cssText = 'width:100%;max-width:520px;margin:auto;text-align:center;border-radius:28px;overflow:hidden;' +

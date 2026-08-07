@@ -45,6 +45,8 @@ var VERSION = '6.7.27';
 var BOOKMARKLET_NAME = 'mèo cào media';
 var HEADER_PROXY_BASE = 'https://saunhung-saunhung.hf.space';
 var RENDER_PROXY_BASE = 'https://render-header-proxy.onrender.com';
+// TMDB discovery is kept in source but paused while the scanner is the focus.
+var __uvdTmdbFeatureEnabled = false;
 
 // ========== CLEANUP ==========
 var old = document.getElementById('__uvd__');
@@ -3140,7 +3142,7 @@ function __uvdRenderTmdbUnavailable(bar, title) {
   if (retry) retry.onclick = function(e) { e.stopPropagation(); __uvdRecognizePlayerMovie(title, bar); };
 }
 function __uvdRecognizePlayerMovie(title, bar) {
-  if (!bar) return;
+  if (!__uvdTmdbFeatureEnabled || !bar) return;
   bar.hidden = false;
   bar.classList.add('uvd-player-tmdb-loading');
   bar.textContent = '🔎 Mèo đang đối chiếu tiêu đề trang với TMDB...';
@@ -3785,14 +3787,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   tmdbBar.hidden = true;
   tmdbBar.__uvdPlayerInfoPanel = infoPanel;
   tmdbBar.__uvdPlayerInfoHandle = infoHandle;
-  infoPanel.appendChild(tmdbBar);
+  if (__uvdTmdbFeatureEnabled) infoPanel.appendChild(tmdbBar);
   sheetBody.appendChild(infoPanel);
   sheet.appendChild(sheetBody);
 
   playerState.overlay = overlay;
   playerState.video = video;
   playerState.reusedOriginalVideo = reusedOriginalVideo;
-  setTimeout(function() { __uvdRecognizePlayerMovie(playerTitle, tmdbBar); }, 280);
+  if (__uvdTmdbFeatureEnabled) setTimeout(function() { __uvdRecognizePlayerMovie(playerTitle, tmdbBar); }, 280);
   // Low-power mode is entered after the sheet has finished sliding in.
   // Keep the video surface hidden during this short warm-up.
   videoWrapper.style.boxSizing = 'border-box';
@@ -10061,11 +10063,11 @@ function renderSettings(container) {
     '</div>' +
 
     '<div class="uvd-settings-group-title">☁ Đồng bộ & lịch sử</div>' +
-    '<div class="uvd-card">' +
+    (__uvdTmdbFeatureEnabled ? '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🎞 Nhận diện phim TMDB (tuỳ chọn)</div>' +
       '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">TMDB sẽ tự nhận diện tên phim trong player để hiện logo, cast và thông tin phim. Render token được ưu tiên; key local này chỉ là fallback, không sync/cloud.</div>' +
       '<input id="__uvd_tmdb_key__" type="password" autocomplete="off" placeholder="TMDB API key (v3)" value="' + escapeHtml(data.settings.tmdbApiKey || '') + '" style="width:100%;padding:10px 12px;background:var(--btn-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:#d85c7a;font-size:12px;">' +
-    '</div>' +
+    '</div>' : '') +
 
     '<div class="uvd-card">' +
       '<div style="font-weight:600;margin-bottom:8px;">🔗 Bookmarklet riêng</div>' +

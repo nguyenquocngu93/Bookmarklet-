@@ -6543,6 +6543,10 @@ style.textContent = `
 @media (max-width:560px){
   .uvd-movie-info-body .uvd-movie-info-hero{margin:0!important;border-radius:23px 23px 0 0}.uvd-movie-info-surface{padding-left:24px!important;padding-right:24px!important}.uvd-movie-info-meta-line{margin-top:-84px!important}.uvd-movie-info-logo{margin-left:-32px!important}
 }
+/* ===== POPUP CONTINUITY: NEVER FLASH THE HOST PAGE BETWEEN FLOWS ===== */
+.uvd-popup-transition-under{pointer-events:none!important}
+#__uvd_media_links_prompt__{background:rgba(5,3,8,.94)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#__uvd_play_intro__{background:rgba(5,3,8,.92)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 `;
 
 
@@ -7500,13 +7504,16 @@ function __uvdFlyDiggingPopupUp(onDone) {
   flow.completed = true;
   var overlay = document.getElementById('__uvd_digging_popup__');
   if (!overlay) { if (typeof onDone === 'function') onDone(); return; }
-  // Keep UMP hidden, let the cat card shoot above the viewport, then present
-  // the selected video/iframe popup underneath it.
+  // Mount the next popup while this card still covers the host page. The
+  // outgoing Digging card then exits underneath it, preventing a web-page flash.
+  overlay.style.zIndex = '2147483646';
   overlay.classList.add('uvd-dig-exit');
   setTimeout(function() {
-    if (overlay.parentNode) overlay.remove();
     __uvdDiggingPopupHandoff = true;
     if (typeof onDone === 'function') onDone();
+  }, 110);
+  setTimeout(function() {
+    if (overlay.parentNode) overlay.remove();
   }, 590);
 }
 function __uvdStopDiggingPopup(keepUiHidden) {
@@ -7536,7 +7543,6 @@ var __uvdMediaPopupDismissedAt = 0;
 // Khi bấm Play: hiện con thỏ ôm bắp rang vài giây rồi mới mở video player.
 function __uvdShowPlayIntro(url, type) {
   var anyPopup = document.getElementById('__uvd_media_links_prompt__');
-  if (anyPopup) { anyPopup.remove(); __uvdPopupDismiss(); }
   var old = document.getElementById('__uvd_play_intro__');
   if (old) old.remove();
   // Ẩn panel UMP để intro luôn nổi trên cùng (không bị UI đè).
@@ -7562,14 +7568,22 @@ function __uvdShowPlayIntro(url, type) {
   __uvdAppendRoot(overlay);
   try { (document.body || document.documentElement).appendChild(overlay); } catch(e) {}
   overlay.style.zIndex = '2147483647';
+  // The intro now owns the visual layer; retire the list only after intro is
+  // in the document, so the page itself never shows between popups.
+  if (anyPopup) {
+    anyPopup.style.zIndex = '2147483646';
+    anyPopup.classList.add('uvd-popup-transition-under');
+    setTimeout(function() { try { anyPopup.remove(); } catch(e) {} }, 180);
+  }
   var opened = false;
   function openIt() {
     if (opened || !overlay.isConnected) return;
     opened = true;
-    overlay.remove();
-    __uvdRestoreUiAfterPopup();
     playerState.launchFromThumbnail = true;
     try { window.__uvd_showPlayer(url, type || 'MP4'); } catch(e) {}
+    // Player overlay is appended synchronously by showVideoPlayer. Keep intro
+    // through that mount, then retire it below the player layer.
+    setTimeout(function() { try { overlay.remove(); } catch(e) {} }, 120);
   }
   var openBtn = box.querySelector('#__uvd_play_intro_open__');
   if (openBtn) openBtn.onclick = function(e) { e.stopPropagation(); openIt(); };
@@ -7964,7 +7978,7 @@ function __uvdOpenMediaLinksPopup(streams) {
   var overlay = document.createElement('div');
   overlay.id = '__uvd_media_links_prompt__';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:18px;' +
-    'background:rgba(28,14,40,.74);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+    'background:rgba(5,3,8,.94);backdrop-filter:none;-webkit-backdrop-filter:none;';
   var panel = document.createElement('div');
   panel.className = 'uvd-glass-panel uvd-media-choice-popup' + (__uvdConsumeDiggingPopupHandoff() ? ' uvd-popup-from-digging' : '');
   panel.style.cssText = 'width:100%;max-width:520px;margin:auto;text-align:center;border-radius:28px;overflow:hidden;' +

@@ -6711,6 +6711,13 @@ style.textContent = `
 /* Standing mascot is positioned against the Header itself, never the text brand. */
 .uvd-main-clean #__uvd_header__ .uvd-brand{position:static!important}
 
+/* ===== FULL-BODY HEADER CAT + A LITTLE MORE ROOM AROUND MAIN UI ===== */
+.uvd-main-clean.uvd-app-shell{height:calc(100dvh - 38px)!important}
+.uvd-main-clean #__uvd_header__{padding-left:108px!important;min-height:88px!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:8px!important;bottom:-5px!important;width:96px!important;height:132px!important}
+@media (max-width:560px){
+  .uvd-main-clean.uvd-app-shell{height:calc(100dvh - 30px)!important}.uvd-main-clean #__uvd_header__{padding-left:90px!important;min-height:72px!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{left:4px!important;bottom:-4px!important;width:80px!important;height:112px!important}
+}
 `;
 
 
@@ -7218,6 +7225,30 @@ var __uvdHeroMascot =
     '<ellipse cx="60" cy="75" rx="7" ry="9" fill="#5b3a40"/><ellipse cx="60" cy="73" rx="3.2" ry="3.8" fill="#e8788f"/>' +
     '<path d="M60 84 q-7 7 -12 3 M60 84 q7 7 12 3" stroke="#5b3a40" stroke-width="2.2" stroke-linecap="round" fill="none"/>' +
     '<g class="uvd-hero-heart" style="transform-origin:60px 20px"><text x="60" y="18" text-anchor="middle" font-size="14" font-weight="900" fill="#f76c8c">♡</text></g>' +
+  '</svg>';
+
+// Full-body standing cat reserved for the Main Header. Its tall silhouette is
+// intentional: it stands on the header edge rather than behaving like an icon.
+var __uvdHeaderStandingCat =
+  '<svg viewBox="0 0 120 170" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<ellipse cx="62" cy="158" rx="38" ry="8" fill="#e8bfd1" opacity=".55"/>' +
+    '<path d="M35 132 Q10 123 16 100 Q21 89 38 103" fill="#ffb5c8" stroke="#eb89a8" stroke-width="2"/>' +
+    '<ellipse cx="61" cy="125" rx="32" ry="35" fill="#ffe0ea" stroke="#f3a5bd" stroke-width="2"/>' +
+    '<ellipse cx="61" cy="142" rx="25" ry="17" fill="#fff7fb"/>' +
+    '<path d="M38 111 Q28 122 32 135" stroke="#f58baa" stroke-width="7" stroke-linecap="round"/>' +
+    '<path d="M84 111 Q94 122 90 135" stroke="#f58baa" stroke-width="7" stroke-linecap="round"/>' +
+    '<ellipse cx="47" cy="154" rx="13" ry="8" fill="#ffe0ea" stroke="#f3a5bd" stroke-width="2"/>' +
+    '<ellipse cx="75" cy="154" rx="13" ry="8" fill="#ffe0ea" stroke="#f3a5bd" stroke-width="2"/>' +
+    '<path d="M31 83 L22 34 L50 62 Z" fill="#ffb4c9" stroke="#f3a5bd" stroke-width="2"/>' +
+    '<path d="M91 83 L100 34 L72 62 Z" fill="#ffb4c9" stroke="#f3a5bd" stroke-width="2"/>' +
+    '<path d="M31 76 L27 47 L46 66 Z" fill="#f57fa2"/><path d="M91 76 L95 47 L76 66 Z" fill="#f57fa2"/>' +
+    '<ellipse cx="61" cy="84" rx="39" ry="34" fill="#ffe5ee" stroke="#f3a5bd" stroke-width="2"/>' +
+    '<ellipse cx="48" cy="85" rx="5" ry="6" fill="#513843"/><ellipse cx="74" cy="85" rx="5" ry="6" fill="#513843"/>' +
+    '<circle cx="49" cy="83" r="1.7" fill="#fff"/><circle cx="75" cy="83" r="1.7" fill="#fff"/>' +
+    '<ellipse cx="61" cy="96" rx="4" ry="3.5" fill="#e8788f"/><path d="M61 100 q-6 7 -11 1 M61 100 q6 7 11 1" stroke="#513843" stroke-width="1.7" stroke-linecap="round" fill="none"/>' +
+    '<ellipse cx="37" cy="98" rx="7" ry="4" fill="#ff9fba" opacity=".75"/><ellipse cx="85" cy="98" rx="7" ry="4" fill="#ff9fba" opacity=".75"/>' +
+    '<path d="M80 58 Q89 48 98 58 Q89 67 80 58 Z" fill="#f76c8c"/><circle cx="89" cy="58" r="3.5" fill="#fff"/>' +
+    '<text x="57" y="24" text-anchor="middle" font-size="14" font-weight="900" fill="#f76c8c">♡</text>' +
   '</svg>';
 
 // Cute bear mascot for the settings footer (inline SVG).
@@ -8705,7 +8736,7 @@ function buildUI() {
   header.style.cssText = 'flex-shrink:0;';
   header.innerHTML =
     '<div class="uvd-brand">' +
-      '<span class="uvd-brand-mark uvd-brand-mark-hero uvd-header-standing-mascot">' + __uvdHeroMascot + '</span>' +
+      '<span class="uvd-brand-mark uvd-brand-mark-hero uvd-header-standing-mascot">' + __uvdHeaderStandingCat + '</span>' +
       '<div class="uvd-brand-text">' +
         '<div class="uvd-brand-name">Mèo cào media <span class="uvd-brand-heart">♡</span></div>' +
         '<div class="uvd-brand-version">v' + VERSION + ' ✦ cute player</div>' +

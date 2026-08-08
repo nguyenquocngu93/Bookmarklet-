@@ -6970,6 +6970,56 @@ style.textContent = `
 .uvd-tunable-ui #__uvd_farewell_bye__:active,
 .uvd-tunable-ui #__uvd_iframe_workflow_cancel__:active,
 .uvd-tunable-ui #__uvd_media_links_cancel__:active{transform:scale(.985)!important;box-shadow:0 1px 4px rgba(108,77,130,.1)!important}
+/* ===== POPUP LIFT: SHORTER WORKFLOWS WITH A DIRECTED BOTTOM SHADOW =====
+   Keep the player cinematic/full-size; these are the decision and discovery
+   popups, so a little page breathing room makes them feel raised, not fullscreen. */
+#__uvd_digging_popup__>.uvd-digging-box,
+#__uvd_media_links_prompt__>.uvd-glass-panel,
+#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,
+#__uvd_farewell_popup__>.uvd-farewell-box{
+  height:86vh!important;
+  height:min(86dvh,760px)!important;
+  max-height:calc(100dvh - 40px)!important;
+  box-shadow:0 16px 26px -18px rgba(45,25,57,.72),0 37px 52px -36px rgba(45,25,57,.62),0 0 0 5px rgba(255,255,255,.22) inset!important
+}
+/* The smaller popups stay content-aware, with the same lifted shadow rather
+   than being stretched to match the workflow sheets. */
+#__uvd_play_intro__>.uvd-play-intro-card,
+#__uvd_media_preview__>.uvd-media-preview-panel,
+#__uvd_resume_prompt__>.uvd-resume-card,
+#__uvd_popup_reminder_prompt__>.uvd-deferred-reminder-card,
+#__uvd_tutorial__>.uvd-tutorial-box{
+  box-shadow:0 15px 24px -17px rgba(45,25,57,.66),0 33px 47px -34px rgba(45,25,57,.56),0 0 0 5px rgba(255,255,255,.2) inset!important
+}
+#__uvd_tutorial__>.uvd-tutorial-box{max-height:calc(100dvh - 40px)!important}
+@media (max-width:560px){
+  #__uvd_digging_popup__>.uvd-digging-box,
+  #__uvd_media_links_prompt__>.uvd-glass-panel,
+  #__uvd_iframe_workflow_prompt__>.uvd-glass-panel,
+  #__uvd_farewell_popup__>.uvd-farewell-box{
+    height:calc(100dvh - 36px)!important;
+    max-height:calc(100dvh - 36px)!important
+  }
+  #__uvd_tutorial__>.uvd-tutorial-box{max-height:calc(100dvh - 36px)!important}
+}
+/* Header is solid while the control room is expanded.  Only its minimized
+   state becomes a light frosted chip, so the blur signals "compact mode". */
+.uvd-main-clean #__uvd_header__{
+  transition:background .28s ease,border-color .28s ease,box-shadow .28s ease,backdrop-filter .28s ease!important
+}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .uvd-main-clean #__uvd_header__{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important
+  }
+  .uvd-main-clean.uvd-app-shell.uvd-panel-collapsed #__uvd_header__{
+    background:linear-gradient(135deg,rgba(255,248,252,.78),rgba(255,229,242,.72))!important;
+    border-color:rgba(255,255,255,.7)!important;
+    backdrop-filter:blur(12px) saturate(135%)!important;
+    -webkit-backdrop-filter:blur(12px) saturate(135%)!important;
+    box-shadow:0 12px 24px -18px rgba(133,74,112,.46),0 20px 34px -28px rgba(133,74,112,.38),0 0 0 1px rgba(255,255,255,.45) inset!important
+  }
+}
 `;
 
 

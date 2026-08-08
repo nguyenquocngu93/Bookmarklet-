@@ -6759,6 +6759,8 @@ style.textContent = `
   .uvd-main-clean .uvd-session-dock{backdrop-filter:blur(4px) saturate(115%)!important;-webkit-backdrop-filter:blur(4px) saturate(115%)!important}
   .uvd-popup-back-btn,.uvd-workflow-close,.uvd-media-preview-close,.uvd-dig-close{backdrop-filter:blur(6px) saturate(120%);-webkit-backdrop-filter:blur(6px) saturate(120%)}
 }
+/* Session Dock is the disposable scroll chrome; Header always stays put. */
+.uvd-main-clean.uvd-session-hidden .uvd-session-dock{display:none!important}
 `;
 
 
@@ -8904,7 +8906,30 @@ function buildUI() {
   document.querySelectorAll('[data-tab]').forEach(function(t) {
     t.onclick = function() { renderTab(this.dataset.tab); };
   });
-  streamList.addEventListener('scroll', function() { __uvdMainUiViewState.scrollTop = streamList.scrollTop || 0; }, { passive: true });
+  // Do not animate/hide the mascot-heavy Header while reading — that causes
+  // Android jank. Hide only the Session Dock after a deliberate downward scroll
+  // and restore it as soon as the user turns upward.
+  var sessionScrollAnchor = 0;
+  var sessionHidden = false;
+  streamList.addEventListener('scroll', function() {
+    var top = streamList.scrollTop || 0;
+    __uvdMainUiViewState.scrollTop = top;
+    if (top <= 12) {
+      sessionHidden = false;
+      sessionScrollAnchor = top;
+      panel.classList.remove('uvd-session-hidden');
+      return;
+    }
+    if (!sessionHidden && top > sessionScrollAnchor + 26) {
+      sessionHidden = true;
+      sessionScrollAnchor = top;
+      panel.classList.add('uvd-session-hidden');
+    } else if (sessionHidden && top < sessionScrollAnchor - 14) {
+      sessionHidden = false;
+      sessionScrollAnchor = top;
+      panel.classList.remove('uvd-session-hidden');
+    }
+  }, { passive: true });
 
   renderTab(currentTab);
   requestAnimationFrame(function() {

@@ -458,6 +458,9 @@ function applyEffectsPref(el) {
   el.style.setProperty('--radius-sm', Math.max(8, radius - 8) + 'px');
   el.style.setProperty('--radius-md', radius + 'px');
   el.style.setProperty('--radius-lg', Math.min(48, radius + 10) + 'px');
+  // Extra breathing room grows a little with very rounded corners so content
+  // does not visually touch the curved edge at the maximum radius setting.
+  el.style.setProperty('--uvd-corner-inset', Math.max(0, Math.round((radius - 18) * .32)) + 'px');
 }
 function applyMotionPref(el) {
   if (!el) return;
@@ -6762,8 +6765,8 @@ style.textContent = `
 /* Session Dock is the disposable scroll chrome; Header always stays put. */
 .uvd-main-clean.uvd-session-hidden .uvd-session-dock{display:none!important}
 /* ===== SESSION FADE, CAT CONTRAST, GLOBAL VIDEO RADIUS ===== */
-.uvd-main-clean .uvd-session-dock{max-height:230px;overflow:hidden;opacity:1;transform:translateY(0);transition:max-height .30s cubic-bezier(.22,1,.36,1),opacity .18s ease,transform .30s cubic-bezier(.22,1,.36,1),border-width .18s ease;will-change:max-height,opacity,transform}
-.uvd-main-clean.uvd-session-hidden .uvd-session-dock{display:block!important;max-height:0!important;min-height:0!important;opacity:0!important;transform:translateY(-12px)!important;border-width:0!important;pointer-events:none!important}
+.uvd-main-clean .uvd-session-dock{max-height:230px;overflow:hidden;opacity:1;filter:blur(0);transform:translateY(0) scale(1);transition:max-height .56s cubic-bezier(.22,1,.36,1),opacity .36s ease,transform .56s cubic-bezier(.22,1,.36,1),filter .32s ease,border-width .24s ease;will-change:max-height,opacity,transform,filter}
+.uvd-main-clean.uvd-session-hidden .uvd-session-dock{display:block!important;max-height:0!important;min-height:0!important;opacity:0!important;filter:blur(2px)!important;transform:translateY(-16px) scale(.985)!important;border-width:0!important;pointer-events:none!important}
 /* Give the pink cat a pale halo so it separates from the pink header. */
 .uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 9px 14px rgba(247,108,140,.24))!important}
 .uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{content:''!important;inset:13px 5px 8px!important;z-index:0!important;background:radial-gradient(ellipse at center,rgba(255,255,255,.96),rgba(255,232,244,.58) 56%,transparent 72%)!important;font-size:0!important;animation:uvdHeaderCatHalo 2.6s ease-in-out infinite!important}
@@ -6778,6 +6781,10 @@ style.textContent = `
 .uvd-tunable-ui #__uvd_player_el__ video-skin,
 .uvd-tunable-ui .uvd-player-video-area{border-radius:var(--radius-md)!important}
 @media (prefers-reduced-motion:reduce){.uvd-main-clean .uvd-session-dock{transition:none!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{animation:none!important}}
+/* ===== CORNER INSET: KEEP CONTENT AWAY FROM LARGE RADIUS EDGES ===== */
+.uvd-tunable-ui .uvd-session-dock{padding:var(--uvd-corner-inset)!important}
+.uvd-tunable-ui .uvd-player-info-panel{padding-left:calc(13px + var(--uvd-corner-inset))!important;padding-right:calc(13px + var(--uvd-corner-inset))!important}
+.uvd-tunable-ui .uvd-media-preview-panel,.uvd-tunable-ui .uvd-play-intro-card{scroll-padding:var(--uvd-corner-inset)}
 `;
 
 

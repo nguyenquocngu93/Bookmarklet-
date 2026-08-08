@@ -6932,6 +6932,33 @@ style.textContent = `
 #__uvd_digging_popup__ .uvd-dig-enter-btn:active{transform:scale(.985)!important;box-shadow:0 1px 4px rgba(105,75,130,.1)!important}
 #__uvd_digging_popup__ .uvd-dig-ui-btn,
 #__uvd_digging_popup__ #__uvd_dig_fact_btn__{box-shadow:0 2px 6px rgba(105,75,130,.08)!important}
+/* ===== FLAT BUTTON PASS: REMOVE 3D OFFSET SHADOWS FROM THE WHOLE CUTE SYSTEM ===== */
+.uvd-tunable-ui .uvd-btn:not([data-action="play"]),
+.uvd-tunable-ui .uvd-plrow-preview,
+.uvd-tunable-ui .uvd-iframe-probe-btn,
+.uvd-tunable-ui .uvd-workflow-later,
+.uvd-tunable-ui .uvd-dig-watch-first-btn,
+.uvd-tunable-ui .uvd-dig-enter-btn,
+.uvd-tunable-ui .uvd-dig-ui-btn,
+.uvd-tunable-ui #__uvd_dig_fact_btn__,
+.uvd-tunable-ui #__uvd_farewell_bye__,
+.uvd-tunable-ui #__uvd_iframe_workflow_cancel__,
+.uvd-tunable-ui #__uvd_media_links_cancel__,
+.uvd-tunable-ui .uvd-media-preview-back,
+.uvd-tunable-ui .uvd-tutorial-nav-actions button{
+  box-shadow:0 3px 9px rgba(108,77,130,.12)!important;
+  text-shadow:none!important
+}
+.uvd-tunable-ui .uvd-btn:not([data-action="play"]):active,
+.uvd-tunable-ui .uvd-plrow-preview:active,
+.uvd-tunable-ui .uvd-iframe-probe-btn:active,
+.uvd-tunable-ui .uvd-workflow-later:active,
+.uvd-tunable-ui .uvd-dig-watch-first-btn:active,
+.uvd-tunable-ui .uvd-dig-enter-btn:active,
+.uvd-tunable-ui .uvd-dig-ui-btn:active,
+.uvd-tunable-ui #__uvd_farewell_bye__:active,
+.uvd-tunable-ui #__uvd_iframe_workflow_cancel__:active,
+.uvd-tunable-ui #__uvd_media_links_cancel__:active{transform:scale(.985)!important;box-shadow:0 1px 4px rgba(108,77,130,.1)!important}
 `;
 
 

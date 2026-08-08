@@ -6919,6 +6919,19 @@ style.textContent = `
 #__uvd_digging_popup__ .uvd-dig-ui-btn{min-height:40px;padding:8px 10px!important;background:#fffafd!important;box-shadow:0 2px 7px rgba(150,90,220,.09)!important}
 /* Settings is a bottom sheet: only its top corners follow the radius setting. */
 .uvd-tunable-ui.uvd-settings-overlay .uvd-settings-sheet:not(.uvd-player-sheet){border-radius:var(--radius-lg) var(--radius-lg) 0 0!important}
+/* ===== DIGGING ACTIONS: FINAL FLAT PASTEL PASS ===== */
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn,
+#__uvd_digging_popup__ .uvd-dig-enter-btn{
+  border-width:1px!important;
+  box-shadow:0 3px 9px rgba(105,75,130,.13)!important;
+  text-shadow:none!important
+}
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn{background:#bea9e6!important}
+#__uvd_digging_popup__ .uvd-dig-enter-btn{background:#f5aabf!important}
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn:active,
+#__uvd_digging_popup__ .uvd-dig-enter-btn:active{transform:scale(.985)!important;box-shadow:0 1px 4px rgba(105,75,130,.1)!important}
+#__uvd_digging_popup__ .uvd-dig-ui-btn,
+#__uvd_digging_popup__ #__uvd_dig_fact_btn__{box-shadow:0 2px 6px rgba(105,75,130,.08)!important}
 `;
 
 

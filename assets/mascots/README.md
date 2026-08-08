@@ -9,7 +9,7 @@ This folder holds editable mascot SVG artwork for Mèo cào media.
 
 ## Tutorial fat explorer cats
 
-Every tutorial slide has a deliberately different **fat manga-cat silhouette**.
+Every tutorial slide has a deliberately different **fat soft-vector cat silhouette**.
 They share a hand-held map but do **not** reuse a recoloured base cat:
 
 1. `rose-scout-cat.svg` — round tabby with striped upright tail.

@@ -6917,6 +6917,8 @@ style.textContent = `
 #__uvd_digging_popup__ .uvd-dig-route-hint{margin-top:7px!important;font-size:10px!important;line-height:1.3!important;color:#9d7ca9!important}
 #__uvd_digging_popup__ .uvd-dig-footer{padding-top:12px!important}
 #__uvd_digging_popup__ .uvd-dig-ui-btn{min-height:40px;padding:8px 10px!important;background:#fffafd!important;box-shadow:0 2px 7px rgba(150,90,220,.09)!important}
+/* Settings is a bottom sheet: only its top corners follow the radius setting. */
+.uvd-tunable-ui.uvd-settings-overlay .uvd-settings-sheet:not(.uvd-player-sheet){border-radius:var(--radius-lg) var(--radius-lg) 0 0!important}
 `;
 
 

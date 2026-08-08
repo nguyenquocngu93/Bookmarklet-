@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 736 736" role="img" aria-labelledby="title desc" shape-rendering="crispEdges">
+  <title id="title">Mèo point má hồng với sao lấp lánh</title>
+  <desc id="desc">Mèo pixel mũm mĩm màu kem, tai và mảng lông nâu, mắt to lấp lánh.</desc>
+  <!-- Editable vector recreation: every part below is a path or shape, never an embedded bitmap. -->
+  <rect width="736" height="736" fill="#8ca2b3"/>
+
+  <!-- pixel sparkles -->
+  <g fill="#f8dc50">
+    <path d="M624 80h8v17h17v8h-17v17h-8v-17h-17v-8h17z"/>
+    <path d="M645 132h7v24h23v8h-23v24h-7v-24h-24v-8h24z"/>
+    <path d="M688 235h7v20h19v8h-19v20h-7v-20h-20v-8h20z"/>
+    <path d="M38 322h8v27h26v8H46v27h-8v-27H12v-8h26z"/>
+    <path d="M109 407h7v16h16v8h-16v16h-7v-16H93v-8h16z"/>
+    <path d="M77 232h7v15h15v7H84v15h-7v-15H62v-7h15z"/>
+    <rect x="586" y="69" width="7" height="7"/>
+    <rect x="535" y="160" width="7" height="7"/>
+    <rect x="631" y="196" width="7" height="7"/>
+    <rect x="695" y="177" width="7" height="7"/>
+    <rect x="21" y="454" width="7" height="7"/>
+    <rect x="38" y="216" width="7" height="7"/>
+    <rect x="84" y="401" width="7" height="7"/>
+  </g>
+
+  <!-- tail tucked behind the body -->
+  <path fill="#76534a" d="M136 560h-16V466h9v-85h8v-64h10v-50h13v-40h15v-33h20v-15h31v9h23v10h18v14h19v16h17v19h17v22h16v32h-17v-21h-18v-18h-19v-15h-20v-13h-22v-10h-25v10h-19v13h-16v19h-13v27h-10v38h-9v50h-8v68h-8v68h-10v48z"/>
+  <path fill="#91675b" d="M168 479h-12v-80h9v-62h10v-45h13v-31h16v-25h20v-14h23v9h19v10h18v13h14v14h13v20h11v29h-12v-20h-14v-16h-15v-14h-17v-11h-20v-9h-20v13h-15v17h-13v27h-9v42h-9v59h-8z"/>
+
+  <!-- left ear with stepped dark edge -->
+  <path fill="#78554b" d="M109 129h34v10h28v12h23v13h20v15h19v17h16v20h18v24h14v34h-8v34h-10v33h-13v30h-19v26h-26v19h-30v-14h-22v-17h-17v-22h-14v-30h-11v-44h-9v-61h-8v-64h-8v-71h8z"/>
+  <path fill="#ecaa98" d="M122 142h21v11h22v11h20v13h17v15h17v18h14v22h16v30h-8v28h-10v31h-13v28h-17v22h-18v16h-19v-16h-17v-20h-15v-25h-13v-33h-10v-48h-8v-62h-7v-66h8z"/>
+  <path fill="#f3b9a8" d="M141 158h17v12h19v11h18v14h16v17h14v20h13v26h-9v24h-11v26h-14v22h-17v13h-15v-19h-15v-20h-13v-27h-11v-36h-9v-49h-7v-53h8z"/>
+  <path fill="#d98d80" d="M123 221h8v49h8v62h9v48h10v33h13v25h14v20h19v16h-18v-16h-18v-19h-16v-26h-13v-30h-10v-42h-8v-54h-7v-60h-7v-65h8z"/>
+
+  <!-- right ear and face-side point -->
+  <path fill="#76534a" d="M466 82h28v13h12v30h9v37h10v32h11v22h16v23h16v31h12v39h9v57h-8v40h-10v28h-14v19h-19v12h-26v-11h-19v-18h-16v-24h-13v-35h-11v-48h-9v-72h-9v-89h10v-51h10v-35h11z"/>
+  <path fill="#eca993" d="M464 97h24v15h10v29h9v35h10v32h10v24h14v23h15v31h11v37h8v30h-11v-25h-12v-35h-15v-29h-16v-22h-14v-24h-11v-31h-10v-38h-9v-48h-9v-48h8z"/>
+  <path fill="#f6b9a5" d="M473 110h15v17h9v31h8v37h10v33h10v26h13v25h13v28h10v28h8v17h-11v-21h-12v-31h-15v-27h-14v-25h-13v-29h-11v-34h-9v-40h-8v-46h-8v-28h7z"/>
+  <path fill="#d98778" d="M524 247h16v23h15v31h11v37h8v30h-11v-27h-13v-35h-15v-30h-15v-29h-13v-34h17z"/>
+
+  <!-- body outline, then its plump cream fill -->
+  <path fill="#76584d" d="M248 344h44v-9h150v9h36v12h26v15h19v20h15v24h12v32h10v42h9v55h9v70h9v122h-11v-1H92v-39h8v-69h9v-57h9v-46h10v-38h12v-31h14v-25h17v-20h20v-14h25v-11h32z"/>
+  <path fill="#edf1de" d="M253 358h44v-9h140v9h34v11h25v15h19v18h15v25h12v33h10v44h8v58h9v69h8v81h-13v-62h-10v-63h-9v-58h-9v-46h-11v-35h-13v-28h-17v-22h-22v-15h-29v-11H263v10h-31v13h-25v17h-20v21h-16v27h-13v35h-11v45h-9v56h-9v69h-8v72h-14v-42h8v-73h9v-58h9v-48h11v-39h13v-31h16v-25h20v-20h24v-14h29z"/>
+  <path fill="#f8f8ef" d="M252 372h43v-9h133v9h31v11h24v14h18v18h14v24h11v33h9v46h8v59h8v63h8v44h-17v-45h-9v-64h-9v-59h-9v-47h-11v-36h-14v-27h-17v-21h-22v-15h-28v-11H265v10h-30v13h-25v17h-20v21h-16v27h-12v35h-11v45h-9v56h-8v69h-8v55h-17v-55h8v-69h9v-57h9v-46h11v-37h13v-28h16v-23h20v-18h24v-14h29z"/>
+  <!-- lower body sage shadows -->
+  <path fill="#d6ddcc" d="M537 565h9v65h-10v45h-11v37h-13v24h-18v-16h-18v-17h-19v-19h-20v-21h-21v-22h-19v-24h-18v-25h-17v-28h29v12h20v13h17v15h15v16h14v18h14v20h15v22h16v24h17v25h18v23h19v19h19v-26h9z"/>
+  <path fill="#e1e7d6" d="M471 553h23v12h18v14h15v17h12v20h8v48h-10v-33h-10v-20h-13v-17h-16v-14h-19v-12h-22z"/>
+  <path fill="#ffffff" d="M107 540h17v-59h9v-47h11v-36h13v-27h15v-17h15v39h-13v29h-11v38h-10v48h-9v57h-8v70h-14v-66h-15z"/>
+
+  <!-- face outline / cream muzzle -->
+  <path fill="#77594f" d="M267 207h45v-8h117v8h39v10h27v14h20v18h17v22h14v28h12v36h10v46h8v63h-9v45h-11v32h-15v25h-19v18h-23v13h-31v9h-171v-8h-37v-12h-29v-16h-22v-22h-17v-29h-13v-38h-10v-48h-8v-62h9v-47h11v-36h15v-27h18v-21h23v-16h30v-11h34z"/>
+  <path fill="#fffefd" d="M270 221h43v-8h111v8h38v10h26v13h20v17h17v21h14v27h12v35h9v45h8v59h-9v42h-11v30h-14v24h-18v17h-22v13h-29v8H286v-8h-35v-11h-28v-16h-21v-21h-16v-28h-13v-37h-9v-47h-8v-60h9v-45h11v-35h14v-26h18v-20h23v-15h29v-10h33z"/>
+  <!-- warm cheek/muzzle color planes -->
+  <path fill="#f7f7ec" d="M226 413h24v-11h42v9h48v10h54v-9h57v-10h45v11h27v14h18v19h11v27h-9v20h-14v14h-20v10h-31v8h-43v-7h-57v8h-57v-8h-43v-9h-32v-11h-21v-15h-13v-20h-9v-28h10v-23h13v-19h18z"/>
+  <path fill="#dce2d2" d="M360 406h93v10h31v13h21v18h14v21h10v25h-10v20h-14v15h-20v11h-30v8h-43v-7h-52v-8h-25v-11h-19v-15h-13v-20h-8v-26h9v-22h14v-16h21v-12h31z"/>
+  <path fill="#eef1e3" d="M263 430h25v10h40v8h40v8h49v-8h43v-8h27v11h18v15h12v20h-10v17h-15v12h-22v8h-35v-8h-48v9h-50v-9h-39v-9h-27v-12h-17v-17h-11v-20h9v-18h13v-14h18z"/>
+
+  <!-- face point on the right -->
+  <path fill="#79564d" d="M471 221h20v10h18v13h15v17h12v22h10v29h9v37h8v49h-10v35h-12v24h-16v14h-21v8h-25v-10h-18v-14h-14v-20h-10v-27h-8v-35h-7v-44h8v-37h9v-28h12v-21h15v-17h19z"/>
+  <path fill="#8c6559" d="M478 233h12v11h17v14h14v18h12v24h10v31h9v40h8v45h-9v29h-11v20h-15v12h-19v8h-22v-10h-16v-14h-12v-20h-9v-28h-7v-35h-8v-43h8v-34h9v-27h11v-20h13z"/>
+
+  <!-- enormous glossy eyes -->
+  <path fill="#3c2e29" d="M277 278h22v-9h43v8h18v11h12v17h8v43h-8v16h-13v11h-20v8h-49v-8h-18v-11h-12v-17h-8v-42h8v-17h12v-10h15z"/>
+  <path fill="#3c2e29" d="M454 258h23v-8h30v8h14v11h10v17h7v45h-7v18h-10v12h-14v8h-38v-8h-15v-11h-10v-17h-7v-43h7v-18h10v-14h10z"/>
+  <path fill="#ffffff" d="M294 287h20v7h7v16h-8v7h-25v-8h-7v-15h7v-7z"/>
+  <path fill="#ffffff" d="M472 268h13v8h8v14h-7v8h-23v-8h-7v-14h7v-8z"/>
+  <path fill="#70615a" d="M327 347h25v8h-25zM489 330h21v8h-21z"/>
+
+  <!-- nose, mouth and pink cheeks -->
+  <path fill="#d9826d" d="M386 326h19v7h8v12h-8v8h-18v-7h-8v-13h7z"/>
+  <path fill="#d9826d" d="M364 354h24v7h-17v8h-14v-8h7zM404 354h17v7h15v8h-15v-8h-17z"/>
+  <path fill="#f1a89b" d="M259 347h12v-8h24v8h10v15h-8v11h-14v8h-19v-8h-12v-11h7z"/>
+  <path fill="#f1a89b" d="M488 339h18v8h11v15h-8v11h-13v8h-20v-8h-11v-11h7v-15h16z"/>
+  <path fill="#f7c1b4" d="M243 361h14v-8h14v8h-8v8h-20zM276 372h21v8h-21zM490 354h15v8h-23v-8h8zM467 372h22v8h-22z"/>
+  <path fill="#d9826d" d="M314 366h45v8h-45zM421 366h43v8h-43z"/>
+  <path fill="#e89683" d="M304 375h29v7h-29zM437 375h30v7h-30z"/>
+
+  <!-- tiny pixel highlights around fur -->
+  <g fill="#ffffff">
+    <rect x="215" y="284" width="8" height="25"/><rect x="224" y="269" width="8" height="15"/>
+    <rect x="194" y="435" width="8" height="24"/><rect x="185" y="459" width="8" height="28"/>
+    <rect x="144" y="556" width="8" height="31"/><rect x="135" y="588" width="8" height="25"/>
+  </g>
+</svg>

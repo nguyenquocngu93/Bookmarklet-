@@ -19,6 +19,12 @@ They share a hand-held map but do **not** reuse a recoloured base cat:
 5. `blue-scout-cat.svg` — round blue cat with map glasses and compass.
 6. `mint-scout-cat.svg` — extra-wide mint cat with star bow.
 
+## Pixel-cat study
+
+- `sparkle-point-cat.svg` — editable pixel-vector cat with point markings, blush,
+  and yellow sparkles. It is kept as an art source only and is not wired into the
+  bookmarklet UI yet.
+
 The bookmarklet cannot reliably fetch external GitHub assets on arbitrary sites
 because those sites may block external image/script requests. Runtime copies are
 therefore inlined in `bookmark.js` and `render-header-proxy/bookmarklet.js`.

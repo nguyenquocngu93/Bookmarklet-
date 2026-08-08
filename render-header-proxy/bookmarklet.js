@@ -692,6 +692,26 @@ function __uvdPromoteVerifiedMedia(url, media) {
   if (typeof debouncedBuildUI === 'function') debouncedBuildUI();
   return true;
 }
+function __uvdPromoteDiggingMetadata(url, media) {
+  var item = urls.get(url);
+  if (!item || !media) return false;
+  var duration = Number(media.duration || 0);
+  if (!isFinite(duration) || duration < 600 || !media.videoWidth || !media.videoHeight) return false;
+  item.durationSeconds = duration;
+  item.videoWidth = media.videoWidth;
+  item.videoHeight = media.videoHeight;
+  item.resolution = media.videoWidth + '×' + media.videoHeight;
+  item.metadataVerified = true;
+  item.previewReady = false;
+  item.demo = false;
+  item.verification = 'metadata';
+  var done = item.__uvdVerificationDone;
+  delete item.__uvdVerificationDone;
+  if (typeof done === 'function') done(true);
+  __uvdMarkDiggingLinkFound(url, item.type);
+  if (typeof debouncedBuildUI === 'function') debouncedBuildUI();
+  return true;
+}
 function __uvdVerificationPriority(url) {
   var item = urls.get(url) || {};
   if (__uvdIsRejectedVideo(url)) return -1000;
@@ -9465,7 +9485,9 @@ function hydrateVideoThumbnails(root) {
       media.defaultMuted = true;
       media.playsInline = true;
       media.preload = 'metadata';
-      if (isVerificationStage) media.crossOrigin = 'anonymous';
+      // Do not force anonymous CORS during Digging verification. Some hosts
+      // provide duration/dimensions to a normal video element but reject canvas
+      // access; metadata is enough for the 10-minute fast path below.
       media.setAttribute('aria-hidden', 'true');
     } else {
       media.classList.add('uvd-thumb-video');
@@ -9520,6 +9542,9 @@ function hydrateVideoThumbnails(root) {
     }
     media.addEventListener('loadedmetadata', function() {
       __uvdUpdateCardFromMedia(card, media);
+      // Popup Đào should never wait for a canvas thumbnail when the source has
+      // already proven itself as a long-form video through decoded metadata.
+      if (isVerificationStage && __uvdPromoteDiggingMetadata(thumbUrl, media)) return;
       if (isFinite(media.duration) && media.duration > 0 && media.duration <= __uvdDemoPreviewMaxSeconds) {
         preview.dataset.thumbState = 'demo';
         __uvdSetCardStatus(card, 'DEMO · NO PREVIEW', 'uvd-status-muted');

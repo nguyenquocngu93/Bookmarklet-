@@ -1,0 +1,22 @@
+<svg viewBox="0 0 160 190" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="80" cy="176" rx="48" ry="9" fill="#D9C8D8" opacity=".55"/>
+  <path d="M45 145C20 140 20 112 41 107C43 123 56 132 63 140" fill="#E99B65" stroke="#D86F55" stroke-width="3"/>
+  <ellipse cx="80" cy="142" rx="42" ry="39" fill="#FFD9B9" stroke="#D86F55" stroke-width="3"/>
+  <ellipse cx="80" cy="159" rx="30" ry="18" fill="#FFF9FC" opacity=".88"/>
+  <ellipse cx="60" cy="176" rx="16" ry="8" fill="#FFD9B9" stroke="#D86F55" stroke-width="3"/>
+  <ellipse cx="100" cy="176" rx="16" ry="8" fill="#FFD9B9" stroke="#D86F55" stroke-width="3"/>
+  <path d="M41 91L28 38L66 76Z" fill="#E99B65" stroke="#D86F55" stroke-width="3"/>
+  <path d="M119 91L132 38L94 76Z" fill="#E99B65" stroke="#D86F55" stroke-width="3"/>
+  <path d="M42 80L35 53L61 78Z" fill="#D86F55"/><path d="M118 80L125 53L99 78Z" fill="#D86F55"/>
+  <ellipse cx="80" cy="101" rx="47" ry="39" fill="#FFD9B9" stroke="#D86F55" stroke-width="3"/>
+  <path d="M111 128Q131 132 128 151L116 160Q103 153 105 137Z" fill="#D86F55"/><path d="M109 131Q115 116 124 126" stroke="#D86F55" stroke-width="5" fill="none"/>
+  <ellipse cx="63" cy="103" rx="6" ry="7" fill="#4B3640"/><ellipse cx="97" cy="103" rx="6" ry="7" fill="#4B3640"/>
+  <circle cx="65" cy="101" r="2" fill="white"/><circle cx="99" cy="101" r="2" fill="white"/>
+  <ellipse cx="80" cy="116" rx="4.5" ry="3.8" fill="#E87891"/><path d="M80 120C74 126 68 123 65 120M80 120C86 126 92 123 95 120" stroke="#4B3640" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="52" cy="117" rx="8" ry="4.5" fill="#FF9EBA" opacity=".7"/><ellipse cx="108" cy="117" rx="8" ry="4.5" fill="#FF9EBA" opacity=".7"/>
+  <path d="M50 132L80 123L110 132V161L80 170L50 161Z" fill="#FFFDFE" stroke="#D18A58" stroke-width="2"/>
+  <path d="M80 123V170M50 132L80 143L110 132" stroke="#D4C0EC" stroke-width="2"/>
+  <path d="M61 140C68 134 72 147 80 142C87 137 91 149 100 142" stroke="#D86F55" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+  <circle cx="61" cy="140" r="3" fill="#D18A58"/><path d="M112 69C122 59 136 70 127 82C121 80 116 76 112 69Z" fill="#D86F55"/><circle cx="120" cy="70" r="3" fill="white"/>
+  <text x="80" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#D18A58">♡</text>
+</svg>

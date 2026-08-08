@@ -6785,6 +6785,35 @@ style.textContent = `
 .uvd-tunable-ui .uvd-session-dock{padding:var(--uvd-corner-inset)!important}
 .uvd-tunable-ui .uvd-player-info-panel{padding-left:calc(13px + var(--uvd-corner-inset))!important;padding-right:calc(13px + var(--uvd-corner-inset))!important}
 .uvd-tunable-ui .uvd-media-preview-panel,.uvd-tunable-ui .uvd-play-intro-card{scroll-padding:var(--uvd-corner-inset)}
+/* ===== UNIFIED POPUP ENTRANCE: RISE LIKE SETTINGS ===== */
+@keyframes uvdPopupSheetUp{from{opacity:0;transform:translateY(78px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes uvdPopupBackdropIn{from{opacity:0}to{opacity:1}}
+#__uvd_digging_popup__,
+#__uvd_media_links_prompt__,
+#__uvd_iframe_workflow_prompt__,
+#__uvd_play_intro__,
+#__uvd_media_preview__,
+#__uvd_resume_prompt__,
+#__uvd_farewell_popup__,
+#__uvd_tutorial__,
+#__uvd_popup_reminder_prompt__{animation:uvdPopupBackdropIn .22s ease both!important}
+#__uvd_digging_popup__>.uvd-digging-box,
+#__uvd_media_links_prompt__>.uvd-glass-panel,
+#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,
+#__uvd_play_intro__>.uvd-play-intro-card,
+#__uvd_media_preview__>.uvd-media-preview-panel,
+#__uvd_resume_prompt__>.uvd-resume-card,
+#__uvd_farewell_popup__>.uvd-farewell-box,
+#__uvd_tutorial__>.uvd-tutorial-box,
+#__uvd_popup_reminder_prompt__>.uvd-deferred-reminder-card,
+#__uvd_player_overlay__>.uvd-player-sheet{animation:uvdPopupSheetUp .42s cubic-bezier(.22,1,.36,1) both!important}
+/* Digging exits upward after its successor has mounted; this must override its
+   entrance animation so the handoff stays continuous. */
+#__uvd_digging_popup__.uvd-dig-exit>.uvd-digging-box{animation:uvdDigBoxFlyUp .58s cubic-bezier(.45,0,.72,.22) forwards!important}
+@media (prefers-reduced-motion:reduce){
+  #__uvd_digging_popup__,#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_media_preview__,#__uvd_resume_prompt__,#__uvd_farewell_popup__,#__uvd_tutorial__,#__uvd_popup_reminder_prompt__,
+  #__uvd_digging_popup__>.uvd-digging-box,#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>.uvd-play-intro-card,#__uvd_media_preview__>.uvd-media-preview-panel,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_farewell_popup__>.uvd-farewell-box,#__uvd_tutorial__>.uvd-tutorial-box,#__uvd_popup_reminder_prompt__>.uvd-deferred-reminder-card,#__uvd_player_overlay__>.uvd-player-sheet{animation:none!important}
+}
 `;
 
 

@@ -6834,6 +6834,54 @@ style.textContent = `
   #__uvd_digging_popup__,#__uvd_media_links_prompt__,#__uvd_iframe_workflow_prompt__,#__uvd_play_intro__,#__uvd_media_preview__,#__uvd_resume_prompt__,#__uvd_farewell_popup__,#__uvd_tutorial__,#__uvd_popup_reminder_prompt__,
   #__uvd_digging_popup__>.uvd-digging-box,#__uvd_media_links_prompt__>.uvd-glass-panel,#__uvd_iframe_workflow_prompt__>.uvd-glass-panel,#__uvd_play_intro__>.uvd-play-intro-card,#__uvd_media_preview__>.uvd-media-preview-panel,#__uvd_resume_prompt__>.uvd-resume-card,#__uvd_farewell_popup__>.uvd-farewell-box,#__uvd_tutorial__>.uvd-tutorial-box,#__uvd_popup_reminder_prompt__>.uvd-deferred-reminder-card,#__uvd_player_overlay__>.uvd-player-sheet{animation:none!important}
 }
+/* ===== CUTE BUTTON SYSTEM: PASTEL STICKERS, NOT REPEATED GRADIENTS ===== */
+.uvd-tunable-ui .uvd-btn,
+.uvd-tunable-ui .uvd-plrow-preview,
+.uvd-tunable-ui .uvd-iframe-probe-btn,
+.uvd-tunable-ui .uvd-media-preview-back,
+.uvd-tunable-ui .uvd-movie-info-close,
+.uvd-tunable-ui .uvd-tutorial-nav-actions button{
+  border:1px solid rgba(194,150,255,.28)!important;
+  background:#fffafd!important;
+  color:#86669c!important;
+  box-shadow:0 3px 0 rgba(194,150,255,.18),inset 0 1px 0 rgba(255,255,255,.96)!important;
+  font-weight:850!important
+}
+.uvd-tunable-ui .uvd-btn:active,
+.uvd-tunable-ui .uvd-plrow-preview:active,
+.uvd-tunable-ui .uvd-iframe-probe-btn:active,
+.uvd-tunable-ui .uvd-media-preview-back:active{transform:translateY(2px) scale(.98)!important;box-shadow:0 1px 0 rgba(194,150,255,.15),inset 0 1px 0 rgba(255,255,255,.9)!important}
+/* Lavender primary = open/play/continue. */
+.uvd-tunable-ui .uvd-btn[data-action="play"],
+.uvd-tunable-ui .uvd-plrow-watch,
+.uvd-tunable-ui .uvd-dig-watch-first-btn,
+.uvd-tunable-ui .uvd-play-intro-open,
+.uvd-tunable-ui .uvd-media-preview-play,
+.uvd-tunable-ui #__uvd_resume_continue__,
+.uvd-tunable-ui #__uvd_media_links_cancel__{
+  border:1px solid rgba(255,255,255,.55)!important;
+  background:#ad8ae7!important;
+  color:#fff!important;
+  box-shadow:0 4px 0 #8c6ac4,inset 0 2px 0 rgba(255,255,255,.32)!important
+}
+/* Rose primary = commit/leave/continue a warm flow. */
+.uvd-tunable-ui .uvd-dig-enter-btn,
+.uvd-tunable-ui #__uvd_farewell_bye__,
+.uvd-tunable-ui #__uvd_iframe_workflow_cancel__{
+  border:1px solid rgba(255,255,255,.58)!important;
+  background:#f287a5!important;
+  color:#fff!important;
+  box-shadow:0 4px 0 #cf6688,inset 0 2px 0 rgba(255,255,255,.35)!important
+}
+.uvd-tunable-ui .uvd-dig-watch-first-btn:active,
+.uvd-tunable-ui .uvd-play-intro-open:active,
+.uvd-tunable-ui .uvd-media-preview-play:active,
+.uvd-tunable-ui .uvd-plrow-watch:active,
+.uvd-tunable-ui .uvd-dig-enter-btn:active,
+.uvd-tunable-ui #__uvd_farewell_bye__:active{transform:translateY(3px) scale(.98)!important;box-shadow:0 1px 0 rgba(83,54,104,.25),inset 0 1px 0 rgba(255,255,255,.25)!important}
+/* Header controls are tiny pastel candies, not mini gradients. */
+.uvd-main-clean .uvd-header-actions .uvd-btn-icon{background:#fff8fb!important;border-color:rgba(255,159,180,.28)!important;box-shadow:0 2px 0 rgba(247,108,140,.16),inset 0 1px 0 #fff!important}
+.uvd-main-clean .uvd-header-actions .uvd-btn-icon:hover{background:#ffe8f1!important;color:#c95073!important;box-shadow:0 3px 0 rgba(247,108,140,.2),inset 0 1px 0 #fff!important}
 `;
 
 

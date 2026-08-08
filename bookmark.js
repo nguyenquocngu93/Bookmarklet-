@@ -6882,6 +6882,22 @@ style.textContent = `
 /* Header controls are tiny pastel candies, not mini gradients. */
 .uvd-main-clean .uvd-header-actions .uvd-btn-icon{background:#fff8fb!important;border-color:rgba(255,159,180,.28)!important;box-shadow:0 2px 0 rgba(247,108,140,.16),inset 0 1px 0 #fff!important}
 .uvd-main-clean .uvd-header-actions .uvd-btn-icon:hover{background:#ffe8f1!important;color:#c95073!important;box-shadow:0 3px 0 rgba(247,108,140,.2),inset 0 1px 0 #fff!important}
+/* ===== BUTTON ROLE EXCEPTIONS: ORIGINAL HEADER/PLAY, CUTE DIGGING ===== */
+/* Header controls keep their familiar old treatment. */
+.uvd-main-clean .uvd-header-actions .uvd-btn-icon{background:linear-gradient(150deg,#fff0f5,#ffe3ec)!important;border:1px solid rgba(255,159,180,.35)!important;color:#d85c7a!important;box-shadow:0 4px 12px rgba(247,108,140,.16),0 0 0 1px rgba(255,255,255,.7) inset!important}
+.uvd-main-clean .uvd-header-actions .uvd-btn-icon:hover{background:linear-gradient(150deg,#ffd6e4,#ffb6c6)!important;color:#fff!important;box-shadow:0 6px 16px rgba(247,108,140,.30)!important}
+/* Ordinary Play controls also retain their earlier familiar gradients. */
+.uvd-tunable-ui .uvd-btn[data-action="play"],
+.uvd-tunable-ui .uvd-plrow-watch,
+.uvd-tunable-ui .uvd-play-intro-open,
+.uvd-tunable-ui .uvd-media-preview-play,
+.uvd-tunable-ui #__uvd_resume_continue__{background:linear-gradient(135deg,#ff9fb4,#f76c8c)!important;border:0!important;color:#fff!important;box-shadow:0 6px 14px rgba(247,108,140,.25)!important}
+/* Popup Đào gets its own coherent sticker set. */
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn{border:1px solid rgba(255,255,255,.58)!important;background:#ab8ce3!important;color:#fff!important;box-shadow:0 4px 0 #8a6ac0,inset 0 2px 0 rgba(255,255,255,.32)!important}
+#__uvd_digging_popup__ .uvd-dig-enter-btn{border:1px solid rgba(255,255,255,.6)!important;background:#f287a5!important;color:#fff!important;box-shadow:0 4px 0 #ce6688,inset 0 2px 0 rgba(255,255,255,.34)!important}
+#__uvd_digging_popup__ .uvd-dig-watch-first-btn:active,#__uvd_digging_popup__ .uvd-dig-enter-btn:active{transform:translateY(3px) scale(.98)!important;box-shadow:0 1px 0 rgba(83,54,104,.22)!important}
+#__uvd_digging_popup__ .uvd-dig-ui-btn{border:1px solid rgba(194,150,255,.3)!important;background:#fffafd!important;color:#86669c!important;box-shadow:0 3px 0 rgba(194,150,255,.16),inset 0 1px 0 #fff!important;font-weight:850!important}
+#__uvd_digging_popup__ #__uvd_dig_fact_btn__{border:1px dashed rgba(255,159,180,.45)!important;background:#fff7fb!important;color:#c95073!important;box-shadow:0 3px 0 rgba(247,108,140,.12)!important}
 `;
 
 

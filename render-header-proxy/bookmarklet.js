@@ -6761,6 +6761,23 @@ style.textContent = `
 }
 /* Session Dock is the disposable scroll chrome; Header always stays put. */
 .uvd-main-clean.uvd-session-hidden .uvd-session-dock{display:none!important}
+/* ===== SESSION FADE, CAT CONTRAST, GLOBAL VIDEO RADIUS ===== */
+.uvd-main-clean .uvd-session-dock{max-height:230px;overflow:hidden;opacity:1;transform:translateY(0);transition:max-height .30s cubic-bezier(.22,1,.36,1),opacity .18s ease,transform .30s cubic-bezier(.22,1,.36,1),border-width .18s ease;will-change:max-height,opacity,transform}
+.uvd-main-clean.uvd-session-hidden .uvd-session-dock{display:block!important;max-height:0!important;min-height:0!important;opacity:0!important;transform:translateY(-12px)!important;border-width:0!important;pointer-events:none!important}
+/* Give the pink cat a pale halo so it separates from the pink header. */
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 9px 14px rgba(247,108,140,.24))!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{content:''!important;inset:13px 5px 8px!important;z-index:0!important;background:radial-gradient(ellipse at center,rgba(255,255,255,.96),rgba(255,232,244,.58) 56%,transparent 72%)!important;font-size:0!important;animation:uvdHeaderCatHalo 2.6s ease-in-out infinite!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::after{content:'✦'!important;top:7px!important;right:-7px!important;left:auto!important;z-index:2!important;color:#c9a4ec!important;font-size:16px!important;animation:uvdHeaderSparkle 1.8s ease-in-out infinite!important}
+.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot svg{position:relative;z-index:1}
+@keyframes uvdHeaderCatHalo{0%,100%{opacity:.56;transform:scale(.94)}50%{opacity:.94;transform:scale(1.04)}}
+/* The setting's corner radius must win over legacy Player/video declarations. */
+.uvd-tunable-ui .uvd-session-dock{border-radius:var(--radius-md)!important}
+.uvd-tunable-ui #__uvd_video_wrapper__,
+.uvd-tunable-ui #__uvd_player_el__,
+.uvd-tunable-ui #__uvd_player_el__ video,
+.uvd-tunable-ui #__uvd_player_el__ video-skin,
+.uvd-tunable-ui .uvd-player-video-area{border-radius:var(--radius-md)!important}
+@media (prefers-reduced-motion:reduce){.uvd-main-clean .uvd-session-dock{transition:none!important}.uvd-main-clean #__uvd_header__ .uvd-header-standing-mascot::before{animation:none!important}}
 `;
 
 

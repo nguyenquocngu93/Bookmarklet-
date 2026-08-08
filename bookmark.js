@@ -3681,6 +3681,9 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   // parameter: an undeclared flag here would stop the player before hls.js
   // gets a chance to take over, leaving the loading spinner forever.
   forceHlsJs = !!forceHlsJs;
+  // Every launch path records one canonical local history entry. Popup quick
+  // play no longer depends on a Stream thumbnail card having been rendered.
+  if (!fromProxy && url) addToHistory(url, type || 'MP4');
   // These tokenized TXT playlists use relative child playlists that need the
   // k/kx query carried onto every child URL. Start them through /hls directly
   // instead of waiting for the direct source to fail first.
@@ -4235,6 +4238,14 @@ function showVideoPlayer(url, type, fromProxy, forceReinit, forceHlsJs, titleOve
   }
 
   video.addEventListener('loadedmetadata', onMetadataLoaded);
+  // Capture history metadata from the actual Player media. This covers Xem
+  // ngay/Popup Video paths that never mounted a Stream card thumbnail.
+  function savePlayerHistoryFrame() {
+    if (playerState.closing || playerState.video !== video) return;
+    __uvdSaveHistoryMetadata(url, video, null);
+  }
+  video.addEventListener('loadeddata', function() { setTimeout(savePlayerHistoryFrame, 120); }, { once: true });
+  video.addEventListener('canplay', savePlayerHistoryFrame, { once: true });
   video.addEventListener('durationchange', updateInfoDisplay);
   video.addEventListener('error', function() {
     if (playerState.closing || playerState.video !== video) return;
@@ -10055,6 +10066,8 @@ function __uvdSaveHistoryMetadata(url, media, card) {
   entry.resolution = media.videoWidth && media.videoHeight ? media.videoWidth + '×' + media.videoHeight : entry.resolution || '';
   entry.duration = isFinite(media.duration) && media.duration > 0 ? __uvdFormatDuration(media.duration) : entry.duration || '';
   entry.quality = card && card.dataset.cardQuality ? card.dataset.cardQuality : (entry.quality || '');
+  var cached = urls.get(url) || {};
+  if (!entry.thumbnail && (cached.previewThumbnail || cached.thumbnail)) entry.thumbnail = cached.previewThumbnail || cached.thumbnail;
   try {
     if (media.videoWidth && media.videoHeight && !entry.thumbnail) {
       var canvas = document.createElement('canvas');

@@ -8948,7 +8948,6 @@ function buildUI() {
       '<button class="uvd-btn-icon" id="__uvd_autoplay__" title="Tự động bấm Play">▶</button>' +
       '<button class="uvd-btn-icon" id="__uvd_preload__" title="Bắt link trước/sau Play">◉</button>' +
       '<button class="uvd-btn-icon" id="__uvd_seq_autoplay__" title="Reload và quét lại nguồn video">↻</button>' +
-      '<button class="uvd-btn-icon" id="__uvd_iframe_btn__" title="Mở popup iframe">▣</button>' +
       '<button class="uvd-btn-icon" id="__uvd_settings_btn__" title="Cài đặt">⚙</button>' +
       '<button class="uvd-btn-icon" id="__uvd_hide__" title="Thu gọn/mở rộng Mèo cào media">▾</button>' +
       '<button class="uvd-btn-icon uvd-close-action" id="__uvd_close__" title="Đóng">×</button>' +
@@ -9185,16 +9184,6 @@ function buildUI() {
     }, 2600);
   };
   document.getElementById('__uvd_settings_btn__').onclick = openSettingsOverlay;
-
-  var iframeBtn = document.getElementById('__uvd_iframe_btn__');
-  if (iframeBtn) {
-    // Tự hiện khi trang chỉ có iframe/demo (chưa có video thật), ẩn khi đã có video.
-    iframeBtn.style.display = __uvdHasOnlyIframeOrDemo() ? '' : 'none';
-    iframeBtn.onclick = function() {
-      if (__uvdHasOnlyIframeOrDemo()) __uvdMaybeOfferIframeWorkflow(true);
-      else toast('Đã có video thật rồi, không cần mở iframe nha 🐰');
-    };
-  }
 
   document.getElementById('__uvd_title__').onclick = function() {
     var newTitle = prompt('Tên file:', pageInfo.title);

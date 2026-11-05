@@ -1017,6 +1017,7 @@ function __uvdVideoScore(url, type) {
     if (item.demo === false) score += 10;
   }
   if (String(type || '').toUpperCase() === 'M3U8' && /master\.m3u8/i.test(url)) score += 20;
+  if (item && item.health === 'junk') score -= 60;
   return score;
 }
 // Read the latest labels already obtained in the Streams tab before opening
@@ -1050,6 +1051,7 @@ function __uvdPopupQualityTier(stream) {
   var item = stream && (stream.item || urls.get(stream.url)) || {};
   // QUALITY ONLY is a fallback/limited card, never let score or recency lift
   // it above normal results. A master with 2+ levels is always the first tier.
+  if (item.health === 'junk') return 0;
   if (item.qualityOnly === true) return 0;
   if ((Number(item.qualityCount) || 0) > 1 || item.isMaster === true) return 3;
   if (item.resolution || (Number(item.qualityCount) || 0) > 0) return 2;
@@ -1137,6 +1139,109 @@ function __uvdStartMatthewGuard() {
   addCleanup(function() { document.removeEventListener('click', handler, true); });
 }
 
+// ========== PLAYLIST HEALTH (image-playlist detector) ==========
+// Một số host trả "playlist" mà segment thực chất là ảnh (PNG/JPEG) -> player phát ra
+// slideshow chứ không phải video. Kiểm tra magic bytes của segment đầu: 1 request Range
+// ~16 byte, không cần token, không cần vote. CORS chặn thì trả "unknown", không gán nhãn.
+var __uvdHealthQueue = [];
+var __uvdHealthQueued = {};
+var __uvdHealthRunning = 0;
+var __uvdHealthMaxConcurrent = 2;
+var __uvdHealthTimeoutMs = 9000;
+var __uvdHealthProbeCount = 0;
+var __uvdHealthProbeMax = 30;
+
+function __uvdHealthSet(url, verdict, reason) {
+  var item = urls.get(url);
+  if (!item || item.health === verdict) return;
+  item.health = verdict;
+  item.healthReason = reason || '';
+  if (typeof debouncedBuildUI === 'function') debouncedBuildUI();
+}
+function __uvdQueueMediaHealth(url) {
+  if (!url || __uvdHealthQueued[url] || __uvdHealthProbeCount >= __uvdHealthProbeMax) return;
+  var item = urls.get(url);
+  if (!item || item.type !== 'M3U8') return;
+  __uvdHealthQueued[url] = true;
+  __uvdHealthProbeCount += 1;
+  __uvdHealthQueue.push(url);
+  setTimeout(__uvdHealthPump, 0);
+}
+function __uvdHealthPump() {
+  if (__uvdHealthRunning >= __uvdHealthMaxConcurrent) return;
+  var url = __uvdHealthQueue.shift();
+  if (!url) return;
+  __uvdHealthRunning += 1;
+  __uvdProbePlaylistHealth(url, 0, function(result) {
+    __uvdHealthRunning = Math.max(0, __uvdHealthRunning - 1);
+    if (result && result.verdict) __uvdHealthSet(url, result.verdict, result.reason);
+    setTimeout(__uvdHealthPump, 0);
+  });
+  if (__uvdHealthQueue.length) setTimeout(__uvdHealthPump, 0);
+}
+function __uvdHealthFetch(url, range) {
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, __uvdHealthTimeoutMs);
+  var opts = { signal: controller.signal, credentials: 'omit' };
+  if (range) opts.headers = { 'Range': range };
+  return fetch(url, opts).then(function(r) { clearTimeout(timer); return r; },
+    function(e) { clearTimeout(timer); throw e; });
+}
+function __uvdHealthMagic(buf) {
+  var b;
+  try { b = new Uint8Array(buf); } catch(e) { return ''; }
+  if (b.length >= 4 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b.length >= 3 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'image/gif';
+  if (b.length >= 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
+  if (b.length >= 1 && b[0] === 0x47) return 'video/mp2t';
+  if (b.length >= 8 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4';
+  if (b.length >= 5 && b[0] === 0x3c) return 'text/html';
+  return '';
+}
+function __uvdProbePlaylistHealth(url, depth, cb) {
+  if (depth > 2) { cb({ verdict: 'unknown' }); return; }
+  __uvdHealthFetch(url).then(function(r) {
+    if (!r.ok) { cb({ verdict: 'unknown', reason: 'HTTP ' + r.status }); return; }
+    return r.text().then(function(text) {
+      if (text.indexOf('#EXTM3U') === -1) { cb({ verdict: 'junk', reason: 'không phải playlist' }); return; }
+      if (!/\bEXTINF\b/.test(text) && /\bEXT-X-STREAM-INF\b/.test(text)) {
+        var vlines = text.split('\n'), variant = '';
+        for (var j = 0; j < vlines.length; j++) {
+          var v = (vlines[j] || '').trim();
+          if (v && v.charAt(0) !== '#' && /\.(?:m3u8|txt)(?:[?#]|$)/i.test(v)) { variant = v; break; }
+        }
+        if (!variant) { cb({ verdict: 'unknown' }); return; }
+        __uvdProbePlaylistHealth(new URL(variant, url).href, depth + 1, cb);
+        return;
+      }
+      var lines = text.split('\n'), first = '';
+      for (var i = 0; i < lines.length; i++) {
+        var line = (lines[i] || '').trim();
+        if (!line || line.charAt(0) === '#') continue;
+        first = line; break;
+      }
+      if (!first) { cb({ verdict: 'junk', reason: 'playlist rỗng' }); return; }
+      var segUrl = new URL(first, url).href;
+      var ext = (segUrl.split('?')[0].split('#')[0].match(/\.([a-z0-9]{2,5})$/i) || [])[1] || '';
+      if (/^(?:image|png|jpe?g|webp|gif|avif|bmp)$/i.test(ext)) {
+        cb({ verdict: 'junk', reason: 'segment là ảnh (.' + ext.toLowerCase() + ')' });
+        return;
+      }
+      __uvdHealthFetch(segUrl, 'bytes=0-15').then(function(r2) {
+        return r2.arrayBuffer().then(function(buf) {
+          var magic = __uvdHealthMagic(buf);
+          if (!magic) { cb({ verdict: 'unknown' }); return; }
+          if (magic.indexOf('image/') === 0) { cb({ verdict: 'junk', reason: 'segment là ' + magic }); return; }
+          if (magic === 'text/html') { cb({ verdict: 'junk', reason: 'segment trả về HTML' }); return; }
+          cb({ verdict: 'ok', reason: magic });
+        });
+      }).catch(function() { cb({ verdict: 'unknown' }); });
+    });
+  }).catch(function() { cb({ verdict: 'unknown' }); });
+}
+
 function __uvdAddDetectedMediaUrl(url, type, source) {
   if (!url || typeof url !== 'string' || isAdUrl(url)) return false;
   // Android browsers may expose AV1 download links before the H.264 variant.
@@ -1158,6 +1263,7 @@ function __uvdAddDetectedMediaUrl(url, type, source) {
   if (!existing || existing.type !== type || existing.priority > priority) {
     urls.set(url, { type: type, source: source, priority: priority, timestamp: Date.now(), sequence: ++__uvdUrlSequence, verification: 'new', isMaster: type === 'M3U8' && /master\.m3u8/i.test(url) });
     if (__uvdIsDiggingDirectType(type)) __uvdQueueMediaVerification(url);
+    if (type === 'M3U8') __uvdQueueMediaHealth(url);
     __uvdMarkDiggingLinkFound(url, type);
     if (__uvdUserscriptFrameMode) {
       try {
@@ -8362,10 +8468,13 @@ function __uvdOpenMediaLinksPopup(streams) {
     body.className = 'uvd-plplain-body';
     var typeText = String(stream.type || 'MEDIA').toUpperCase();
     var badge = '<span class="uvd-plplain-badge">#' + (index + 1) + ' ' + typeText + '</span>';
-    if (isMultiQuality) badge += ' <span class="uvd-plplain-q">✨ đa chất lượng · ưu tiên</span>';
+    if (popupItem.health === 'junk') badge += ' <span class="uvd-plplain-q uvd-plplain-quality-only">🖼 PLAYLIST ẢNH</span>';
+    else if (isMultiQuality) badge += ' <span class="uvd-plplain-q">✨ đa chất lượng · ưu tiên</span>';
     else if (isQualityOnly) badge += ' <span class="uvd-plplain-q uvd-plplain-quality-only">QUALITY ONLY · xếp sau</span>';
     else if (hasMeta) badge += ' <span class="uvd-plplain-q">✨ có metadata</span>';
-    var popGuide = isQualityOnly
+    var popGuide = popupItem.health === 'junk'
+      ? '🖼 Playlist ảnh, không phải video — ' + escapeHtml(popupItem.healthReason || 'segment là ảnh') + '. Đừng bấm Xem nha.'
+      : isQualityOnly
       ? '📎 Chỉ có một quality/preview — Mèo xếp sau các link đa chất lượng nha.'
       : (String(stream.type || '').toUpperCase() === 'M3U8'
         ? '📺 Playlist HLS — bấm Xem để chọn chất lượng nha.'
@@ -8908,6 +9017,7 @@ function __uvdGetUrlResolution(url) {
 function __uvdStreamRank(item) {
   var type = String(item.type || '').toUpperCase();
   if (type === 'IFRAME') return 0;
+  if (item.health === 'junk') return 20;
   if (type === 'M3U8') {
     if (item.qualityCount > 1 || item.isMaster || /master\.m3u8|urlset|playlist/i.test(item.url)) return 100 + (item.qualityCount || 0);
     return 85;
@@ -8922,7 +9032,7 @@ function __uvdStreamRank(item) {
 var __uvdMainUiViewState = { tab: 'streams', scrollTop: 0 };
 function buildUI() {
   var arr = [...urls.entries()].map(function(e) {
-    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]), aiVerdict: e[1].aiVerdict || '', aiScore: e[1].aiScore == null ? null : e[1].aiScore, aiReasons: e[1].aiReasons || [] };
+    return { url: e[0], type: e[1].type, source: e[1].source, priority: e[1].priority, timestamp: e[1].timestamp || 0, sequence: e[1].sequence || 0, qualityCount: e[1].qualityCount || 0, isMaster: !!e[1].isMaster, resolution: __uvdGetUrlResolution(e[0]), aiVerdict: e[1].aiVerdict || '', aiScore: e[1].aiScore == null ? null : e[1].aiScore, aiReasons: e[1].aiReasons || [], health: e[1].health || '', healthReason: e[1].healthReason || '' };
   }).sort(function(a, b) { return (__uvdStreamRank(b) - __uvdStreamRank(a)) || ((a.sequence || 0) - (b.sequence || 0)); });
   // If a master playlist exists, keep its card as the canonical entry and
   // hide the variant playlists from the main list. They remain available
@@ -9407,11 +9517,15 @@ function buildStreamCardHTML(item, i) {
   }
   var actionMenuHtml = '<details class="uvd-action-menu uvd-thumb-menu"><summary title="Thao tác" aria-label="Thao tác">⋮</summary><div class="uvd-action-list">' + actionsHtml + '</div></details>';
   var metaLabel = item.resolution ? (' · ' + item.resolution) : '';
-  var statusText = isRejectedVideo ? (isAiMediaJunk ? 'AI NGHI RÁC' : 'RÁC ĐÃ HỌC') : ((type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview');
-  var statusClass = isRejectedVideo ? 'uvd-status-muted' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
+  var mediaHealth = item.health || '';
+  var statusText = (mediaHealth === 'junk')
+    ? 'ẢNH · KHÔNG PHẢI VIDEO'
+    : (isRejectedVideo ? (isAiMediaJunk ? 'AI NGHI RÁC' : 'RÁC ĐÃ HỌC') : ((type === 'MP4' || type === 'M3U8') ? 'đang xem preview…' : 'chưa có preview'));
+  var statusClass = (isRejectedVideo || mediaHealth === 'junk') ? 'uvd-status-muted' : ((type === 'MP4' || type === 'M3U8') ? 'uvd-status-loading' : 'uvd-status-muted');
   var guideText;
   if (isLearnedVideoJunk) guideText = '🚫 Domain này đã nhận 2+ vote 💩. Mèo sẽ không gọi đây là link thật và sẽ tự bỏ qua ở lần quét sau.';
   else if (isAiMediaJunk) guideText = '🤖 Gemini thấy metadata giống quảng cáo/rác' + (aiMediaItem.aiMediaReason ? ': ' + escapeHtml(aiMediaItem.aiMediaReason) : '') + '. Mèo tạm ẩn khỏi kết quả tự động.';
+  else if (type === 'M3U8' && mediaHealth === 'junk') guideText = '🖼 Playlist ảnh, không phải video — ' + escapeHtml(item.healthReason || 'segment là ảnh') + '. Mèo không tính link này là video thật nha.';
   else if (type === 'M3U8') guideText = 'Playlist HLS nè 📺 — bấm Xem để chọn chất lượng nha.';
   else if (type === 'MP4' || type === 'WEBM') guideText = 'Link video thật nè 📼 — bấm Xem để phát ngay nha.';
   else if (type === 'BLOB') guideText = 'Blob MediaSource nè 🌀 — bấm Xem để phát trực tiếp.';
